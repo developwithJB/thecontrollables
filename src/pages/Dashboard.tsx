@@ -18,11 +18,26 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
 const controllables: { type: ControllableType; emoji: string; title: string; description: string }[] = [
-  { type: "awareness", emoji: "🦉", title: "Awareness", description: "See things as they are. Reframe your thoughts with clarity." },
-  { type: "perspective", emoji: "🐢", title: "Perspective", description: "Pause before reacting. Find patience in the process." },
+  {
+    type: "awareness",
+    emoji: "🦉",
+    title: "Awareness",
+    description: "See things as they are. Reframe your thoughts with clarity.",
+  },
+  {
+    type: "perspective",
+    emoji: "🐢",
+    title: "Perspective",
+    description: "Pause before reacting. Find patience in the process.",
+  },
   { type: "habit", emoji: "🦈", title: "Habit", description: "Keep moving forward. Small actions build momentum." },
   { type: "wellness", emoji: "🛰️", title: "Wellness", description: "Maintain your systems. Balance body and mind." },
-  { type: "environment", emoji: "🚀", title: "Environment", description: "Shape your surroundings. Curate the people around you." },
+  {
+    type: "environment",
+    emoji: "🚀",
+    title: "Environment",
+    description: "Shape your surroundings. Curate the people around you.",
+  },
 ];
 
 export default function Dashboard() {
@@ -33,28 +48,25 @@ export default function Dashboard() {
     emoji: string;
     title: string;
   } | null>(null);
-  
+
   const { toast } = useToast();
   const navigate = useNavigate();
-  
-  const { 
-    currentStreak, 
-    longestStreak, 
-    todayCheckIn, 
+
+  const {
+    currentStreak,
+    longestStreak,
+    todayCheckIn,
     checkIns,
     isLoading: streaksLoading,
-    checkIn 
+    checkIn,
   } = useStreaks(user?.id);
-  
-  const {
-    activeChallenge,
-    startChallenge,
-    joinChallenge,
-    isLoading: challengeLoading,
-  } = useChallenge(user?.id);
+
+  const { activeChallenge, startChallenge, joinChallenge, isLoading: challengeLoading } = useChallenge(user?.id);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       if (!session) {
         navigate("/auth");
@@ -86,7 +98,7 @@ export default function Dashboard() {
     await checkIn(focus);
   };
 
-  const handleControllableClick = (c: typeof controllables[0]) => {
+  const handleControllableClick = (c: (typeof controllables)[0]) => {
     setSelectedControllable({
       type: c.type,
       emoji: c.emoji,
@@ -97,11 +109,7 @@ export default function Dashboard() {
   if (isLoading || streaksLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-muted-foreground"
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-muted-foreground">
           Loading...
         </motion.div>
       </div>
@@ -125,18 +133,14 @@ export default function Dashboard() {
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <Logo />
           <div className="flex items-center gap-3">
-            <a 
-              href="https://a.co/d/1DGPGEV"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://a.co/d/1DGPGEV" target="_blank" rel="noopener noreferrer">
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 <Book className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">The Book</span>
               </Button>
             </a>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={handleSignOut}
               className="text-muted-foreground hover:text-foreground"
@@ -157,17 +161,12 @@ export default function Dashboard() {
           className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         >
           <div>
-            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-1">
-              {greeting()}
-            </h1>
+            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-1">{greeting()}</h1>
             <p className="text-muted-foreground">
-              {isCheckedIn 
-                ? "You're all set. Go take action."
-                : "What will you focus on today?"
-              }
+              {isCheckedIn ? "You're all set. Go take action." : "What will you focus on today?"}
             </p>
           </div>
-          
+
           {/* Inline Streak Display */}
           <motion.div
             className="flex items-center gap-4 px-4 py-2 rounded-xl bg-card border shadow-soft"
@@ -197,11 +196,7 @@ export default function Dashboard() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            <DailyCheckIn 
-              isCheckedIn={isCheckedIn}
-              focus={todayFocus}
-              onCheckIn={handleCheckIn}
-            />
+            <DailyCheckIn isCheckedIn={isCheckedIn} focus={todayFocus} onCheckIn={handleCheckIn} />
 
             {/* Quick Actions */}
             <div className="grid sm:grid-cols-2 gap-4">
@@ -219,32 +214,29 @@ export default function Dashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.15 }}
-                onClick={() => setSelectedControllable({
-                  type: "awareness",
-                  emoji: "🦉",
-                  title: "Awareness"
-                })}
+                onClick={() =>
+                  setSelectedControllable({
+                    type: "awareness",
+                    emoji: "🦉",
+                    title: "Awareness",
+                  })
+                }
               >
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
                     <MessageCircle className="w-5 h-5 text-accent" />
                   </div>
-                  <h3 className="font-display font-semibold text-foreground">Talk to a Guide</h3>
+                  <h3 className="font-display font-semibold text-foreground">Talk to The Controllables</h3>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Chat with your Controllables for clarity
-                </p>
+                <p className="text-sm text-muted-foreground">Chat with your Controllables for clarity</p>
               </motion.button>
             </div>
 
-            {/* Streak History - now below Challenge and Talk to Guide */}
+            {/* Streak History - now below Challenge and Talk to The Controllables */}
             <StreakHistory checkIns={checkIns} />
 
             {/* Challenge List */}
-            <ChallengeList 
-              userId={user?.id}
-              onSelectChallenge={() => navigate("/challenge")}
-            />
+            <ChallengeList userId={user?.id} onSelectChallenge={() => navigate("/challenge")} />
           </div>
 
           {/* Right Column - Controllables */}
@@ -261,12 +253,7 @@ export default function Dashboard() {
                 onClick={() => handleControllableClick(c)}
                 className="cursor-pointer"
               >
-                <ControllableCard
-                  type={c.type}
-                  emoji={c.emoji}
-                  title={c.title}
-                  description={c.description}
-                />
+                <ControllableCard type={c.type} emoji={c.emoji} title={c.title} description={c.description} />
               </motion.div>
             ))}
 
@@ -287,7 +274,7 @@ export default function Dashboard() {
       <footer className="max-w-5xl mx-auto px-6 py-8 mt-12 border-t">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <p>© {new Date().getFullYear()} The Controllables</p>
-          <a 
+          <a
             href="https://a.co/d/1DGPGEV"
             target="_blank"
             rel="noopener noreferrer"
