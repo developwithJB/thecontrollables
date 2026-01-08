@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Compass, Users, User, Copy, Check } from "lucide-react";
+import { Compass, Users, User, Copy, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -9,8 +9,8 @@ import { CHALLENGE_DAYS, type Challenge } from "@/hooks/useChallenge";
 
 interface ChallengeCardProps {
   activeChallenge: Challenge | null;
-  onStartSolo: () => Promise<Challenge | null>;
-  onStartWithFriends: () => Promise<Challenge | null>;
+  onStartSolo: (name: string) => Promise<Challenge | null>;
+  onStartWithFriends: (name: string) => Promise<Challenge | null>;
   onJoin: (code: string) => Promise<boolean>;
   onViewChallenge: () => void;
 }
@@ -22,7 +22,9 @@ export function ChallengeCard({
   onJoin,
   onViewChallenge,
 }: ChallengeCardProps) {
-  const [mode, setMode] = useState<"choice" | "join">("choice");
+  const [mode, setMode] = useState<"choice" | "naming" | "join">("choice");
+  const [challengeType, setChallengeType] = useState<"solo" | "friends">("solo");
+  const [challengeName, setChallengeName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -62,7 +64,7 @@ export function ChallengeCard({
               Day {currentDay}: {dayInfo.theme}
             </h3>
             <p className="text-xs text-muted-foreground">
-              {activeChallenge.is_solo ? "Solo Challenge" : "Group Challenge"}
+              {activeChallenge.name}
             </p>
           </div>
         </div>
@@ -83,6 +85,73 @@ export function ChallengeCard({
             Code: {activeChallenge.invite_code}
           </button>
         )}
+      </motion.div>
+    );
+  }
+
+  if (mode === "naming") {
+    return (
+      <motion.div
+        className="p-5 rounded-xl bg-card border shadow-soft"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display font-semibold text-foreground">Name Your Challenge</h3>
+          <Button variant="ghost" size="icon" onClick={() => setMode("choice")}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+        
+        <div className="space-y-4">
+          <Input
+            value={challengeName}
+            onChange={(e) => setChallengeName(e.target.value)}
+            placeholder="e.g., January Reset, Morning Focus..."
+            className="text-sm"
+          />
+          
+          <div className="flex gap-2">
+            <Button
+              variant={challengeType === "solo" ? "default" : "outline"}
+              size="sm"
+              className="flex-1 gap-2"
+              onClick={() => setChallengeType("solo")}
+            >
+              <User className="w-4 h-4" />
+              Solo
+            </Button>
+            <Button
+              variant={challengeType === "friends" ? "default" : "outline"}
+              size="sm"
+              className="flex-1 gap-2"
+              onClick={() => setChallengeType("friends")}
+            >
+              <Users className="w-4 h-4" />
+              Friends
+            </Button>
+          </div>
+
+          <Button
+            className="w-full"
+            onClick={async () => {
+              setIsLoading(true);
+              const name = challengeName.trim() || "7-Day Dashboard Challenge";
+              const challenge = challengeType === "solo" 
+                ? await onStartSolo(name)
+                : await onStartWithFriends(name);
+              setIsLoading(false);
+              if (challenge) {
+                setMode("choice");
+                setChallengeName("");
+                onViewChallenge();
+              }
+            }}
+            disabled={isLoading}
+          >
+            {isLoading ? "Starting..." : "Start Challenge"}
+          </Button>
+        </div>
       </motion.div>
     );
   }
@@ -163,13 +232,10 @@ export function ChallengeCard({
         <Button
           variant="outline"
           className="w-full justify-start gap-3 h-auto py-3"
-          onClick={async () => {
-            setIsLoading(true);
-            const challenge = await onStartSolo();
-            setIsLoading(false);
-            if (challenge) onViewChallenge();
+          onClick={() => {
+            setChallengeType("solo");
+            setMode("naming");
           }}
-          disabled={isLoading}
         >
           <User className="w-4 h-4 text-muted-foreground" />
           <div className="text-left">
@@ -181,13 +247,10 @@ export function ChallengeCard({
         <Button
           variant="outline"
           className="w-full justify-start gap-3 h-auto py-3"
-          onClick={async () => {
-            setIsLoading(true);
-            const challenge = await onStartWithFriends();
-            setIsLoading(false);
-            if (challenge) onViewChallenge();
+          onClick={() => {
+            setChallengeType("friends");
+            setMode("naming");
           }}
-          disabled={isLoading}
         >
           <Users className="w-4 h-4 text-muted-foreground" />
           <div className="text-left">

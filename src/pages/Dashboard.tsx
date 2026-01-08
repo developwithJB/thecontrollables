@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { LogOut, Book, MessageCircle } from "lucide-react";
+import { LogOut, Book, MessageCircle, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { StreakDisplay } from "@/components/StreakDisplay";
 import { StreakHistory } from "@/components/StreakHistory";
 import { DailyCheckIn } from "@/components/DailyCheckIn";
 import { ControllableCard, ControllableType } from "@/components/ControllableCard";
 import { ChallengeCard } from "@/components/ChallengeCard";
+import { ChallengeList } from "@/components/ChallengeList";
+import { NewChallengeCard } from "@/components/NewChallengeCard";
 import { AIChat } from "@/components/AIChat";
 import { useToast } from "@/hooks/use-toast";
 import { useStreaks } from "@/hooks/useStreaks";
@@ -148,21 +149,49 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-6 py-8">
+        {/* Greeting with Streak Info */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-8"
+          className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         >
-          <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-1">
-            {greeting()}
-          </h1>
-          <p className="text-muted-foreground">
-            {isCheckedIn 
-              ? "You're all set. Go take action."
-              : "What will you focus on today?"
-            }
-          </p>
+          <div>
+            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-1">
+              {greeting()}
+            </h1>
+            <p className="text-muted-foreground">
+              {isCheckedIn 
+                ? "You're all set. Go take action."
+                : "What will you focus on today?"
+              }
+            </p>
+          </div>
+          
+          {/* Inline Streak Display */}
+          <motion.div
+            className="flex items-center gap-4 px-4 py-2 rounded-xl bg-card border shadow-soft"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
+            <div className="flex items-center gap-2">
+              <Flame className={currentStreak > 0 ? "w-5 h-5 text-accent" : "w-5 h-5 text-muted-foreground"} />
+              <div className="text-center">
+                <span className="font-display text-xl font-bold text-foreground">{currentStreak}</span>
+                <span className="text-xs text-muted-foreground ml-1">current</span>
+              </div>
+            </div>
+            {longestStreak > 0 && (
+              <>
+                <div className="w-px h-6 bg-border" />
+                <div className="text-center">
+                  <span className="font-display text-xl font-bold text-foreground">{longestStreak}</span>
+                  <span className="text-xs text-muted-foreground ml-1">best</span>
+                </div>
+              </>
+            )}
+          </motion.div>
         </motion.div>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -174,19 +203,12 @@ export default function Dashboard() {
               onCheckIn={handleCheckIn}
             />
 
-            <StreakDisplay 
-              currentStreak={currentStreak}
-              longestStreak={longestStreak}
-            />
-
-            <StreakHistory checkIns={checkIns} />
-
             {/* Quick Actions */}
             <div className="grid sm:grid-cols-2 gap-4">
               <ChallengeCard
                 activeChallenge={activeChallenge}
-                onStartSolo={() => startChallenge(true)}
-                onStartWithFriends={() => startChallenge(false)}
+                onStartSolo={(name) => startChallenge(true, name)}
+                onStartWithFriends={(name) => startChallenge(false, name)}
                 onJoin={joinChallenge}
                 onViewChallenge={() => navigate("/challenge")}
               />
@@ -214,6 +236,15 @@ export default function Dashboard() {
                 </p>
               </motion.button>
             </div>
+
+            {/* Streak History - now below Challenge and Talk to Guide */}
+            <StreakHistory checkIns={checkIns} />
+
+            {/* Challenge List */}
+            <ChallengeList 
+              userId={user?.id}
+              onSelectChallenge={() => navigate("/challenge")}
+            />
           </div>
 
           {/* Right Column - Controllables */}
@@ -238,6 +269,16 @@ export default function Dashboard() {
                 />
               </motion.div>
             ))}
+
+            {/* New Challenge Card - below controllables */}
+            <div className="mt-6 pt-6 border-t">
+              <NewChallengeCard
+                onStartSolo={(name) => startChallenge(true, name)}
+                onStartWithFriends={(name) => startChallenge(false, name)}
+                onJoin={joinChallenge}
+                onViewChallenge={() => navigate("/challenge")}
+              />
+            </div>
           </div>
         </div>
       </main>
