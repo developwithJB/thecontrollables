@@ -36,7 +36,7 @@ interface StreakHistoryProps {
 type ViewMode = "month" | "week" | "day";
 
 export function StreakHistory({ checkIns, onDaySelect }: StreakHistoryProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>("month");
+  const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -92,10 +92,7 @@ export function StreakHistory({ checkIns, onDaySelect }: StreakHistoryProps) {
       <div className="space-y-2">
         <div className="grid grid-cols-7 gap-1">
           {weekDays.map((day) => (
-            <div
-              key={day}
-              className="text-center text-xs font-medium text-muted-foreground py-2"
-            >
+            <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
               {day}
             </div>
           ))}
@@ -115,20 +112,13 @@ export function StreakHistory({ checkIns, onDaySelect }: StreakHistoryProps) {
                   !isCurrentMonth && "opacity-30",
                   isSelected && "ring-2 ring-accent ring-offset-2 ring-offset-background",
                   isTodayDate && !isSelected && "ring-1 ring-foreground/20",
-                  checkIn?.completed
-                    ? "bg-accent/20 hover:bg-accent/30"
-                    : "hover:bg-muted"
+                  checkIn?.completed ? "bg-accent/20 hover:bg-accent/30" : "hover:bg-muted",
                 )}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleDayClick(day)}
               >
-                <span
-                  className={cn(
-                    "text-sm font-medium",
-                    checkIn?.completed ? "text-accent" : "text-foreground"
-                  )}
-                >
+                <span className={cn("text-sm font-medium", checkIn?.completed ? "text-accent" : "text-foreground")}>
                   {format(day, "d")}
                 </span>
                 {checkIn?.completed && (
@@ -162,36 +152,23 @@ export function StreakHistory({ checkIns, onDaySelect }: StreakHistoryProps) {
                   "p-3 rounded-xl flex flex-col items-center gap-2 transition-all",
                   isSelected && "ring-2 ring-accent ring-offset-2 ring-offset-background",
                   isTodayDate && !isSelected && "ring-1 ring-foreground/20",
-                  checkIn?.completed
-                    ? "bg-accent/20 hover:bg-accent/30"
-                    : "bg-card hover:bg-muted"
+                  checkIn?.completed ? "bg-accent/20 hover:bg-accent/30" : "bg-card hover:bg-muted",
                 )}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleDayClick(day)}
               >
-                <span className="text-xs text-muted-foreground">
-                  {format(day, "EEE")}
-                </span>
-                <span
-                  className={cn(
-                    "text-lg font-bold",
-                    checkIn?.completed ? "text-accent" : "text-foreground"
-                  )}
-                >
+                <span className="text-xs text-muted-foreground">{format(day, "EEE")}</span>
+                <span className={cn("text-lg font-bold", checkIn?.completed ? "text-accent" : "text-foreground")}>
                   {format(day, "d")}
                 </span>
-                {checkIn?.completed && (
-                  <div className="w-2 h-2 rounded-full bg-accent" />
-                )}
+                {checkIn?.completed && <div className="w-2 h-2 rounded-full bg-accent" />}
               </motion.button>
             );
           })}
         </div>
 
-        {selectedDate && (
-          <DayDetail date={selectedDate} checkIn={getCheckInForDate(selectedDate)} />
-        )}
+        {selectedDate && <DayDetail date={selectedDate} checkIn={getCheckInForDate(selectedDate)} />}
       </div>
     );
   };
@@ -227,9 +204,7 @@ export function StreakHistory({ checkIns, onDaySelect }: StreakHistoryProps) {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Calendar className="w-5 h-5 text-accent" />
-          <h2 className="font-display text-lg font-semibold text-foreground">
-            Streak History
-          </h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">Streak History</h2>
         </div>
 
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
@@ -258,10 +233,10 @@ export function StreakHistory({ checkIns, onDaySelect }: StreakHistoryProps) {
           {viewMode === "month"
             ? format(currentDate, "MMMM yyyy")
             : viewMode === "week"
-            ? `Week of ${format(startOfWeek(currentDate), "MMM d")}`
-            : selectedDate
-            ? format(selectedDate, "MMMM d, yyyy")
-            : format(currentDate, "MMMM d, yyyy")}
+              ? `Week of ${format(startOfWeek(currentDate), "MMM d")}`
+              : selectedDate
+                ? format(selectedDate, "MMMM d, yyyy")
+                : format(currentDate, "MMMM d, yyyy")}
         </h3>
         <Button variant="ghost" size="icon" onClick={handleNext}>
           <ChevronRight className="w-4 h-4" />
@@ -312,13 +287,9 @@ function DayDetail({ date, checkIn, onSelectPrev, onSelectNext }: DayDetailProps
 
       <div className="p-4 rounded-lg bg-muted/30">
         <div className="flex items-center justify-between mb-2">
-          <span className="font-display font-semibold text-foreground">
-            {format(date, "EEEE, MMMM d")}
-          </span>
+          <span className="font-display font-semibold text-foreground">{format(date, "EEEE, MMMM d")}</span>
           {isTodayDate && (
-            <span className="text-xs font-medium text-accent bg-accent/10 px-2 py-1 rounded-full">
-              Today
-            </span>
+            <span className="text-xs font-medium text-accent bg-accent/10 px-2 py-1 rounded-full">Today</span>
           )}
         </div>
 
