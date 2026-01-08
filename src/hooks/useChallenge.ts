@@ -182,16 +182,18 @@ export function useChallenge(userId: string | undefined) {
     fetchActiveChallenge();
   }, [fetchActiveChallenge]);
 
-  const startChallenge = async (isSolo: boolean): Promise<Challenge | null> => {
+  const startChallenge = async (isSolo: boolean, name?: string): Promise<Challenge | null> => {
     if (!userId) return null;
 
     try {
       const inviteCode = isSolo ? null : generateInviteCode();
+      const challengeName = name?.trim() || "7-Day Dashboard Challenge";
       
       const { data, error } = await supabase
         .from("challenges")
         .insert({
           creator_id: userId,
+          name: challengeName,
           is_solo: isSolo,
           invite_code: inviteCode,
           start_date: new Date().toISOString().split('T')[0],
