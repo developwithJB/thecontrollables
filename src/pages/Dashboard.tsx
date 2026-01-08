@@ -5,6 +5,7 @@ import { LogOut, Book, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { StreakDisplay } from "@/components/StreakDisplay";
+import { StreakHistory } from "@/components/StreakHistory";
 import { DailyCheckIn } from "@/components/DailyCheckIn";
 import { ControllableCard, ControllableType } from "@/components/ControllableCard";
 import { ChallengeCard } from "@/components/ChallengeCard";
@@ -39,6 +40,7 @@ export default function Dashboard() {
     currentStreak, 
     longestStreak, 
     todayCheckIn, 
+    checkIns,
     isLoading: streaksLoading,
     checkIn 
   } = useStreaks(user?.id);
@@ -176,6 +178,8 @@ export default function Dashboard() {
               currentStreak={currentStreak}
               longestStreak={longestStreak}
             />
+
+            <StreakHistory checkIns={checkIns} />
 
             {/* Quick Actions */}
             <div className="grid sm:grid-cols-2 gap-4">

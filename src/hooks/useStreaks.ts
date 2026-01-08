@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface CheckIn {
+export interface CheckIn {
   id: string;
   check_in_date: string;
   daily_focus: string | null;
