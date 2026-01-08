@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { LogOut, Book, MessageCircle, Compass } from "lucide-react";
+import { LogOut, Book, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { StreakDisplay } from "@/components/StreakDisplay";
 import { DailyCheckIn } from "@/components/DailyCheckIn";
 import { ControllableCard, ControllableType } from "@/components/ControllableCard";
+import { ChallengeCard } from "@/components/ChallengeCard";
+import { AIChat } from "@/components/AIChat";
 import { useToast } from "@/hooks/use-toast";
+import { useStreaks } from "@/hooks/useStreaks";
+import { useChallenge } from "@/hooks/useChallenge";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -22,12 +26,29 @@ const controllables: { type: ControllableType; emoji: string; title: string; des
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [todayFocus, setTodayFocus] = useState("");
-  const [currentStreak, setCurrentStreak] = useState(0);
-  const [longestStreak, setLongestStreak] = useState(0);
+  const [selectedControllable, setSelectedControllable] = useState<{
+    type: ControllableType;
+    emoji: string;
+    title: string;
+  } | null>(null);
+  
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  const { 
+    currentStreak, 
+    longestStreak, 
+    todayCheckIn, 
+    isLoading: streaksLoading,
+    checkIn 
+  } = useStreaks(user?.id);
+  
+  const {
+    activeChallenge,
+    startChallenge,
+    joinChallenge,
+    isLoading: challengeLoading,
+  } = useChallenge(user?.id);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -59,19 +80,18 @@ export default function Dashboard() {
   };
 
   const handleCheckIn = async (focus: string) => {
-    setTodayFocus(focus);
-    setIsCheckedIn(true);
-    setCurrentStreak(prev => prev + 1);
-    if (currentStreak + 1 > longestStreak) {
-      setLongestStreak(currentStreak + 1);
-    }
-    toast({
-      title: "You're checked in!",
-      description: "Go take action. Come back tomorrow.",
+    await checkIn(focus);
+  };
+
+  const handleControllableClick = (c: typeof controllables[0]) => {
+    setSelectedControllable({
+      type: c.type,
+      emoji: c.emoji,
+      title: c.title,
     });
   };
 
-  if (isLoading) {
+  if (isLoading || streaksLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <motion.div
@@ -91,6 +111,9 @@ export default function Dashboard() {
     if (hour < 18) return "Good afternoon";
     return "Good evening";
   };
+
+  const isCheckedIn = !!todayCheckIn;
+  const todayFocus = todayCheckIn?.daily_focus || "";
 
   return (
     <div className="min-h-screen bg-background">
@@ -156,23 +179,13 @@ export default function Dashboard() {
 
             {/* Quick Actions */}
             <div className="grid sm:grid-cols-2 gap-4">
-              <motion.button
-                className="p-5 rounded-xl bg-card border shadow-soft text-left group hover:border-accent/30 transition-all"
-                whileHover={{ y: -2 }}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
-                    <Compass className="w-5 h-5 text-accent" />
-                  </div>
-                  <h3 className="font-display font-semibold text-foreground">7-Day Challenge</h3>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  A guided journey through all 5 Controllables
-                </p>
-              </motion.button>
+              <ChallengeCard
+                activeChallenge={activeChallenge}
+                onStartSolo={() => startChallenge(true)}
+                onStartWithFriends={() => startChallenge(false)}
+                onJoin={joinChallenge}
+                onViewChallenge={() => navigate("/challenge")}
+              />
 
               <motion.button
                 className="p-5 rounded-xl bg-card border shadow-soft text-left group hover:border-accent/30 transition-all"
@@ -180,6 +193,11 @@ export default function Dashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.15 }}
+                onClick={() => setSelectedControllable({
+                  type: "awareness",
+                  emoji: "🦉",
+                  title: "Awareness"
+                })}
               >
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
@@ -205,6 +223,8 @@ export default function Dashboard() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: 0.1 + i * 0.05 }}
+                onClick={() => handleControllableClick(c)}
+                className="cursor-pointer"
               >
                 <ControllableCard
                   type={c.type}
@@ -232,6 +252,17 @@ export default function Dashboard() {
           </a>
         </div>
       </footer>
+
+      {/* AI Chat Modal */}
+      {selectedControllable && (
+        <AIChat
+          controllable={selectedControllable.type}
+          emoji={selectedControllable.emoji}
+          title={selectedControllable.title}
+          isOpen={!!selectedControllable}
+          onClose={() => setSelectedControllable(null)}
+        />
+      )}
     </div>
   );
 }
