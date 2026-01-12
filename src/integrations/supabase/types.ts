@@ -179,6 +179,50 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_resets: {
+        Row: {
+          commitment: string | null
+          completed_at: string
+          created_at: string
+          day_number: number
+          id: string
+          reflection: string | null
+          release: string | null
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          commitment?: string | null
+          completed_at?: string
+          created_at?: string
+          day_number: number
+          id?: string
+          reflection?: string | null
+          release?: string | null
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          commitment?: string | null
+          completed_at?: string
+          created_at?: string
+          day_number?: number
+          id?: string
+          reflection?: string | null
+          release?: string | null
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_resets_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "reset_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -200,6 +244,36 @@ export type Database = {
           display_name?: string | null
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      reset_sessions: {
+        Row: {
+          created_at: string
+          current_day: number
+          id: string
+          invite_code: string | null
+          start_date: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_day?: number
+          id?: string
+          invite_code?: string | null
+          start_date?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_day?: number
+          id?: string
+          invite_code?: string | null
+          start_date?: string
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }

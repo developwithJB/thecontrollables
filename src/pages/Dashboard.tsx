@@ -1,48 +1,28 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { LogOut, Book, MessageCircle, Flame } from "lucide-react";
+import { LogOut, Book, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { StreakHistory } from "@/components/StreakHistory";
-import { DailyCheckIn } from "@/components/DailyCheckIn";
 import { ControllableCard, ControllableType } from "@/components/ControllableCard";
-import { ChallengeCard } from "@/components/ChallengeCard";
-import { ChallengeList } from "@/components/ChallengeList";
-import { NewChallengeCard } from "@/components/NewChallengeCard";
 import { AIChat } from "@/components/AIChat";
 import { useToast } from "@/hooks/use-toast";
-import { useStreaks } from "@/hooks/useStreaks";
-import { useChallenge } from "@/hooks/useChallenge";
+import { useReset } from "@/hooks/useReset";
 import { supabase } from "@/integrations/supabase/client";
+import { getDayContent } from "@/lib/resetContent";
 import type { User } from "@supabase/supabase-js";
 
-const controllables: { type: ControllableType; emoji: string; title: string; description: string }[] = [
-  {
-    type: "awareness",
-    emoji: "🦉",
-    title: "Awareness",
-    description: "See things as they are. Reframe your thoughts with clarity.",
-  },
-  {
-    type: "perspective",
-    emoji: "🐢",
-    title: "Perspective",
-    description: "Pause before reacting. Find patience in the process.",
-  },
-  { type: "habit", emoji: "🦈", title: "Habit", description: "Keep moving forward. Small actions build momentum." },
-  { type: "wellness", emoji: "🛰️", title: "Wellness", description: "Maintain your systems. Balance body and mind." },
-  {
-    type: "environment",
-    emoji: "🚀",
-    title: "Environment",
-    description: "Shape your surroundings. Curate the people around you.",
-  },
+const controllables: { type: ControllableType; emoji: string; title: string }[] = [
+  { type: "awareness", emoji: "🦉", title: "Awareness" },
+  { type: "perspective", emoji: "🐢", title: "Perspective" },
+  { type: "habit", emoji: "🦈", title: "Habit" },
+  { type: "wellness", emoji: "🛰️", title: "Wellness" },
+  { type: "environment", emoji: "🚀", title: "Environment" },
 ];
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [selectedControllable, setSelectedControllable] = useState<{
     type: ControllableType;
     emoji: string;
@@ -51,17 +31,7 @@ export default function Dashboard() {
 
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  const {
-    currentStreak,
-    longestStreak,
-    todayCheckIn,
-    checkIns,
-    isLoading: streaksLoading,
-    checkIn,
-  } = useStreaks(user?.id);
-
-  const { activeChallenge, startChallenge, joinChallenge, isLoading: challengeLoading } = useChallenge(user?.id);
+  const { activeSession, currentDay, isCompleted, isLoading: resetLoading, completedDays } = useReset();
 
   useEffect(() => {
     const {
@@ -71,7 +41,7 @@ export default function Dashboard() {
       if (!session) {
         navigate("/auth");
       }
-      setIsLoading(false);
+      setIsAuthLoading(false);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -79,7 +49,7 @@ export default function Dashboard() {
       if (!session) {
         navigate("/auth");
       }
-      setIsLoading(false);
+      setIsAuthLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -89,24 +59,12 @@ export default function Dashboard() {
     await supabase.auth.signOut();
     toast({
       title: "Signed out",
-      description: "See you tomorrow!",
+      description: "See you tomorrow.",
     });
     navigate("/");
   };
 
-  const handleCheckIn = async (focus: string) => {
-    await checkIn(focus);
-  };
-
-  const handleControllableClick = (c: (typeof controllables)[0]) => {
-    setSelectedControllable({
-      type: c.type,
-      emoji: c.emoji,
-      title: c.title,
-    });
-  };
-
-  if (isLoading || streaksLoading) {
+  if (isAuthLoading || resetLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-muted-foreground">
@@ -118,30 +76,31 @@ export default function Dashboard() {
 
   const greeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
+    if (hour < 12) return "Good morning.";
+    if (hour < 18) return "Good afternoon.";
+    return "Good evening.";
   };
 
-  const isCheckedIn = !!todayCheckIn;
-  const todayFocus = todayCheckIn?.daily_focus || "";
+  const todayContent = activeSession && !isCompleted ? getDayContent(currentDay) : null;
+
+  // Check if today's day is already completed
+  const todayAlreadyCompleted = completedDays.some((d) => d.day_number === currentDay);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-md mx-auto px-6 py-4 flex items-center justify-between">
           <Logo />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <a href="https://a.co/d/1DGPGEV" target="_blank" rel="noopener noreferrer">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                <Book className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">The Book</span>
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                <Book className="w-4 h-4" />
               </Button>
             </a>
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={handleSignOut}
               className="text-muted-foreground hover:text-foreground"
             >
@@ -152,137 +111,107 @@ export default function Dashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-6 py-8">
-        {/* Greeting with Streak Info */}
+      <main className="flex-1 max-w-md mx-auto px-6 py-8 w-full">
+        {/* Greeting */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          className="mb-8"
         >
-          <div>
-            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-1">{greeting()}</h1>
-            <p className="text-muted-foreground">
-              {isCheckedIn ? "You're all set. Go take action." : "What will you focus on today?"}
-            </p>
-          </div>
-
-          {/* Inline Streak Display */}
-          <motion.div
-            className="flex items-center gap-4 px-4 py-2 rounded-xl bg-card border shadow-soft"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-          >
-            <div className="flex items-center gap-2">
-              <Flame className={currentStreak > 0 ? "w-5 h-5 text-accent" : "w-5 h-5 text-muted-foreground"} />
-              <div className="text-center">
-                <span className="font-display text-xl font-bold text-foreground">{currentStreak}</span>
-                <span className="text-xs text-muted-foreground ml-1">current</span>
-              </div>
-            </div>
-            {longestStreak > 0 && (
-              <>
-                <div className="w-px h-6 bg-border" />
-                <div className="text-center">
-                  <span className="font-display text-xl font-bold text-foreground">{longestStreak}</span>
-                  <span className="text-xs text-muted-foreground ml-1">best</span>
-                </div>
-              </>
-            )}
-          </motion.div>
+          <h1 className="font-display text-2xl font-semibold text-foreground">{greeting()}</h1>
         </motion.div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Left Column - Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            <DailyCheckIn isCheckedIn={isCheckedIn} focus={todayFocus} onCheckIn={handleCheckIn} />
-
-            {/* Quick Actions */}
-            <div className="grid sm:grid-cols-2 gap-4">
-              <ChallengeCard
-                activeChallenge={activeChallenge}
-                onStartSolo={(name) => startChallenge(true, name)}
-                onStartWithFriends={(name) => startChallenge(false, name)}
-                onJoin={joinChallenge}
-                onViewChallenge={() => navigate("/challenge")}
-              />
-
-              <motion.button
-                className="p-5 rounded-xl bg-card border shadow-soft text-left group hover:border-accent/30 transition-all"
-                whileHover={{ y: -2 }}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.15 }}
-                onClick={() =>
-                  setSelectedControllable({
-                    type: "awareness",
-                    emoji: "🦉",
-                    title: "Awareness",
-                  })
-                }
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
-                    <MessageCircle className="w-5 h-5 text-accent" />
-                  </div>
-                  <h3 className="font-display font-semibold text-foreground">Talk to The Controllables</h3>
-                </div>
-                <p className="text-sm text-muted-foreground">Chat with your Controllables for clarity</p>
-              </motion.button>
+        {/* Reset Status Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="p-6 rounded-2xl bg-card border shadow-soft mb-6"
+        >
+          {!activeSession ? (
+            // No active reset
+            <div className="text-center">
+              <p className="text-muted-foreground mb-4">Ready to begin your 7-Day Reset?</p>
+              <Button onClick={() => navigate("/reset")} className="w-full h-12 text-base">
+                Start My Reset
+              </Button>
             </div>
+          ) : isCompleted ? (
+            // Reset completed
+            <div className="text-center">
+              <div className="text-4xl mb-3">⚡</div>
+              <h2 className="font-display font-semibold text-foreground mb-2">Reset Complete</h2>
+              <p className="text-muted-foreground text-sm mb-4">Carry forward what you've learned.</p>
+              <Button onClick={() => navigate("/reset")} variant="outline" className="w-full">
+                Start a New Reset
+              </Button>
+            </div>
+          ) : todayAlreadyCompleted ? (
+            // Today already done
+            <div className="text-center">
+              <div className="text-4xl mb-3">✨</div>
+              <h2 className="font-display font-semibold text-foreground mb-1">You've reset for today.</h2>
+              <p className="text-muted-foreground text-sm">Come back tomorrow for Day {currentDay + 1}.</p>
+            </div>
+          ) : (
+            // Active reset, ready for today
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-2">Day {currentDay} of 7</p>
+              <div className="text-4xl mb-2">{todayContent?.emoji}</div>
+              <h2 className="font-display font-semibold text-foreground mb-1">"{todayContent?.theme}"</h2>
+              <p className="text-muted-foreground text-sm mb-4">{todayContent?.controllable}</p>
+              <Button onClick={() => navigate("/reset")} className="w-full h-12 text-base">
+                Continue Reset
+              </Button>
+            </div>
+          )}
+        </motion.div>
 
-            {/* Streak History - now below Challenge and Talk to The Controllables */}
-            <StreakHistory checkIns={checkIns} />
+        {/* Divider */}
+        <div className="border-t my-6" />
 
-            {/* Challenge List */}
-            <ChallengeList userId={user?.id} onSelectChallenge={() => navigate("/challenge")} />
-          </div>
-
-          {/* Right Column - Controllables */}
-          <div className="space-y-3">
-            <h2 className="font-display font-semibold text-sm uppercase tracking-wide text-muted-foreground mb-4">
-              The 5 Controllables
-            </h2>
-            {controllables.map((c, i) => (
-              <motion.div
+        {/* Talk to a Controllable */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="mb-6"
+        >
+          <h2 className="text-sm uppercase tracking-wider text-muted-foreground font-medium mb-4">
+            Talk to a Controllable
+          </h2>
+          <div className="flex justify-center gap-3">
+            {controllables.map((c) => (
+              <button
                 key={c.type}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 + i * 0.05 }}
-                onClick={() => handleControllableClick(c)}
-                className="cursor-pointer"
+                onClick={() => setSelectedControllable(c)}
+                className="w-12 h-12 rounded-full bg-muted/50 hover:bg-muted flex items-center justify-center text-2xl transition-colors"
               >
-                <ControllableCard type={c.type} emoji={c.emoji} title={c.title} description={c.description} />
-              </motion.div>
+                {c.emoji}
+              </button>
             ))}
-
-            {/* New Challenge Card - below controllables */}
-            <div className="mt-6 pt-6 border-t">
-              <NewChallengeCard
-                onStartSolo={(name) => startChallenge(true, name)}
-                onStartWithFriends={(name) => startChallenge(false, name)}
-                onJoin={joinChallenge}
-                onViewChallenge={() => navigate("/challenge")}
-              />
-            </div>
           </div>
-        </div>
+        </motion.div>
+
+        {/* Book Link */}
+        <motion.a
+          href="https://a.co/d/1DGPGEV"
+          target="_blank"
+          rel="noopener noreferrer"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+          className="block p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors text-center"
+        >
+          <Book className="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">📖 The Book</p>
+        </motion.a>
       </main>
 
       {/* Footer */}
-      <footer className="max-w-5xl mx-auto px-6 py-8 mt-12 border-t">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} The Controllables</p>
-          <a
-            href="https://a.co/d/1DGPGEV"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-foreground transition-colors"
-          >
-            Get the book →
-          </a>
-        </div>
+      <footer className="max-w-md mx-auto px-6 py-6 text-center">
+        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} The Controllables</p>
       </footer>
 
       {/* AI Chat Modal */}
