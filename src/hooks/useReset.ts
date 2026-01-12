@@ -29,16 +29,19 @@ export const useReset = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [userId, setUserId] = useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUserId(user?.id || null);
+      setIsAuthLoading(false);
     };
     getUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setUserId(session?.user?.id || null);
+      setIsAuthLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -185,7 +188,7 @@ export const useReset = () => {
     completedDays,
     currentDay: Math.min(currentDay, 7),
     isCompleted,
-    isLoading: isLoadingSession || isLoadingDays,
+    isLoading: isAuthLoading || isLoadingSession || isLoadingDays,
     startReset: startResetMutation.mutate,
     isStarting: startResetMutation.isPending,
     completeDay: completeDayMutation.mutate,
