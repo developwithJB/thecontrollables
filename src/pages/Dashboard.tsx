@@ -7,6 +7,7 @@ import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
 import { useReset } from "@/hooks/useReset";
 import { useLifeDashboard, XP_VALUES } from "@/hooks/useLifeDashboard";
+import { useDailyReadings } from "@/hooks/useDailyReadings";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayContent, RESET_DAYS } from "@/lib/resetContent";
 import { useQuery } from "@tanstack/react-query";
@@ -42,6 +43,8 @@ export default function Dashboard() {
     activeQuest,
     createQuest,
     isCreatingQuest,
+    updateQuest,
+    isUpdatingQuest,
     totalXp,
     xpLogs,
     integrityScore,
@@ -54,6 +57,9 @@ export default function Dashboard() {
     userBuild,
     updateBuild,
   } = useLifeDashboard();
+
+  // Daily readings from database
+  const { readings, isLoading: readingsLoading } = useDailyReadings();
 
   // Fetch all reset sessions for history
   const { data: allSessions = [], isLoading: sessionsLoading } = useQuery({
@@ -122,7 +128,7 @@ export default function Dashboard() {
     return allCompletedDays.filter((d) => d.session_id === sessionId).length;
   };
 
-  if (isAuthLoading || resetLoading || dashboardLoading || sessionsLoading) {
+  if (isAuthLoading || resetLoading || dashboardLoading || sessionsLoading || readingsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-muted-foreground">
@@ -214,7 +220,9 @@ export default function Dashboard() {
               <MainQuestModule
                 activeQuest={activeQuest}
                 onCreateQuest={createQuest}
+                onUpdateQuest={updateQuest}
                 isCreating={isCreatingQuest}
+                isUpdating={isUpdatingQuest}
               />
 
               {/* Reset CTA */}
@@ -335,17 +343,32 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-4">
-                {RESET_DAYS.map((day) => (
-                  <ReadingCard
-                    key={day.day}
-                    day={day.day}
-                    emoji={day.emoji}
-                    controllable={day.controllable}
-                    chapter={day.reading.chapter}
-                    text={day.reading.text}
-                    isCompleted={completedDays.some((d) => d.day_number === day.day)}
-                  />
-                ))}
+                {readings.length > 0 ? (
+                  readings.map((reading) => (
+                    <ReadingCard
+                      key={reading.id}
+                      day={reading.day_number}
+                      emoji={reading.emoji}
+                      controllable={reading.controllable}
+                      chapter={reading.reading_chapter}
+                      text={reading.reading_text}
+                      isCompleted={completedDays.some((d) => d.day_number === reading.day_number)}
+                    />
+                  ))
+                ) : (
+                  // Fallback to static content if database is empty
+                  RESET_DAYS.map((day) => (
+                    <ReadingCard
+                      key={day.day}
+                      day={day.day}
+                      emoji={day.emoji}
+                      controllable={day.controllable}
+                      chapter={day.reading.chapter}
+                      text={day.reading.text}
+                      isCompleted={completedDays.some((d) => d.day_number === day.day)}
+                    />
+                  ))
+                )}
               </div>
 
               {/* Book promo */}

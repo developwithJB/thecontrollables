@@ -253,6 +253,66 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_readings: {
+        Row: {
+          completion_button_text: string
+          control_line: string
+          controllable: string
+          created_at: string
+          day_number: number
+          emoji: string
+          framing_line: string
+          id: string
+          integrity_rep: string
+          prompt: string
+          quest_action: string
+          reading_chapter: string
+          reading_source: string
+          reading_text: string
+          reflection: string
+          surrender_line: string
+          updated_at: string
+        }
+        Insert: {
+          completion_button_text: string
+          control_line: string
+          controllable: string
+          created_at?: string
+          day_number: number
+          emoji: string
+          framing_line: string
+          id?: string
+          integrity_rep: string
+          prompt: string
+          quest_action: string
+          reading_chapter: string
+          reading_source?: string
+          reading_text: string
+          reflection: string
+          surrender_line: string
+          updated_at?: string
+        }
+        Update: {
+          completion_button_text?: string
+          control_line?: string
+          controllable?: string
+          created_at?: string
+          day_number?: number
+          emoji?: string
+          framing_line?: string
+          id?: string
+          integrity_rep?: string
+          prompt?: string
+          quest_action?: string
+          reading_chapter?: string
+          reading_source?: string
+          reading_text?: string
+          reflection?: string
+          surrender_line?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       daily_resets: {
         Row: {
           commitment: string | null

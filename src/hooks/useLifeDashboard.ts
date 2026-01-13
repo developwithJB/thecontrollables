@@ -259,6 +259,38 @@ export const useLifeDashboard = () => {
     },
   });
 
+  // Update quest title
+  const updateQuestMutation = useMutation({
+    mutationFn: async ({ questId, title }: { questId: string; title: string }) => {
+      if (!userId) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase
+        .from("main_quests")
+        .update({ title })
+        .eq("id", questId)
+        .eq("user_id", userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as MainQuest;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["main-quest"] });
+      toast({
+        title: "Quest updated",
+        description: "Direction refined.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to update quest",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Award XP
   const awardXpMutation = useMutation({
     mutationFn: async ({ amount, source, description }: { amount: number; source: string; description?: string }) => {
@@ -423,6 +455,8 @@ export const useLifeDashboard = () => {
     activeQuest,
     createQuest: createQuestMutation.mutate,
     isCreatingQuest: createQuestMutation.isPending,
+    updateQuest: updateQuestMutation.mutate,
+    isUpdatingQuest: updateQuestMutation.isPending,
     
     // XP
     totalXp,
