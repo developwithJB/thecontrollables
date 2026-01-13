@@ -1,0 +1,157 @@
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Shield, Plus, Check, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+interface IntegrityLog {
+  id: string;
+  promise_text: string;
+  promised_at: string;
+  kept: boolean | null;
+}
+
+interface IntegrityMeterModuleProps {
+  integrityScore: number | null;
+  pendingPromises: IntegrityLog[];
+  onCreatePromise: (data: { promiseText: string }) => void;
+  onResolvePromise: (data: { promiseId: string; kept: boolean }) => void;
+}
+
+export function IntegrityMeterModule({
+  integrityScore,
+  pendingPromises,
+  onCreatePromise,
+  onResolvePromise,
+}: IntegrityMeterModuleProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [promiseText, setPromiseText] = useState("");
+
+  const handleSubmit = () => {
+    if (!promiseText.trim()) return;
+    onCreatePromise({ promiseText: promiseText.trim() });
+    setIsOpen(false);
+    setPromiseText("");
+  };
+
+  // Determine integrity status
+  const getIntegrityStatus = () => {
+    if (integrityScore === null) return { label: "No data", color: "text-muted-foreground", bg: "bg-muted" };
+    if (integrityScore >= 80) return { label: "High integrity", color: "text-green-600 dark:text-green-400", bg: "bg-green-500" };
+    if (integrityScore >= 50) return { label: "Aligned", color: "text-accent", bg: "bg-accent" };
+    if (integrityScore >= 30) return { label: "Under-committed", color: "text-yellow-600 dark:text-yellow-400", bg: "bg-yellow-500" };
+    return { label: "Over-committed", color: "text-destructive", bg: "bg-destructive" };
+  };
+
+  const status = getIntegrityStatus();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.15 }}
+      className="p-5 rounded-2xl bg-card border shadow-soft"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-primary/10">
+            <Shield className="w-4 h-4 text-primary" />
+          </div>
+          <h3 className="font-display font-semibold text-foreground">Integrity</h3>
+        </div>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogTrigger asChild>
+            <button className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+              <Plus className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </DialogTrigger>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="font-display">Make a Promise</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <p className="text-sm text-muted-foreground">
+                Confidence comes from kept promises. Only promise what you'll do.
+              </p>
+              <Input
+                placeholder="I will..."
+                value={promiseText}
+                onChange={(e) => setPromiseText(e.target.value)}
+                className="text-base"
+              />
+              <Button onClick={handleSubmit} className="w-full" disabled={!promiseText.trim()}>
+                Make Promise
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Score Display */}
+      <div className="text-center mb-4">
+        {integrityScore !== null ? (
+          <>
+            <div className="inline-flex items-baseline gap-1">
+              <span className="text-4xl font-display font-bold text-foreground">{integrityScore}</span>
+              <span className="text-lg text-muted-foreground">%</span>
+            </div>
+            <p className={`text-sm mt-1 ${status.color}`}>{status.label}</p>
+          </>
+        ) : (
+          <div className="py-2">
+            <p className="text-muted-foreground text-sm">No promises tracked yet</p>
+          </div>
+        )}
+      </div>
+
+      {/* Progress bar */}
+      {integrityScore !== null && (
+        <div className="mb-4">
+          <div className="h-2 rounded-full bg-muted overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${integrityScore}%` }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className={`h-full rounded-full ${status.bg}`}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Pending promises */}
+      {pendingPromises.length > 0 && (
+        <div className="pt-3 border-t space-y-2">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">
+            Open promises ({pendingPromises.length})
+          </p>
+          {pendingPromises.slice(0, 3).map((promise) => (
+            <div key={promise.id} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/50">
+              <p className="text-sm text-foreground truncate flex-1">{promise.promise_text}</p>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => onResolvePromise({ promiseId: promise.id, kept: true })}
+                  className="p-1 rounded hover:bg-green-500/20 text-green-600 dark:text-green-400"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => onResolvePromise({ promiseId: promise.id, kept: false })}
+                  className="p-1 rounded hover:bg-destructive/20 text-destructive"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+}

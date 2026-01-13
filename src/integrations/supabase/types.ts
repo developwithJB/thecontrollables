@@ -297,6 +297,102 @@ export type Database = {
           },
         ]
       }
+      guide_sessions: {
+        Row: {
+          context: string | null
+          created_at: string
+          id: string
+          messages: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string
+          id?: string
+          messages?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          context?: string | null
+          created_at?: string
+          id?: string
+          messages?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      integrity_logs: {
+        Row: {
+          created_at: string
+          due_date: string | null
+          id: string
+          kept: boolean | null
+          kept_at: string | null
+          promise_text: string
+          promised_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          kept?: boolean | null
+          kept_at?: string | null
+          promise_text: string
+          promised_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          kept?: boolean | null
+          kept_at?: string | null
+          promise_text?: string
+          promised_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      main_quests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          duration_days: number
+          ends_at: string | null
+          id: string
+          started_at: string
+          status: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          duration_days?: number
+          ends_at?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          duration_days?: number
+          ends_at?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -363,6 +459,84 @@ export type Database = {
         }
         Relationships: []
       }
+      time_logs: {
+        Row: {
+          created_at: string
+          id: string
+          log_date: string
+          notes: string | null
+          time_invested_minutes: number | null
+          time_wasted_minutes: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          log_date?: string
+          notes?: string | null
+          time_invested_minutes?: number | null
+          time_wasted_minutes?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          log_date?: string
+          notes?: string | null
+          time_invested_minutes?: number | null
+          time_wasted_minutes?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_builds: {
+        Row: {
+          awareness_base: number | null
+          created_at: string
+          environment_base: number | null
+          environment_modifier: number | null
+          habit_base: number | null
+          id: string
+          inputs_modifier: number | null
+          movement_modifier: number | null
+          perspective_base: number | null
+          sleep_modifier: number | null
+          updated_at: string
+          user_id: string
+          wellness_base: number | null
+        }
+        Insert: {
+          awareness_base?: number | null
+          created_at?: string
+          environment_base?: number | null
+          environment_modifier?: number | null
+          habit_base?: number | null
+          id?: string
+          inputs_modifier?: number | null
+          movement_modifier?: number | null
+          perspective_base?: number | null
+          sleep_modifier?: number | null
+          updated_at?: string
+          user_id: string
+          wellness_base?: number | null
+        }
+        Update: {
+          awareness_base?: number | null
+          created_at?: string
+          environment_base?: number | null
+          environment_modifier?: number | null
+          habit_base?: number | null
+          id?: string
+          inputs_modifier?: number | null
+          movement_modifier?: number | null
+          perspective_base?: number | null
+          sleep_modifier?: number | null
+          updated_at?: string
+          user_id?: string
+          wellness_base?: number | null
+        }
+        Relationships: []
+      }
       wellness_logs: {
         Row: {
           created_at: string
@@ -392,6 +566,33 @@ export type Database = {
           notes?: string | null
           nutrition_rating?: number | null
           sleep_rating?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      xp_logs: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          source: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          source?: string
           user_id?: string
         }
         Relationships: []

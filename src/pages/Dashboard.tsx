@@ -1,43 +1,58 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, Book, History, BookOpen } from "lucide-react";
+import { LogOut, Book, RefreshCw, BookOpen, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { ControllableCard, ControllableType } from "@/components/ControllableCard";
-import { AIChat } from "@/components/AIChat";
-import { ReadingCard } from "@/components/ReadingCard";
-import { ChallengeHistoryCard } from "@/components/ChallengeHistoryCard";
 import { useToast } from "@/hooks/use-toast";
 import { useReset } from "@/hooks/useReset";
+import { useLifeDashboard, XP_VALUES } from "@/hooks/useLifeDashboard";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayContent, RESET_DAYS } from "@/lib/resetContent";
 import { useQuery } from "@tanstack/react-query";
 import type { User } from "@supabase/supabase-js";
 
-const controllables: { type: ControllableType; emoji: string; title: string }[] = [
-  { type: "awareness", emoji: "🦉", title: "Awareness" },
-  { type: "perspective", emoji: "🐢", title: "Perspective" },
-  { type: "habit", emoji: "🦈", title: "Habit" },
-  { type: "wellness", emoji: "🛰️", title: "Wellness" },
-  { type: "environment", emoji: "🚀", title: "Environment" },
-];
+// Dashboard modules
+import { MainQuestModule } from "@/components/dashboard/MainQuestModule";
+import { XpMomentumModule } from "@/components/dashboard/XpMomentumModule";
+import { IntegrityMeterModule } from "@/components/dashboard/IntegrityMeterModule";
+import { TimeCurrencyModule } from "@/components/dashboard/TimeCurrencyModule";
+import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule";
+import { AIGuidePanel } from "@/components/dashboard/AIGuidePanel";
+import { ReadingCard } from "@/components/ReadingCard";
+import { ChallengeHistoryCard } from "@/components/ChallengeHistoryCard";
 
-type TabType = "home" | "readings" | "history";
+type TabType = "dashboard" | "readings" | "history";
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabType>("home");
-  const [selectedControllable, setSelectedControllable] = useState<{
-    type: ControllableType;
-    emoji: string;
-    title: string;
-  } | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>("dashboard");
 
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  // Reset data
   const { activeSession, currentDay, isCompleted, isLoading: resetLoading, completedDays } = useReset();
+  
+  // Life dashboard data
+  const {
+    isLoading: dashboardLoading,
+    activeQuest,
+    createQuest,
+    isCreatingQuest,
+    totalXp,
+    xpLogs,
+    integrityScore,
+    pendingPromises,
+    createPromise,
+    resolvePromise,
+    todayTimeLog,
+    logTime,
+    isLoggingTime,
+    userBuild,
+    updateBuild,
+  } = useLifeDashboard();
 
   // Fetch all reset sessions for history
   const { data: allSessions = [], isLoading: sessionsLoading } = useQuery({
@@ -106,7 +121,7 @@ export default function Dashboard() {
     return allCompletedDays.filter((d) => d.session_id === sessionId).length;
   };
 
-  if (isAuthLoading || resetLoading || sessionsLoading) {
+  if (isAuthLoading || resetLoading || dashboardLoading || sessionsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-muted-foreground">
@@ -124,8 +139,6 @@ export default function Dashboard() {
   };
 
   const todayContent = activeSession && !isCompleted ? getDayContent(currentDay) : null;
-
-  // Check if today's day is already completed
   const todayAlreadyCompleted = completedDays.some((d) => d.day_number === currentDay);
 
   return (
@@ -157,7 +170,7 @@ export default function Dashboard() {
         <div className="max-w-md mx-auto px-6">
           <div className="flex gap-1 py-2">
             {[
-              { id: "home" as TabType, label: "Home", icon: "🏠" },
+              { id: "dashboard" as TabType, label: "Dashboard", icon: "🎮" },
               { id: "readings" as TabType, label: "Readings", icon: "📖" },
               { id: "history" as TabType, label: "History", icon: "📅" },
             ].map((tab) => (
@@ -179,88 +192,117 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-md mx-auto px-6 py-8 w-full">
+      <main className="flex-1 max-w-md mx-auto px-6 py-6 w-full">
         <AnimatePresence mode="wait">
-          {activeTab === "home" && (
+          {activeTab === "dashboard" && (
             <motion.div
-              key="home"
+              key="dashboard"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.3 }}
+              className="space-y-4"
             >
               {/* Greeting */}
-              <div className="mb-8">
+              <div className="mb-2">
                 <h1 className="font-display text-2xl font-semibold text-foreground">{greeting()}</h1>
+                <p className="text-sm text-muted-foreground">Your life dashboard</p>
               </div>
 
-              {/* Reset Status Card */}
-              <div className="p-6 rounded-2xl bg-card border shadow-soft mb-6">
+              {/* Main Quest Module */}
+              <MainQuestModule
+                activeQuest={activeQuest}
+                onCreateQuest={createQuest}
+                isCreating={isCreatingQuest}
+              />
+
+              {/* Reset CTA */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+                className="p-4 rounded-xl bg-card border"
+              >
                 {!activeSession ? (
-                  <div className="text-center">
-                    <p className="text-muted-foreground mb-4">Ready to begin your 7-Day Reset?</p>
-                    <Button onClick={() => navigate("/reset")} className="w-full h-12 text-base">
-                      Start My Reset
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">7-Day Reset</p>
+                      <p className="text-xs text-muted-foreground">Re-enter the game</p>
+                    </div>
+                    <Button size="sm" onClick={() => navigate("/reset")}>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Start Reset
                     </Button>
                   </div>
                 ) : isCompleted ? (
-                  <div className="text-center">
-                    <div className="text-4xl mb-3">⚡</div>
-                    <h2 className="font-display font-semibold text-foreground mb-2">Reset Complete</h2>
-                    <p className="text-muted-foreground text-sm mb-4">Carry forward what you've learned.</p>
-                    <Button onClick={() => navigate("/reset")} variant="outline" className="w-full">
-                      Start a New Reset
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">⚡</span>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Reset Complete</p>
+                        <p className="text-xs text-muted-foreground">Well played</p>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => navigate("/reset")}>
+                      New Reset
                     </Button>
                   </div>
                 ) : todayAlreadyCompleted ? (
-                  <div className="text-center">
-                    <div className="text-4xl mb-3">✨</div>
-                    <h2 className="font-display font-semibold text-foreground mb-1">You've reset for today.</h2>
-                    <p className="text-muted-foreground text-sm">Come back tomorrow for Day {currentDay + 1}.</p>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">✨</span>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Day {currentDay} complete</p>
+                        <p className="text-xs text-muted-foreground">Return tomorrow</p>
+                      </div>
+                    </div>
                   </div>
                 ) : (
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-2">Day {currentDay} of 7</p>
-                    <div className="text-4xl mb-2">{todayContent?.emoji}</div>
-                    <h2 className="font-display font-semibold text-foreground mb-1">{todayContent?.controllable}</h2>
-                    <p className="text-muted-foreground text-sm mb-4">{todayContent?.framingLine}</p>
-                    <Button onClick={() => navigate("/reset")} className="w-full h-12 text-base">
-                      Continue Reset
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{todayContent?.emoji}</span>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Day {currentDay}: {todayContent?.controllable}</p>
+                        <p className="text-xs text-muted-foreground">Quest action waiting</p>
+                      </div>
+                    </div>
+                    <Button size="sm" onClick={() => navigate("/reset")}>
+                      Continue
                     </Button>
                   </div>
                 )}
+              </motion.div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <XpMomentumModule totalXp={totalXp} recentLogs={xpLogs} />
+                <IntegrityMeterModule
+                  integrityScore={integrityScore}
+                  pendingPromises={pendingPromises}
+                  onCreatePromise={createPromise}
+                  onResolvePromise={resolvePromise}
+                />
               </div>
 
-              <div className="border-t my-6" />
-
-              {/* Talk to a Controllable */}
-              <div className="mb-6">
-                <h2 className="text-sm uppercase tracking-wider text-muted-foreground font-medium mb-4">
-                  Talk to a Controllable
-                </h2>
-                <div className="flex justify-center gap-3">
-                  {controllables.map((c) => (
-                    <button
-                      key={c.type}
-                      onClick={() => setSelectedControllable(c)}
-                      className="w-12 h-12 rounded-full bg-muted/50 hover:bg-muted flex items-center justify-center text-2xl transition-colors"
-                    >
-                      {c.emoji}
-                    </button>
-                  ))}
-                </div>
+              {/* Time & Build */}
+              <div className="grid grid-cols-2 gap-3">
+                <TimeCurrencyModule
+                  todayTimeLog={todayTimeLog}
+                  onLogTime={logTime}
+                  isLogging={isLoggingTime}
+                />
+                <BuildOverviewModule
+                  userBuild={userBuild}
+                  onUpdateBuild={updateBuild}
+                />
               </div>
 
-              {/* Book Link */}
-              <a
-                href="https://a.co/d/1DGPGEV"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors text-center"
-              >
-                <Book className="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">📖 The Book</p>
-              </a>
+              {/* AI Guide */}
+              <AIGuidePanel
+                activeQuest={activeQuest}
+                totalXp={totalXp}
+                integrityScore={integrityScore}
+              />
             </motion.div>
           )}
 
@@ -277,7 +319,7 @@ export default function Dashboard() {
                   The Controllables
                 </h1>
                 <p className="text-muted-foreground text-sm">
-                  Daily readings from the book to guide your journey.
+                  Daily readings to guide your quest.
                 </p>
               </div>
 
@@ -332,7 +374,7 @@ export default function Dashboard() {
                   Your Journey
                 </h1>
                 <p className="text-muted-foreground text-sm">
-                  Track your progress through each 7-Day Reset.
+                  Track your progress through each reset.
                 </p>
               </div>
 
@@ -340,10 +382,10 @@ export default function Dashboard() {
                 <div className="text-center py-12">
                   <History className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
                   <h3 className="font-display font-semibold text-foreground mb-2">
-                    No challenges yet
+                    No resets yet
                   </h3>
                   <p className="text-muted-foreground text-sm mb-6">
-                    Start your first 7-Day Reset to begin tracking your journey.
+                    Start your first 7-Day Reset to begin.
                   </p>
                   <Button onClick={() => navigate("/reset")}>
                     Start Your First Reset
@@ -404,17 +446,6 @@ export default function Dashboard() {
       <footer className="max-w-md mx-auto px-6 py-6 text-center">
         <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} The Controllables</p>
       </footer>
-
-      {/* AI Chat Modal */}
-      {selectedControllable && (
-        <AIChat
-          controllable={selectedControllable.type}
-          emoji={selectedControllable.emoji}
-          title={selectedControllable.title}
-          isOpen={!!selectedControllable}
-          onClose={() => setSelectedControllable(null)}
-        />
-      )}
     </div>
   );
 }
