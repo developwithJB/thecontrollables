@@ -41,18 +41,20 @@ export function XpMomentumModule({ totalXp, recentLogs }: XpMomentumModuleProps)
       transition={{ delay: 0.1 }}
       className="p-5 rounded-2xl bg-card border shadow-soft"
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-accent/20">
-            <Zap className="w-4 h-4 text-accent" />
-          </div>
-          <h3 className="font-display font-semibold text-foreground">Momentum</h3>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-1.5 rounded-lg bg-accent/20">
+          <Zap className="w-4 h-4 text-accent" />
         </div>
-        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-          <TrendingUp className="w-3.5 h-3.5" />
+        <h3 className="font-display font-semibold text-foreground">Momentum</h3>
+      </div>
+
+      {/* Today's XP Badge */}
+      {todayXp > 0 && (
+        <div className="flex items-center justify-center gap-1 text-xs text-accent bg-accent/10 rounded-full px-2 py-1 mb-3 w-fit mx-auto">
+          <TrendingUp className="w-3 h-3" />
           <span>+{todayXp} today</span>
         </div>
-      </div>
+      )}
 
       {/* XP Display */}
       <div className="text-center mb-4">

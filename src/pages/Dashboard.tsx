@@ -242,25 +242,25 @@ export default function Dashboard() {
                 readings={readings}
               />
 
-              {/* Stats Grid */}
+              {/* Build & Momentum */}
               <div className="grid grid-cols-2 gap-3">
+                <BuildOverviewModule />
                 <XpMomentumModule totalXp={totalXp} recentLogs={xpLogs} />
-                <IntegrityMeterModule
-                  integrityScore={integrityScore}
-                  pendingPromises={pendingPromises}
-                  onCreatePromise={createPromise}
-                  onResolvePromise={resolvePromise}
-                />
               </div>
 
-              {/* Time & Build */}
+              {/* Time & Integrity */}
               <div className="grid grid-cols-2 gap-3">
                 <TimeCurrencyModule
                   todayTimeLog={todayTimeLog}
                   onLogTime={logTime}
                   isLogging={isLoggingTime}
                 />
-                <BuildOverviewModule />
+                <IntegrityMeterModule
+                  integrityScore={integrityScore}
+                  pendingPromises={pendingPromises}
+                  onCreatePromise={createPromise}
+                  onResolvePromise={resolvePromise}
+                />
               </div>
 
               {/* AI Guide */}
