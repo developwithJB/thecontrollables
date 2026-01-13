@@ -291,6 +291,47 @@ export const useLifeDashboard = () => {
     },
   });
 
+  // Complete quest
+  const completeQuestMutation = useMutation({
+    mutationFn: async (questId: string) => {
+      if (!userId) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase
+        .from("main_quests")
+        .update({ 
+          status: "completed",
+          completed_at: new Date().toISOString()
+        })
+        .eq("id", questId)
+        .eq("user_id", userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as MainQuest;
+    },
+    onSuccess: async () => {
+      // Award XP for completing quest
+      await awardXpMutation.mutateAsync({
+        amount: XP_VALUES.QUEST_COMPLETE,
+        source: "quest_complete",
+        description: "Completed main quest",
+      });
+      queryClient.invalidateQueries({ queryKey: ["main-quest"] });
+      toast({
+        title: "Quest completed!",
+        description: "+500 XP earned. Choose your next adventure.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to complete quest",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Award XP
   const awardXpMutation = useMutation({
     mutationFn: async ({ amount, source, description }: { amount: number; source: string; description?: string }) => {
@@ -457,6 +498,8 @@ export const useLifeDashboard = () => {
     isCreatingQuest: createQuestMutation.isPending,
     updateQuest: updateQuestMutation.mutate,
     isUpdatingQuest: updateQuestMutation.isPending,
+    completeQuest: completeQuestMutation.mutate,
+    isCompletingQuest: completeQuestMutation.isPending,
     
     // XP
     totalXp,

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Target, AlertTriangle, ChevronRight, Pencil, Check, X } from "lucide-react";
+import { Target, AlertTriangle, Pencil, Check, X, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,16 +24,20 @@ interface MainQuestModuleProps {
   activeQuest: MainQuest | null;
   onCreateQuest: (data: { title: string; durationDays: number }) => void;
   onUpdateQuest?: (data: { questId: string; title: string }) => void;
+  onCompleteQuest?: (questId: string) => void;
   isCreating: boolean;
   isUpdating?: boolean;
+  isCompleting?: boolean;
 }
 
 export function MainQuestModule({ 
   activeQuest, 
   onCreateQuest, 
   onUpdateQuest,
+  onCompleteQuest,
   isCreating,
-  isUpdating = false 
+  isUpdating = false,
+  isCompleting = false 
 }: MainQuestModuleProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -220,7 +224,7 @@ export function MainQuestModule({
             )}
           </div>
         </div>
-        {!isEditing && <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />}
+        
       </div>
 
       {/* Progress bar */}
@@ -243,6 +247,20 @@ export function MainQuestModule({
           {Math.round(progressPercent)}% complete
         </span>
       </div>
+
+      {/* Complete Quest Button */}
+      {onCompleteQuest && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full mt-4 border-primary/30 text-primary hover:bg-primary/10"
+          onClick={() => onCompleteQuest(activeQuest.id)}
+          disabled={isCompleting}
+        >
+          <CheckCircle className="w-4 h-4 mr-2" />
+          {isCompleting ? "Completing..." : "Complete Quest"}
+        </Button>
+      )}
     </motion.div>
   );
 }
