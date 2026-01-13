@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Target, AlertTriangle, ChevronRight, Check } from "lucide-react";
+import { Target, AlertTriangle, ChevronRight, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,19 +23,49 @@ interface MainQuest {
 interface MainQuestModuleProps {
   activeQuest: MainQuest | null;
   onCreateQuest: (data: { title: string; durationDays: number }) => void;
+  onUpdateQuest?: (data: { questId: string; title: string }) => void;
   isCreating: boolean;
+  isUpdating?: boolean;
 }
 
-export function MainQuestModule({ activeQuest, onCreateQuest, isCreating }: MainQuestModuleProps) {
+export function MainQuestModule({ 
+  activeQuest, 
+  onCreateQuest, 
+  onUpdateQuest,
+  isCreating,
+  isUpdating = false 
+}: MainQuestModuleProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [duration, setDuration] = useState<7 | 30 | 90>(7);
+  
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
 
   const handleSubmit = () => {
     if (!title.trim()) return;
     onCreateQuest({ title: title.trim(), durationDays: duration });
     setIsOpen(false);
     setTitle("");
+  };
+
+  const handleStartEdit = () => {
+    if (activeQuest) {
+      setEditTitle(activeQuest.title);
+      setIsEditing(true);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (!editTitle.trim() || !activeQuest || !onUpdateQuest) return;
+    onUpdateQuest({ questId: activeQuest.id, title: editTitle.trim() });
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditTitle("");
   };
 
   // Calculate days remaining
@@ -134,16 +164,63 @@ export function MainQuestModule({ activeQuest, onCreateQuest, isCreating }: Main
       className="p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
     >
       <div className="flex items-start justify-between mb-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-lg bg-primary/20">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="p-2 rounded-lg bg-primary/20 shrink-0">
             <Target className="w-5 h-5 text-primary" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Main Quest</p>
-            <h3 className="font-display font-semibold text-foreground text-lg">{activeQuest.title}</h3>
+            
+            {isEditing ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="h-8 text-base font-display font-semibold"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSaveEdit();
+                    if (e.key === "Escape") handleCancelEdit();
+                  }}
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 shrink-0"
+                  onClick={handleSaveEdit}
+                  disabled={!editTitle.trim() || isUpdating}
+                >
+                  <Check className="w-4 h-4 text-primary" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 shrink-0"
+                  onClick={handleCancelEdit}
+                >
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h3 className="font-display font-semibold text-foreground text-lg truncate">
+                  {activeQuest.title}
+                </h3>
+                {onUpdateQuest && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 shrink-0"
+                    onClick={handleStartEdit}
+                  >
+                    <Pencil className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </div>
-        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+        {!isEditing && <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />}
       </div>
 
       {/* Progress bar */}
