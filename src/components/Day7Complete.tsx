@@ -10,6 +10,7 @@ interface Day7CompleteProps {
   endDate: string;
   onGenerateCertificate: () => Promise<string | null>;
   isGenerating: boolean;
+  existingCertificateUrl?: string | null;
 }
 
 export const Day7Complete = ({
@@ -18,9 +19,12 @@ export const Day7Complete = ({
   endDate,
   onGenerateCertificate,
   isGenerating,
+  existingCertificateUrl,
 }: Day7CompleteProps) => {
   const navigate = useNavigate();
-  const [certificateUrl, setCertificateUrl] = useState<string | null>(null);
+  const [certificateUrl, setCertificateUrl] = useState<string | null>(
+    existingCertificateUrl || null
+  );
 
   // Format dates nicely
   const formatDate = (dateStr: string) => {
@@ -32,22 +36,33 @@ export const Day7Complete = ({
   };
 
   const handleDownloadCertificate = async () => {
-    if (certificateUrl) {
-      // Already have certificate, just download
-      const link = document.createElement("a");
-      link.href = certificateUrl;
-      link.download = "controllables-certificate.png";
-      link.click();
-      return;
+    let urlToDownload = certificateUrl || existingCertificateUrl;
+    
+    if (!urlToDownload) {
+      // Generate and save certificate
+      urlToDownload = await onGenerateCertificate();
+      if (urlToDownload) {
+        setCertificateUrl(urlToDownload);
+      }
     }
 
-    const url = await onGenerateCertificate();
-    if (url) {
-      setCertificateUrl(url);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "controllables-certificate.png";
-      link.click();
+    if (urlToDownload) {
+      // For storage URLs, we need to fetch and create a blob for download
+      try {
+        const response = await fetch(urlToDownload);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = "controllables-certificate.png";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      } catch {
+        // Fallback: open in new tab
+        window.open(urlToDownload, "_blank");
+      }
     }
   };
 
