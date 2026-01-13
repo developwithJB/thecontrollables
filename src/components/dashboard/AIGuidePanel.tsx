@@ -4,6 +4,7 @@ import { ChevronDown, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { UserBuildCurrent, getArchetypeInfo } from "@/hooks/useBuildAssessment";
 
 interface MainQuest {
   title: string;
@@ -14,6 +15,7 @@ interface AIGuidePanelProps {
   activeQuest: MainQuest | null;
   totalXp: number;
   integrityScore: number | null;
+  currentBuild?: UserBuildCurrent | null;
 }
 
 interface Message {
@@ -95,7 +97,7 @@ const GUIDES: Guide[] = [
   },
 ];
 
-export function AIGuidePanel({ activeQuest, totalXp, integrityScore }: AIGuidePanelProps) {
+export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild }: AIGuidePanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedGuide, setSelectedGuide] = useState<Guide | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -111,6 +113,8 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore }: AIGuidePa
     setIsLoading(true);
 
     try {
+      const archetypeInfo = getArchetypeInfo(currentBuild?.build_archetype_key || null);
+      
       const userContext = {
         hasQuest: !!activeQuest,
         questTitle: activeQuest?.title || "No active quest",
@@ -118,11 +122,23 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore }: AIGuidePa
         integrity: integrityScore,
       };
 
+      const buildContext = currentBuild && currentBuild.overall > 0 ? {
+        awareness: Number(currentBuild.awareness).toFixed(1),
+        perspective: Number(currentBuild.perspective).toFixed(1),
+        habit: Number(currentBuild.habit).toFixed(1),
+        wellness: Number(currentBuild.wellness).toFixed(1),
+        environment: Number(currentBuild.environment).toFixed(1),
+        overall: Number(currentBuild.overall).toFixed(1),
+        archetype: archetypeInfo.label,
+        archetypeDescription: archetypeInfo.description,
+      } : null;
+
       const { data, error } = await supabase.functions.invoke("ai-chat", {
         body: {
           controllable: selectedGuide?.id,
           messages: [...messages, userMessage].map((m) => ({ role: m.role, content: m.content })),
           userContext,
+          buildContext,
         },
       });
 

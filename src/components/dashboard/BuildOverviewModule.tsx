@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Dna, RefreshCw, Info } from "lucide-react";
+import { Dna, RefreshCw, Info, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -8,8 +8,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useBuildAssessment, getArchetypeInfo } from "@/hooks/useBuildAssessment";
 import { BuildAssessmentModal } from "./BuildAssessmentModal";
+import { BuildCard } from "./BuildCard";
 
 const BASE_STATS = [
   { key: "awareness", label: "Awareness", emoji: "🦉" },
@@ -19,8 +26,9 @@ const BASE_STATS = [
   { key: "environment", label: "Environment", emoji: "🚀" },
 ] as const;
 
-export function BuildOverviewModule() {
+export function BuildOverviewModule({ onBuildLoaded }: { onBuildLoaded?: (build: ReturnType<typeof useBuildAssessment>["currentBuild"]) => void }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   
   const {
     questions,
@@ -30,6 +38,13 @@ export function BuildOverviewModule() {
     submitAssessment,
     isSubmitting,
   } = useBuildAssessment();
+
+  // Notify parent of build data
+  useState(() => {
+    if (onBuildLoaded && currentBuild) {
+      onBuildLoaded(currentBuild);
+    }
+  });
 
   const hasBuild = currentBuild && currentBuild.overall > 0;
   const archetypeInfo = getArchetypeInfo(currentBuild?.build_archetype_key || null);
@@ -81,22 +96,41 @@ export function BuildOverviewModule() {
             </div>
             <h3 className="font-display font-semibold text-foreground">Your Build</h3>
           </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="p-1.5 rounded-lg hover:bg-muted transition-colors"
-                  disabled={questionsLoading}
-                >
-                  <RefreshCw className="w-4 h-4 text-muted-foreground" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{hasBuild ? "Rescan your build" : "Take the assessment"}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center gap-1">
+            {hasBuild && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setIsShareModalOpen(true)}
+                      className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+                    >
+                      <Share2 className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Share your build</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+                    disabled={questionsLoading}
+                  >
+                    <RefreshCw className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{hasBuild ? "Rescan your build" : "Take the assessment"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
 
         {!hasBuild ? (
@@ -178,6 +212,18 @@ export function BuildOverviewModule() {
         onSubmit={submitAssessment}
         isSubmitting={isSubmitting}
       />
+
+      {/* Share Modal */}
+      {hasBuild && currentBuild && (
+        <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-center">Share Your Build</DialogTitle>
+            </DialogHeader>
+            <BuildCard build={currentBuild} />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
