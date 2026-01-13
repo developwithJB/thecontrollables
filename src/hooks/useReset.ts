@@ -277,10 +277,40 @@ export const useReset = () => {
     },
   });
 
-  // Generate certificate (creates a data URL for now - could be enhanced with storage later)
+  // Check for existing certificate
+  const { data: existingCertificate, isLoading: isLoadingCertificate } = useQuery({
+    queryKey: ["certificate", activeSession?.id, userId],
+    queryFn: async () => {
+      if (!userId || !activeSession?.id) return null;
+      
+      const { data, error } = await supabase
+        .from("completion_certificates")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("challenge_id", activeSession.id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId && !!activeSession?.id,
+  });
+
+  // Get certificate URL from storage
+  const getCertificateUrl = (storagePath: string): string => {
+    const { data } = supabase.storage.from("certificates").getPublicUrl(storagePath);
+    return data.publicUrl;
+  };
+
+  // Generate and save certificate to storage
   const generateCertificateMutation = useMutation({
     mutationFn: async (): Promise<string> => {
-      if (!activeSession?.start_date) throw new Error("No active session");
+      if (!activeSession?.start_date || !userId) throw new Error("No active session");
+      
+      // Check if certificate already exists
+      if (existingCertificate?.storage_path) {
+        return getCertificateUrl(existingCertificate.storage_path);
+      }
       
       // Create a canvas-based certificate
       const canvas = document.createElement("canvas");
@@ -342,7 +372,45 @@ export const useReset = () => {
       ctx.fillStyle = "#a3a3a3";
       ctx.fillText("The Controllables", 600, 560);
 
-      return canvas.toDataURL("image/png");
+      // Convert canvas to blob
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((b) => {
+          if (b) resolve(b);
+          else reject(new Error("Failed to create blob"));
+        }, "image/png");
+      });
+
+      // Upload to storage
+      const storagePath = `${userId}/${activeSession.id}.png`;
+      const { error: uploadError } = await supabase.storage
+        .from("certificates")
+        .upload(storagePath, blob, {
+          contentType: "image/png",
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Save certificate record to database
+      const { error: dbError } = await supabase
+        .from("completion_certificates")
+        .upsert({
+          user_id: userId,
+          challenge_id: activeSession.id,
+          start_date: activeSession.start_date,
+          end_date: endDate,
+          timezone: activeSession.timezone,
+          storage_path: storagePath,
+        }, {
+          onConflict: "user_id,challenge_id",
+        });
+
+      if (dbError) throw dbError;
+
+      // Invalidate certificate query
+      queryClient.invalidateQueries({ queryKey: ["certificate"] });
+
+      return getCertificateUrl(storagePath);
     },
     onError: (error) => {
       toast({
@@ -352,6 +420,11 @@ export const useReset = () => {
       });
     },
   });
+
+  // Get existing certificate URL if available
+  const certificateUrl = existingCertificate?.storage_path 
+    ? getCertificateUrl(existingCertificate.storage_path) 
+    : null;
 
   return {
     userId,
@@ -364,7 +437,7 @@ export const useReset = () => {
     isTodayCompleted,
     missedDays,
     isCompleted,
-    isLoading: isAuthLoading || isLoadingSession || isLoadingDays,
+    isLoading: isAuthLoading || isLoadingSession || isLoadingDays || isLoadingCertificate,
     covenantAccepted: activeSession?.covenant_accepted ?? false,
     acceptCovenant: acceptCovenantMutation.mutate,
     isAcceptingCovenant: acceptCovenantMutation.isPending,
@@ -372,5 +445,7 @@ export const useReset = () => {
     isCompleting: completeDayMutation.isPending,
     generateCertificate: generateCertificateMutation.mutateAsync,
     isGeneratingCertificate: generateCertificateMutation.isPending,
+    certificateUrl,
+    existingCertificate,
   };
 };

@@ -29,6 +29,7 @@ const Reset = () => {
     isCompleting,
     generateCertificate,
     isGeneratingCertificate,
+    certificateUrl,
   } = useReset();
 
   const [showDayComplete, setShowDayComplete] = useState(false);
@@ -73,6 +74,7 @@ const Reset = () => {
         endDate={endDate}
         onGenerateCertificate={generateCertificate}
         isGenerating={isGeneratingCertificate}
+        existingCertificateUrl={certificateUrl}
       />
     );
   }
@@ -111,6 +113,7 @@ const Reset = () => {
         endDate={endDate}
         onGenerateCertificate={generateCertificate}
         isGenerating={isGeneratingCertificate}
+        existingCertificateUrl={certificateUrl}
       />
     );
   }
