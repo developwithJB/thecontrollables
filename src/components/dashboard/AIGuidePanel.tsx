@@ -4,8 +4,30 @@ import { ChevronDown, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { UserBuildCurrent, getArchetypeInfo } from "@/hooks/useBuildAssessment";
 
+// Inline type to avoid circular imports
+interface UserBuildCurrent {
+  awareness: number;
+  perspective: number;
+  habit: number;
+  wellness: number;
+  environment: number;
+  overall: number;
+  build_archetype_key: string | null;
+}
+
+const ARCHETYPE_LABELS: Record<string, { label: string; description: string }> = {
+  driven_but_depleting: { label: "Driven but Depleting", description: "Strong habits, but wellness needs attention." },
+  clear_but_fighting_friction: { label: "Clear but Fighting Friction", description: "High awareness, but your environment isn't supporting you." },
+  capable_but_inconsistent: { label: "Capable but Inconsistent", description: "Good wellness foundation, but habits need work." },
+  stable_build: { label: "Stable Build", description: "All stats are solid." },
+  custom_build: { label: "Custom Build", description: "Your build is unique." },
+};
+
+function getArchetypeInfo(key: string | null) {
+  if (!key) return ARCHETYPE_LABELS.custom_build;
+  return ARCHETYPE_LABELS[key] || ARCHETYPE_LABELS.custom_build;
+}
 interface MainQuest {
   title: string;
   duration_days: number;

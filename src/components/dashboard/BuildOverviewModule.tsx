@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Dna, RefreshCw, Info, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useBuildAssessment, getArchetypeInfo } from "@/hooks/useBuildAssessment";
+import { useBuildAssessment } from "@/hooks/useBuildAssessment";
+import { getArchetypeInfo } from "@/types/build";
 import { BuildAssessmentModal } from "./BuildAssessmentModal";
 import { BuildCard } from "./BuildCard";
 
@@ -26,7 +27,7 @@ const BASE_STATS = [
   { key: "environment", label: "Environment", emoji: "🚀" },
 ] as const;
 
-export function BuildOverviewModule({ onBuildLoaded }: { onBuildLoaded?: (build: ReturnType<typeof useBuildAssessment>["currentBuild"]) => void }) {
+export function BuildOverviewModule() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   
@@ -38,13 +39,6 @@ export function BuildOverviewModule({ onBuildLoaded }: { onBuildLoaded?: (build:
     submitAssessment,
     isSubmitting,
   } = useBuildAssessment();
-
-  // Notify parent of build data
-  useState(() => {
-    if (onBuildLoaded && currentBuild) {
-      onBuildLoaded(currentBuild);
-    }
-  });
 
   const hasBuild = currentBuild && currentBuild.overall > 0;
   const archetypeInfo = getArchetypeInfo(currentBuild?.build_archetype_key || null);
