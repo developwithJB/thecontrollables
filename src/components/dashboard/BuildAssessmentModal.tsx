@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { BuildQuestion, BuildScore, getArchetypeInfo } from "@/hooks/useBuildAssessment";
+import { getArchetypeInfo, type BuildQuestion, type BuildScore } from "@/lib/build";
 
 const SCALE_OPTIONS = [
   { value: 1, label: "Rarely", description: "Almost never in the last 7 days" },

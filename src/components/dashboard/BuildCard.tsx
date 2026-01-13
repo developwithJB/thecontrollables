@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Share2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { UserBuildCurrent, getArchetypeInfo } from "@/hooks/useBuildAssessment";
+import { getArchetypeInfo, type UserBuildCurrent } from "@/lib/build";
 
 interface BuildCardProps {
   build: UserBuildCurrent;
