@@ -52,6 +52,146 @@ export type Database = {
           },
         ]
       }
+      build_answers: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          id: string
+          question_id: string
+          score: number
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          id?: string
+          question_id: string
+          score: number
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          id?: string
+          question_id?: string
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "build_answers_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "build_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "build_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "build_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      build_assessments: {
+        Row: {
+          id: string
+          period_days: number
+          submitted_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          period_days?: number
+          submitted_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          period_days?: number
+          submitted_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      build_questions: {
+        Row: {
+          controllable: string
+          created_at: string
+          id: string
+          is_active: boolean
+          order_index: number
+          prompt: string
+          question_key: string
+        }
+        Insert: {
+          controllable: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          order_index: number
+          prompt: string
+          question_key: string
+        }
+        Update: {
+          controllable?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          order_index?: number
+          prompt?: string
+          question_key?: string
+        }
+        Relationships: []
+      }
+      build_scores: {
+        Row: {
+          assessment_id: string
+          awareness: number
+          build_archetype_key: string
+          computed_at: string
+          environment: number
+          habit: number
+          id: string
+          overall: number
+          perspective: number
+          user_id: string
+          wellness: number
+        }
+        Insert: {
+          assessment_id: string
+          awareness: number
+          build_archetype_key: string
+          computed_at?: string
+          environment: number
+          habit: number
+          id?: string
+          overall: number
+          perspective: number
+          user_id: string
+          wellness: number
+        }
+        Update: {
+          assessment_id?: string
+          awareness?: number
+          build_archetype_key?: string
+          computed_at?: string
+          environment?: number
+          habit?: number
+          id?: string
+          overall?: number
+          perspective?: number
+          user_id?: string
+          wellness?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "build_scores_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: true
+            referencedRelation: "build_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_participants: {
         Row: {
           certificate_generated_at: string | null
@@ -549,6 +689,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_build_current: {
+        Row: {
+          awareness: number
+          build_archetype_key: string | null
+          environment: number
+          habit: number
+          last_assessment_id: string | null
+          overall: number
+          perspective: number
+          updated_at: string
+          user_id: string
+          wellness: number
+        }
+        Insert: {
+          awareness?: number
+          build_archetype_key?: string | null
+          environment?: number
+          habit?: number
+          last_assessment_id?: string | null
+          overall?: number
+          perspective?: number
+          updated_at?: string
+          user_id: string
+          wellness?: number
+        }
+        Update: {
+          awareness?: number
+          build_archetype_key?: string | null
+          environment?: number
+          habit?: number
+          last_assessment_id?: string | null
+          overall?: number
+          perspective?: number
+          updated_at?: string
+          user_id?: string
+          wellness?: number
+        }
+        Relationships: []
+      }
       user_builds: {
         Row: {
           awareness_base: number | null
@@ -662,6 +841,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      compute_build_scores: {
+        Args: { p_assessment_id: string }
+        Returns: {
+          assessment_id: string
+          awareness: number
+          build_archetype_key: string
+          computed_at: string
+          environment: number
+          habit: number
+          id: string
+          overall: number
+          perspective: number
+          user_id: string
+          wellness: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "build_scores"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       generate_invite_code: { Args: never; Returns: string }
       is_challenge_participant: {
         Args: { _challenge_id: string; _user_id: string }

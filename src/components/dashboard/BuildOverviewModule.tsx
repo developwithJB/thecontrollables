@@ -1,203 +1,183 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Dna, Settings } from "lucide-react";
+import { Dna, RefreshCw, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-
-interface UserBuild {
-  awareness_base: number;
-  perspective_base: number;
-  habit_base: number;
-  wellness_base: number;
-  environment_base: number;
-  sleep_modifier: number;
-  movement_modifier: number;
-  inputs_modifier: number;
-  environment_modifier: number;
-}
-
-interface BuildOverviewModuleProps {
-  userBuild: UserBuild | null;
-  onUpdateBuild: (build: Partial<UserBuild>) => void;
-}
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useBuildAssessment, getArchetypeInfo } from "@/hooks/useBuildAssessment";
+import { BuildAssessmentModal } from "./BuildAssessmentModal";
 
 const BASE_STATS = [
-  { key: "awareness_base", label: "Awareness", emoji: "🦉" },
-  { key: "perspective_base", label: "Perspective", emoji: "🐢" },
-  { key: "habit_base", label: "Habit", emoji: "🦈" },
-  { key: "wellness_base", label: "Wellness", emoji: "🛰️" },
-  { key: "environment_base", label: "Environment", emoji: "🚀" },
+  { key: "awareness", label: "Awareness", emoji: "🦉" },
+  { key: "perspective", label: "Perspective", emoji: "🐢" },
+  { key: "habit", label: "Habit", emoji: "🦈" },
+  { key: "wellness", label: "Wellness", emoji: "🛰️" },
+  { key: "environment", label: "Environment", emoji: "🚀" },
 ] as const;
 
-const MODIFIERS = [
-  { key: "sleep_modifier", label: "Sleep", icon: "😴" },
-  { key: "movement_modifier", label: "Movement", icon: "🏃" },
-  { key: "inputs_modifier", label: "Inputs", icon: "📱" },
-  { key: "environment_modifier", label: "Environment", icon: "🏠" },
-] as const;
+export function BuildOverviewModule() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  const {
+    questions,
+    questionsLoading,
+    currentBuild,
+    buildLoading,
+    submitAssessment,
+    isSubmitting,
+  } = useBuildAssessment();
 
-export function BuildOverviewModule({ userBuild, onUpdateBuild }: BuildOverviewModuleProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [localBuild, setLocalBuild] = useState<Partial<UserBuild>>({});
+  const hasBuild = currentBuild && currentBuild.overall > 0;
+  const archetypeInfo = getArchetypeInfo(currentBuild?.build_archetype_key || null);
 
-  const currentBuild: UserBuild = {
-    awareness_base: userBuild?.awareness_base ?? 5,
-    perspective_base: userBuild?.perspective_base ?? 5,
-    habit_base: userBuild?.habit_base ?? 5,
-    wellness_base: userBuild?.wellness_base ?? 5,
-    environment_base: userBuild?.environment_base ?? 5,
-    sleep_modifier: userBuild?.sleep_modifier ?? 0,
-    movement_modifier: userBuild?.movement_modifier ?? 0,
-    inputs_modifier: userBuild?.inputs_modifier ?? 0,
-    environment_modifier: userBuild?.environment_modifier ?? 0,
+  // Convert 1-4 scale to percentage for display
+  const getStatValue = (key: string) => {
+    if (!currentBuild) return 0;
+    const value = Number(currentBuild[key as keyof typeof currentBuild]) || 0;
+    return value;
   };
 
-  const editBuild = { ...currentBuild, ...localBuild };
-
-  const handleSave = () => {
-    onUpdateBuild(editBuild);
-    setIsOpen(false);
-    setLocalBuild({});
+  const getStatPercentage = (key: string) => {
+    const value = getStatValue(key);
+    return (value / 4) * 100;
   };
 
-  // Calculate total effective stats
-  const getEffectiveStat = (base: number, modifier: number) => Math.max(1, Math.min(10, base + modifier));
+  if (buildLoading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25 }}
+        className="p-5 rounded-2xl bg-card border shadow-soft"
+      >
+        <div className="animate-pulse space-y-3">
+          <div className="h-5 bg-muted rounded w-1/3" />
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-3 bg-muted rounded" />
+            ))}
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.25 }}
-      className="p-5 rounded-2xl bg-card border shadow-soft"
-    >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-purple-500/10">
-            <Dna className="w-4 h-4 text-purple-500" />
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25 }}
+        className="p-5 rounded-2xl bg-card border shadow-soft"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-purple-500/10">
+              <Dna className="w-4 h-4 text-purple-500" />
+            </div>
+            <h3 className="font-display font-semibold text-foreground">Your Build</h3>
           </div>
-          <h3 className="font-display font-semibold text-foreground">Your Build</h3>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+                  disabled={questionsLoading}
+                >
+                  <RefreshCw className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{hasBuild ? "Rescan your build" : "Take the assessment"}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <button className="p-1.5 rounded-lg hover:bg-muted transition-colors">
-              <Settings className="w-4 h-4 text-muted-foreground" />
-            </button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="font-display">Customize Your Build</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-6 pt-4">
-              <p className="text-sm text-muted-foreground">
-                Any build is viable. Don't fight your natural kit.
-              </p>
 
-              {/* Base Stats */}
-              <div>
-                <h4 className="text-sm font-medium text-foreground mb-3">Base Stats (Fixed)</h4>
-                <div className="space-y-4">
-                  {BASE_STATS.map((stat) => (
-                    <div key={stat.key}>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span>
-                          {stat.emoji} {stat.label}
-                        </span>
-                        <span className="font-medium">{editBuild[stat.key]}</span>
-                      </div>
-                      <Slider
-                        value={[editBuild[stat.key]]}
-                        onValueChange={([value]) => setLocalBuild({ ...localBuild, [stat.key]: value })}
-                        min={1}
-                        max={10}
-                        step={1}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Modifiers */}
-              <div>
-                <h4 className="text-sm font-medium text-foreground mb-3">Build Modifiers (Customizable)</h4>
-                <div className="space-y-4">
-                  {MODIFIERS.map((mod) => (
-                    <div key={mod.key}>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span>
-                          {mod.icon} {mod.label}
-                        </span>
-                        <span className={`font-medium ${editBuild[mod.key] > 0 ? "text-green-600" : editBuild[mod.key] < 0 ? "text-red-500" : ""}`}>
-                          {editBuild[mod.key] > 0 ? `+${editBuild[mod.key]}` : editBuild[mod.key]}
-                        </span>
-                      </div>
-                      <Slider
-                        value={[editBuild[mod.key] + 5]}
-                        onValueChange={([value]) => setLocalBuild({ ...localBuild, [mod.key]: value - 5 })}
-                        min={0}
-                        max={10}
-                        step={1}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <Button onClick={handleSave} className="w-full">
-                Save Build
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Compact stat display */}
-      <div className="space-y-2">
-        {BASE_STATS.map((stat) => {
-          const value = currentBuild[stat.key];
-          return (
-            <div key={stat.key} className="flex items-center gap-2">
-              <span className="text-sm w-6">{stat.emoji}</span>
-              <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(value / 10) * 100}%` }}
-                  transition={{ duration: 0.5, delay: 0.1 }}
-                  className="h-full bg-primary/60 rounded-full"
-                />
-              </div>
-              <span className="text-xs text-muted-foreground w-4">{value}</span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Modifiers summary */}
-      <div className="mt-4 pt-3 border-t flex gap-2 flex-wrap">
-        {MODIFIERS.map((mod) => {
-          const value = currentBuild[mod.key];
-          if (value === 0) return null;
-          return (
-            <span
-              key={mod.key}
-              className={`text-xs px-2 py-1 rounded-full ${
-                value > 0 ? "bg-green-500/10 text-green-600 dark:text-green-400" : "bg-red-500/10 text-red-500"
-              }`}
+        {!hasBuild ? (
+          // Empty state - no assessment yet
+          <div className="text-center py-4">
+            <p className="text-sm text-muted-foreground mb-3">
+              Take a quick scan to understand your current build.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsModalOpen(true)}
+              disabled={questionsLoading}
             >
-              {mod.icon} {value > 0 ? `+${value}` : value}
-            </span>
-          );
-        })}
-        {MODIFIERS.every((mod) => currentBuild[mod.key] === 0) && (
-          <span className="text-xs text-muted-foreground">No modifiers active</span>
+              <RefreshCw className="w-3 h-3 mr-2" />
+              Scan Build
+            </Button>
+          </div>
+        ) : (
+          <>
+            {/* Archetype badge */}
+            <div className="mb-3 flex items-center gap-2">
+              <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
+                {archetypeInfo.label}
+              </span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="w-3 h-3 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>{archetypeInfo.description}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+
+            {/* Stat bars */}
+            <div className="space-y-2">
+              {BASE_STATS.map((stat) => {
+                const value = getStatValue(stat.key);
+                const percentage = getStatPercentage(stat.key);
+                return (
+                  <div key={stat.key} className="flex items-center gap-2">
+                    <span className="text-sm w-6">{stat.emoji}</span>
+                    <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${percentage}%` }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                        className="h-full bg-primary/60 rounded-full"
+                      />
+                    </div>
+                    <span className="text-xs text-muted-foreground w-6 text-right">
+                      {value.toFixed(1)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Overall score */}
+            <div className="mt-4 pt-3 border-t flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Overall</span>
+              <span className="font-display font-semibold text-foreground">
+                {Number(currentBuild.overall).toFixed(1)}
+                <span className="text-xs text-muted-foreground font-normal">/4</span>
+              </span>
+            </div>
+          </>
         )}
-      </div>
-    </motion.div>
+      </motion.div>
+
+      {/* Assessment Modal */}
+      <BuildAssessmentModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        questions={questions}
+        onSubmit={submitAssessment}
+        isSubmitting={isSubmitting}
+      />
+    </>
   );
 }

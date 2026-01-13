@@ -54,8 +54,6 @@ export default function Dashboard() {
     todayTimeLog,
     logTime,
     isLoggingTime,
-    userBuild,
-    updateBuild,
   } = useLifeDashboard();
 
   // Daily readings from database
@@ -300,10 +298,7 @@ export default function Dashboard() {
                   onLogTime={logTime}
                   isLogging={isLoggingTime}
                 />
-                <BuildOverviewModule
-                  userBuild={userBuild}
-                  onUpdateBuild={updateBuild}
-                />
+                <BuildOverviewModule />
               </div>
 
               {/* AI Guide */}
