@@ -158,9 +158,9 @@ export default function Dashboard() {
             // Active reset, ready for today
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">Day {currentDay} of 7</p>
-              <div className="text-4xl mb-2">{todayContent?.emoji}</div>
-              <h2 className="font-display font-semibold text-foreground mb-1">"{todayContent?.theme}"</h2>
-              <p className="text-muted-foreground text-sm mb-4">{todayContent?.controllable}</p>
+          <div className="text-4xl mb-2">{todayContent?.emoji}</div>
+              <h2 className="font-display font-semibold text-foreground mb-1">{todayContent?.controllable}</h2>
+              <p className="text-muted-foreground text-sm mb-4">{todayContent?.framingLine}</p>
               <Button onClick={() => navigate("/reset")} className="w-full h-12 text-base">
                 Continue Reset
               </Button>

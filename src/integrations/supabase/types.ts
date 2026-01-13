@@ -54,21 +54,42 @@ export type Database = {
       }
       challenge_participants: {
         Row: {
+          certificate_generated_at: string | null
+          certificate_storage_path: string | null
           challenge_id: string
+          completed_at: string | null
+          covenant_accepted: boolean
+          covenant_accepted_at: string | null
           id: string
           joined_at: string
+          start_date: string | null
+          timezone: string | null
           user_id: string
         }
         Insert: {
+          certificate_generated_at?: string | null
+          certificate_storage_path?: string | null
           challenge_id: string
+          completed_at?: string | null
+          covenant_accepted?: boolean
+          covenant_accepted_at?: string | null
           id?: string
           joined_at?: string
+          start_date?: string | null
+          timezone?: string | null
           user_id: string
         }
         Update: {
+          certificate_generated_at?: string | null
+          certificate_storage_path?: string | null
           challenge_id?: string
+          completed_at?: string | null
+          covenant_accepted?: boolean
+          covenant_accepted_at?: string | null
           id?: string
           joined_at?: string
+          start_date?: string | null
+          timezone?: string | null
           user_id?: string
         }
         Relationships: [
@@ -89,6 +110,7 @@ export type Database = {
           created_at: string
           day_number: number
           id: string
+          log_date: string | null
           reflection: string | null
           user_id: string
         }
@@ -99,6 +121,7 @@ export type Database = {
           created_at?: string
           day_number: number
           id?: string
+          log_date?: string | null
           reflection?: string | null
           user_id: string
         }
@@ -109,6 +132,7 @@ export type Database = {
           created_at?: string
           day_number?: number
           id?: string
+          log_date?: string | null
           reflection?: string | null
           user_id?: string
         }
@@ -124,33 +148,83 @@ export type Database = {
       }
       challenges: {
         Row: {
+          covenant_version: number
           created_at: string
           creator_id: string
+          duration_days: number
           id: string
           invite_code: string | null
+          is_evergreen: boolean
           is_solo: boolean
           name: string
           start_date: string
         }
         Insert: {
+          covenant_version?: number
           created_at?: string
           creator_id: string
+          duration_days?: number
           id?: string
           invite_code?: string | null
+          is_evergreen?: boolean
           is_solo?: boolean
           name?: string
           start_date?: string
         }
         Update: {
+          covenant_version?: number
           created_at?: string
           creator_id?: string
+          duration_days?: number
           id?: string
           invite_code?: string | null
+          is_evergreen?: boolean
           is_solo?: boolean
           name?: string
           start_date?: string
         }
         Relationships: []
+      }
+      completion_certificates: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          end_date: string
+          id: string
+          start_date: string
+          storage_path: string
+          timezone: string | null
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          start_date: string
+          storage_path: string
+          timezone?: string | null
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          start_date?: string
+          storage_path?: string
+          timezone?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "completion_certificates_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       daily_checkins: {
         Row: {
@@ -249,30 +323,42 @@ export type Database = {
       }
       reset_sessions: {
         Row: {
+          completed_at: string | null
+          covenant_accepted: boolean
+          covenant_accepted_at: string | null
           created_at: string
           current_day: number
           id: string
           invite_code: string | null
           start_date: string
           status: string
+          timezone: string | null
           user_id: string
         }
         Insert: {
+          completed_at?: string | null
+          covenant_accepted?: boolean
+          covenant_accepted_at?: string | null
           created_at?: string
           current_day?: number
           id?: string
           invite_code?: string | null
           start_date?: string
           status?: string
+          timezone?: string | null
           user_id: string
         }
         Update: {
+          completed_at?: string | null
+          covenant_accepted?: boolean
+          covenant_accepted_at?: string | null
           created_at?: string
           current_day?: number
           id?: string
           invite_code?: string | null
           start_date?: string
           status?: string
+          timezone?: string | null
           user_id?: string
         }
         Relationships: []
