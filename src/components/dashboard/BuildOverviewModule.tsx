@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Dna, RefreshCw, Info, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
-import { getArchetypeInfo } from "@/types/build";
+import { getArchetypeInfo } from "@/lib/build";
 import { BuildAssessmentModal } from "./BuildAssessmentModal";
 import { BuildCard } from "./BuildCard";
 
