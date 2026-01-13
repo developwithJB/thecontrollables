@@ -21,6 +21,7 @@ import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule"
 import { AIGuidePanel } from "@/components/dashboard/AIGuidePanel";
 import { ReadingCard } from "@/components/ReadingCard";
 import { ChallengeHistoryCard } from "@/components/ChallengeHistoryCard";
+import { GameRulesSection } from "@/components/GameRulesSection";
 
 type TabType = "dashboard" | "readings" | "history";
 
@@ -319,8 +320,18 @@ export default function Dashboard() {
                   The Controllables
                 </h1>
                 <p className="text-muted-foreground text-sm">
-                  Daily readings to guide your quest.
+                  Play your life on purpose.
                 </p>
+              </div>
+
+              {/* Game Philosophy Rules */}
+              <GameRulesSection />
+
+              {/* Section Divider */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground font-medium">Daily Readings</span>
+                <div className="flex-1 h-px bg-border" />
               </div>
 
               <div className="space-y-4">
