@@ -55,45 +55,53 @@ export const ResetDay = ({ dayNumber, completedDays, logDate, onComplete, isComp
 
       {/* Main Content - Mobile-first, paper-like */}
       <main className="flex-1 flex flex-col px-6 pb-8 max-w-sm mx-auto w-full">
-        {/* Day Info */}
+        {/* Reading of the Day - Bible app inspired */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-center mb-6"
+          className="relative mb-8 -mx-2 rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 via-primary/10 to-muted/30 p-6"
+        >
+          {/* Source & Chapter */}
+          <div className="mb-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-0.5">
+              {content.reading.source}
+            </p>
+            <p className="text-sm font-semibold text-foreground">
+              {content.reading.chapter}
+            </p>
+          </div>
+          
+          {/* Reading Text */}
+          <p className="text-xl leading-relaxed text-foreground font-serif">
+            "{content.reading.text}"
+          </p>
+
+          {/* Day Badge */}
+          <div className="absolute top-4 right-4">
+            <span className="text-3xl">{content.emoji}</span>
+          </div>
+        </motion.div>
+
+        {/* Day Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="text-center mb-4"
         >
           <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">
-            Day {dayNumber} of 7
+            Day {dayNumber} of 7 · {content.controllable}
           </p>
           <p className="text-sm text-muted-foreground/70">{formattedDate}</p>
         </motion.div>
-
-        {/* Emoji */}
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.2, type: "spring" }}
-          className="text-5xl text-center mb-4"
-        >
-          {content.emoji}
-        </motion.div>
-
-        {/* Controllable Name */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.25 }}
-          className="text-xs uppercase tracking-widest text-muted-foreground text-center mb-4"
-        >
-          {content.controllable}
-        </motion.p>
 
         {/* Framing Line */}
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="text-foreground text-lg text-center leading-relaxed mb-8"
+          className="text-foreground text-base text-center leading-relaxed mb-6"
         >
           {content.framingLine}
         </motion.p>

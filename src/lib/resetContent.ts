@@ -11,6 +11,11 @@ export interface DayContent {
   completionButtonText: string;
   surrenderLine: string;
   controlLine: string;
+  reading: {
+    source: string;
+    chapter: string;
+    text: string;
+  };
 }
 
 export const RESET_DAYS: DayContent[] = [
@@ -24,6 +29,11 @@ export const RESET_DAYS: DayContent[] = [
     completionButtonText: "I See It",
     controlLine: "Today, I control my attention.",
     surrenderLine: "I release the need to have all the answers.",
+    reading: {
+      source: "The Controllables",
+      chapter: "Awareness",
+      text: "The owl doesn't hunt by chasing. It sits. It watches. It waits until the moment reveals itself. Awareness isn't about seeing more—it's about seeing what matters.",
+    },
   },
   {
     day: 2,
@@ -35,6 +45,11 @@ export const RESET_DAYS: DayContent[] = [
     completionButtonText: "I Choose to Pause",
     controlLine: "Today, I control my response time.",
     surrenderLine: "I release the urgency to fix everything now.",
+    reading: {
+      source: "The Controllables",
+      chapter: "Perspective",
+      text: "The turtle carries its home. It doesn't rush because it has everything it needs. When you slow down, you stop reacting to life and start responding to it.",
+    },
   },
   {
     day: 3,
@@ -46,6 +61,11 @@ export const RESET_DAYS: DayContent[] = [
     completionButtonText: "I Will Move",
     controlLine: "Today, I control whether I start.",
     surrenderLine: "I release perfectionism about how it gets done.",
+    reading: {
+      source: "The Controllables",
+      chapter: "Habit",
+      text: "Sharks can't stop moving or they die. But they don't swim fast—they swim constantly. Your habits don't need to be heroic. They need to be happening.",
+    },
   },
   {
     day: 4,
@@ -57,6 +77,11 @@ export const RESET_DAYS: DayContent[] = [
     completionButtonText: "I Hear My Body",
     controlLine: "Today, I control how I treat my body.",
     surrenderLine: "I release guilt about needing rest.",
+    reading: {
+      source: "The Controllables",
+      chapter: "Wellness",
+      text: "A satellite orbiting Earth can detect a one-degree temperature shift from space. Your body is always sending signals. The question is whether you're listening.",
+    },
   },
   {
     day: 5,
@@ -68,6 +93,11 @@ export const RESET_DAYS: DayContent[] = [
     completionButtonText: "I Choose My Circle",
     controlLine: "Today, I control who I give my time to.",
     surrenderLine: "I release toxic expectations from others.",
+    reading: {
+      source: "The Controllables",
+      chapter: "Environment",
+      text: "A rocket needs escape velocity to break free from gravity. Your environment is the gravity in your life. Some people fuel your launch. Others hold you to the ground.",
+    },
   },
   {
     day: 6,
@@ -79,6 +109,11 @@ export const RESET_DAYS: DayContent[] = [
     completionButtonText: "I See Through It",
     controlLine: "Today, I control what I believe about myself.",
     surrenderLine: "I release the need to be right.",
+    reading: {
+      source: "The Controllables",
+      chapter: "Ego Scanner",
+      text: "The mask looks convincing from outside, but it's hollow inside. Your ego wears many masks—victim, hero, critic. Learning to spot them is how you take back control.",
+    },
   },
   {
     day: 7,
@@ -90,6 +125,11 @@ export const RESET_DAYS: DayContent[] = [
     completionButtonText: "I Complete This Journey",
     controlLine: "Today, I control whether I carry this forward.",
     surrenderLine: "I give the rest to God.",
+    reading: {
+      source: "The Controllables",
+      chapter: "The Review",
+      text: "Lightning doesn't strike randomly—it follows the path of least resistance carved by previous strikes. Each day you showed up, you carved a new path. That's how transformation works.",
+    },
   },
 ];
 
