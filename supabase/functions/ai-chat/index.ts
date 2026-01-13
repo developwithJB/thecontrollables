@@ -137,6 +137,17 @@ interface ChatMessage {
   content: string;
 }
 
+interface BuildContext {
+  awareness: string;
+  perspective: string;
+  habit: string;
+  wellness: string;
+  environment: string;
+  overall: string;
+  archetype: string;
+  archetypeDescription: string;
+}
+
 interface RequestBody {
   controllable?: string;
   messages: ChatMessage[];
@@ -151,6 +162,7 @@ interface RequestBody {
     xp: number;
     integrity: number | null;
   };
+  buildContext?: BuildContext | null;
 }
 
 Deno.serve(async (req) => {
@@ -159,7 +171,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { controllable, messages, challengeContext, userContext } = await req.json() as RequestBody;
+    const { controllable, messages, challengeContext, userContext, buildContext } = await req.json() as RequestBody;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -197,6 +209,21 @@ Keep responses under 3 sentences unless asked for more. End with a clear next ac
 - Quest: ${userContext.questTitle}
 - XP (momentum): ${userContext.xp}
 - Integrity score: ${userContext.integrity ?? "Not yet tracked"}`;
+    }
+
+    // Add build context if provided
+    if (buildContext) {
+      systemPrompt += `\n\nUser's Build Stats (1-4 scale, based on last 7 days):
+- Awareness 🦉: ${buildContext.awareness}/4
+- Perspective 🐢: ${buildContext.perspective}/4
+- Habit 🦈: ${buildContext.habit}/4
+- Wellness 🛰️: ${buildContext.wellness}/4
+- Environment 🚀: ${buildContext.environment}/4
+- Overall: ${buildContext.overall}/4
+- Build Archetype: ${buildContext.archetype}
+- Archetype meaning: ${buildContext.archetypeDescription}
+
+Use this build data to personalize your guidance. Reference their strengths (high scores) and areas for growth (low scores) when relevant. Tailor advice based on their archetype.`;
     }
 
     // Add challenge context if provided

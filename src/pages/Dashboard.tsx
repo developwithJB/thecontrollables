@@ -7,6 +7,7 @@ import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
 import { useReset } from "@/hooks/useReset";
 import { useLifeDashboard, XP_VALUES } from "@/hooks/useLifeDashboard";
+import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { useDailyReadings } from "@/hooks/useDailyReadings";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayContent, RESET_DAYS } from "@/lib/resetContent";
@@ -58,6 +59,9 @@ export default function Dashboard() {
 
   // Daily readings from database
   const { readings, isLoading: readingsLoading } = useDailyReadings();
+
+  // Build data for AI Guide
+  const { currentBuild, buildLoading } = useBuildAssessment();
 
   // Fetch all reset sessions for history
   const { data: allSessions = [], isLoading: sessionsLoading } = useQuery({
@@ -126,7 +130,7 @@ export default function Dashboard() {
     return allCompletedDays.filter((d) => d.session_id === sessionId).length;
   };
 
-  if (isAuthLoading || resetLoading || dashboardLoading || sessionsLoading || readingsLoading) {
+  if (isAuthLoading || resetLoading || dashboardLoading || sessionsLoading || readingsLoading || buildLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-muted-foreground">
@@ -306,6 +310,7 @@ export default function Dashboard() {
                 activeQuest={activeQuest}
                 totalXp={totalXp}
                 integrityScore={integrityScore}
+                currentBuild={currentBuild}
               />
             </motion.div>
           )}
