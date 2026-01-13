@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, Book, RefreshCw, BookOpen, History } from "lucide-react";
+import { LogOut, Book, BookOpen, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +21,7 @@ import { IntegrityMeterModule } from "@/components/dashboard/IntegrityMeterModul
 import { TimeCurrencyModule } from "@/components/dashboard/TimeCurrencyModule";
 import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule";
 import { AIGuidePanel } from "@/components/dashboard/AIGuidePanel";
+import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
 import { ReadingCard } from "@/components/ReadingCard";
 import { ChallengeHistoryCard } from "@/components/ChallengeHistoryCard";
 import { GameRulesSection } from "@/components/GameRulesSection";
@@ -231,62 +232,15 @@ export default function Dashboard() {
                 isCompleting={isCompletingQuest}
               />
 
-              {/* Reset CTA */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 }}
-                className="p-4 rounded-xl bg-card border"
-              >
-                {!activeSession ? (
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">7-Day Reset</p>
-                      <p className="text-xs text-muted-foreground">Re-enter the game</p>
-                    </div>
-                    <Button size="sm" onClick={() => navigate("/reset")}>
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Start Reset
-                    </Button>
-                  </div>
-                ) : isCompleted ? (
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">⚡</span>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Reset Complete</p>
-                        <p className="text-xs text-muted-foreground">Well played</p>
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline" onClick={() => navigate("/reset")}>
-                      New Reset
-                    </Button>
-                  </div>
-                ) : todayAlreadyCompleted ? (
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">✨</span>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Day {currentDay} complete</p>
-                        <p className="text-xs text-muted-foreground">Return tomorrow</p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{todayContent?.emoji}</span>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Day {currentDay}: {todayContent?.controllable}</p>
-                        <p className="text-xs text-muted-foreground">Quest action waiting</p>
-                      </div>
-                    </div>
-                    <Button size="sm" onClick={() => navigate("/reset")}>
-                      Continue
-                    </Button>
-                  </div>
-                )}
-              </motion.div>
+              {/* Reset Progress Module */}
+              <ResetProgressModule
+                hasActiveSession={!!activeSession}
+                isCompleted={isCompleted}
+                currentDay={currentDay}
+                completedDays={completedDays}
+                todayAlreadyCompleted={todayAlreadyCompleted}
+                readings={readings}
+              />
 
               {/* Stats Grid */}
               <div className="grid grid-cols-2 gap-3">
