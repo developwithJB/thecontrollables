@@ -46,6 +46,8 @@ export default function Dashboard() {
     isCreatingQuest,
     updateQuest,
     isUpdatingQuest,
+    completeQuest,
+    isCompletingQuest,
     totalXp,
     xpLogs,
     integrityScore,
@@ -223,8 +225,10 @@ export default function Dashboard() {
                 activeQuest={activeQuest}
                 onCreateQuest={createQuest}
                 onUpdateQuest={updateQuest}
+                onCompleteQuest={completeQuest}
                 isCreating={isCreatingQuest}
                 isUpdating={isUpdatingQuest}
+                isCompleting={isCompletingQuest}
               />
 
               {/* Reset CTA */}
