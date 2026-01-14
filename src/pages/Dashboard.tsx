@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, Book, BookOpen, History } from "lucide-react";
+import { LogOut, Book, BookOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -24,10 +24,15 @@ import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule"
 import { AIGuidePanel } from "@/components/dashboard/AIGuidePanel";
 import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
 import { ReadingCard } from "@/components/ReadingCard";
-import { ChallengeHistoryCard } from "@/components/ChallengeHistoryCard";
 import { GameRulesSection } from "@/components/GameRulesSection";
 
-type TabType = "dashboard" | "readings" | "history";
+// Experience tab components
+import { TimeCycleCard } from "@/components/experience/TimeCycleCard";
+import { OfflineTriggers } from "@/components/experience/OfflineTriggers";
+import { ProgressHistory } from "@/components/experience/ProgressHistory";
+import { MomentumDecay } from "@/components/experience/MomentumDecay";
+
+type TabType = "dashboard" | "readings" | "experience";
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
@@ -135,11 +140,6 @@ export default function Dashboard() {
     navigate("/");
   };
 
-  // Get completed days count per session
-  const getCompletedDaysForSession = (sessionId: string) => {
-    return allCompletedDays.filter((d) => d.session_id === sessionId).length;
-  };
-
   if (isAuthLoading || resetLoading || dashboardLoading || sessionsLoading || readingsLoading || buildLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -192,20 +192,21 @@ export default function Dashboard() {
             {[
               { id: "dashboard" as TabType, label: "Dashboard", icon: "🎮" },
               { id: "readings" as TabType, label: "Readings", icon: "📖" },
-              { id: "history" as TabType, label: "History", icon: "📅" },
+              { id: "experience" as TabType, label: "Experience", icon: "✨" },
             ].map((tab) => (
-              <button
+              <motion.button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-colors ${
+                whileTap={{ scale: 0.95 }}
+                className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all ${
                   activeTab === tab.id
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-accent text-accent-foreground shadow-[0_0_12px_rgba(102,189,239,0.3)]"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
               >
                 <span className="mr-1">{tab.icon}</span>
                 {tab.label}
-              </button>
+              </motion.button>
             ))}
           </div>
         </div>
@@ -374,82 +375,86 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          {activeTab === "history" && (
+          {activeTab === "experience" && (
             <motion.div
-              key="history"
+              key="experience"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.3 }}
+              className="space-y-4"
             >
-              <div className="mb-6">
-                <h1 className="font-display text-2xl font-semibold text-foreground mb-2">
-                  Your Journey
-                </h1>
+              {/* Header */}
+              <div className="mb-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="w-5 h-5 text-accent" />
+                  <h1 className="font-display text-2xl font-semibold text-foreground">
+                    Experience
+                  </h1>
+                </div>
                 <p className="text-muted-foreground text-sm">
-                  Track your progress through each reset.
+                  Time anchors & reality bridges. Track your journey.
                 </p>
               </div>
 
-              {allSessions.length === 0 ? (
-                <div className="text-center py-12">
-                  <History className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <h3 className="font-display font-semibold text-foreground mb-2">
-                    No resets yet
-                  </h3>
-                  <p className="text-muted-foreground text-sm mb-6">
-                    Start your first 7-Day Reset to begin.
-                  </p>
-                  <Button onClick={() => navigate("/reset")}>
-                    Start Your First Reset
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {allSessions.map((session, index) => (
-                    <ChallengeHistoryCard
-                      key={session.id}
-                      session={session}
-                      completedDays={getCompletedDaysForSession(session.id)}
-                      index={index}
-                    />
-                  ))}
-                </div>
-              )}
+              {/* Time Cycles - Where you are */}
+              <TimeCycleCard
+                activeQuest={activeQuest}
+                currentResetDay={currentDay}
+                hasActiveReset={!!activeSession && !isCompleted}
+              />
 
-              {/* Stats summary */}
-              {allSessions.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                  className="mt-8 p-6 rounded-2xl bg-muted/30 border"
-                >
-                  <h3 className="font-display font-semibold text-foreground mb-4 text-center">
-                    Journey Stats
-                  </h3>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <p className="text-2xl font-display font-bold text-primary">
-                        {allSessions.length}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Resets</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-display font-bold text-primary">
-                        {allCompletedDays.length}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Days</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-display font-bold text-primary">
-                        {allSessions.filter((s) => s.status === "completed").length}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Completed</p>
-                    </div>
+              {/* Offline Triggers */}
+              <OfflineTriggers
+                activeQuest={activeQuest}
+                currentResetDay={currentDay}
+                todayReading={readings.find(r => r.day_number === currentDay) || null}
+              />
+
+              {/* Progress History */}
+              <ProgressHistory
+                totalXp={totalXp}
+                xpLogs={xpLogs}
+                resetSessions={allSessions}
+                completedResetsCount={allSessions.filter((s) => s.status === "completed").length}
+              />
+
+              {/* Momentum Decay / Cost of Inaction */}
+              <MomentumDecay
+                lastActivity={xpLogs[0]?.created_at || null}
+                currentStreak={completedDays.length}
+                hasActiveQuest={!!activeQuest}
+                hasActiveReset={!!activeSession && !isCompleted}
+                onStartReset={() => navigate("/reset")}
+              />
+
+              {/* Journey Summary Footer */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="p-6 rounded-2xl bg-gradient-to-br from-accent/10 to-primary/10 border border-accent/20 text-center"
+              >
+                <p className="text-sm text-muted-foreground mb-2">
+                  "People pay to protect progress."
+                </p>
+                <div className="flex items-center justify-center gap-4 text-sm">
+                  <div>
+                    <span className="font-display font-bold text-lg text-accent">{allSessions.length}</span>
+                    <span className="text-muted-foreground ml-1">Resets</span>
                   </div>
-                </motion.div>
-              )}
+                  <div className="w-px h-6 bg-border" />
+                  <div>
+                    <span className="font-display font-bold text-lg text-accent">{allCompletedDays.length}</span>
+                    <span className="text-muted-foreground ml-1">Days Logged</span>
+                  </div>
+                  <div className="w-px h-6 bg-border" />
+                  <div>
+                    <span className="font-display font-bold text-lg text-accent">{totalXp.toLocaleString()}</span>
+                    <span className="text-muted-foreground ml-1">XP</span>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
