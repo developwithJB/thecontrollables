@@ -302,30 +302,42 @@ export default function Dashboard() {
 
               <div className="space-y-4">
                 {readings.length > 0 ? (
-                  readings.map((reading) => (
-                    <ReadingCard
-                      key={reading.id}
-                      day={reading.day_number}
-                      emoji={reading.emoji}
-                      controllable={reading.controllable}
-                      chapter={reading.reading_chapter}
-                      text={reading.reading_text}
-                      isCompleted={completedDays.some((d) => d.day_number === reading.day_number)}
-                    />
-                  ))
+                  readings.map((reading) => {
+                    const completedDay = completedDays.find((d) => d.day_number === reading.day_number);
+                    const isUnlocked = !!completedDay;
+                    return (
+                      <ReadingCard
+                        key={reading.id}
+                        day={reading.day_number}
+                        emoji={reading.emoji}
+                        controllable={reading.controllable}
+                        chapter={reading.reading_chapter}
+                        text={reading.reading_text}
+                        isCompleted={isUnlocked}
+                        completedAt={completedDay?.completed_at}
+                        isLocked={!isUnlocked}
+                      />
+                    );
+                  })
                 ) : (
                   // Fallback to static content if database is empty
-                  RESET_DAYS.map((day) => (
-                    <ReadingCard
-                      key={day.day}
-                      day={day.day}
-                      emoji={day.emoji}
-                      controllable={day.controllable}
-                      chapter={day.reading.chapter}
-                      text={day.reading.text}
-                      isCompleted={completedDays.some((d) => d.day_number === day.day)}
-                    />
-                  ))
+                  RESET_DAYS.map((day) => {
+                    const completedDay = completedDays.find((d) => d.day_number === day.day);
+                    const isUnlocked = !!completedDay;
+                    return (
+                      <ReadingCard
+                        key={day.day}
+                        day={day.day}
+                        emoji={day.emoji}
+                        controllable={day.controllable}
+                        chapter={day.reading.chapter}
+                        text={day.reading.text}
+                        isCompleted={isUnlocked}
+                        completedAt={completedDay?.completed_at}
+                        isLocked={!isUnlocked}
+                      />
+                    );
+                  })
                 )}
               </div>
 
