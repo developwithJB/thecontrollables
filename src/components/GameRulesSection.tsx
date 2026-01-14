@@ -1,5 +1,7 @@
-import { motion } from "framer-motion";
-import { Lightbulb } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Lightbulb, ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface GameRule {
   statement: string;
@@ -61,6 +63,10 @@ const GAME_RULES: GameRule[] = [
 ];
 
 export function GameRulesSection() {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  const visibleRules = isExpanded ? GAME_RULES : GAME_RULES.slice(0, 1);
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -80,59 +86,89 @@ export function GameRulesSection() {
         Life is a game—whether you play intentionally or not.
       </p>
 
-      {/* Scrollable Rules */}
+      {/* Rules */}
       <div className="space-y-3">
-        {GAME_RULES.map((rule, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.05 }}
-            className="p-4 rounded-xl bg-card border transition-colors hover:border-primary/30"
-          >
-            {/* Rule Number */}
-            <div className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center">
-                {index + 1}
-              </span>
-              
-              <div className="flex-1 min-w-0">
-                {/* Statement */}
-                <p className="font-display font-medium text-foreground text-sm leading-snug mb-2">
-                  "{rule.statement}"
-                </p>
+        <AnimatePresence mode="wait">
+          {visibleRules.map((rule, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, delay: index * 0.03 }}
+              className="p-4 rounded-xl bg-card border transition-colors hover:border-primary/30"
+            >
+              {/* Rule Number */}
+              <div className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center">
+                  {index + 1}
+                </span>
                 
-                {/* Explanation */}
-                <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                  {rule.explanation}
-                </p>
-                
-                {/* Action */}
-                <div className="flex items-start gap-2 pt-2 border-t border-border/50">
-                  <span className="text-primary text-xs">→</span>
-                  <p className="text-xs text-foreground/80 italic">
-                    {rule.action}
+                <div className="flex-1 min-w-0">
+                  {/* Statement */}
+                  <p className="font-display font-medium text-foreground text-sm leading-snug mb-2">
+                    "{rule.statement}"
                   </p>
+                  
+                  {/* Explanation */}
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                    {rule.explanation}
+                  </p>
+                  
+                  {/* Action */}
+                  <div className="flex items-start gap-2 pt-2 border-t border-border/50">
+                    <span className="text-primary text-xs">→</span>
+                    <p className="text-xs text-foreground/80 italic">
+                      {rule.action}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
 
-      {/* Philosophy Footer */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        className="mt-6 p-4 rounded-xl bg-muted/30 border-l-2 border-primary/50"
+      {/* Expand/Collapse Button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full mt-4 text-muted-foreground hover:text-foreground"
       >
-        <p className="text-xs text-muted-foreground italic leading-relaxed">
-          These aren't motivational slogans. They're operating principles. 
-          Return to them when you're stuck, lost, or starting over. 
-          The game continues either way—play on purpose.
-        </p>
-      </motion.div>
+        {isExpanded ? (
+          <>
+            <ChevronUp className="w-4 h-4 mr-2" />
+            Show Less
+          </>
+        ) : (
+          <>
+            <ChevronDown className="w-4 h-4 mr-2" />
+            See All 10 Rules
+          </>
+        )}
+      </Button>
+
+      {/* Philosophy Footer - only show when expanded */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-6 p-4 rounded-xl bg-muted/30 border-l-2 border-primary/50">
+              <p className="text-xs text-muted-foreground italic leading-relaxed">
+                These aren't motivational slogans. They're operating principles. 
+                Return to them when you're stuck, lost, or starting over. 
+                The game continues either way—play on purpose.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
