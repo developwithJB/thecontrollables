@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Send, Loader2, RotateCcw, Zap } from "lucide-react";
+import { ChevronDown, Send, Loader2, RotateCcw, Zap, Check, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { getArchetypeInfo, type UserBuildCurrent } from "@/lib/build";
 import { useGuideSession } from "@/hooks/useGuideSession";
+import { toast } from "sonner";
 
 interface MainQuest {
   title: string;
@@ -17,11 +18,13 @@ interface AIGuidePanelProps {
   totalXp: number;
   integrityScore: number | null;
   currentBuild?: UserBuildCurrent | null;
+  onXpEarned?: () => void;
 }
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  actionCompleted?: boolean;
 }
 
 type GuideType = "awareness" | "perspective" | "habit" | "wellness" | "environment";
@@ -98,12 +101,15 @@ const GUIDES: Guide[] = [
   },
 ];
 
-export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild }: AIGuidePanelProps) {
+const ACTION_XP = 15;
+
+export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild, onXpEarned }: AIGuidePanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedGuide, setSelectedGuide] = useState<Guide | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [completedActionsCount, setCompletedActionsCount] = useState(0);
   
   const { 
     patternData, 
@@ -119,6 +125,79 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
       setMessages(sessionMessages);
     }
   }, [isSessionLoading, sessionMessages, messages.length]);
+
+  // Load completed actions count
+  useEffect(() => {
+    const loadCompletedCount = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const today = new Date().toISOString().split('T')[0];
+      const { count } = await supabase
+        .from('completed_actions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('completed_at', `${today}T00:00:00`);
+
+      setCompletedActionsCount(count || 0);
+    };
+
+    loadCompletedCount();
+  }, []);
+
+  const completeAction = useCallback(async (actionText: string, messageIndex: number) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Please log in to complete actions");
+      return;
+    }
+
+    try {
+      // Insert completed action
+      const { error: actionError } = await supabase
+        .from('completed_actions')
+        .insert([{
+          user_id: user.id,
+          action_text: actionText,
+          controllable: selectedGuide?.id || null,
+          xp_awarded: ACTION_XP,
+        }]);
+
+      if (actionError) throw actionError;
+
+      // Award XP
+      const { error: xpError } = await supabase
+        .from('xp_logs')
+        .insert([{
+          user_id: user.id,
+          amount: ACTION_XP,
+          source: 'action_completed',
+          description: `Completed action: ${actionText.substring(0, 50)}...`,
+        }]);
+
+      if (xpError) throw xpError;
+
+      // Update message to show completed
+      setMessages(prev => prev.map((msg, idx) => 
+        idx === messageIndex ? { ...msg, actionCompleted: true } : msg
+      ));
+
+      setCompletedActionsCount(prev => prev + 1);
+      
+      toast.success(
+        <div className="flex items-center gap-2">
+          <Trophy className="w-4 h-4 text-accent" />
+          <span>+{ACTION_XP} XP earned!</span>
+        </div>
+      );
+
+      // Notify parent to refresh XP
+      onXpEarned?.();
+    } catch (error) {
+      console.error("Error completing action:", error);
+      toast.error("Failed to complete action");
+    }
+  }, [selectedGuide?.id, onXpEarned]);
 
   const sendMessage = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
@@ -154,8 +233,8 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
         body: {
           controllable: selectedGuide?.id,
           messages: [userMessage].map((m) => ({ role: m.role, content: m.content })),
-          sessionHistory: messages.slice(-10), // Send recent history for context
-          patternData, // Send pattern data for personalization
+          sessionHistory: messages.slice(-10),
+          patternData,
           userContext,
           buildContext,
         },
@@ -166,11 +245,11 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
       const assistantMessage: Message = {
         role: "assistant",
         content: data.message || "I'm here to help. What's on your mind?",
+        actionCompleted: false,
       };
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
       
-      // Persist to database
       saveSession(updatedMessages, selectedGuide?.id || null);
     } catch (error) {
       console.error("AI chat error:", error);
@@ -179,6 +258,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
         {
           role: "assistant",
           content: "I'm having trouble connecting right now. Take a breath, and try again in a moment.\n\n→ ACTION: Close your eyes and take 3 deep breaths while waiting.",
+          actionCompleted: false,
         },
       ]);
     } finally {
@@ -188,7 +268,6 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
 
   const handleGuideSelect = (guide: Guide) => {
     setSelectedGuide(guide);
-    setMessages([]);
   };
 
   const handleBack = () => {
@@ -201,7 +280,6 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
     clearSession();
   };
 
-  // Extract action from last message for highlighting
   const getActionFromMessage = (content: string): string | null => {
     if (content.includes('→ ACTION:')) {
       return content.split('→ ACTION:')[1]?.trim().split('\n')[0] || null;
@@ -240,6 +318,12 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {completedActionsCount > 0 && (
+            <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full flex items-center gap-1">
+              <Check className="w-3 h-3" />
+              {completedActionsCount} today
+            </span>
+          )}
           {messages.length > 0 && (
             <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
               {messages.length} msgs
@@ -261,7 +345,6 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
           >
             <div className="px-5 pb-5">
               {!selectedGuide ? (
-                /* Guide Selection */
                 <div className="space-y-2">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs text-muted-foreground">
@@ -280,7 +363,6 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                     )}
                   </div>
                   
-                  {/* Pattern insights if available */}
                   {patternData && patternData.recentThemes.length > 0 && (
                     <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 mb-3">
                       <p className="text-xs font-medium text-primary mb-1 flex items-center gap-1">
@@ -311,9 +393,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                   ))}
                 </div>
               ) : (
-                /* Chat Interface */
                 <>
-                  {/* Back Button & New Conversation */}
                   <div className="flex items-center justify-between mb-3">
                     <button
                       onClick={handleBack}
@@ -334,7 +414,6 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                     )}
                   </div>
 
-                  {/* Guide Header */}
                   <div className={`p-3 rounded-xl bg-gradient-to-r ${selectedGuide.color} border mb-4`}>
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{selectedGuide.emoji}</span>
@@ -345,7 +424,6 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                     </div>
                   </div>
 
-                  {/* Messages */}
                   {messages.length > 0 ? (
                     <div className="space-y-3 max-h-80 overflow-y-auto mb-4 pr-2">
                       {messages.map((msg, idx) => {
@@ -369,17 +447,42 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                               {contentWithoutAction}
                             </div>
                             
-                            {/* Highlighted Action */}
                             {action && (
                               <motion.div
                                 initial={{ opacity: 0, y: -5 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="mt-2 mr-8 p-3 rounded-xl bg-accent/10 border border-accent/30"
+                                className={`mt-2 mr-8 p-3 rounded-xl border ${
+                                  msg.actionCompleted 
+                                    ? 'bg-accent/20 border-accent/50' 
+                                    : 'bg-accent/10 border-accent/30'
+                                }`}
                               >
-                                <p className="text-xs font-semibold text-accent mb-1 flex items-center gap-1">
-                                  <Zap className="w-3 h-3" /> YOUR ACTION
-                                </p>
-                                <p className="text-sm text-foreground">{action}</p>
+                                <div className="flex items-center justify-between mb-1">
+                                  <p className="text-xs font-semibold text-accent flex items-center gap-1">
+                                    <Zap className="w-3 h-3" /> YOUR ACTION
+                                  </p>
+                                  {!msg.actionCompleted && (
+                                    <span className="text-xs text-accent/70">+{ACTION_XP} XP</span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-foreground mb-2">{action}</p>
+                                
+                                {msg.actionCompleted ? (
+                                  <div className="flex items-center gap-2 text-accent">
+                                    <Check className="w-4 h-4" />
+                                    <span className="text-xs font-medium">Completed! +{ACTION_XP} XP</span>
+                                  </div>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => completeAction(action, idx)}
+                                    className="h-7 text-xs border-accent/30 text-accent hover:bg-accent/10"
+                                  >
+                                    <Check className="w-3 h-3 mr-1" />
+                                    Mark Complete
+                                  </Button>
+                                )}
                               </motion.div>
                             )}
                           </div>
@@ -410,7 +513,6 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                     </div>
                   )}
 
-                  {/* Input */}
                   <div className="flex gap-2">
                     <Input
                       placeholder={`Ask ${selectedGuide.name}...`}

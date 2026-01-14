@@ -325,6 +325,36 @@ export type Database = {
         }
         Relationships: []
       }
+      completed_actions: {
+        Row: {
+          action_text: string
+          completed_at: string
+          controllable: string | null
+          created_at: string
+          id: string
+          user_id: string
+          xp_awarded: number
+        }
+        Insert: {
+          action_text: string
+          completed_at?: string
+          controllable?: string | null
+          created_at?: string
+          id?: string
+          user_id: string
+          xp_awarded?: number
+        }
+        Update: {
+          action_text?: string
+          completed_at?: string
+          controllable?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string
+          xp_awarded?: number
+        }
+        Relationships: []
+      }
       completion_certificates: {
         Row: {
           challenge_id: string
