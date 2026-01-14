@@ -10,6 +10,8 @@ import { useReset } from "@/hooks/useReset";
 import { useLifeDashboard } from "@/hooks/useLifeDashboard";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { useDailyReadings } from "@/hooks/useDailyReadings";
+import { useBadges } from "@/hooks/useBadges";
+import { useOnboarding } from "@/hooks/useOnboarding";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayContent, RESET_DAYS } from "@/lib/resetContent";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -31,6 +33,7 @@ import { TimeCycleCard } from "@/components/experience/TimeCycleCard";
 import { OfflineTriggers } from "@/components/experience/OfflineTriggers";
 import { ProgressHistory } from "@/components/experience/ProgressHistory";
 import { MomentumDecay } from "@/components/experience/MomentumDecay";
+import { BadgesEarned } from "@/components/experience/BadgesEarned";
 
 type TabType = "dashboard" | "readings" | "experience";
 
@@ -73,10 +76,31 @@ export default function Dashboard() {
   // Build data for AI Guide
   const { currentBuild, buildLoading } = useBuildAssessment();
 
+  // Badges system
+  const { 
+    earnedBadges, 
+    isLoading: badgesLoading, 
+    awardBadge, 
+    checkReturnedBadge,
+    checkProtectedTimeBadge,
+    checkAskedGuidanceBadge,
+    hasBadge,
+  } = useBadges(user?.id || null);
+
+  // Onboarding / Simplified mode
+  const { 
+    isSimplifiedMode, 
+    isLoading: onboardingLoading, 
+    completeOnboarding,
+    ensureOnboardingRecord,
+  } = useOnboarding(user?.id || null);
+
   // Callback to refresh XP when actions are completed
   const handleXpEarned = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["xp-logs", user?.id] });
-  }, [queryClient, user?.id]);
+    // Check badges that might be earned
+    checkAskedGuidanceBadge();
+  }, [queryClient, user?.id, checkAskedGuidanceBadge]);
 
   // Fetch all reset sessions for history
   const { data: allSessions = [], isLoading: sessionsLoading } = useQuery({
@@ -131,6 +155,70 @@ export default function Dashboard() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // Initialize onboarding record and check "returned" badge on mount
+  useEffect(() => {
+    if (user?.id) {
+      ensureOnboardingRecord();
+      checkReturnedBadge();
+    }
+  }, [user?.id, ensureOnboardingRecord, checkReturnedBadge]);
+
+  // Handle quest creation - award badge and complete onboarding
+  const handleCreateQuest = useCallback((data: { title: string; durationDays: number }) => {
+    createQuest(data);
+    // Award "chose_quest" badge on first quest
+    if (!hasBadge("chose_quest")) {
+      awardBadge({ badgeKey: "chose_quest", triggerContext: { quest_title: data.title } });
+    }
+    // Complete onboarding if in simplified mode
+    if (isSimplifiedMode) {
+      completeOnboarding("quest");
+    }
+  }, [createQuest, hasBadge, awardBadge, isSimplifiedMode, completeOnboarding]);
+
+  // Handle quest update - award "respecd" badge
+  const handleUpdateQuest = useCallback((data: { questId: string; title: string }) => {
+    updateQuest(data);
+    // Award "respecd" badge for intentionally adjusting quest
+    if (!hasBadge("respecd")) {
+      awardBadge({ badgeKey: "respecd", triggerContext: { action: "quest_updated" } });
+    }
+  }, [updateQuest, hasBadge, awardBadge]);
+
+  // Handle promise resolution - award badge
+  const handleResolvePromise = useCallback((data: { promiseId: string; kept: boolean }) => {
+    resolvePromise(data);
+    // Award "kept_promise" badge on first kept promise
+    if (data.kept && !hasBadge("kept_promise")) {
+      awardBadge({ badgeKey: "kept_promise", triggerContext: { promise_id: data.promiseId } });
+    }
+  }, [resolvePromise, hasBadge, awardBadge]);
+
+  // Handle time logging - check badge
+  const handleLogTime = useCallback((data: { invested: number; wasted: number; notes?: string }) => {
+    logTime(data);
+    // Check if protected_time badge should be awarded
+    checkProtectedTimeBadge();
+  }, [logTime, checkProtectedTimeBadge]);
+
+  // Handle XP earned with onboarding completion for "rep" action
+  const handleXpEarnedWithOnboarding = useCallback(() => {
+    handleXpEarned();
+    // Complete onboarding if in simplified mode
+    if (isSimplifiedMode) {
+      completeOnboarding("rep");
+    }
+  }, [handleXpEarned, isSimplifiedMode, completeOnboarding]);
+
+  // Handle operator interaction for onboarding
+  const handleOperatorInteraction = useCallback(() => {
+    handleXpEarned();
+    // Complete onboarding if in simplified mode
+    if (isSimplifiedMode) {
+      completeOnboarding("operator");
+    }
+  }, [handleXpEarned, isSimplifiedMode, completeOnboarding]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     toast({
@@ -140,7 +228,7 @@ export default function Dashboard() {
     navigate("/");
   };
 
-  if (isAuthLoading || resetLoading || dashboardLoading || sessionsLoading || readingsLoading || buildLoading) {
+  if (isAuthLoading || resetLoading || dashboardLoading || sessionsLoading || readingsLoading || buildLoading || badgesLoading || onboardingLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-muted-foreground">
@@ -233,8 +321,8 @@ export default function Dashboard() {
               {/* Main Quest Module */}
               <MainQuestModule
                 activeQuest={activeQuest}
-                onCreateQuest={createQuest}
-                onUpdateQuest={updateQuest}
+                onCreateQuest={handleCreateQuest}
+                onUpdateQuest={handleUpdateQuest}
                 onCompleteQuest={completeQuest}
                 isCreating={isCreatingQuest}
                 isUpdating={isUpdatingQuest}
@@ -251,26 +339,30 @@ export default function Dashboard() {
                 readings={readings}
               />
 
-              {/* Build & Momentum */}
-              <div className="grid grid-cols-2 gap-3">
-                <BuildOverviewModule />
-                <XpMomentumModule totalXp={totalXp} recentLogs={xpLogs} />
-              </div>
+              {/* Build & Momentum - Hidden in simplified mode */}
+              {!isSimplifiedMode && (
+                <div className="grid grid-cols-2 gap-3">
+                  <BuildOverviewModule />
+                  <XpMomentumModule totalXp={totalXp} recentLogs={xpLogs} />
+                </div>
+              )}
 
-              {/* Time & Integrity */}
-              <div className="grid grid-cols-2 gap-3">
-                <TimeCurrencyModule
-                  todayTimeLog={todayTimeLog}
-                  onLogTime={logTime}
-                  isLogging={isLoggingTime}
-                />
-                <IntegrityMeterModule
-                  integrityScore={integrityScore}
-                  pendingPromises={pendingPromises}
-                  onCreatePromise={createPromise}
-                  onResolvePromise={resolvePromise}
-                />
-              </div>
+              {/* Time & Integrity - Hidden in simplified mode */}
+              {!isSimplifiedMode && (
+                <div className="grid grid-cols-2 gap-3">
+                  <TimeCurrencyModule
+                    todayTimeLog={todayTimeLog}
+                    onLogTime={handleLogTime}
+                    isLogging={isLoggingTime}
+                  />
+                  <IntegrityMeterModule
+                    integrityScore={integrityScore}
+                    pendingPromises={pendingPromises}
+                    onCreatePromise={createPromise}
+                    onResolvePromise={handleResolvePromise}
+                  />
+                </div>
+              )}
 
               {/* AI Guide */}
               <AIGuidePanel
@@ -278,7 +370,7 @@ export default function Dashboard() {
                 totalXp={totalXp}
                 integrityScore={integrityScore}
                 currentBuild={currentBuild}
-                onXpEarned={handleXpEarned}
+                onXpEarned={handleOperatorInteraction}
               />
             </motion.div>
           )}
@@ -404,6 +496,11 @@ export default function Dashboard() {
                 hasActiveReset={!!activeSession && !isCompleted}
               />
 
+              {/* Badges Earned - Hidden in simplified mode */}
+              {!isSimplifiedMode && (
+                <BadgesEarned earnedBadges={earnedBadges} isLoading={badgesLoading} />
+              )}
+
               {/* Offline Triggers */}
               <OfflineTriggers
                 activeQuest={activeQuest}
@@ -411,22 +508,26 @@ export default function Dashboard() {
                 todayReading={readings.find(r => r.day_number === currentDay) || null}
               />
 
-              {/* Progress History */}
-              <ProgressHistory
-                totalXp={totalXp}
-                xpLogs={xpLogs}
-                resetSessions={allSessions}
-                completedResetsCount={allSessions.filter((s) => s.status === "completed").length}
-              />
+              {/* Progress History - Hidden in simplified mode */}
+              {!isSimplifiedMode && (
+                <ProgressHistory
+                  totalXp={totalXp}
+                  xpLogs={xpLogs}
+                  resetSessions={allSessions}
+                  completedResetsCount={allSessions.filter((s) => s.status === "completed").length}
+                />
+              )}
 
-              {/* Momentum Decay / Cost of Inaction */}
-              <MomentumDecay
-                lastActivity={xpLogs[0]?.created_at || null}
-                currentStreak={completedDays.length}
-                hasActiveQuest={!!activeQuest}
-                hasActiveReset={!!activeSession && !isCompleted}
-                onStartReset={() => navigate("/reset")}
-              />
+              {/* Momentum Decay - Hidden in simplified mode */}
+              {!isSimplifiedMode && (
+                <MomentumDecay
+                  lastActivity={xpLogs[0]?.created_at || null}
+                  currentStreak={completedDays.length}
+                  hasActiveQuest={!!activeQuest}
+                  hasActiveReset={!!activeSession && !isCompleted}
+                  onStartReset={() => navigate("/reset")}
+                />
+              )}
 
               {/* Journey Summary Footer */}
               <motion.div

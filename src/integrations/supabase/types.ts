@@ -719,6 +719,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_badges: {
+        Row: {
+          badge_key: string
+          created_at: string
+          earned_at: string
+          id: string
+          trigger_context: Json | null
+          user_id: string
+        }
+        Insert: {
+          badge_key: string
+          created_at?: string
+          earned_at?: string
+          id?: string
+          trigger_context?: Json | null
+          user_id: string
+        }
+        Update: {
+          badge_key?: string
+          created_at?: string
+          earned_at?: string
+          id?: string
+          trigger_context?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_build_current: {
         Row: {
           awareness: number
@@ -803,6 +830,30 @@ export type Database = {
           updated_at?: string
           user_id?: string
           wellness_base?: number | null
+        }
+        Relationships: []
+      }
+      user_onboarding: {
+        Row: {
+          created_at: string
+          first_action_completed_at: string | null
+          first_action_type: string | null
+          simplified_mode_completed: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          first_action_completed_at?: string | null
+          first_action_type?: string | null
+          simplified_mode_completed?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          first_action_completed_at?: string | null
+          first_action_type?: string | null
+          simplified_mode_completed?: boolean
+          user_id?: string
         }
         Relationships: []
       }
