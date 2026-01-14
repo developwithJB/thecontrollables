@@ -408,31 +408,46 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
 
       {/* Persistent Operator Selector - iOS Glass Style */}
       <div className="px-4 pb-3 border-t border-border/50">
-        <div className="flex items-center justify-between gap-1 py-2">
+        <div className="flex items-center justify-between gap-1.5 py-2">
           {GUIDES.map((guide) => (
-            <button
+            <motion.button
               key={guide.id}
               onClick={() => handleGuideSelect(selectedGuide?.id === guide.id ? null as any : guide)}
-              className={`flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-xl transition-all backdrop-blur-sm ${
+              whileTap={{ scale: 0.92 }}
+              whileHover={{ scale: 1.02 }}
+              animate={selectedGuide?.id === guide.id ? { y: [0, -2, 0] } : {}}
+              transition={{ 
+                type: "spring", 
+                stiffness: 400, 
+                damping: 17,
+                y: { duration: 0.3, ease: "easeOut" }
+              }}
+              className={`flex-1 flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl transition-all duration-200 backdrop-blur-sm ${
                 selectedGuide?.id === guide.id
-                  ? "bg-white/80 dark:bg-white/10 shadow-sm ring-2 ring-accent"
-                  : "bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/10"
+                  ? "bg-white/90 dark:bg-white/15 shadow-md ring-2 ring-accent"
+                  : "bg-white/50 dark:bg-white/5 hover:bg-white/70 dark:hover:bg-white/10"
               }`}
               style={{
                 boxShadow: selectedGuide?.id === guide.id 
-                  ? '0 2px 8px -2px rgba(102, 189, 239, 0.3)' 
+                  ? '0 4px 12px -2px rgba(102, 189, 239, 0.35), 0 0 0 1px rgba(102, 189, 239, 0.1)' 
                   : undefined
               }}
             >
-              <span className="text-lg">{guide.emoji}</span>
-              <span className={`text-[10px] font-medium truncate max-w-full ${
+              <motion.span 
+                className="text-lg"
+                animate={selectedGuide?.id === guide.id ? { scale: [1, 1.15, 1] } : {}}
+                transition={{ duration: 0.3 }}
+              >
+                {guide.emoji}
+              </motion.span>
+              <span className={`text-[10px] font-medium truncate max-w-full transition-colors duration-200 ${
                 selectedGuide?.id === guide.id 
-                  ? "text-accent" 
+                  ? "text-accent font-semibold" 
                   : "text-muted-foreground"
               }`}>
                 {guide.name}
               </span>
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>

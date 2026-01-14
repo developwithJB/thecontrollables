@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, Book, BookOpen, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { useReset } from "@/hooks/useReset";
 import { useLifeDashboard } from "@/hooks/useLifeDashboard";
@@ -166,6 +167,7 @@ export default function Dashboard() {
         <div className="max-w-md mx-auto px-6 py-4 flex items-center justify-between">
           <Logo />
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <a href="https://a.co/d/1DGPGEV" target="_blank" rel="noopener noreferrer">
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                 <Book className="w-4 h-4" />
