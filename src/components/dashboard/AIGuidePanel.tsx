@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Send, Loader2 } from "lucide-react";
+import { ChevronDown, Send, Loader2, RotateCcw, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { getArchetypeInfo, type UserBuildCurrent } from "@/lib/build";
+import { useGuideSession } from "@/hooks/useGuideSession";
 
 interface MainQuest {
   title: string;
@@ -42,9 +43,9 @@ const GUIDES: Guide[] = [
     tagline: "Pause. Observe. Choose.",
     color: "from-amber-500/20 to-amber-600/10",
     prompts: [
-      "My mind is racing right now.",
-      "Help me see what's true.",
+      "My mind won't stop racing.",
       "I'm reacting, not responding.",
+      "What's actually true here?",
     ],
   },
   {
@@ -54,8 +55,8 @@ const GUIDES: Guide[] = [
     tagline: "Zoom out. This is one chapter.",
     color: "from-emerald-500/20 to-emerald-600/10",
     prompts: [
-      "I feel like a failure today.",
       "Everything feels too big.",
+      "I feel like a failure today.",
       "Will this matter in a year?",
     ],
   },
@@ -68,7 +69,7 @@ const GUIDES: Guide[] = [
     prompts: [
       "I've been off track.",
       "What's my next rep?",
-      "I don't feel motivated.",
+      "I don't feel like doing anything.",
     ],
   },
   {
@@ -79,8 +80,8 @@ const GUIDES: Guide[] = [
     color: "from-violet-500/20 to-violet-600/10",
     prompts: [
       "I'm exhausted.",
-      "My energy is low.",
-      "Am I taking care of myself?",
+      "My energy is crashing.",
+      "Something feels off.",
     ],
   },
   {
@@ -91,7 +92,7 @@ const GUIDES: Guide[] = [
     color: "from-rose-500/20 to-rose-600/10",
     prompts: [
       "My environment isn't helping.",
-      "Who should I spend time with?",
+      "I keep getting distracted.",
       "What's holding me back?",
     ],
   },
@@ -103,12 +104,28 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  
+  const { 
+    patternData, 
+    sessionMessages, 
+    saveSession, 
+    clearSession, 
+    isLoading: isSessionLoading 
+  } = useGuideSession();
+
+  // Load session messages when session is ready
+  useEffect(() => {
+    if (!isSessionLoading && sessionMessages.length > 0 && messages.length === 0) {
+      setMessages(sessionMessages);
+    }
+  }, [isSessionLoading, sessionMessages, messages.length]);
 
   const sendMessage = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
 
     const userMessage: Message = { role: "user", content: messageText };
-    setMessages((prev) => [...prev, userMessage]);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setInput("");
     setIsLoading(true);
 
@@ -136,7 +153,9 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
       const { data, error } = await supabase.functions.invoke("ai-chat", {
         body: {
           controllable: selectedGuide?.id,
-          messages: [...messages, userMessage].map((m) => ({ role: m.role, content: m.content })),
+          messages: [userMessage].map((m) => ({ role: m.role, content: m.content })),
+          sessionHistory: messages.slice(-10), // Send recent history for context
+          patternData, // Send pattern data for personalization
           userContext,
           buildContext,
         },
@@ -148,14 +167,18 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
         role: "assistant",
         content: data.message || "I'm here to help. What's on your mind?",
       };
-      setMessages((prev) => [...prev, assistantMessage]);
+      const updatedMessages = [...newMessages, assistantMessage];
+      setMessages(updatedMessages);
+      
+      // Persist to database
+      saveSession(updatedMessages, selectedGuide?.id || null);
     } catch (error) {
       console.error("AI chat error:", error);
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "I'm having trouble connecting right now. Take a breath, and try again in a moment.",
+          content: "I'm having trouble connecting right now. Take a breath, and try again in a moment.\n\n→ ACTION: Close your eyes and take 3 deep breaths while waiting.",
         },
       ]);
     } finally {
@@ -170,7 +193,20 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
 
   const handleBack = () => {
     setSelectedGuide(null);
+  };
+
+  const handleNewConversation = () => {
     setMessages([]);
+    setSelectedGuide(null);
+    clearSession();
+  };
+
+  // Extract action from last message for highlighting
+  const getActionFromMessage = (content: string): string | null => {
+    if (content.includes('→ ACTION:')) {
+      return content.split('→ ACTION:')[1]?.trim().split('\n')[0] || null;
+    }
+    return null;
   };
 
   return (
@@ -191,21 +227,28 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
           </div>
           <div className="text-left">
             <h3 className="font-display font-semibold text-foreground">
-              {selectedGuide ? `${selectedGuide.name} Guide` : "AI Guides"}
+              {selectedGuide ? `${selectedGuide.name} Operator` : "AI Operators"}
             </h3>
             <p className="text-sm text-muted-foreground">
               {selectedGuide 
                 ? selectedGuide.tagline 
-                : messages.length > 0 
-                  ? "Conversation active" 
-                  : "Choose your guide"
+                : patternData && patternData.conversationCount > 0
+                  ? `${patternData.conversationCount} sessions • Patterns tracked`
+                  : "Choose your operator"
               }
             </p>
           </div>
         </div>
-        <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <ChevronDown className="w-5 h-5 text-muted-foreground" />
-        </motion.div>
+        <div className="flex items-center gap-2">
+          {messages.length > 0 && (
+            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+              {messages.length} msgs
+            </span>
+          )}
+          <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            <ChevronDown className="w-5 h-5 text-muted-foreground" />
+          </motion.div>
+        </div>
       </button>
 
       <AnimatePresence>
@@ -220,9 +263,35 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
               {!selectedGuide ? (
                 /* Guide Selection */
                 <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Each guide embodies a Controllable. Choose based on what you need right now.
-                  </p>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs text-muted-foreground">
+                      Each operator embodies a Controllable. Choose based on what you need.
+                    </p>
+                    {messages.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleNewConversation}
+                        className="text-xs h-7"
+                      >
+                        <RotateCcw className="w-3 h-3 mr-1" />
+                        New
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {/* Pattern insights if available */}
+                  {patternData && patternData.recentThemes.length > 0 && (
+                    <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 mb-3">
+                      <p className="text-xs font-medium text-primary mb-1 flex items-center gap-1">
+                        <Zap className="w-3 h-3" /> Pattern detected
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Recent themes: {patternData.recentThemes.join(', ')}
+                      </p>
+                    </div>
+                  )}
+                  
                   {GUIDES.map((guide) => (
                     <motion.button
                       key={guide.id}
@@ -244,20 +313,33 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
               ) : (
                 /* Chat Interface */
                 <>
-                  {/* Back Button */}
-                  <button
-                    onClick={handleBack}
-                    className="text-xs text-muted-foreground hover:text-foreground mb-3 flex items-center gap-1"
-                  >
-                    ← Choose different guide
-                  </button>
+                  {/* Back Button & New Conversation */}
+                  <div className="flex items-center justify-between mb-3">
+                    <button
+                      onClick={handleBack}
+                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                    >
+                      ← Choose different operator
+                    </button>
+                    {messages.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleNewConversation}
+                        className="text-xs h-7"
+                      >
+                        <RotateCcw className="w-3 h-3 mr-1" />
+                        New
+                      </Button>
+                    )}
+                  </div>
 
                   {/* Guide Header */}
                   <div className={`p-3 rounded-xl bg-gradient-to-r ${selectedGuide.color} border mb-4`}>
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{selectedGuide.emoji}</span>
                       <div>
-                        <p className="font-medium text-sm text-foreground">{selectedGuide.name}</p>
+                        <p className="font-medium text-sm text-foreground">{selectedGuide.name} Operator</p>
                         <p className="text-xs text-muted-foreground">{selectedGuide.tagline}</p>
                       </div>
                     </div>
@@ -265,22 +347,44 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
 
                   {/* Messages */}
                   {messages.length > 0 ? (
-                    <div className="space-y-3 max-h-64 overflow-y-auto mb-4 pr-2">
-                      {messages.map((msg, idx) => (
-                        <div
-                          key={idx}
-                          className={`p-3 rounded-xl text-sm ${
-                            msg.role === "user"
-                              ? "bg-primary text-primary-foreground ml-8"
-                              : "bg-muted text-foreground mr-8"
-                          }`}
-                        >
-                          {msg.role === "assistant" && (
-                            <span className="mr-2">{selectedGuide.emoji}</span>
-                          )}
-                          {msg.content}
-                        </div>
-                      ))}
+                    <div className="space-y-3 max-h-80 overflow-y-auto mb-4 pr-2">
+                      {messages.map((msg, idx) => {
+                        const action = msg.role === 'assistant' ? getActionFromMessage(msg.content) : null;
+                        const contentWithoutAction = msg.role === 'assistant' && action
+                          ? msg.content.split('→ ACTION:')[0].trim()
+                          : msg.content;
+                        
+                        return (
+                          <div key={idx}>
+                            <div
+                              className={`p-3 rounded-xl text-sm ${
+                                msg.role === "user"
+                                  ? "bg-primary text-primary-foreground ml-8"
+                                  : "bg-muted text-foreground mr-8"
+                              }`}
+                            >
+                              {msg.role === "assistant" && (
+                                <span className="mr-2">{selectedGuide.emoji}</span>
+                              )}
+                              {contentWithoutAction}
+                            </div>
+                            
+                            {/* Highlighted Action */}
+                            {action && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="mt-2 mr-8 p-3 rounded-xl bg-accent/10 border border-accent/30"
+                              >
+                                <p className="text-xs font-semibold text-accent mb-1 flex items-center gap-1">
+                                  <Zap className="w-3 h-3" /> YOUR ACTION
+                                </p>
+                                <p className="text-sm text-foreground">{action}</p>
+                              </motion.div>
+                            )}
+                          </div>
+                        );
+                      })}
                       {isLoading && (
                         <div className="bg-muted text-foreground p-3 rounded-xl mr-8 flex items-center gap-2">
                           <span>{selectedGuide.emoji}</span>
