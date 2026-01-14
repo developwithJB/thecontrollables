@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, Book, BookOpen, History } from "lucide-react";
@@ -11,7 +11,7 @@ import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { useDailyReadings } from "@/hooks/useDailyReadings";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayContent, RESET_DAYS } from "@/lib/resetContent";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@supabase/supabase-js";
 
 // Dashboard modules
@@ -35,6 +35,7 @@ export default function Dashboard() {
 
   const { toast } = useToast();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   // Reset data
   const { activeSession, currentDay, isCompleted, isLoading: resetLoading, completedDays } = useReset();
@@ -65,6 +66,11 @@ export default function Dashboard() {
 
   // Build data for AI Guide
   const { currentBuild, buildLoading } = useBuildAssessment();
+
+  // Callback to refresh XP when actions are completed
+  const handleXpEarned = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["xp-logs", user?.id] });
+  }, [queryClient, user?.id]);
 
   // Fetch all reset sessions for history
   const { data: allSessions = [], isLoading: sessionsLoading } = useQuery({
@@ -269,6 +275,7 @@ export default function Dashboard() {
                 totalXp={totalXp}
                 integrityScore={integrityScore}
                 currentBuild={currentBuild}
+                onXpEarned={handleXpEarned}
               />
             </motion.div>
           )}
