@@ -368,10 +368,10 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
       {/* Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full p-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
+        className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-primary/10 text-xl">
+          <div className="p-2 rounded-xl bg-accent/10 text-xl">
             {selectedGuide ? selectedGuide.emoji : "🧭"}
           </div>
           <div className="text-left">
@@ -396,7 +396,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
             </span>
           )}
           {messages.length > 0 && (
-            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+            <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full">
               {messages.length} msgs
             </span>
           )}
@@ -405,6 +405,37 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
           </motion.div>
         </div>
       </button>
+
+      {/* Persistent Operator Selector - iOS Glass Style */}
+      <div className="px-4 pb-3 border-t border-border/50">
+        <div className="flex items-center justify-between gap-1 py-2">
+          {GUIDES.map((guide) => (
+            <button
+              key={guide.id}
+              onClick={() => handleGuideSelect(selectedGuide?.id === guide.id ? null as any : guide)}
+              className={`flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-xl transition-all backdrop-blur-sm ${
+                selectedGuide?.id === guide.id
+                  ? "bg-white/80 dark:bg-white/10 shadow-sm ring-2 ring-accent"
+                  : "bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/10"
+              }`}
+              style={{
+                boxShadow: selectedGuide?.id === guide.id 
+                  ? '0 2px 8px -2px rgba(102, 189, 239, 0.3)' 
+                  : undefined
+              }}
+            >
+              <span className="text-lg">{guide.emoji}</span>
+              <span className={`text-[10px] font-medium truncate max-w-full ${
+                selectedGuide?.id === guide.id 
+                  ? "text-accent" 
+                  : "text-muted-foreground"
+              }`}>
+                {guide.name}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       <AnimatePresence>
         {isExpanded && (
@@ -494,92 +525,70 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                 </div>
               )}
 
-              {/* Operator Selection + Input Row */}
-              <div className="space-y-3">
-                {/* Operator selector row */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-muted-foreground shrink-0">Operator:</span>
-                  <div className="flex gap-1.5 flex-wrap flex-1">
-                    {GUIDES.map((guide) => (
-                      <button
-                        key={guide.id}
-                        onClick={() => handleGuideSelect(selectedGuide?.id === guide.id ? null as any : guide)}
-                        className={`px-2 py-1 rounded-lg text-sm flex items-center gap-1 transition-all ${
-                          selectedGuide?.id === guide.id
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted/60 hover:bg-muted text-foreground"
-                        }`}
-                      >
-                        <span>{guide.emoji}</span>
-                        <span className="hidden sm:inline text-xs">{guide.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                  {messages.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleNewConversation}
-                      className="text-xs h-7 shrink-0"
-                    >
-                      <RotateCcw className="w-3 h-3 mr-1" />
-                      New
-                    </Button>
-                  )}
-                </div>
-
-                {/* Pattern data hint */}
-                {patternData && patternData.recentThemes.length > 0 && messages.length === 0 && (
-                  <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-                    <p className="text-xs font-medium text-primary mb-1 flex items-center gap-1">
-                      <Zap className="w-3 h-3" /> Pattern detected
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Recent themes: {patternData.recentThemes.join(', ')}
-                    </p>
-                  </div>
-                )}
-
-                {/* Quick prompts when no messages */}
-                {messages.length === 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {(selectedGuide ? selectedGuide.prompts : GUIDES.flatMap(g => g.prompts.slice(0, 1))).map((prompt) => (
-                      <button
-                        key={prompt}
-                        onClick={() => sendMessage(prompt)}
-                        className="text-xs px-2.5 py-1 rounded-full bg-muted hover:bg-muted/80 text-foreground transition-colors"
-                      >
-                        {prompt}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Input row */}
-                <div className="flex gap-2">
-                  <Input
-                    placeholder={selectedGuide ? `Ask ${selectedGuide.name}...` : "Ask any operator..."}
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
-                    className="flex-1"
-                    disabled={isLoading}
-                  />
+              {/* Input row */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder={selectedGuide ? `Ask ${selectedGuide.name}...` : "Ask any operator..."}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
+                  className="flex-1"
+                  disabled={isLoading}
+                />
+                <Button
+                  size="icon"
+                  onClick={() => sendMessage(input)}
+                  disabled={!input.trim() || isLoading}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+                {messages.length > 0 && (
                   <Button
+                    variant="ghost"
                     size="icon"
-                    onClick={() => sendMessage(input)}
-                    disabled={!input.trim() || isLoading}
+                    onClick={handleNewConversation}
+                    className="shrink-0"
+                    title="New conversation"
                   >
-                    <Send className="w-4 h-4" />
+                    <RotateCcw className="w-4 h-4" />
                   </Button>
-                </div>
-
-                {!selectedGuide && !messages.length && (
-                  <p className="text-xs text-muted-foreground text-center">
-                    Select an operator or just type — we'll route to the right one
-                  </p>
                 )}
+
               </div>
+
+              {/* Pattern data hint */}
+              {patternData && patternData.recentThemes.length > 0 && messages.length === 0 && (
+                <div className="p-3 rounded-lg bg-accent/5 border border-accent/10 mt-3">
+                  <p className="text-xs font-medium text-accent mb-1 flex items-center gap-1">
+                    <Zap className="w-3 h-3" /> Pattern detected
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Recent themes: {patternData.recentThemes.join(', ')}
+                  </p>
+                </div>
+              )}
+
+              {/* Quick prompts when no messages */}
+              {messages.length === 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {(selectedGuide ? selectedGuide.prompts : GUIDES.flatMap(g => g.prompts.slice(0, 1))).map((prompt) => (
+                    <button
+                      key={prompt}
+                      onClick={() => sendMessage(prompt)}
+                      className="text-xs px-2.5 py-1 rounded-full bg-muted hover:bg-muted/80 text-foreground transition-colors"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {!selectedGuide && !messages.length && (
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Select an operator or just type — we'll route to the right one
+                </p>
+              )}
             </div>
           </motion.div>
         )}
