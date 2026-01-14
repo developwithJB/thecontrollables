@@ -25,6 +25,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   actionCompleted?: boolean;
+  controllable?: GuideType | null; // Persist which guide sent this message
 }
 
 type GuideType = "awareness" | "perspective" | "habit" | "wellness" | "environment";
@@ -101,7 +102,54 @@ const GUIDES: Guide[] = [
   },
 ];
 
+// Keywords to auto-detect which controllable should respond
+const GUIDE_KEYWORDS: Record<GuideType, string[]> = {
+  awareness: ["mind", "racing", "anxious", "thinking", "thoughts", "observe", "react", "focus", "attention", "present", "aware", "mindful", "meditation", "breathe"],
+  perspective: ["big", "failure", "stuck", "hopeless", "perspective", "zoom", "year", "matter", "overwhelm", "chapter", "story", "future", "past", "worry"],
+  habit: ["habit", "routine", "track", "rep", "consistency", "discipline", "motivation", "lazy", "productive", "schedule", "goal", "action", "doing", "procrastinate"],
+  wellness: ["tired", "exhausted", "energy", "sleep", "nutrition", "health", "body", "rest", "crash", "systems", "burnout", "stress", "physical"],
+  environment: ["environment", "distract", "space", "room", "phone", "people", "surround", "toxic", "trigger", "place", "setup", "desk", "home"],
+};
+
 const ACTION_XP = 15;
+
+// Helper to find guide by id
+const getGuideById = (id: GuideType | null | undefined): Guide | null => {
+  if (!id) return null;
+  return GUIDES.find(g => g.id === id) || null;
+};
+
+// Auto-detect which guide should respond based on message content
+const detectGuideFromMessage = (message: string): GuideType => {
+  const lowerMessage = message.toLowerCase();
+  const scores: Record<GuideType, number> = {
+    awareness: 0,
+    perspective: 0,
+    habit: 0,
+    wellness: 0,
+    environment: 0,
+  };
+
+  for (const [guide, keywords] of Object.entries(GUIDE_KEYWORDS)) {
+    for (const keyword of keywords) {
+      if (lowerMessage.includes(keyword)) {
+        scores[guide as GuideType]++;
+      }
+    }
+  }
+
+  // Find the guide with highest score, default to awareness
+  let maxGuide: GuideType = "awareness";
+  let maxScore = 0;
+  for (const [guide, score] of Object.entries(scores)) {
+    if (score > maxScore) {
+      maxScore = score;
+      maxGuide = guide as GuideType;
+    }
+  }
+
+  return maxGuide;
+};
 
 export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild, onXpEarned }: AIGuidePanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -145,7 +193,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
     loadCompletedCount();
   }, []);
 
-  const completeAction = useCallback(async (actionText: string, messageIndex: number) => {
+  const completeAction = useCallback(async (actionText: string, messageIndex: number, controllable: GuideType | null) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       toast.error("Please log in to complete actions");
@@ -159,7 +207,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
         .insert([{
           user_id: user.id,
           action_text: actionText,
-          controllable: selectedGuide?.id || null,
+          controllable: controllable || null,
           xp_awarded: ACTION_XP,
         }]);
 
@@ -197,10 +245,20 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
       console.error("Error completing action:", error);
       toast.error("Failed to complete action");
     }
-  }, [selectedGuide?.id, onXpEarned]);
+  }, [onXpEarned]);
 
   const sendMessage = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
+
+    // Determine which guide should respond
+    let respondingGuide: Guide;
+    if (selectedGuide) {
+      respondingGuide = selectedGuide;
+    } else {
+      // Auto-detect based on message content
+      const detectedGuideId = detectGuideFromMessage(messageText);
+      respondingGuide = GUIDES.find(g => g.id === detectedGuideId) || GUIDES[0];
+    }
 
     const userMessage: Message = { role: "user", content: messageText };
     const newMessages = [...messages, userMessage];
@@ -231,7 +289,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
 
       const { data, error } = await supabase.functions.invoke("ai-chat", {
         body: {
-          controllable: selectedGuide?.id,
+          controllable: respondingGuide.id,
           messages: [userMessage].map((m) => ({ role: m.role, content: m.content })),
           sessionHistory: messages.slice(-10),
           patternData,
@@ -246,19 +304,22 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
         role: "assistant",
         content: data.message || "I'm here to help. What's on your mind?",
         actionCompleted: false,
+        controllable: respondingGuide.id, // Persist which guide responded
       };
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
       
-      saveSession(updatedMessages, selectedGuide?.id || null);
+      saveSession(updatedMessages, respondingGuide.id);
     } catch (error) {
       console.error("AI chat error:", error);
+      const fallbackGuide = respondingGuide || GUIDES[0];
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
           content: "I'm having trouble connecting right now. Take a breath, and try again in a moment.\n\n→ ACTION: Close your eyes and take 3 deep breaths while waiting.",
           actionCompleted: false,
+          controllable: fallbackGuide.id,
         },
       ]);
     } finally {
@@ -287,6 +348,16 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
     return null;
   };
 
+  // Get the guide for the current loading state (for the thinking indicator)
+  const getLoadingGuide = (): Guide => {
+    if (selectedGuide) return selectedGuide;
+    if (input.trim()) {
+      const detectedId = detectGuideFromMessage(input);
+      return GUIDES.find(g => g.id === detectedId) || GUIDES[0];
+    }
+    return GUIDES[0];
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -312,7 +383,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                 ? selectedGuide.tagline 
                 : patternData && patternData.conversationCount > 0
                   ? `${patternData.conversationCount} sessions • Patterns tracked`
-                  : "Choose your operator"
+                  : "Choose your operator or just ask"
               }
             </p>
           </div>
@@ -344,194 +415,171 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
             transition={{ duration: 0.3 }}
           >
             <div className="px-5 pb-5">
-              {!selectedGuide ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs text-muted-foreground">
-                      Each operator embodies a Controllable. Choose based on what you need.
-                    </p>
-                    {messages.length > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleNewConversation}
-                        className="text-xs h-7"
-                      >
-                        <RotateCcw className="w-3 h-3 mr-1" />
-                        New
-                      </Button>
-                    )}
-                  </div>
-                  
-                  {patternData && patternData.recentThemes.length > 0 && (
-                    <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 mb-3">
-                      <p className="text-xs font-medium text-primary mb-1 flex items-center gap-1">
-                        <Zap className="w-3 h-3" /> Pattern detected
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Recent themes: {patternData.recentThemes.join(', ')}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {GUIDES.map((guide) => (
-                    <motion.button
-                      key={guide.id}
-                      onClick={() => handleGuideSelect(guide)}
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.99 }}
-                      className={`w-full p-3 rounded-xl bg-gradient-to-r ${guide.color} border transition-all hover:border-primary/30 text-left`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{guide.emoji}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm text-foreground">{guide.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">{guide.tagline}</p>
+              {/* Messages Area - Always show if there are messages */}
+              {messages.length > 0 && (
+                <div className="space-y-3 max-h-80 overflow-y-auto mb-4 pr-2">
+                  {messages.map((msg, idx) => {
+                    // Get the guide that sent this message (for assistant messages)
+                    const messageGuide = msg.role === "assistant" 
+                      ? getGuideById(msg.controllable) 
+                      : null;
+                    const action = msg.role === 'assistant' ? getActionFromMessage(msg.content) : null;
+                    const contentWithoutAction = msg.role === 'assistant' && action
+                      ? msg.content.split('→ ACTION:')[0].trim()
+                      : msg.content;
+                    
+                    return (
+                      <div key={idx}>
+                        <div
+                          className={`p-3 rounded-xl text-sm ${
+                            msg.role === "user"
+                              ? "bg-primary text-primary-foreground ml-8"
+                              : "bg-muted text-foreground mr-8"
+                          }`}
+                        >
+                          {msg.role === "assistant" && messageGuide && (
+                            <span className="mr-2">{messageGuide.emoji}</span>
+                          )}
+                          {contentWithoutAction}
                         </div>
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between mb-3">
-                    <button
-                      onClick={handleBack}
-                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-                    >
-                      ← Choose different operator
-                    </button>
-                    {messages.length > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleNewConversation}
-                        className="text-xs h-7"
-                      >
-                        <RotateCcw className="w-3 h-3 mr-1" />
-                        New
-                      </Button>
-                    )}
-                  </div>
-
-                  <div className={`p-3 rounded-xl bg-gradient-to-r ${selectedGuide.color} border mb-4`}>
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{selectedGuide.emoji}</span>
-                      <div>
-                        <p className="font-medium text-sm text-foreground">{selectedGuide.name} Operator</p>
-                        <p className="text-xs text-muted-foreground">{selectedGuide.tagline}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {messages.length > 0 ? (
-                    <div className="space-y-3 max-h-80 overflow-y-auto mb-4 pr-2">
-                      {messages.map((msg, idx) => {
-                        const action = msg.role === 'assistant' ? getActionFromMessage(msg.content) : null;
-                        const contentWithoutAction = msg.role === 'assistant' && action
-                          ? msg.content.split('→ ACTION:')[0].trim()
-                          : msg.content;
                         
-                        return (
-                          <div key={idx}>
-                            <div
-                              className={`p-3 rounded-xl text-sm ${
-                                msg.role === "user"
-                                  ? "bg-primary text-primary-foreground ml-8"
-                                  : "bg-muted text-foreground mr-8"
-                              }`}
-                            >
-                              {msg.role === "assistant" && (
-                                <span className="mr-2">{selectedGuide.emoji}</span>
-                              )}
-                              {contentWithoutAction}
-                            </div>
-                            
-                            {action && (
-                              <motion.div
-                                initial={{ opacity: 0, y: -5 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className={`mt-2 mr-8 p-3 rounded-xl border ${
-                                  msg.actionCompleted 
-                                    ? 'bg-accent/20 border-accent/50' 
-                                    : 'bg-accent/10 border-accent/30'
-                                }`}
-                              >
-                                <div className="flex items-center justify-between mb-1">
-                                  <p className="text-xs font-semibold text-accent flex items-center gap-1">
-                                    <Zap className="w-3 h-3" /> YOUR ACTION
-                                  </p>
-                                  {!msg.actionCompleted && (
-                                    <span className="text-xs text-accent/70">+{ACTION_XP} XP</span>
-                                  )}
-                                </div>
-                                <p className="text-sm text-foreground mb-2">{action}</p>
-                                
-                                {msg.actionCompleted ? (
-                                  <div className="flex items-center gap-2 text-accent">
-                                    <Check className="w-4 h-4" />
-                                    <span className="text-xs font-medium">Completed! +{ACTION_XP} XP</span>
-                                  </div>
-                                ) : (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => completeAction(action, idx)}
-                                    className="h-7 text-xs border-accent/30 text-accent hover:bg-accent/10"
-                                  >
-                                    <Check className="w-3 h-3 mr-1" />
-                                    Mark Complete
-                                  </Button>
-                                )}
-                              </motion.div>
-                            )}
-                          </div>
-                        );
-                      })}
-                      {isLoading && (
-                        <div className="bg-muted text-foreground p-3 rounded-xl mr-8 flex items-center gap-2">
-                          <span>{selectedGuide.emoji}</span>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span className="text-sm">Thinking...</span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="mb-4">
-                      <p className="text-sm text-muted-foreground mb-3">Start with a prompt:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedGuide.prompts.map((prompt) => (
-                          <button
-                            key={prompt}
-                            onClick={() => sendMessage(prompt)}
-                            className="text-xs px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-foreground transition-colors"
+                        {action && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={`mt-2 mr-8 p-3 rounded-xl border ${
+                              msg.actionCompleted 
+                                ? 'bg-accent/20 border-accent/50' 
+                                : 'bg-accent/10 border-accent/30'
+                            }`}
                           >
-                            {prompt}
-                          </button>
-                        ))}
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-xs font-semibold text-accent flex items-center gap-1">
+                                <Zap className="w-3 h-3" /> YOUR ACTION
+                              </p>
+                              {!msg.actionCompleted && (
+                                <span className="text-xs text-accent/70">+{ACTION_XP} XP</span>
+                              )}
+                            </div>
+                            <p className="text-sm text-foreground mb-2">{action}</p>
+                            
+                            {msg.actionCompleted ? (
+                              <div className="flex items-center gap-2 text-accent">
+                                <Check className="w-4 h-4" />
+                                <span className="text-xs font-medium">Completed! +{ACTION_XP} XP</span>
+                              </div>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => completeAction(action, idx, msg.controllable || null)}
+                                className="h-7 text-xs border-accent/30 text-accent hover:bg-accent/10"
+                              >
+                                <Check className="w-3 h-3 mr-1" />
+                                Mark Complete
+                              </Button>
+                            )}
+                          </motion.div>
+                        )}
                       </div>
+                    );
+                  })}
+                  {isLoading && (
+                    <div className="bg-muted text-foreground p-3 rounded-xl mr-8 flex items-center gap-2">
+                      <span>{getLoadingGuide().emoji}</span>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">Thinking...</span>
                     </div>
                   )}
-
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder={`Ask ${selectedGuide.name}...`}
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
-                      className="flex-1"
-                      disabled={isLoading}
-                    />
-                    <Button
-                      size="icon"
-                      onClick={() => sendMessage(input)}
-                      disabled={!input.trim() || isLoading}
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </>
+                </div>
               )}
+
+              {/* Operator Selection + Input Row */}
+              <div className="space-y-3">
+                {/* Operator selector row */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground shrink-0">Operator:</span>
+                  <div className="flex gap-1.5 flex-wrap flex-1">
+                    {GUIDES.map((guide) => (
+                      <button
+                        key={guide.id}
+                        onClick={() => handleGuideSelect(selectedGuide?.id === guide.id ? null as any : guide)}
+                        className={`px-2 py-1 rounded-lg text-sm flex items-center gap-1 transition-all ${
+                          selectedGuide?.id === guide.id
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted/60 hover:bg-muted text-foreground"
+                        }`}
+                      >
+                        <span>{guide.emoji}</span>
+                        <span className="hidden sm:inline text-xs">{guide.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {messages.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleNewConversation}
+                      className="text-xs h-7 shrink-0"
+                    >
+                      <RotateCcw className="w-3 h-3 mr-1" />
+                      New
+                    </Button>
+                  )}
+                </div>
+
+                {/* Pattern data hint */}
+                {patternData && patternData.recentThemes.length > 0 && messages.length === 0 && (
+                  <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+                    <p className="text-xs font-medium text-primary mb-1 flex items-center gap-1">
+                      <Zap className="w-3 h-3" /> Pattern detected
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Recent themes: {patternData.recentThemes.join(', ')}
+                    </p>
+                  </div>
+                )}
+
+                {/* Quick prompts when no messages */}
+                {messages.length === 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {(selectedGuide ? selectedGuide.prompts : GUIDES.flatMap(g => g.prompts.slice(0, 1))).map((prompt) => (
+                      <button
+                        key={prompt}
+                        onClick={() => sendMessage(prompt)}
+                        className="text-xs px-2.5 py-1 rounded-full bg-muted hover:bg-muted/80 text-foreground transition-colors"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Input row */}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder={selectedGuide ? `Ask ${selectedGuide.name}...` : "Ask any operator..."}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
+                    className="flex-1"
+                    disabled={isLoading}
+                  />
+                  <Button
+                    size="icon"
+                    onClick={() => sendMessage(input)}
+                    disabled={!input.trim() || isLoading}
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {!selectedGuide && !messages.length && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Select an operator or just type — we'll route to the right one
+                  </p>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
