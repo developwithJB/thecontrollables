@@ -1,33 +1,31 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Download, Share2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Download, Share2, Loader2 } from "lucide-react";
+import { useCertificate } from "@/hooks/useCertificate";
 
 interface Day7CompleteProps {
   displayName: string;
   startDate: string;
   endDate: string;
-  onGenerateCertificate: () => Promise<string | null>;
-  isGenerating: boolean;
-  existingCertificateUrl?: string | null;
+  resetSessionId: string;
 }
 
 export const Day7Complete = ({
   displayName,
   startDate,
   endDate,
-  onGenerateCertificate,
-  isGenerating,
-  existingCertificateUrl,
+  resetSessionId,
 }: Day7CompleteProps) => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [certificateUrl, setCertificateUrl] = useState<string | null>(
-    existingCertificateUrl || null
-  );
+  const {
+    certificate,
+    isLoading,
+    isGenerating,
+    isDownloading,
+    downloadCertificate,
+    shareCertificate,
+  } = useCertificate(resetSessionId);
 
   // Format dates nicely
   const formatDate = (dateStr: string) => {
@@ -38,79 +36,11 @@ export const Day7Complete = ({
     });
   };
 
-  const downloadBlobToFile = (blob: Blob, filename: string) => {
-    const blobUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = blobUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(blobUrl);
+  const handleShare = () => {
+    shareCertificate(displayName, startDate, endDate);
   };
 
-  const assertPngBlob = async (blob: Blob) => {
-    const header = new Uint8Array(await blob.slice(0, 8).arrayBuffer());
-    const pngSig = [137, 80, 78, 71, 13, 10, 26, 10];
-    const isPng = pngSig.every((b, i) => header[i] === b);
-    if (!isPng) throw new Error("Downloaded file is not a valid PNG");
-  };
-
-  const blobFromUrlPreferStorage = async (url: string): Promise<Blob> => {
-    const marker = "/storage/v1/object/public/certificates/";
-    const idx = url.indexOf(marker);
-    if (idx !== -1) {
-      const storagePath = decodeURIComponent(url.slice(idx + marker.length).split("?")[0]);
-      const { data, error } = await supabase.storage.from("certificates").download(storagePath);
-      if (!error && data) return data;
-    }
-
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Certificate file not found");
-    return await response.blob();
-  };
-
-  const handleDownloadCertificate = async () => {
-    let urlToDownload = certificateUrl || existingCertificateUrl;
-
-    if (!urlToDownload) {
-      urlToDownload = await onGenerateCertificate();
-      if (urlToDownload) setCertificateUrl(urlToDownload);
-    }
-
-    if (!urlToDownload) return;
-
-    try {
-      const blob = await blobFromUrlPreferStorage(urlToDownload);
-      await assertPngBlob(blob);
-      downloadBlobToFile(blob, `controllables-certificate-${endDate}.png`);
-    } catch (err) {
-      toast({
-        title: "Download failed",
-        description: err instanceof Error ? err.message : "Could not download certificate",
-        variant: "destructive",
-      });
-      // Fallback: open in new tab for inspection
-      window.open(urlToDownload, "_blank");
-    }
-  };
-
-  const shareText = `I committed to controlling what I could and surrendering what I could not from ${formatDate(startDate)} to ${formatDate(endDate)}.`;
-
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          text: shareText,
-        });
-      } catch {
-        // User cancelled or error
-      }
-    } else {
-      // Fallback: copy to clipboard
-      await navigator.clipboard.writeText(shareText);
-    }
-  };
+  const isWorking = isLoading || isGenerating || isDownloading;
 
   return (
     <motion.div
@@ -157,6 +87,22 @@ export const Day7Complete = ({
           )}
         </motion.div>
 
+        {/* Certificate Preview */}
+        {certificate?.certificate_url && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+            className="mb-6 rounded-lg overflow-hidden border shadow-sm"
+          >
+            <img 
+              src={certificate.certificate_url} 
+              alt="Your completion certificate" 
+              className="w-full h-auto"
+            />
+          </motion.div>
+        )}
+
         {/* Actions */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -165,13 +111,17 @@ export const Day7Complete = ({
           className="space-y-3 mb-8"
         >
           <Button
-            onClick={handleDownloadCertificate}
-            disabled={isGenerating}
+            onClick={downloadCertificate}
+            disabled={isWorking}
             className="w-full h-12"
             variant="outline"
           >
-            <Download className="w-4 h-4 mr-2" />
-            {isGenerating ? "Generating..." : "Download Certificate"}
+            {isWorking ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
+            {isGenerating ? "Generating..." : isDownloading ? "Downloading..." : "Download Certificate"}
           </Button>
 
           <Button

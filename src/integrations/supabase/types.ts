@@ -192,6 +192,47 @@ export type Database = {
           },
         ]
       }
+      certificates: {
+        Row: {
+          certificate_url: string | null
+          created_at: string | null
+          display_name: string
+          end_date: string
+          id: string
+          reset_session_id: string
+          start_date: string
+          user_id: string
+        }
+        Insert: {
+          certificate_url?: string | null
+          created_at?: string | null
+          display_name: string
+          end_date: string
+          id?: string
+          reset_session_id: string
+          start_date: string
+          user_id: string
+        }
+        Update: {
+          certificate_url?: string | null
+          created_at?: string | null
+          display_name?: string
+          end_date?: string
+          id?: string
+          reset_session_id?: string
+          start_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_reset_session_id_fkey"
+            columns: ["reset_session_id"]
+            isOneToOne: true
+            referencedRelation: "reset_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_participants: {
         Row: {
           certificate_generated_at: string | null

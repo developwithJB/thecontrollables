@@ -27,9 +27,6 @@ const Reset = () => {
     isAcceptingCovenant,
     completeDay,
     isCompleting,
-    generateCertificate,
-    isGeneratingCertificate,
-    certificateUrl,
   } = useReset();
 
   const [showDayComplete, setShowDayComplete] = useState(false);
@@ -72,9 +69,7 @@ const Reset = () => {
         displayName={displayName}
         startDate={activeSession.start_date}
         endDate={endDate}
-        onGenerateCertificate={generateCertificate}
-        isGenerating={isGeneratingCertificate}
-        existingCertificateUrl={certificateUrl}
+        resetSessionId={activeSession.id}
       />
     );
   }
@@ -111,9 +106,7 @@ const Reset = () => {
         displayName={displayName}
         startDate={activeSession.start_date}
         endDate={endDate}
-        onGenerateCertificate={generateCertificate}
-        isGenerating={isGeneratingCertificate}
-        existingCertificateUrl={certificateUrl}
+        resetSessionId={activeSession.id}
       />
     );
   }
