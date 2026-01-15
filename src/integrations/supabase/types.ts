@@ -386,15 +386,7 @@ export type Database = {
           timezone?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "completion_certificates_challenge_id_fkey"
-            columns: ["challenge_id"]
-            isOneToOne: false
-            referencedRelation: "challenges"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       daily_checkins: {
         Row: {
