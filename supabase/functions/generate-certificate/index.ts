@@ -183,7 +183,16 @@ Deno.serve(async (req) => {
 
     // Generate premium dark certificate SVG (QuestCard style)
     const svgWidth = 1200;
-    const svgHeight = 630; // 1.9:1 aspect ratio for social sharing
+    const svgHeight = 800; // Taller for 5 controllables
+
+    // The 5 Controllables with emojis
+    const controllables = [
+      { name: "Awareness", emoji: "🧘" },
+      { name: "Perspective", emoji: "🔭" },
+      { name: "Habit", emoji: "⚡" },
+      { name: "Wellness", emoji: "💪" },
+      { name: "Environment", emoji: "🏠" },
+    ];
 
     const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">
@@ -243,55 +252,86 @@ Deno.serve(async (req) => {
         fill="none" stroke="#f59e0b" stroke-width="0.5" stroke-opacity="0.2"/>
   
   <!-- Top badge -->
-  <rect x="${svgWidth/2 - 100}" y="60" width="200" height="36" rx="18" ry="18" 
+  <rect x="${svgWidth/2 - 100}" y="50" width="200" height="36" rx="18" ry="18" 
         fill="#f59e0b" fill-opacity="0.15" stroke="#f59e0b" stroke-opacity="0.3"/>
-  <text x="${svgWidth/2}" y="84" text-anchor="middle" 
+  <text x="${svgWidth/2}" y="74" text-anchor="middle" 
         font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" 
         fill="#f59e0b" letter-spacing="3">THE CONTROLLABLES</text>
   
   <!-- Completion badge -->
-  <text x="${svgWidth/2}" y="140" text-anchor="middle" 
+  <text x="${svgWidth/2}" y="120" text-anchor="middle" 
         font-family="Georgia, 'Times New Roman', serif" font-size="14" font-style="italic" 
         fill="#94a3b8" letter-spacing="1">Certificate of Completion</text>
   
   <!-- Decorative line -->
-  <line x1="${svgWidth/2 - 80}" y1="165" x2="${svgWidth/2 + 80}" y2="165" 
+  <line x1="${svgWidth/2 - 80}" y1="140" x2="${svgWidth/2 + 80}" y2="140" 
         stroke="#f59e0b" stroke-opacity="0.3" stroke-width="1"/>
   
   <!-- Trophy emoji -->
-  <text x="${svgWidth/2}" y="220" text-anchor="middle" font-size="56">🏆</text>
+  <text x="${svgWidth/2}" y="195" text-anchor="middle" font-size="48">🏆</text>
   
   <!-- Main title -->
-  <text x="${svgWidth/2}" y="290" text-anchor="middle" 
-        font-family="Georgia, 'Times New Roman', serif" font-size="24" font-weight="600" 
+  <text x="${svgWidth/2}" y="250" text-anchor="middle" 
+        font-family="Georgia, 'Times New Roman', serif" font-size="22" font-weight="600" 
         fill="#ffffff" letter-spacing="2">7-DAY RESET COMPLETE</text>
   
   <!-- User name -->
-  <text x="${svgWidth/2}" y="360" text-anchor="middle" 
-        font-family="Georgia, 'Times New Roman', serif" font-size="48" font-style="italic" 
+  <text x="${svgWidth/2}" y="310" text-anchor="middle" 
+        font-family="Georgia, 'Times New Roman', serif" font-size="42" font-style="italic" 
         fill="url(#goldGradient)">${escapeXml(displayName)}</text>
   
   <!-- Commitment statement -->
-  <text x="${svgWidth/2}" y="420" text-anchor="middle" 
-        font-family="system-ui, -apple-system, sans-serif" font-size="16" 
-        fill="#cbd5e1" font-style="italic">"I committed to controlling what I could</text>
-  <text x="${svgWidth/2}" y="445" text-anchor="middle" 
-        font-family="system-ui, -apple-system, sans-serif" font-size="16" 
-        fill="#cbd5e1" font-style="italic">and surrendering what I could not."</text>
+  <text x="${svgWidth/2}" y="365" text-anchor="middle" 
+        font-family="system-ui, -apple-system, sans-serif" font-size="14" 
+        fill="#cbd5e1" font-style="italic">"I committed to controlling what I could and surrendering what I could not."</text>
   
-  <!-- Decorative line -->
-  <line x1="${svgWidth/2 - 150}" y1="485" x2="${svgWidth/2 + 150}" y2="485" 
+  <!-- Decorative line before controllables -->
+  <line x1="${svgWidth/2 - 180}" y1="400" x2="${svgWidth/2 + 180}" y2="400" 
+        stroke="#f59e0b" stroke-opacity="0.2" stroke-width="1"/>
+  
+  <!-- 5 Controllables Section -->
+  <text x="${svgWidth/2}" y="440" text-anchor="middle" 
+        font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" 
+        fill="#64748b" letter-spacing="2">MASTERED THE 5 CONTROLLABLES</text>
+  
+  <!-- Controllable badges - evenly spaced across the width -->
+  ${controllables.map((c, i) => {
+    const spacing = 200;
+    const startX = (svgWidth - (controllables.length - 1) * spacing) / 2;
+    const x = startX + i * spacing;
+    return `
+  <g transform="translate(${x}, 520)">
+    <rect x="-70" y="-40" width="140" height="80" rx="12" ry="12" 
+          fill="#ffffff" fill-opacity="0.05" stroke="#f59e0b" stroke-opacity="0.3"/>
+    <text x="0" y="-5" text-anchor="middle" font-size="28">${c.emoji}</text>
+    <text x="0" y="25" text-anchor="middle" 
+          font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" 
+          fill="#f59e0b">${c.name}</text>
+  </g>`;
+  }).join('')}
+  
+  <!-- Decorative line after controllables -->
+  <line x1="${svgWidth/2 - 180}" y1="600" x2="${svgWidth/2 + 180}" y2="600" 
         stroke="#f59e0b" stroke-opacity="0.2" stroke-width="1"/>
   
   <!-- Date range box -->
-  <rect x="${svgWidth/2 - 180}" y="510" width="360" height="50" rx="12" ry="12" 
+  <rect x="${svgWidth/2 - 180}" y="630" width="360" height="50" rx="12" ry="12" 
         fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.1"/>
-  <text x="${svgWidth/2}" y="542" text-anchor="middle" 
+  <text x="${svgWidth/2}" y="662" text-anchor="middle" 
         font-family="system-ui, -apple-system, sans-serif" font-size="15" 
         fill="#94a3b8">${escapeXml(startFormatted)} — ${escapeXml(endFormatted)}</text>
   
+  <!-- Verification checkmark -->
+  <g transform="translate(${svgWidth/2}, 720)">
+    <circle cx="0" cy="0" r="16" fill="#22c55e" fill-opacity="0.2"/>
+    <text x="0" y="5" text-anchor="middle" font-size="16">✓</text>
+    <text x="26" y="5" text-anchor="start" 
+          font-family="system-ui, -apple-system, sans-serif" font-size="11" 
+          fill="#64748b">Verified Completion</text>
+  </g>
+  
   <!-- Footer URL -->
-  <text x="${svgWidth/2}" y="${svgHeight - 40}" text-anchor="middle" 
+  <text x="${svgWidth/2}" y="${svgHeight - 30}" text-anchor="middle" 
         font-family="system-ui, -apple-system, sans-serif" font-size="12" 
         fill="#64748b">thecontrollables.lovable.app</text>
 </svg>`;

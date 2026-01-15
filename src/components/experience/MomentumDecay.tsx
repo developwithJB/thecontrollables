@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { AlertTriangle, Flame, Clock, TrendingDown, RefreshCw, Zap } from "lucide-react";
 import { differenceInDays, differenceInHours } from "date-fns";
 import { Button } from "@/components/ui/button";
+import { useState, useEffect, useMemo } from "react";
 
 interface MomentumDecayProps {
   lastActivity?: string | null;
@@ -18,8 +19,23 @@ export function MomentumDecay({
   hasActiveReset,
   onStartReset 
 }: MomentumDecayProps) {
-  const now = new Date();
-  const lastActiveDate = lastActivity ? new Date(lastActivity) : null;
+  // Use state to force re-renders for live updates
+  const [now, setNow] = useState(() => new Date());
+
+  // Update the timer every minute for live display
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const lastActiveDate = useMemo(() => 
+    lastActivity ? new Date(lastActivity) : null, 
+    [lastActivity]
+  );
+  
   const daysSinceActivity = lastActiveDate ? differenceInDays(now, lastActiveDate) : null;
   const hoursSinceActivity = lastActiveDate ? differenceInHours(now, lastActiveDate) : null;
 
