@@ -229,13 +229,13 @@ Deno.serve(async (req) => {
       { name: "Environment", emoji: "🚀" },
     ];
 
-    // Build badges section (left side) - 2 columns x 4 rows
+    // Build badges section (left side) - 2 columns x 4 rows, moved up to align with title
     const badgesSvg = ALL_BADGES.map((badge, i) => {
       const isEarned = earnedBadgeKeys.includes(badge.key);
       const col = i % 2;
       const row = Math.floor(i / 2);
       const x = 80 + col * 90;
-      const y = 340 + row * 80;
+      const y = 310 + row * 75; // Moved up to start at y=310
       
       if (isEarned) {
         return `
@@ -338,18 +338,21 @@ Deno.serve(async (req) => {
         font-family="Georgia, 'Times New Roman', serif" font-size="42" font-style="italic" 
         fill="url(#goldGradient)">${escapeXml(displayName)}</text>
   
-  <!-- Commitment statement -->
-  <text x="${svgWidth/2}" y="365" text-anchor="middle" 
-        font-family="system-ui, -apple-system, sans-serif" font-size="14" 
-        fill="#cbd5e1" font-style="italic">"I committed to controlling what I could and surrendering what I could not."</text>
+  <!-- Commitment statement - bigger and wrapped -->
+  <text x="${svgWidth/2}" y="360" text-anchor="middle" 
+        font-family="Georgia, 'Times New Roman', serif" font-size="18" 
+        fill="#e2e8f0" font-style="italic">"I committed to controlling what I could</text>
+  <text x="${svgWidth/2}" y="388" text-anchor="middle" 
+        font-family="Georgia, 'Times New Roman', serif" font-size="18" 
+        fill="#e2e8f0" font-style="italic">and surrendering what I could not."</text>
   
   <!-- ============ LEFT SIDE: BADGES EARNED ============ -->
   <g transform="translate(0, 0)">
-    <!-- Badges section header -->
-    <text x="125" y="310" text-anchor="middle" 
+    <!-- Badges section header - moved up to align with title -->
+    <text x="125" y="250" text-anchor="middle" 
           font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" 
           fill="#64748b" letter-spacing="1">BADGES EARNED</text>
-    <text x="125" y="326" text-anchor="middle" 
+    <text x="125" y="266" text-anchor="middle" 
           font-family="system-ui, -apple-system, sans-serif" font-size="10" 
           fill="#475569">${earnedBadgeKeys.length} of 8</text>
     
@@ -357,31 +360,36 @@ Deno.serve(async (req) => {
     ${badgesSvg}
   </g>
   
-  <!-- ============ RIGHT SIDE: XP & LEVEL ============ -->
+  <!-- ============ RIGHT SIDE: MOMENTUM (XP & LEVEL in one box) ============ -->
   <g transform="translate(${svgWidth - 200}, 0)">
-    <!-- XP section header -->
-    <text x="75" y="310" text-anchor="middle" 
+    <!-- Momentum section header - aligned with badges header -->
+    <text x="75" y="250" text-anchor="middle" 
           font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" 
           fill="#64748b" letter-spacing="1">MOMENTUM</text>
     
-    <!-- XP Display -->
-    <rect x="15" y="330" width="120" height="90" rx="12" ry="12" 
+    <!-- Combined XP + Level Display in one outlined box -->
+    <rect x="15" y="270" width="120" height="140" rx="12" ry="12" 
           fill="#ffffff" fill-opacity="0.05" stroke="#f59e0b" stroke-opacity="0.3"/>
-    <text x="75" y="370" text-anchor="middle" font-size="24">⚡</text>
-    <text x="75" y="398" text-anchor="middle" 
-          font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" 
+    
+    <!-- Lightning emoji -->
+    <text x="75" y="310" text-anchor="middle" font-size="28">⚡</text>
+    
+    <!-- XP Value -->
+    <text x="75" y="345" text-anchor="middle" 
+          font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" 
           fill="#f59e0b">${totalXp.toLocaleString()}</text>
-    <text x="75" y="414" text-anchor="middle" 
+    <text x="75" y="362" text-anchor="middle" 
           font-family="system-ui, -apple-system, sans-serif" font-size="10" 
           fill="#94a3b8">XP</text>
     
-    <!-- Level Display -->
-    <rect x="15" y="435" width="120" height="70" rx="12" ry="12" 
-          fill="#ffffff" fill-opacity="0.03" stroke="#475569" stroke-opacity="0.3"/>
-    <text x="75" y="475" text-anchor="middle" 
-          font-family="system-ui, -apple-system, sans-serif" font-size="12" 
+    <!-- Divider line -->
+    <line x1="35" y1="378" x2="115" y2="378" stroke="#475569" stroke-opacity="0.3" stroke-width="1"/>
+    
+    <!-- Level -->
+    <text x="75" y="398" text-anchor="middle" 
+          font-family="system-ui, -apple-system, sans-serif" font-size="10" 
           fill="#64748b">LEVEL</text>
-    <text x="75" y="496" text-anchor="middle" 
+    <text x="75" y="415" text-anchor="middle" 
           font-family="Georgia, 'Times New Roman', serif" font-size="18" font-weight="600" 
           fill="#ffffff">${level}</text>
   </g>
