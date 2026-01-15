@@ -207,6 +207,7 @@ export default function Auth() {
                   placeholder="you@example.com"
                   className="pl-10"
                   autoComplete="email"
+                  data-testid="auth-email-input"
                 />
               </div>
             </div>
@@ -223,6 +224,7 @@ export default function Auth() {
                   placeholder="••••••••"
                   className="pl-10 pr-10"
                   autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  data-testid="auth-password-input"
                 />
                 <button
                   type="button"
@@ -238,6 +240,7 @@ export default function Auth() {
               type="submit" 
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               disabled={isLoading}
+              data-testid="auth-submit-button"
             >
               {isLoading 
                 ? (mode === "signin" ? "Signing in..." : "Creating account...")
@@ -253,6 +256,7 @@ export default function Auth() {
                 type="button"
                 onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
                 className="text-accent hover:underline font-medium"
+                data-testid="auth-toggle-mode"
               >
                 {mode === "signin" ? "Sign up" : "Sign in"}
               </button>

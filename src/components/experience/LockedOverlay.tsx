@@ -77,6 +77,7 @@ export function LockedOverlay({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="absolute inset-0 z-10 flex flex-col items-center justify-center backdrop-blur-md bg-background/70 rounded-2xl"
+      data-testid="locked-overlay"
     >
       <div className="text-center p-6 max-w-xs">
         {/* Lock icon with subtle glow */}
@@ -104,6 +105,7 @@ export function LockedOverlay({
           onClick={handleUpgradeClick}
           disabled={isLoading}
           className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+          data-testid="locked-overlay-upgrade-cta"
         >
           {isLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
