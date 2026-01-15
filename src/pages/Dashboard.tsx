@@ -34,6 +34,7 @@ import { OfflineTriggers } from "@/components/experience/OfflineTriggers";
 import { ProgressHistory } from "@/components/experience/ProgressHistory";
 import { MomentumDecay } from "@/components/experience/MomentumDecay";
 import { BadgesEarned } from "@/components/experience/BadgesEarned";
+import { ResetHistory } from "@/components/experience/ResetHistory";
 
 type TabType = "dashboard" | "readings" | "experience";
 
@@ -515,6 +516,14 @@ export default function Dashboard() {
                   xpLogs={xpLogs}
                   resetSessions={allSessions}
                   completedResetsCount={allSessions.filter((s) => s.status === "completed").length}
+                />
+              )}
+
+              {/* Reset History with Certificates */}
+              {user?.id && (
+                <ResetHistory
+                  resetSessions={allSessions}
+                  userId={user.id}
                 />
               )}
 
