@@ -371,13 +371,14 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* AI Guide */}
+              {/* AI Guide - Locked for free users */}
               <AIGuidePanel
                 activeQuest={activeQuest}
                 totalXp={totalXp}
                 integrityScore={integrityScore}
                 currentBuild={currentBuild}
                 onXpEarned={handleOperatorInteraction}
+                isPaid={isPaid}
               />
             </motion.div>
           )}
@@ -508,10 +509,7 @@ export default function Dashboard() {
                 <div className="relative">
                   <BadgesEarned earnedBadges={earnedBadges} isLoading={badgesLoading} />
                   {!isPaid && (
-                    <LockedOverlay 
-                      featureName="Badge Collection" 
-                      description="Track all badges earned across your journey"
-                    />
+                    <LockedOverlay variant="experience-history" />
                   )}
                 </div>
               )}
@@ -533,10 +531,7 @@ export default function Dashboard() {
                     completedResetsCount={allSessions.filter((s) => s.status === "completed").length}
                   />
                   {!isPaid && (
-                    <LockedOverlay 
-                      featureName="Progress History" 
-                      description="View XP trends, activity patterns, and long-term progress"
-                    />
+                    <LockedOverlay variant="experience-history" />
                   )}
                 </div>
               )}
@@ -549,10 +544,7 @@ export default function Dashboard() {
                     userId={user.id}
                   />
                   {!isPaid && allSessions.filter(s => s.status === "completed").length > 0 && (
-                    <LockedOverlay 
-                      featureName="Reset History" 
-                      description="Access certificates and review past 7-Day journeys"
-                    />
+                    <LockedOverlay variant="experience-history" />
                   )}
                 </div>
               )}
@@ -579,10 +571,7 @@ export default function Dashboard() {
                     onStartReset={() => navigate("/reset")}
                   />
                   {!isPaid && (
-                    <LockedOverlay 
-                      featureName="Momentum Decay" 
-                      description="Track your activity streaks and momentum status"
-                    />
+                    <LockedOverlay variant="experience-history" />
                   )}
                 </div>
               )}
