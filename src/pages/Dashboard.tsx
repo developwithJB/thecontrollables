@@ -35,7 +35,7 @@ import { ProgressHistory } from "@/components/experience/ProgressHistory";
 import { MomentumDecay } from "@/components/experience/MomentumDecay";
 import { BadgesEarned } from "@/components/experience/BadgesEarned";
 import { ResetHistory } from "@/components/experience/ResetHistory";
-import { CertificateTemplateUpload } from "@/components/CertificateTemplateUpload";
+
 
 type TabType = "dashboard" | "readings" | "experience";
 
@@ -528,10 +528,6 @@ export default function Dashboard() {
                 />
               )}
 
-              {/* Certificate Template Upload */}
-              {user?.id && (
-                <CertificateTemplateUpload userId={user.id} />
-              )}
 
               {!isSimplifiedMode && (
                 <MomentumDecay
