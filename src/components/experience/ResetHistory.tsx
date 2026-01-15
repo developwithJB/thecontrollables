@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { RefreshCw, Award, Download, Calendar, Check, Loader2 } from "lucide-react";
+import { Award, Download, Calendar, Check, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,8 +17,8 @@ interface ResetSession {
 
 interface Certificate {
   id: string;
-  challenge_id: string;
-  storage_path: string;
+  reset_session_id: string;
+  certificate_url: string | null;
   start_date: string;
   end_date: string;
 }
@@ -30,16 +30,16 @@ interface ResetHistoryProps {
 
 export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
   const { toast } = useToast();
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const completedSessions = resetSessions.filter(s => s.status === "completed");
 
   // Fetch all certificates for this user
-  const { data: certificates = [] } = useQuery({
-    queryKey: ["all-certificates", userId],
+  const { data: certificates = [], refetch: refetchCertificates } = useQuery({
+    queryKey: ["certificates", userId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("completion_certificates")
+        .from("certificates")
         .select("*")
         .eq("user_id", userId);
       if (error) throw error;
@@ -49,196 +49,83 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
   });
 
   const getCertificateForSession = (sessionId: string) => {
-    return certificates.find(c => c.challenge_id === sessionId);
+    return certificates.find(c => c.reset_session_id === sessionId);
   };
 
   const handleDownloadCertificate = async (session: ResetSession) => {
-    setDownloadingId(session.id);
+    setProcessingId(session.id);
 
-    const filename = `controllables-certificate-${format(new Date(session.start_date), "yyyy-MM-dd")}.png`;
-
-    const downloadBlobToFile = (blob: Blob) => {
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
-    };
-    
     try {
-      const cert = getCertificateForSession(session.id);
+      let cert = getCertificateForSession(session.id);
 
-      // Prefer downloading via Storage API (avoids saving JSON/404 pages as .png)
-      if (cert?.storage_path) {
-        const { data: fileBlob, error: downloadError } = await supabase.storage
-          .from("certificates")
-          .download(cert.storage_path);
-
-        if (!downloadError && fileBlob && fileBlob.size > 0) {
-          downloadBlobToFile(fileBlob);
-          toast({
-            title: "Certificate downloaded",
-            description: "Your certificate has been saved.",
-          });
-          return;
-        }
-        // If the DB record exists but the file is missing/corrupt, regenerate below.
-      }
-        // Check for global admin template
-        const { data: templateData } = supabase.storage
-          .from("certificates")
-          .getPublicUrl("Certificate Template.png");
+      // If no certificate exists, generate one
+      if (!cert?.certificate_url) {
+        console.log("Generating certificate for session:", session.id);
         
-        let templateUrl: string | null = null;
-        try {
-          const response = await fetch(templateData.publicUrl, { method: "HEAD" });
-          if (response.ok) {
-            templateUrl = templateData.publicUrl;
-          }
-        } catch {
-          // No template
-        }
-
-        // Generate certificate on the fly
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d", { willReadFrequently: false });
-        
-        if (!ctx) throw new Error("Canvas not supported");
-
-        // Load template and use its natural dimensions
-        if (templateUrl) {
-          try {
-            const img = new window.Image();
-            img.crossOrigin = "anonymous";
-            await new Promise<void>((resolve, reject) => {
-              img.onload = () => resolve();
-              img.onerror = reject;
-              img.src = templateUrl!;
-            });
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            
-            // Enable image smoothing for better quality
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = "high";
-            
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          } catch {
-            throw new Error("Failed to load certificate template");
-          }
-        } else {
-          throw new Error("Certificate template not found");
-        }
-
-        const centerX = canvas.width / 2;
-        const canvasHeight = canvas.height;
-
-        // Text styling
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-
-        // Fetch user profile for display name
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("display_name")
-          .eq("id", userId)
-          .single();
-        
-        const displayName = profileData?.display_name || "Participant";
-        
-        // User's display name
-        ctx.fillStyle = "#1a1a1a";
-        ctx.font = "italic 56px Georgia, serif";
-        ctx.fillText(displayName, centerX, canvasHeight * 0.5);
-
-        // Description text
-        ctx.fillStyle = "#404040";
-        ctx.font = "18px system-ui, sans-serif";
-        ctx.fillText("For completing the 7-Day Reset Challenge", centerX, canvasHeight * 0.6);
-        ctx.fillText("I committed to controlling what I could and surrendering what I could not.", centerX, canvasHeight * 0.64);
-
-        // Date range
-        const startDate = new Date(session.start_date + "T00:00:00");
-        const endDate = new Date(session.start_date + "T00:00:00");
-        endDate.setDate(endDate.getDate() + 6);
-        
-        const startFormatted = startDate.toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-        });
-        const endFormatted = endDate.toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-        });
-        ctx.font = "16px system-ui, sans-serif";
-        ctx.fillStyle = "#404040";
-        ctx.fillText(`${startFormatted} – ${endFormatted}`, centerX * 0.66, canvasHeight * 0.83);
-
-        // "The Controllables" branding
-        ctx.font = "italic 20px Georgia, serif";
-        ctx.fillStyle = "#1a1a1a";
-        ctx.fillText("The Controllables", centerX * 1.34, canvasHeight * 0.83);
-
-        // Convert to blob with high quality
-        const blob = await new Promise<Blob>((resolve, reject) => {
-          canvas.toBlob(
-            (b) => {
-              if (b) resolve(b);
-              else reject(new Error("Failed to create certificate image"));
-            },
-            "image/png",
-            1.0 // Maximum quality
-          );
+        const { data, error } = await supabase.functions.invoke("generate-certificate", {
+          body: { reset_session_id: session.id },
         });
 
-        // Save to storage
-        const storagePath = `${userId}/${session.id}.png`;
-        const { error: uploadError } = await supabase.storage
-          .from("certificates")
-          .upload(storagePath, blob, {
-            contentType: "image/png",
-            upsert: true,
-          });
-        if (uploadError) throw uploadError;
+        if (error) {
+          throw new Error(error.message || "Failed to generate certificate");
+        }
 
-        // Save certificate record
-        const { error: certUpsertError } = await supabase
-          .from("completion_certificates")
-          .upsert(
-            {
-              user_id: userId,
-              challenge_id: session.id,
-              start_date: session.start_date,
-              end_date: endDate.toISOString().split("T")[0],
-              storage_path: storagePath,
-            },
-            {
-              onConflict: "user_id,challenge_id",
-            }
-          );
-        if (certUpsertError) throw certUpsertError;
+        if (!data?.certificate_url) {
+          throw new Error("No certificate URL returned");
+        }
 
-        // Download
-        downloadBlobToFile(blob);
-
+        // Refetch certificates to get the new one
+        await refetchCertificates();
+        
+        // Use the URL from the response
+        const certificateUrl = data.certificate_url;
+        
+        // Download the file
+        await downloadFile(certificateUrl, session.start_date);
+        
         toast({
           title: "Certificate generated & downloaded",
           description: "Your certificate has been created and saved.",
         });
+      } else {
+        // Download existing certificate
+        await downloadFile(cert.certificate_url, session.start_date);
+        
+        toast({
+          title: "Certificate downloaded",
+          description: "Your certificate has been saved.",
+        });
+      }
     } catch (error) {
+      console.error("Certificate error:", error);
       toast({
-        title: "Error downloading certificate",
+        title: "Error with certificate",
         description: error instanceof Error ? error.message : "Something went wrong",
         variant: "destructive",
       });
     } finally {
-      setDownloadingId(null);
+      setProcessingId(null);
     }
+  };
+
+  const downloadFile = async (url: string, startDate: string) => {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error("Failed to fetch certificate file");
+    }
+
+    const blob = await response.blob();
+    const contentType = blob.type;
+    const extension = contentType.includes("svg") ? "svg" : "png";
+
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = `controllables-certificate-${format(new Date(startDate), "yyyy-MM-dd")}.${extension}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
   };
 
   if (completedSessions.length === 0) {
@@ -270,8 +157,8 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
           const startDate = new Date(session.start_date + "T00:00:00");
           const endDate = new Date(session.start_date + "T00:00:00");
           endDate.setDate(endDate.getDate() + 6);
-          const hasCert = !!getCertificateForSession(session.id);
-          const isDownloading = downloadingId === session.id;
+          const hasCert = !!getCertificateForSession(session.id)?.certificate_url;
+          const isProcessing = processingId === session.id;
 
           return (
             <motion.div
@@ -303,10 +190,10 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
                   size="sm"
                   variant="outline"
                   onClick={() => handleDownloadCertificate(session)}
-                  disabled={isDownloading}
+                  disabled={isProcessing}
                   className="gap-1.5"
                 >
-                  {isDownloading ? (
+                  {isProcessing ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <Download className="w-3.5 h-3.5" />
