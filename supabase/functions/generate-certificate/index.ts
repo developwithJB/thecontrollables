@@ -187,11 +187,11 @@ Deno.serve(async (req) => {
 
     // The 5 Controllables with emojis
     const controllables = [
-      { name: "Awareness", emoji: "🧘" },
-      { name: "Perspective", emoji: "🔭" },
-      { name: "Habit", emoji: "⚡" },
-      { name: "Wellness", emoji: "💪" },
-      { name: "Environment", emoji: "🏠" },
+      { name: "Awareness", emoji: "🦉" },
+      { name: "Perspective", emoji: "🐢" },
+      { name: "Habit", emoji: "🦈" },
+      { name: "Wellness", emoji: "🛰️" },
+      { name: "Environment", emoji: "🚀" },
     ];
 
     const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
