@@ -168,27 +168,6 @@ Deno.serve(async (req) => {
     const certificateId = certRecord.id;
     console.log(`Certificate record created: ${certificateId}`);
 
-    // Fetch the template image from storage
-    const { data: templateData, error: templateError } = await supabaseAdmin.storage
-      .from("certificates")
-      .download("Certificate Template.png");
-
-    if (templateError || !templateData) {
-      console.error("Template error:", templateError);
-      return new Response(
-        JSON.stringify({ error: "Certificate template not found" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log("Template loaded, generating certificate image...");
-
-    // Convert template to base64
-    const templateArrayBuffer = await templateData.arrayBuffer();
-    const templateBase64 = btoa(
-      new Uint8Array(templateArrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
-    );
-
     // Format dates for display
     const formatDate = (dateStr: string) => {
       const date = new Date(dateStr + "T00:00:00");
@@ -201,57 +180,122 @@ Deno.serve(async (req) => {
 
     const startFormatted = formatDate(startDate);
     const endFormatted = formatDate(endDate);
-    const dateRange = `${startFormatted} – ${endFormatted}`;
 
-    // Generate SVG with text overlay on template
-    // We'll create an SVG that includes the template as background and overlays text
+    // Generate premium dark certificate SVG (QuestCard style)
     const svgWidth = 1200;
-    const svgHeight = 800;
+    const svgHeight = 630; // 1.9:1 aspect ratio for social sharing
 
     const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
-     width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">
+<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">
   <defs>
-    <style type="text/css">
-      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&amp;display=swap');
-      .name { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 48px; fill: #1a1a1a; }
-      .description { font-family: system-ui, -apple-system, sans-serif; font-size: 16px; fill: #404040; }
-      .date { font-family: system-ui, -apple-system, sans-serif; font-size: 14px; fill: #404040; }
-      .branding { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 18px; fill: #1a1a1a; }
-    </style>
+    <!-- Background gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="50%" style="stop-color:#1e293b"/>
+      <stop offset="100%" style="stop-color:#0f172a"/>
+    </linearGradient>
+    
+    <!-- Accent glow -->
+    <radialGradient id="accentGlow1" cx="90%" cy="10%" r="40%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:0"/>
+    </radialGradient>
+    
+    <radialGradient id="accentGlow2" cx="10%" cy="90%" r="35%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.1"/>
+      <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:0"/>
+    </radialGradient>
+    
+    <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.05"/>
+      <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:0"/>
+    </radialGradient>
+    
+    <!-- Gold gradient for text -->
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="50%" style="stop-color:#fbbf24"/>
+      <stop offset="100%" style="stop-color:#f59e0b"/>
+    </linearGradient>
+    
+    <!-- Border gradient -->
+    <linearGradient id="borderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.4"/>
+      <stop offset="50%" style="stop-color:#f59e0b;stop-opacity:0.2"/>
+      <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:0.4"/>
+    </linearGradient>
   </defs>
   
-  <!-- Background template image -->
-  <image href="data:image/png;base64,${templateBase64}" x="0" y="0" width="${svgWidth}" height="${svgHeight}" preserveAspectRatio="xMidYMid slice"/>
+  <!-- Background -->
+  <rect width="${svgWidth}" height="${svgHeight}" fill="url(#bgGradient)"/>
   
-  <!-- User's display name -->
-  <text x="50%" y="50%" text-anchor="middle" class="name">${escapeXml(displayName)}</text>
+  <!-- Decorative glows -->
+  <rect width="${svgWidth}" height="${svgHeight}" fill="url(#accentGlow1)"/>
+  <rect width="${svgWidth}" height="${svgHeight}" fill="url(#accentGlow2)"/>
+  <rect width="${svgWidth}" height="${svgHeight}" fill="url(#centerGlow)"/>
   
-  <!-- Description lines -->
-  <text x="50%" y="60%" text-anchor="middle" class="description">For completing the 7-Day Reset Challenge</text>
-  <text x="50%" y="64%" text-anchor="middle" class="description">I committed to controlling what I could and surrendering what I could not.</text>
+  <!-- Border -->
+  <rect x="20" y="20" width="${svgWidth - 40}" height="${svgHeight - 40}" rx="24" ry="24" 
+        fill="none" stroke="url(#borderGradient)" stroke-width="2"/>
   
-  <!-- Date range -->
-  <text x="33%" y="83%" text-anchor="middle" class="date">${escapeXml(dateRange)}</text>
+  <!-- Inner border accent -->
+  <rect x="40" y="40" width="${svgWidth - 80}" height="${svgHeight - 80}" rx="16" ry="16" 
+        fill="none" stroke="#f59e0b" stroke-width="0.5" stroke-opacity="0.2"/>
   
-  <!-- Branding -->
-  <text x="67%" y="83%" text-anchor="middle" class="branding">The Controllables</text>
+  <!-- Top badge -->
+  <rect x="${svgWidth/2 - 100}" y="60" width="200" height="36" rx="18" ry="18" 
+        fill="#f59e0b" fill-opacity="0.15" stroke="#f59e0b" stroke-opacity="0.3"/>
+  <text x="${svgWidth/2}" y="84" text-anchor="middle" 
+        font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" 
+        fill="#f59e0b" letter-spacing="3">THE CONTROLLABLES</text>
+  
+  <!-- Completion badge -->
+  <text x="${svgWidth/2}" y="140" text-anchor="middle" 
+        font-family="Georgia, 'Times New Roman', serif" font-size="14" font-style="italic" 
+        fill="#94a3b8" letter-spacing="1">Certificate of Completion</text>
+  
+  <!-- Decorative line -->
+  <line x1="${svgWidth/2 - 80}" y1="165" x2="${svgWidth/2 + 80}" y2="165" 
+        stroke="#f59e0b" stroke-opacity="0.3" stroke-width="1"/>
+  
+  <!-- Trophy emoji -->
+  <text x="${svgWidth/2}" y="220" text-anchor="middle" font-size="56">🏆</text>
+  
+  <!-- Main title -->
+  <text x="${svgWidth/2}" y="290" text-anchor="middle" 
+        font-family="Georgia, 'Times New Roman', serif" font-size="24" font-weight="600" 
+        fill="#ffffff" letter-spacing="2">7-DAY RESET COMPLETE</text>
+  
+  <!-- User name -->
+  <text x="${svgWidth/2}" y="360" text-anchor="middle" 
+        font-family="Georgia, 'Times New Roman', serif" font-size="48" font-style="italic" 
+        fill="url(#goldGradient)">${escapeXml(displayName)}</text>
+  
+  <!-- Commitment statement -->
+  <text x="${svgWidth/2}" y="420" text-anchor="middle" 
+        font-family="system-ui, -apple-system, sans-serif" font-size="16" 
+        fill="#cbd5e1" font-style="italic">"I committed to controlling what I could</text>
+  <text x="${svgWidth/2}" y="445" text-anchor="middle" 
+        font-family="system-ui, -apple-system, sans-serif" font-size="16" 
+        fill="#cbd5e1" font-style="italic">and surrendering what I could not."</text>
+  
+  <!-- Decorative line -->
+  <line x1="${svgWidth/2 - 150}" y1="485" x2="${svgWidth/2 + 150}" y2="485" 
+        stroke="#f59e0b" stroke-opacity="0.2" stroke-width="1"/>
+  
+  <!-- Date range box -->
+  <rect x="${svgWidth/2 - 180}" y="510" width="360" height="50" rx="12" ry="12" 
+        fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.1"/>
+  <text x="${svgWidth/2}" y="542" text-anchor="middle" 
+        font-family="system-ui, -apple-system, sans-serif" font-size="15" 
+        fill="#94a3b8">${escapeXml(startFormatted)} — ${escapeXml(endFormatted)}</text>
+  
+  <!-- Footer URL -->
+  <text x="${svgWidth/2}" y="${svgHeight - 40}" text-anchor="middle" 
+        font-family="system-ui, -apple-system, sans-serif" font-size="12" 
+        fill="#64748b">thecontrollables.lovable.app</text>
 </svg>`;
 
-    // Convert SVG to PNG using resvg-wasm or a similar approach
-    // For edge functions, we'll use a simpler approach: return SVG as-is and convert client-side
-    // OR use a cloud service for conversion
-    
-    // Actually, let's use a different approach: create the certificate as SVG 
-    // and use a PNG conversion service, or store as SVG which most browsers can display
-    
-    // For now, let's store the SVG and generate a PNG using fetch to an SVG-to-PNG service
-    // OR we can use the native Image API approach
-    
-    // Simplest reliable approach: Store the template-based PNG by overlaying text
-    // Since we can't use canvas in Deno Edge Functions easily, let's use a workaround:
-    // We'll store the SVG and use it as the certificate (SVG is vector, displays well)
-    
     const svgBlob = new Blob([svgContent], { type: "image/svg+xml" });
     const storagePath = `${user.id}/${certificateId}.svg`;
 
@@ -288,7 +332,6 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       console.error("Update error:", updateError);
-      // Non-fatal, continue
     }
 
     console.log("Certificate generation complete!");
