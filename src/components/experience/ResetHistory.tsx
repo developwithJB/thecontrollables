@@ -81,6 +81,21 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
           description: "Your certificate has been saved.",
         });
       } else {
+        // Check for custom template
+        const { data: templateData } = supabase.storage
+          .from("certificates")
+          .getPublicUrl(`templates/${userId}/template.png`);
+        
+        let templateUrl: string | null = null;
+        try {
+          const response = await fetch(templateData.publicUrl, { method: "HEAD" });
+          if (response.ok) {
+            templateUrl = templateData.publicUrl;
+          }
+        } catch {
+          // No template
+        }
+
         // Generate certificate on the fly
         const canvas = document.createElement("canvas");
         canvas.width = 1200;
@@ -89,24 +104,49 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
         
         if (!ctx) throw new Error("Canvas not supported");
 
-        // Background
-        ctx.fillStyle = "#fafafa";
-        ctx.fillRect(0, 0, 1200, 630);
+        // Draw background - either custom template or default
+        if (templateUrl) {
+          try {
+            const img = new window.Image();
+            img.crossOrigin = "anonymous";
+            await new Promise<void>((resolve, reject) => {
+              img.onload = () => resolve();
+              img.onerror = reject;
+              img.src = templateUrl!;
+            });
+            ctx.drawImage(img, 0, 0, 1200, 630);
+          } catch {
+            // Fallback to default
+            ctx.fillStyle = "#fafafa";
+            ctx.fillRect(0, 0, 1200, 630);
+            ctx.strokeStyle = "#e5e5e5";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(40, 40, 1120, 550);
+          }
+        } else {
+          // Default background
+          ctx.fillStyle = "#fafafa";
+          ctx.fillRect(0, 0, 1200, 630);
+          ctx.strokeStyle = "#e5e5e5";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(40, 40, 1120, 550);
+        }
 
-        // Border
-        ctx.strokeStyle = "#e5e5e5";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(40, 40, 1120, 550);
+        // Text styling with shadow for visibility
+        ctx.textAlign = "center";
+        ctx.shadowColor = "rgba(255, 255, 255, 0.8)";
+        ctx.shadowBlur = 4;
 
         // Title
         ctx.fillStyle = "#171717";
         ctx.font = "bold 48px system-ui, sans-serif";
-        ctx.textAlign = "center";
         ctx.fillText("Certificate of Completion", 600, 140);
 
         // Emoji
+        ctx.shadowBlur = 0;
         ctx.font = "64px system-ui, sans-serif";
         ctx.fillText("✨", 600, 220);
+        ctx.shadowBlur = 4;
 
         // Statement
         ctx.font = "24px system-ui, sans-serif";
@@ -137,6 +177,7 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
         ctx.font = "16px system-ui, sans-serif";
         ctx.fillStyle = "#a3a3a3";
         ctx.fillText("The Controllables", 600, 560);
+        ctx.shadowBlur = 0;
 
         // Convert to blob and download
         const blob = await new Promise<Blob>((resolve, reject) => {

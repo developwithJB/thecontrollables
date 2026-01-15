@@ -302,6 +302,35 @@ export const useReset = () => {
     return data.publicUrl;
   };
 
+  // Helper to load image
+  const loadImage = (src: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  };
+
+  // Check for custom template
+  const getTemplateUrl = async (): Promise<string | null> => {
+    if (!userId) return null;
+    const { data } = supabase.storage
+      .from("certificates")
+      .getPublicUrl(`templates/${userId}/template.png`);
+    
+    try {
+      const response = await fetch(data.publicUrl, { method: "HEAD" });
+      if (response.ok) {
+        return data.publicUrl;
+      }
+    } catch {
+      // Template doesn't exist
+    }
+    return null;
+  };
+
   // Generate and save certificate to storage
   const generateCertificateMutation = useMutation({
     mutationFn: async (): Promise<string> => {
@@ -312,6 +341,9 @@ export const useReset = () => {
         return getCertificateUrl(existingCertificate.storage_path);
       }
       
+      // Check for custom template
+      const templateUrl = await getTemplateUrl();
+      
       // Create a canvas-based certificate
       const canvas = document.createElement("canvas");
       canvas.width = 1200;
@@ -320,24 +352,47 @@ export const useReset = () => {
       
       if (!ctx) throw new Error("Canvas not supported");
 
-      // Background
-      ctx.fillStyle = "#fafafa";
-      ctx.fillRect(0, 0, 1200, 630);
+      // Draw background - either custom template or default
+      if (templateUrl) {
+        try {
+          const templateImg = await loadImage(templateUrl);
+          ctx.drawImage(templateImg, 0, 0, 1200, 630);
+        } catch {
+          // Fallback to default background if template fails to load
+          ctx.fillStyle = "#fafafa";
+          ctx.fillRect(0, 0, 1200, 630);
+          ctx.strokeStyle = "#e5e5e5";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(40, 40, 1120, 550);
+        }
+      } else {
+        // Default background
+        ctx.fillStyle = "#fafafa";
+        ctx.fillRect(0, 0, 1200, 630);
+        ctx.strokeStyle = "#e5e5e5";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(40, 40, 1120, 550);
+      }
 
-      // Border
-      ctx.strokeStyle = "#e5e5e5";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(40, 40, 1120, 550);
+      // Text styling with shadow for better visibility on any background
+      ctx.textAlign = "center";
+      ctx.shadowColor = "rgba(255, 255, 255, 0.8)";
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
 
       // Title
       ctx.fillStyle = "#171717";
       ctx.font = "bold 48px system-ui, sans-serif";
-      ctx.textAlign = "center";
       ctx.fillText("Certificate of Completion", 600, 140);
 
-      // Emoji
+      // Emoji (no shadow needed)
+      ctx.shadowBlur = 0;
       ctx.font = "64px system-ui, sans-serif";
       ctx.fillText("✨", 600, 220);
+
+      // Restore shadow for text
+      ctx.shadowBlur = 4;
 
       // Statement
       ctx.font = "24px system-ui, sans-serif";
@@ -371,6 +426,9 @@ export const useReset = () => {
       ctx.font = "16px system-ui, sans-serif";
       ctx.fillStyle = "#a3a3a3";
       ctx.fillText("The Controllables", 600, 560);
+      
+      // Reset shadow
+      ctx.shadowBlur = 0;
 
       // Convert canvas to blob
       const blob = await new Promise<Blob>((resolve, reject) => {

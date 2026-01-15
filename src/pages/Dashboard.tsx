@@ -35,6 +35,7 @@ import { ProgressHistory } from "@/components/experience/ProgressHistory";
 import { MomentumDecay } from "@/components/experience/MomentumDecay";
 import { BadgesEarned } from "@/components/experience/BadgesEarned";
 import { ResetHistory } from "@/components/experience/ResetHistory";
+import { CertificateTemplateUpload } from "@/components/CertificateTemplateUpload";
 
 type TabType = "dashboard" | "readings" | "experience";
 
@@ -527,7 +528,11 @@ export default function Dashboard() {
                 />
               )}
 
-              {/* Momentum Decay - Hidden in simplified mode */}
+              {/* Certificate Template Upload */}
+              {user?.id && (
+                <CertificateTemplateUpload userId={user.id} />
+              )}
+
               {!isSimplifiedMode && (
                 <MomentumDecay
                   lastActivity={xpLogs[0]?.created_at || null}
