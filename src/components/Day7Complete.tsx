@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Download, Share2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Day7CompleteProps {
   displayName: string;
@@ -22,6 +24,7 @@ export const Day7Complete = ({
   existingCertificateUrl,
 }: Day7CompleteProps) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [certificateUrl, setCertificateUrl] = useState<string | null>(
     existingCertificateUrl || null
   );
@@ -35,34 +38,60 @@ export const Day7Complete = ({
     });
   };
 
-  const handleDownloadCertificate = async () => {
-    let urlToDownload = certificateUrl || existingCertificateUrl;
-    
-    if (!urlToDownload) {
-      // Generate and save certificate
-      urlToDownload = await onGenerateCertificate();
-      if (urlToDownload) {
-        setCertificateUrl(urlToDownload);
-      }
+  const downloadBlobToFile = (blob: Blob, filename: string) => {
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
+  };
+
+  const assertPngBlob = async (blob: Blob) => {
+    const header = new Uint8Array(await blob.slice(0, 8).arrayBuffer());
+    const pngSig = [137, 80, 78, 71, 13, 10, 26, 10];
+    const isPng = pngSig.every((b, i) => header[i] === b);
+    if (!isPng) throw new Error("Downloaded file is not a valid PNG");
+  };
+
+  const blobFromUrlPreferStorage = async (url: string): Promise<Blob> => {
+    const marker = "/storage/v1/object/public/certificates/";
+    const idx = url.indexOf(marker);
+    if (idx !== -1) {
+      const storagePath = decodeURIComponent(url.slice(idx + marker.length).split("?")[0]);
+      const { data, error } = await supabase.storage.from("certificates").download(storagePath);
+      if (!error && data) return data;
     }
 
-    if (urlToDownload) {
-      // For storage URLs, we need to fetch and create a blob for download
-      try {
-        const response = await fetch(urlToDownload);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = blobUrl;
-        link.download = "controllables-certificate.png";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(blobUrl);
-      } catch {
-        // Fallback: open in new tab
-        window.open(urlToDownload, "_blank");
-      }
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Certificate file not found");
+    return await response.blob();
+  };
+
+  const handleDownloadCertificate = async () => {
+    let urlToDownload = certificateUrl || existingCertificateUrl;
+
+    if (!urlToDownload) {
+      urlToDownload = await onGenerateCertificate();
+      if (urlToDownload) setCertificateUrl(urlToDownload);
+    }
+
+    if (!urlToDownload) return;
+
+    try {
+      const blob = await blobFromUrlPreferStorage(urlToDownload);
+      await assertPngBlob(blob);
+      downloadBlobToFile(blob, `controllables-certificate-${endDate}.png`);
+    } catch (err) {
+      toast({
+        title: "Download failed",
+        description: err instanceof Error ? err.message : "Could not download certificate",
+        variant: "destructive",
+      });
+      // Fallback: open in new tab for inspection
+      window.open(urlToDownload, "_blank");
     }
   };
 
