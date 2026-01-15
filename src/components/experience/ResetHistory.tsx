@@ -81,10 +81,10 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
           description: "Your certificate has been saved.",
         });
       } else {
-        // Check for custom template
+        // Check for global admin template
         const { data: templateData } = supabase.storage
           .from("certificates")
-          .getPublicUrl(`templates/${userId}/template.png`);
+          .getPublicUrl("Cetificate Template.png");
         
         let templateUrl: string | null = null;
         try {
@@ -99,7 +99,7 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
         // Generate certificate on the fly
         const canvas = document.createElement("canvas");
         canvas.width = 1200;
-        canvas.height = 630;
+        canvas.height = 800;
         const ctx = canvas.getContext("2d");
         
         if (!ctx) throw new Error("Canvas not supported");
@@ -114,47 +114,48 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
               img.onerror = reject;
               img.src = templateUrl!;
             });
-            ctx.drawImage(img, 0, 0, 1200, 630);
+            ctx.drawImage(img, 0, 0, 1200, 800);
           } catch {
             // Fallback to default
             ctx.fillStyle = "#fafafa";
-            ctx.fillRect(0, 0, 1200, 630);
+            ctx.fillRect(0, 0, 1200, 800);
             ctx.strokeStyle = "#e5e5e5";
             ctx.lineWidth = 2;
-            ctx.strokeRect(40, 40, 1120, 550);
+            ctx.strokeRect(40, 40, 1120, 720);
           }
         } else {
           // Default background
           ctx.fillStyle = "#fafafa";
-          ctx.fillRect(0, 0, 1200, 630);
+          ctx.fillRect(0, 0, 1200, 800);
           ctx.strokeStyle = "#e5e5e5";
           ctx.lineWidth = 2;
-          ctx.strokeRect(40, 40, 1120, 550);
+          ctx.strokeRect(40, 40, 1120, 720);
         }
 
-        // Text styling with shadow for visibility
+        // Text styling - positioned for Canva template
         ctx.textAlign = "center";
-        ctx.shadowColor = "rgba(255, 255, 255, 0.8)";
-        ctx.shadowBlur = 4;
 
-        // Title
-        ctx.fillStyle = "#171717";
-        ctx.font = "bold 48px system-ui, sans-serif";
-        ctx.fillText("Certificate of Completion", 600, 140);
+        // User's display name - replaces "Samira Hadid" in template (script font position)
+        // Fetch user profile for display name
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("id", userId)
+          .single();
+        
+        const displayName = profileData?.display_name || "Participant";
+        
+        ctx.fillStyle = "#1a1a1a";
+        ctx.font = "italic 56px Georgia, serif";
+        ctx.fillText(displayName, 600, 400);
 
-        // Emoji
-        ctx.shadowBlur = 0;
-        ctx.font = "64px system-ui, sans-serif";
-        ctx.fillText("✨", 600, 220);
-        ctx.shadowBlur = 4;
-
-        // Statement
-        ctx.font = "24px system-ui, sans-serif";
+        // Description text - replaces Lorem ipsum in template
         ctx.fillStyle = "#404040";
-        ctx.fillText("I committed to controlling what I could", 600, 300);
-        ctx.fillText("and surrendering what I could not", 600, 340);
+        ctx.font = "18px system-ui, sans-serif";
+        ctx.fillText("For completing the 7-Day Reset Challenge", 600, 485);
+        ctx.fillText("I committed to controlling what I could and surrendering what I could not.", 600, 510);
 
-        // Dates
+        // Date range - positioned in the DATE area (bottom left of badge)
         const startDate = new Date(session.start_date + "T00:00:00");
         const endDate = new Date(session.start_date + "T00:00:00");
         endDate.setDate(endDate.getDate() + 6);
@@ -169,15 +170,14 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
           day: "numeric",
           year: "numeric",
         });
-        ctx.font = "20px system-ui, sans-serif";
-        ctx.fillStyle = "#737373";
-        ctx.fillText(`${startFormatted} – ${endFormatted}`, 600, 400);
-
-        // Footer
         ctx.font = "16px system-ui, sans-serif";
-        ctx.fillStyle = "#a3a3a3";
-        ctx.fillText("The Controllables", 600, 560);
-        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#404040";
+        ctx.fillText(`${startFormatted} – ${endFormatted}`, 400, 665);
+
+        // "The Controllables" branding - positioned in SIGNATURE area (bottom right)
+        ctx.font = "italic 20px Georgia, serif";
+        ctx.fillStyle = "#1a1a1a";
+        ctx.fillText("The Controllables", 800, 665);
 
         // Convert to blob and download
         const blob = await new Promise<Blob>((resolve, reject) => {
