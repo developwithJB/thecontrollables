@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Send, Loader2, RotateCcw, Zap, Check, Trophy } from "lucide-react";
+import { ChevronDown, Send, Loader2, RotateCcw, Zap, Check, Trophy, Lock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,7 @@ interface AIGuidePanelProps {
   integrityScore: number | null;
   currentBuild?: UserBuildCurrent | null;
   onXpEarned?: () => void;
+  isPaid?: boolean;
 }
 
 interface Message {
@@ -151,7 +152,7 @@ const detectGuideFromMessage = (message: string): GuideType => {
   return maxGuide;
 };
 
-export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild, onXpEarned }: AIGuidePanelProps) {
+export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild, onXpEarned, isPaid = true }: AIGuidePanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedGuide, setSelectedGuide] = useState<Guide | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -460,149 +461,187 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="px-5 pb-5">
-              {/* Messages Area - Always show if there are messages */}
-              {messages.length > 0 && (
-                <div className="space-y-3 max-h-80 overflow-y-auto mb-4 pr-2">
-                  {messages.map((msg, idx) => {
-                    // Get the guide that sent this message (for assistant messages)
-                    const messageGuide = msg.role === "assistant" 
-                      ? getGuideById(msg.controllable) 
-                      : null;
-                    const action = msg.role === 'assistant' ? getActionFromMessage(msg.content) : null;
-                    const contentWithoutAction = msg.role === 'assistant' && action
-                      ? msg.content.split('→ ACTION:')[0].trim()
-                      : msg.content;
-                    
-                    return (
-                      <div key={idx}>
-                        <div
-                          className={`p-3 rounded-xl text-sm ${
-                            msg.role === "user"
-                              ? "bg-primary text-primary-foreground ml-8"
-                              : "bg-muted text-foreground mr-8"
-                          }`}
-                        >
-                          {msg.role === "assistant" && messageGuide && (
-                            <span className="mr-2">{messageGuide.emoji}</span>
-                          )}
-                          {contentWithoutAction}
-                        </div>
+            <div className="px-5 pb-5 relative">
+              {/* Locked state for free users */}
+              {!isPaid && (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <motion.div
+                    initial={{ scale: 0.8 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                    className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center"
+                  >
+                    <Lock className="w-5 h-5 text-primary/70" />
+                  </motion.div>
+                  
+                  <h3 className="font-display font-semibold text-foreground mb-2">
+                    AI Companions
+                  </h3>
+                  
+                  <p className="text-sm text-muted-foreground mb-4 max-w-xs whitespace-pre-line">
+                    {"Free includes the full 7-Day Reset.\n\nAI Companions unlock with Full Access."}
+                  </p>
+                  
+                  <Button className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground">
+                    <Sparkles className="w-4 h-4" />
+                    Unlock Full Access
+                  </Button>
+                  
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    {new Date() < new Date("2025-03-01") 
+                      ? "$29 one-time. $49 after March 1." 
+                      : "$49 one-time purchase."}
+                  </p>
+                </div>
+              )}
+
+              {/* Full functionality for paid users */}
+              {isPaid && (
+                <>
+                  {/* Messages Area - Always show if there are messages */}
+                  {messages.length > 0 && (
+                    <div className="space-y-3 max-h-80 overflow-y-auto mb-4 pr-2">
+                      {messages.map((msg, idx) => {
+                        // Get the guide that sent this message (for assistant messages)
+                        const messageGuide = msg.role === "assistant" 
+                          ? getGuideById(msg.controllable) 
+                          : null;
+                        const action = msg.role === 'assistant' ? getActionFromMessage(msg.content) : null;
+                        const contentWithoutAction = msg.role === 'assistant' && action
+                          ? msg.content.split('→ ACTION:')[0].trim()
+                          : msg.content;
                         
-                        {action && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className={`mt-2 mr-8 p-3 rounded-xl border ${
-                              msg.actionCompleted 
-                                ? 'bg-accent/20 border-accent/50' 
-                                : 'bg-accent/10 border-accent/30'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <p className="text-xs font-semibold text-accent flex items-center gap-1">
-                                <Zap className="w-3 h-3" /> YOUR ACTION
-                              </p>
-                              {!msg.actionCompleted && (
-                                <span className="text-xs text-accent/70">+{ACTION_XP} XP</span>
+                        return (
+                          <div key={idx}>
+                            <div
+                              className={`p-3 rounded-xl text-sm ${
+                                msg.role === "user"
+                                  ? "bg-primary text-primary-foreground ml-8"
+                                  : "bg-muted text-foreground mr-8"
+                              }`}
+                            >
+                              {msg.role === "assistant" && messageGuide && (
+                                <span className="mr-2">{messageGuide.emoji}</span>
                               )}
+                              {contentWithoutAction}
                             </div>
-                            <p className="text-sm text-foreground mb-2">{action}</p>
                             
-                            {msg.actionCompleted ? (
-                              <div className="flex items-center gap-2 text-accent">
-                                <Check className="w-4 h-4" />
-                                <span className="text-xs font-medium">Completed! +{ACTION_XP} XP</span>
-                              </div>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => completeAction(action, idx, msg.controllable || null)}
-                                className="h-7 text-xs border-accent/30 text-accent hover:bg-accent/10"
+                            {action && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={`mt-2 mr-8 p-3 rounded-xl border ${
+                                  msg.actionCompleted 
+                                    ? 'bg-accent/20 border-accent/50' 
+                                    : 'bg-accent/10 border-accent/30'
+                                }`}
                               >
-                                <Check className="w-3 h-3 mr-1" />
-                                Mark Complete
-                              </Button>
+                                <div className="flex items-center justify-between mb-1">
+                                  <p className="text-xs font-semibold text-accent flex items-center gap-1">
+                                    <Zap className="w-3 h-3" /> YOUR ACTION
+                                  </p>
+                                  {!msg.actionCompleted && (
+                                    <span className="text-xs text-accent/70">+{ACTION_XP} XP</span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-foreground mb-2">{action}</p>
+                                
+                                {msg.actionCompleted ? (
+                                  <div className="flex items-center gap-2 text-accent">
+                                    <Check className="w-4 h-4" />
+                                    <span className="text-xs font-medium">Completed! +{ACTION_XP} XP</span>
+                                  </div>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => completeAction(action, idx, msg.controllable || null)}
+                                    className="h-7 text-xs border-accent/30 text-accent hover:bg-accent/10"
+                                  >
+                                    <Check className="w-3 h-3 mr-1" />
+                                    Mark Complete
+                                  </Button>
+                                )}
+                              </motion.div>
                             )}
-                          </motion.div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {isLoading && (
-                    <div className="bg-muted text-foreground p-3 rounded-xl mr-8 flex items-center gap-2">
-                      <span>{getLoadingGuide().emoji}</span>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span className="text-sm">Thinking...</span>
+                          </div>
+                        );
+                      })}
+                      {isLoading && (
+                        <div className="bg-muted text-foreground p-3 rounded-xl mr-8 flex items-center gap-2">
+                          <span>{getLoadingGuide().emoji}</span>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span className="text-sm">Thinking...</span>
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* Input row */}
-              <div className="flex gap-2">
-                <Input
-                  placeholder={selectedGuide ? `Ask ${selectedGuide.name}...` : "Ask any operator..."}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
-                  className="flex-1"
-                  disabled={isLoading}
-                />
-                <Button
-                  size="icon"
-                  onClick={() => sendMessage(input)}
-                  disabled={!input.trim() || isLoading}
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-                {messages.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleNewConversation}
-                    className="shrink-0"
-                    title="New conversation"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </Button>
-                )}
-
-              </div>
-
-              {/* Pattern data hint */}
-              {patternData && patternData.recentThemes.length > 0 && messages.length === 0 && (
-                <div className="p-3 rounded-lg bg-accent/5 border border-accent/10 mt-3">
-                  <p className="text-xs font-medium text-accent mb-1 flex items-center gap-1">
-                    <Zap className="w-3 h-3" /> Pattern detected
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Recent themes: {patternData.recentThemes.join(', ')}
-                  </p>
-                </div>
-              )}
-
-              {/* Quick prompts when no messages */}
-              {messages.length === 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                  {(selectedGuide ? selectedGuide.prompts : GUIDES.flatMap(g => g.prompts.slice(0, 1))).map((prompt) => (
-                    <button
-                      key={prompt}
-                      onClick={() => sendMessage(prompt)}
-                      className="text-xs px-2.5 py-1 rounded-full bg-muted hover:bg-muted/80 text-foreground transition-colors"
+                  {/* Input row */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder={selectedGuide ? `Ask ${selectedGuide.name}...` : "Ask any operator..."}
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
+                      className="flex-1"
+                      disabled={isLoading}
+                    />
+                    <Button
+                      size="icon"
+                      onClick={() => sendMessage(input)}
+                      disabled={!input.trim() || isLoading}
+                      className="bg-accent hover:bg-accent/90 text-accent-foreground"
                     >
-                      {prompt}
-                    </button>
-                  ))}
-                </div>
-              )}
+                      <Send className="w-4 h-4" />
+                    </Button>
+                    {messages.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleNewConversation}
+                        className="shrink-0"
+                        title="New conversation"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </Button>
+                    )}
 
-              {!selectedGuide && !messages.length && (
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  Select an operator or just type — we'll route to the right one
-                </p>
+                  </div>
+
+                  {/* Pattern data hint */}
+                  {patternData && patternData.recentThemes.length > 0 && messages.length === 0 && (
+                    <div className="p-3 rounded-lg bg-accent/5 border border-accent/10 mt-3">
+                      <p className="text-xs font-medium text-accent mb-1 flex items-center gap-1">
+                        <Zap className="w-3 h-3" /> Pattern detected
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Recent themes: {patternData.recentThemes.join(', ')}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Quick prompts when no messages */}
+                  {messages.length === 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-3">
+                      {(selectedGuide ? selectedGuide.prompts : GUIDES.flatMap(g => g.prompts.slice(0, 1))).map((prompt) => (
+                        <button
+                          key={prompt}
+                          onClick={() => sendMessage(prompt)}
+                          className="text-xs px-2.5 py-1 rounded-full bg-muted hover:bg-muted/80 text-foreground transition-colors"
+                        >
+                          {prompt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {!selectedGuide && !messages.length && (
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      Select an operator or just type — we'll route to the right one
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </motion.div>
