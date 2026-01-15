@@ -12,6 +12,7 @@ import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { useDailyReadings } from "@/hooks/useDailyReadings";
 import { useBadges } from "@/hooks/useBadges";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { useEntitlements } from "@/hooks/useEntitlements";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayContent, RESET_DAYS } from "@/lib/resetContent";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -35,6 +36,7 @@ import { ProgressHistory } from "@/components/experience/ProgressHistory";
 import { MomentumDecay } from "@/components/experience/MomentumDecay";
 import { BadgesEarned } from "@/components/experience/BadgesEarned";
 import { ResetHistory } from "@/components/experience/ResetHistory";
+import { LockedOverlay } from "@/components/experience/LockedOverlay";
 
 
 type TabType = "dashboard" | "experience" | "guide";
@@ -96,6 +98,9 @@ export default function Dashboard() {
     completeOnboarding,
     ensureOnboardingRecord,
   } = useOnboarding(user?.id || null);
+
+  // Entitlements (free vs paid)
+  const { isPaid, isLoading: entitlementsLoading } = useEntitlements(user?.id || null);
 
   // Callback to refresh XP when actions are completed
   const handleXpEarned = useCallback(() => {
@@ -230,7 +235,7 @@ export default function Dashboard() {
     navigate("/");
   };
 
-  if (isAuthLoading || resetLoading || dashboardLoading || sessionsLoading || readingsLoading || buildLoading || badgesLoading || onboardingLoading) {
+  if (isAuthLoading || resetLoading || dashboardLoading || sessionsLoading || readingsLoading || buildLoading || badgesLoading || onboardingLoading || entitlementsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-muted-foreground">
@@ -498,56 +503,88 @@ export default function Dashboard() {
                 hasActiveReset={!!activeSession && !isCompleted}
               />
 
-              {/* Badges Earned - Hidden in simplified mode */}
+              {/* Badges Earned - Locked for free users, hidden in simplified mode */}
               {!isSimplifiedMode && (
-                <BadgesEarned earnedBadges={earnedBadges} isLoading={badgesLoading} />
+                <div className="relative">
+                  <BadgesEarned earnedBadges={earnedBadges} isLoading={badgesLoading} />
+                  {!isPaid && (
+                    <LockedOverlay 
+                      featureName="Badge Collection" 
+                      description="Track all badges earned across your journey"
+                    />
+                  )}
+                </div>
               )}
 
-              {/* Offline Triggers */}
+              {/* Offline Triggers - FREE for all users */}
               <OfflineTriggers
                 activeQuest={activeQuest}
                 currentResetDay={currentDay}
                 todayReading={readings.find(r => r.day_number === currentDay) || null}
               />
 
-              {/* Progress History - Hidden in simplified mode */}
+              {/* Progress History - Locked for free users, hidden in simplified mode */}
               {!isSimplifiedMode && (
-                <ProgressHistory
-                  totalXp={totalXp}
-                  xpLogs={xpLogs}
-                  resetSessions={allSessions}
-                  completedResetsCount={allSessions.filter((s) => s.status === "completed").length}
-                />
+                <div className="relative">
+                  <ProgressHistory
+                    totalXp={totalXp}
+                    xpLogs={xpLogs}
+                    resetSessions={allSessions}
+                    completedResetsCount={allSessions.filter((s) => s.status === "completed").length}
+                  />
+                  {!isPaid && (
+                    <LockedOverlay 
+                      featureName="Progress History" 
+                      description="View XP trends, activity patterns, and long-term progress"
+                    />
+                  )}
+                </div>
               )}
 
-              {/* Reset History with Certificates */}
+              {/* Reset History with Certificates - Locked for free users */}
               {user?.id && (
-                <ResetHistory
-                  resetSessions={allSessions}
-                  userId={user.id}
-                />
+                <div className="relative">
+                  <ResetHistory
+                    resetSessions={allSessions}
+                    userId={user.id}
+                  />
+                  {!isPaid && allSessions.filter(s => s.status === "completed").length > 0 && (
+                    <LockedOverlay 
+                      featureName="Reset History" 
+                      description="Access certificates and review past 7-Day journeys"
+                    />
+                  )}
+                </div>
               )}
 
-
+              {/* Momentum Decay - Locked for free users, hidden in simplified mode */}
               {!isSimplifiedMode && (
-                <MomentumDecay
-                  lastActivity={(() => {
-                    // Get the most recent activity from multiple sources
-                    const dates: Date[] = [];
-                    if (xpLogs[0]?.created_at) dates.push(new Date(xpLogs[0].created_at));
-                    const latestSession = allSessions[0];
-                    if (latestSession?.completed_at) dates.push(new Date(latestSession.completed_at));
-                    if (latestSession?.created_at) dates.push(new Date(latestSession.created_at));
-                    const latestCompletedDay = completedDays[0];
-                    if (latestCompletedDay?.completed_at) dates.push(new Date(latestCompletedDay.completed_at));
-                    if (dates.length === 0) return null;
-                    return dates.sort((a, b) => b.getTime() - a.getTime())[0].toISOString();
-                  })()}
-                  currentStreak={completedDays.length}
-                  hasActiveQuest={!!activeQuest}
-                  hasActiveReset={!!activeSession && !isCompleted}
-                  onStartReset={() => navigate("/reset")}
-                />
+                <div className="relative">
+                  <MomentumDecay
+                    lastActivity={(() => {
+                      // Get the most recent activity from multiple sources
+                      const dates: Date[] = [];
+                      if (xpLogs[0]?.created_at) dates.push(new Date(xpLogs[0].created_at));
+                      const latestSession = allSessions[0];
+                      if (latestSession?.completed_at) dates.push(new Date(latestSession.completed_at));
+                      if (latestSession?.created_at) dates.push(new Date(latestSession.created_at));
+                      const latestCompletedDay = completedDays[0];
+                      if (latestCompletedDay?.completed_at) dates.push(new Date(latestCompletedDay.completed_at));
+                      if (dates.length === 0) return null;
+                      return dates.sort((a, b) => b.getTime() - a.getTime())[0].toISOString();
+                    })()}
+                    currentStreak={completedDays.length}
+                    hasActiveQuest={!!activeQuest}
+                    hasActiveReset={!!activeSession && !isCompleted}
+                    onStartReset={() => navigate("/reset")}
+                  />
+                  {!isPaid && (
+                    <LockedOverlay 
+                      featureName="Momentum Decay" 
+                      description="Track your activity streaks and momentum status"
+                    />
+                  )}
+                </div>
               )}
 
               {/* Journey Summary Footer */}
