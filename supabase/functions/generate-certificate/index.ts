@@ -368,7 +368,7 @@ Deno.serve(async (req) => {
           fill="#64748b" letter-spacing="1">MOMENTUM</text>
     
     <!-- Combined XP + Level Display in one outlined box -->
-    <rect x="15" y="270" width="120" height="140" rx="12" ry="12" 
+    <rect x="15" y="270" width="120" height="155" rx="12" ry="12" 
           fill="#ffffff" fill-opacity="0.05" stroke="#f59e0b" stroke-opacity="0.3"/>
     
     <!-- Lightning emoji -->
@@ -386,10 +386,10 @@ Deno.serve(async (req) => {
     <line x1="35" y1="378" x2="115" y2="378" stroke="#475569" stroke-opacity="0.3" stroke-width="1"/>
     
     <!-- Level -->
-    <text x="75" y="398" text-anchor="middle" 
+    <text x="75" y="400" text-anchor="middle" 
           font-family="system-ui, -apple-system, sans-serif" font-size="10" 
           fill="#64748b">LEVEL</text>
-    <text x="75" y="415" text-anchor="middle" 
+    <text x="75" y="420" text-anchor="middle" 
           font-family="Georgia, 'Times New Roman', serif" font-size="18" font-weight="600" 
           fill="#ffffff">${level}</text>
   </g>
