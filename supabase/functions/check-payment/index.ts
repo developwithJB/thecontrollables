@@ -29,11 +29,6 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    // Verify Stripe key exists
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    logStep("Stripe key verified");
-
     // Authenticate user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
@@ -46,6 +41,46 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     
     logStep("User authenticated", { userId: user.id, email: user.email });
+
+    // STEP 1: Check user_entitlements table first (for manual grants)
+    const { data: entitlement, error: entitlementError } = await supabaseClient
+      .from("user_entitlements")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("entitlement_type", "full_access")
+      .maybeSingle();
+
+    if (entitlementError) {
+      logStep("Error checking entitlements", { error: entitlementError.message });
+    }
+
+    if (entitlement) {
+      // Check if entitlement has expired
+      if (entitlement.expires_at && new Date(entitlement.expires_at) < new Date()) {
+        logStep("Entitlement found but expired", { expiresAt: entitlement.expires_at });
+      } else {
+        logStep("Entitlement found in database", { 
+          source: entitlement.source,
+          grantedAt: entitlement.granted_at 
+        });
+        
+        return new Response(JSON.stringify({ 
+          isPaid: true,
+          purchasedAt: entitlement.granted_at,
+          source: entitlement.source,
+          expiresAt: entitlement.expires_at,
+          message: "Full Access granted"
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+    }
+
+    // STEP 2: Check Stripe for payment
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    logStep("Stripe key verified");
 
     // Initialize Stripe
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
@@ -82,14 +117,32 @@ serve(async (req) => {
     );
 
     if (successfulPayment) {
-      logStep("Full Access payment found", { 
+      logStep("Full Access payment found in Stripe", { 
         sessionId: successfulPayment.id,
         paidAt: successfulPayment.created 
       });
+
+      // Record this payment in user_entitlements for faster future lookups
+      const { error: insertError } = await supabaseClient
+        .from("user_entitlements")
+        .upsert({
+          user_id: user.id,
+          entitlement_type: "full_access",
+          source: "stripe",
+          granted_at: new Date(successfulPayment.created * 1000).toISOString(),
+          stripe_session_id: successfulPayment.id
+        }, { onConflict: "user_id,entitlement_type" });
+
+      if (insertError) {
+        logStep("Error recording entitlement", { error: insertError.message });
+      } else {
+        logStep("Recorded entitlement in database");
+      }
       
       return new Response(JSON.stringify({ 
         isPaid: true,
         purchasedAt: new Date(successfulPayment.created * 1000).toISOString(),
+        source: "stripe",
         message: "Full Access purchased"
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -111,10 +164,25 @@ serve(async (req) => {
       logStep("Successful payment intent found", { 
         intentId: successfulIntent.id 
       });
+
+      // Record this payment in user_entitlements
+      const { error: insertError } = await supabaseClient
+        .from("user_entitlements")
+        .upsert({
+          user_id: user.id,
+          entitlement_type: "full_access",
+          source: "stripe",
+          granted_at: new Date(successfulIntent.created * 1000).toISOString()
+        }, { onConflict: "user_id,entitlement_type" });
+
+      if (insertError) {
+        logStep("Error recording entitlement", { error: insertError.message });
+      }
       
       return new Response(JSON.stringify({ 
         isPaid: true,
         purchasedAt: new Date(successfulIntent.created * 1000).toISOString(),
+        source: "stripe",
         message: "Full Access purchased"
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
