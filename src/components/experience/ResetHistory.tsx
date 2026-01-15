@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import { CertificatePreview } from "./CertificatePreview";
 
+const withCacheBust = (url: string) => `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
+
 interface ResetSession {
   id: string;
   start_date: string;
@@ -89,9 +91,9 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
         // Refetch certificates to get the new one
         await refetchCertificates();
         
-        // Open preview with the new certificate URL
+        // Open preview with the new certificate URL (cache-busted so we don't see stale SVGs)
         setSelectedCertificate({
-          url: data.certificate_url,
+          url: withCacheBust(data.certificate_url),
           startDate: session.start_date,
         });
         setShowPreview(true);
@@ -101,9 +103,9 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
           description: "Your certificate is ready to view and download.",
         });
       } else {
-        // Open preview with existing certificate
+        // Open preview with existing certificate (cache-busted)
         setSelectedCertificate({
-          url: cert.certificate_url,
+          url: withCacheBust(cert.certificate_url),
           startDate: session.start_date,
         });
         setShowPreview(true);
