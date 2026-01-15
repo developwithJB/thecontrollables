@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Shield, Plus, Check, X } from "lucide-react";
+import { Shield, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -59,39 +59,11 @@ export function IntegrityMeterModule({
       transition={{ delay: 0.15 }}
       className="p-5 rounded-2xl bg-card border shadow-soft"
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-primary/10">
-            <Shield className="w-4 h-4 text-primary" />
-          </div>
-          <h3 className="font-display font-semibold text-foreground">Integrity</h3>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-1.5 rounded-lg bg-primary/10">
+          <Shield className="w-4 h-4 text-primary" />
         </div>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <button className="p-1.5 rounded-lg hover:bg-muted transition-colors">
-              <Plus className="w-4 h-4 text-muted-foreground" />
-            </button>
-          </DialogTrigger>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle className="font-display">Make a Promise</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <p className="text-sm text-muted-foreground">
-                Confidence comes from kept promises. Only promise what you'll do.
-              </p>
-              <Input
-                placeholder="I will..."
-                value={promiseText}
-                onChange={(e) => setPromiseText(e.target.value)}
-                className="text-base"
-              />
-              <Button onClick={handleSubmit} className="w-full" disabled={!promiseText.trim()}>
-                Make Promise
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <h3 className="font-display font-semibold text-foreground">Integrity</h3>
       </div>
 
       {/* Score Display */}
@@ -152,6 +124,38 @@ export function IntegrityMeterModule({
           ))}
         </div>
       )}
+
+      {/* Make a Promise button */}
+      <div className="mt-3 pt-3 border-t">
+        <Button variant="outline" size="sm" className="w-full" onClick={() => setIsOpen(true)}>
+          Make a Promise
+        </Button>
+      </div>
+
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <span className="hidden" />
+        </DialogTrigger>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display">Make a Promise</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <p className="text-sm text-muted-foreground">
+              Confidence comes from kept promises. Only promise what you'll do.
+            </p>
+            <Input
+              placeholder="I will..."
+              value={promiseText}
+              onChange={(e) => setPromiseText(e.target.value)}
+              className="text-base"
+            />
+            <Button onClick={handleSubmit} className="w-full" disabled={!promiseText.trim()}>
+              Make Promise
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }

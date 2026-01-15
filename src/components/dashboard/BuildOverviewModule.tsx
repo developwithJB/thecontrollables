@@ -156,11 +156,11 @@ export function BuildOverviewModule() {
             </div>
 
             {/* Action buttons - moved to footer */}
-            <div className="mt-3 pt-3 border-t flex items-center gap-2">
+            <div className="mt-3 pt-3 border-t grid grid-cols-2 gap-2">
               <Button
                 size="sm"
-                variant="ghost"
-                className="flex-1 h-8 text-xs"
+                variant="outline"
+                className="h-8 text-xs"
                 onClick={() => setIsShareModalOpen(true)}
               >
                 <Share2 className="w-3 h-3 mr-1.5" />
@@ -168,8 +168,8 @@ export function BuildOverviewModule() {
               </Button>
               <Button
                 size="sm"
-                variant="ghost"
-                className="flex-1 h-8 text-xs"
+                variant="outline"
+                className="h-8 text-xs"
                 onClick={() => setIsModalOpen(true)}
                 disabled={questionsLoading}
               >
