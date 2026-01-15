@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,13 +10,16 @@ interface CertificatePreviewProps {
   onClose?: () => void;
 }
 
+const withCacheBust = (url: string) => `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
+
 export function CertificatePreview({ certificateUrl, startDate, onClose }: CertificatePreviewProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const displayUrl = useMemo(() => withCacheBust(certificateUrl), [certificateUrl]);
 
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      const response = await fetch(certificateUrl);
+      const response = await fetch(displayUrl, { cache: "no-store" });
       if (!response.ok) {
         throw new Error("Failed to fetch certificate file");
       }
@@ -51,7 +54,7 @@ export function CertificatePreview({ certificateUrl, startDate, onClose }: Certi
         className="relative rounded-2xl overflow-hidden border border-accent/30 shadow-2xl bg-slate-900"
       >
         <img
-          src={certificateUrl}
+          src={displayUrl}
           alt="Your Controllables Certificate"
           className="w-full h-auto"
         />
