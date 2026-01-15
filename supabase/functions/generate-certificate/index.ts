@@ -9,6 +9,18 @@ interface CertificateRequest {
   reset_session_id: string;
 }
 
+// Badge definitions - matches src/lib/badges.ts
+const ALL_BADGES = [
+  { key: "chose_quest", emoji: "🧭", name: "Chose a Quest" },
+  { key: "returned", emoji: "🔄", name: "Returned" },
+  { key: "kept_promise", emoji: "🧱", name: "Kept a Promise" },
+  { key: "respecd", emoji: "🛠️", name: "Respec'd" },
+  { key: "paused_reacting", emoji: "🧘", name: "Paused Before Reacting" },
+  { key: "completed_reset", emoji: "🌱", name: "Completed a Reset" },
+  { key: "protected_time", emoji: "⏳", name: "Protected My Time" },
+  { key: "asked_guidance", emoji: "🧠", name: "Asked for Guidance" },
+];
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -126,7 +138,7 @@ Deno.serve(async (req) => {
 
     console.log(`Generating certificate for ${displayName}, ${startDate} to ${endDate}`);
 
-    // Check if certificate already exists
+    // Check if certificate already exists with URL
     const { data: existingCert } = await supabaseAdmin
       .from("certificates")
       .select("*")
@@ -141,7 +153,27 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Upsert certificate record first
+    // Fetch badges earned by this user (snapshot at completion time)
+    const { data: userBadges } = await supabaseAdmin
+      .from("user_badges")
+      .select("badge_key, earned_at")
+      .eq("user_id", user.id)
+      .order("earned_at", { ascending: true });
+
+    const earnedBadgeKeys = userBadges?.map(b => b.badge_key) || [];
+    console.log(`User has ${earnedBadgeKeys.length} badges earned`);
+
+    // Fetch total XP (snapshot at completion time)
+    const { data: xpLogs } = await supabaseAdmin
+      .from("xp_logs")
+      .select("amount")
+      .eq("user_id", user.id);
+
+    const totalXp = xpLogs?.reduce((sum, log) => sum + log.amount, 0) || 0;
+    const level = Math.floor(totalXp / 500) + 1;
+    console.log(`User has ${totalXp} XP (Level ${level})`);
+
+    // Upsert certificate record with snapshot data
     const { data: certRecord, error: upsertError } = await supabaseAdmin
       .from("certificates")
       .upsert(
@@ -151,6 +183,9 @@ Deno.serve(async (req) => {
           display_name: displayName,
           start_date: startDate,
           end_date: endDate,
+          badges_earned: earnedBadgeKeys,
+          total_xp: totalXp,
+          level: level,
         },
         { onConflict: "reset_session_id" }
       )
@@ -181,11 +216,11 @@ Deno.serve(async (req) => {
     const startFormatted = formatDate(startDate);
     const endFormatted = formatDate(endDate);
 
-    // Generate premium dark certificate SVG (QuestCard style)
+    // Generate premium dark certificate SVG with badges and XP
     const svgWidth = 1200;
-    const svgHeight = 800; // Taller for 5 controllables
+    const svgHeight = 900;
 
-    // The 5 Controllables with emojis
+    // The 5 Controllables with correct emojis
     const controllables = [
       { name: "Awareness", emoji: "🦉" },
       { name: "Perspective", emoji: "🐢" },
@@ -193,6 +228,29 @@ Deno.serve(async (req) => {
       { name: "Wellness", emoji: "🛰️" },
       { name: "Environment", emoji: "🚀" },
     ];
+
+    // Build badges section (left side) - 2 columns x 4 rows
+    const badgesSvg = ALL_BADGES.map((badge, i) => {
+      const isEarned = earnedBadgeKeys.includes(badge.key);
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const x = 80 + col * 90;
+      const y = 340 + row * 80;
+      
+      if (isEarned) {
+        return `
+          <g transform="translate(${x}, ${y})">
+            <circle cx="0" cy="0" r="28" fill="#f59e0b" fill-opacity="0.2" stroke="#f59e0b" stroke-opacity="0.5"/>
+            <text x="0" y="6" text-anchor="middle" font-size="22">${badge.emoji}</text>
+          </g>`;
+      } else {
+        return `
+          <g transform="translate(${x}, ${y})">
+            <circle cx="0" cy="0" r="28" fill="none" stroke="#475569" stroke-opacity="0.3" stroke-dasharray="4 2"/>
+            <text x="0" y="6" text-anchor="middle" font-size="18" opacity="0.2">${badge.emoji}</text>
+          </g>`;
+      }
+    }).join("");
 
     const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">
@@ -285,53 +343,97 @@ Deno.serve(async (req) => {
         font-family="system-ui, -apple-system, sans-serif" font-size="14" 
         fill="#cbd5e1" font-style="italic">"I committed to controlling what I could and surrendering what I could not."</text>
   
+  <!-- ============ LEFT SIDE: BADGES EARNED ============ -->
+  <g transform="translate(0, 0)">
+    <!-- Badges section header -->
+    <text x="125" y="310" text-anchor="middle" 
+          font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" 
+          fill="#64748b" letter-spacing="1">BADGES EARNED</text>
+    <text x="125" y="326" text-anchor="middle" 
+          font-family="system-ui, -apple-system, sans-serif" font-size="10" 
+          fill="#475569">${earnedBadgeKeys.length} of 8</text>
+    
+    <!-- Badge circles -->
+    ${badgesSvg}
+  </g>
+  
+  <!-- ============ RIGHT SIDE: XP & LEVEL ============ -->
+  <g transform="translate(${svgWidth - 200}, 0)">
+    <!-- XP section header -->
+    <text x="75" y="310" text-anchor="middle" 
+          font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" 
+          fill="#64748b" letter-spacing="1">MOMENTUM</text>
+    
+    <!-- XP Display -->
+    <rect x="15" y="330" width="120" height="90" rx="12" ry="12" 
+          fill="#ffffff" fill-opacity="0.05" stroke="#f59e0b" stroke-opacity="0.3"/>
+    <text x="75" y="370" text-anchor="middle" font-size="24">⚡</text>
+    <text x="75" y="398" text-anchor="middle" 
+          font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" 
+          fill="#f59e0b">${totalXp.toLocaleString()}</text>
+    <text x="75" y="414" text-anchor="middle" 
+          font-family="system-ui, -apple-system, sans-serif" font-size="10" 
+          fill="#94a3b8">XP</text>
+    
+    <!-- Level Display -->
+    <rect x="15" y="435" width="120" height="70" rx="12" ry="12" 
+          fill="#ffffff" fill-opacity="0.03" stroke="#475569" stroke-opacity="0.3"/>
+    <text x="75" y="475" text-anchor="middle" 
+          font-family="system-ui, -apple-system, sans-serif" font-size="12" 
+          fill="#64748b">LEVEL</text>
+    <text x="75" y="496" text-anchor="middle" 
+          font-family="Georgia, 'Times New Roman', serif" font-size="18" font-weight="600" 
+          fill="#ffffff">${level}</text>
+  </g>
+  
+  <!-- ============ CENTER: 5 CONTROLLABLES ============ -->
   <!-- Decorative line before controllables -->
-  <line x1="${svgWidth/2 - 180}" y1="400" x2="${svgWidth/2 + 180}" y2="400" 
+  <line x1="${svgWidth/2 - 180}" y1="520" x2="${svgWidth/2 + 180}" y2="520" 
         stroke="#f59e0b" stroke-opacity="0.2" stroke-width="1"/>
   
   <!-- 5 Controllables Section -->
-  <text x="${svgWidth/2}" y="440" text-anchor="middle" 
+  <text x="${svgWidth/2}" y="560" text-anchor="middle" 
         font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" 
-        fill="#64748b" letter-spacing="2">MASTERED THE 5 CONTROLLABLES</text>
+        fill="#64748b" letter-spacing="2">CONTROLLED THE 5 CONTROLLABLES</text>
   
-  <!-- Controllable badges - evenly spaced across the width -->
+  <!-- Controllable badges - evenly spaced across the center -->
   ${controllables.map((c, i) => {
-    const spacing = 200;
+    const spacing = 160;
     const startX = (svgWidth - (controllables.length - 1) * spacing) / 2;
     const x = startX + i * spacing;
     return `
-  <g transform="translate(${x}, 520)">
-    <rect x="-70" y="-40" width="140" height="80" rx="12" ry="12" 
+  <g transform="translate(${x}, 630)">
+    <rect x="-60" y="-35" width="120" height="70" rx="12" ry="12" 
           fill="#ffffff" fill-opacity="0.05" stroke="#f59e0b" stroke-opacity="0.3"/>
-    <text x="0" y="-5" text-anchor="middle" font-size="28">${c.emoji}</text>
-    <text x="0" y="25" text-anchor="middle" 
-          font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" 
+    <text x="0" y="-3" text-anchor="middle" font-size="24">${c.emoji}</text>
+    <text x="0" y="22" text-anchor="middle" 
+          font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="500" 
           fill="#f59e0b">${c.name}</text>
   </g>`;
   }).join('')}
   
   <!-- Decorative line after controllables -->
-  <line x1="${svgWidth/2 - 180}" y1="600" x2="${svgWidth/2 + 180}" y2="600" 
+  <line x1="${svgWidth/2 - 180}" y1="700" x2="${svgWidth/2 + 180}" y2="700" 
         stroke="#f59e0b" stroke-opacity="0.2" stroke-width="1"/>
   
   <!-- Date range box -->
-  <rect x="${svgWidth/2 - 180}" y="630" width="360" height="50" rx="12" ry="12" 
+  <rect x="${svgWidth/2 - 180}" y="720" width="360" height="50" rx="12" ry="12" 
         fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.1"/>
-  <text x="${svgWidth/2}" y="662" text-anchor="middle" 
+  <text x="${svgWidth/2}" y="752" text-anchor="middle" 
         font-family="system-ui, -apple-system, sans-serif" font-size="15" 
         fill="#94a3b8">${escapeXml(startFormatted)} — ${escapeXml(endFormatted)}</text>
   
-  <!-- Verification checkmark -->
-  <g transform="translate(${svgWidth/2}, 720)">
+  <!-- ============ CENTERED VERIFICATION ============ -->
+  <g transform="translate(${svgWidth/2}, 820)">
     <circle cx="0" cy="0" r="16" fill="#22c55e" fill-opacity="0.2"/>
     <text x="0" y="5" text-anchor="middle" font-size="16">✓</text>
-    <text x="26" y="5" text-anchor="start" 
-          font-family="system-ui, -apple-system, sans-serif" font-size="11" 
-          fill="#64748b">Verified Completion</text>
   </g>
+  <text x="${svgWidth/2}" y="850" text-anchor="middle" 
+        font-family="system-ui, -apple-system, sans-serif" font-size="11" 
+        fill="#64748b">Verified Completion</text>
   
   <!-- Footer URL -->
-  <text x="${svgWidth/2}" y="${svgHeight - 30}" text-anchor="middle" 
+  <text x="${svgWidth/2}" y="${svgHeight - 25}" text-anchor="middle" 
         font-family="system-ui, -apple-system, sans-serif" font-size="12" 
         fill="#64748b">thecontrollables.lovable.app</text>
 </svg>`;
