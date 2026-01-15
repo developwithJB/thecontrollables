@@ -28,6 +28,12 @@ import { AIGuidePanel } from "@/components/dashboard/AIGuidePanel";
 import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
 import { ReadingCard } from "@/components/ReadingCard";
 import { GameRulesSection } from "@/components/GameRulesSection";
+import { 
+  MainQuestSkeleton, 
+  ResetProgressSkeleton, 
+  SmallModuleSkeleton, 
+  AIGuideSkeleton 
+} from "@/components/dashboard/DashboardSkeletons";
 
 // Experience tab components
 import { TimeCycleCard } from "@/components/experience/TimeCycleCard";
@@ -332,62 +338,86 @@ export default function Dashboard() {
               </div>
 
               {/* Main Quest Module */}
-              <MainQuestModule
-                activeQuest={activeQuest}
-                onCreateQuest={handleCreateQuest}
-                onUpdateQuest={handleUpdateQuest}
-                onCompleteQuest={completeQuest}
-                isCreating={isCreatingQuest}
-                isUpdating={isUpdatingQuest}
-                isCompleting={isCompletingQuest}
-              />
+              {dashboardLoading ? (
+                <MainQuestSkeleton />
+              ) : (
+                <MainQuestModule
+                  activeQuest={activeQuest}
+                  onCreateQuest={handleCreateQuest}
+                  onUpdateQuest={handleUpdateQuest}
+                  onCompleteQuest={completeQuest}
+                  isCreating={isCreatingQuest}
+                  isUpdating={isUpdatingQuest}
+                  isCompleting={isCompletingQuest}
+                />
+              )}
 
               {/* Reset Progress Module */}
-              <ResetProgressModule
-                hasActiveSession={!!activeSession}
-                isCompleted={isCompleted}
-                currentDay={currentDay}
-                completedDays={completedDays}
-                todayAlreadyCompleted={todayAlreadyCompleted}
-                readings={readings}
-              />
+              {resetLoading ? (
+                <ResetProgressSkeleton />
+              ) : (
+                <ResetProgressModule
+                  hasActiveSession={!!activeSession}
+                  isCompleted={isCompleted}
+                  currentDay={currentDay}
+                  completedDays={completedDays}
+                  todayAlreadyCompleted={todayAlreadyCompleted}
+                  readings={readings}
+                />
+              )}
 
               {/* Build & Momentum - Hidden in simplified mode */}
               {!isSimplifiedMode && (
                 <div className="grid grid-cols-2 gap-3">
-                  <BuildOverviewModule />
-                  <XpMomentumModule totalXp={totalXp} recentLogs={xpLogs} />
+                  {buildLoading ? <SmallModuleSkeleton /> : <BuildOverviewModule />}
+                  {dashboardLoading ? (
+                    <SmallModuleSkeleton />
+                  ) : (
+                    <XpMomentumModule totalXp={totalXp} recentLogs={xpLogs} />
+                  )}
                 </div>
               )}
 
               {/* Time & Integrity - Hidden in simplified mode */}
               {!isSimplifiedMode && (
                 <div className="grid grid-cols-2 gap-3">
-                  <TimeCurrencyModule
-                    todayTimeLog={todayTimeLog}
-                    onLogTime={handleLogTime}
-                    isLogging={isLoggingTime}
-                  />
-                  <IntegrityMeterModule
-                    integrityScore={integrityScore}
-                    pendingPromises={pendingPromises}
-                    onCreatePromise={createPromise}
-                    onResolvePromise={handleResolvePromise}
-                  />
+                  {dashboardLoading ? (
+                    <SmallModuleSkeleton />
+                  ) : (
+                    <TimeCurrencyModule
+                      todayTimeLog={todayTimeLog}
+                      onLogTime={handleLogTime}
+                      isLogging={isLoggingTime}
+                    />
+                  )}
+                  {dashboardLoading ? (
+                    <SmallModuleSkeleton />
+                  ) : (
+                    <IntegrityMeterModule
+                      integrityScore={integrityScore}
+                      pendingPromises={pendingPromises}
+                      onCreatePromise={createPromise}
+                      onResolvePromise={handleResolvePromise}
+                    />
+                  )}
                 </div>
               )}
 
               {/* AI Guide - Locked for free users */}
-              <AIGuidePanel
-                activeQuest={activeQuest}
-                totalXp={totalXp}
-                integrityScore={integrityScore}
-                currentBuild={currentBuild}
-                onXpEarned={handleOperatorInteraction}
-                isPaid={isPaid}
-                onUpgrade={initiateCheckout}
-                isCheckingOut={isCheckingOut}
-              />
+              {entitlementsLoading ? (
+                <AIGuideSkeleton />
+              ) : (
+                <AIGuidePanel
+                  activeQuest={activeQuest}
+                  totalXp={totalXp}
+                  integrityScore={integrityScore}
+                  currentBuild={currentBuild}
+                  onXpEarned={handleOperatorInteraction}
+                  isPaid={isPaid}
+                  onUpgrade={initiateCheckout}
+                  isCheckingOut={isCheckingOut}
+                />
+              )}
             </motion.div>
           )}
 
