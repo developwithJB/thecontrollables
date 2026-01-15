@@ -140,6 +140,7 @@ export const ResetDay = ({ dayNumber, completedDays, logDate, onComplete, isComp
               onChange={(e) => setUserInput(e.target.value)}
               placeholder="Write here..."
               className="min-h-[80px] max-h-[120px] resize-none bg-muted/30 border-muted text-base"
+              data-testid="reset-day-reflection-input"
             />
           )}
         </motion.div>
@@ -174,6 +175,7 @@ export const ResetDay = ({ dayNumber, completedDays, logDate, onComplete, isComp
             disabled={isCompleting || !isValid}
             className="w-full h-14 text-lg font-medium"
             size="lg"
+            data-testid="reset-day-complete-button"
           >
             {isCompleting ? "Saving..." : content.completionButtonText}
           </Button>

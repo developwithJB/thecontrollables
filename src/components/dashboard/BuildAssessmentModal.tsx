@@ -90,7 +90,7 @@ export function BuildAssessmentModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" data-testid="build-assessment-modal">
         <DialogHeader>
           <DialogTitle className="font-display">
             {showResults ? "Your Build" : "Scan Your Build"}
@@ -162,9 +162,9 @@ export function BuildAssessmentModal({
                 Any build is viable. Don't fight your natural kit.
               </p>
 
-              <Button onClick={handleClose} className="w-full">
-                Done
-              </Button>
+                <Button onClick={handleClose} className="w-full" data-testid="build-assessment-done-button">
+                  Done
+                </Button>
             </motion.div>
           ) : (
             <motion.div
@@ -267,6 +267,7 @@ export function BuildAssessmentModal({
                     onClick={handleSubmit}
                     disabled={isSubmitting}
                     className="flex-1"
+                    data-testid="build-assessment-submit-button"
                   >
                     {isSubmitting ? (
                       <>

@@ -465,8 +465,8 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
           >
             <div className="px-5 pb-5 relative">
               {/* Locked state for free users */}
-              {!isPaid && (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  {!isPaid && (
+                <div className="flex flex-col items-center justify-center py-8 text-center" data-testid="ai-operators-locked">
                   <motion.div
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
@@ -488,6 +488,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                     onClick={onUpgrade}
                     disabled={isCheckingOut}
                     className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                    data-testid="ai-operators-upgrade-cta"
                   >
                     {isCheckingOut ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
