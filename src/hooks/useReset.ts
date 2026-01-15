@@ -313,19 +313,41 @@ export const useReset = () => {
     });
   };
 
-  // Check for global admin template
+  // Check for global admin template (try multiple file formats)
   const getTemplateUrl = async (): Promise<string | null> => {
-    const { data } = supabase.storage
-      .from("certificates")
-      .getPublicUrl("Cetificate Template.png");
+    const possibleNames = [
+      "certificate-background.png",
+      "Certificate Template.png",
+      "Cetificate Template.png",
+    ];
     
-    try {
-      const response = await fetch(data.publicUrl, { method: "HEAD" });
-      if (response.ok) {
-        return data.publicUrl;
+    for (const name of possibleNames) {
+      const { data } = supabase.storage
+        .from("certificates")
+        .getPublicUrl(`template/${name}`);
+      
+      try {
+        const response = await fetch(data.publicUrl, { method: "HEAD" });
+        if (response.ok) {
+          return data.publicUrl;
+        }
+      } catch {
+        // Try next
       }
-    } catch {
-      // Template doesn't exist
+      
+      // Also try root level
+      const { data: rootData } = supabase.storage
+        .from("certificates")
+        .getPublicUrl(name);
+      
+      try {
+        const response = await fetch(rootData.publicUrl, { method: "HEAD" });
+        if (response.ok) {
+          return rootData.publicUrl;
+        }
+      } catch {
+        // Try next
+      }
     }
     return null;
   };
