@@ -100,7 +100,12 @@ export default function Dashboard() {
   } = useOnboarding(user?.id || null);
 
   // Entitlements (free vs paid)
-  const { isPaid, isLoading: entitlementsLoading } = useEntitlements(user?.id || null);
+  const { 
+    isPaid, 
+    isLoading: entitlementsLoading, 
+    initiateCheckout, 
+    isCheckingOut 
+  } = useEntitlements(user?.id || null);
 
   // Callback to refresh XP when actions are completed
   const handleXpEarned = useCallback(() => {
@@ -379,6 +384,8 @@ export default function Dashboard() {
                 currentBuild={currentBuild}
                 onXpEarned={handleOperatorInteraction}
                 isPaid={isPaid}
+                onUpgrade={initiateCheckout}
+                isCheckingOut={isCheckingOut}
               />
             </motion.div>
           )}
@@ -509,7 +516,11 @@ export default function Dashboard() {
                 <div className="relative">
                   <BadgesEarned earnedBadges={earnedBadges} isLoading={badgesLoading} />
                   {!isPaid && (
-                    <LockedOverlay variant="experience-history" />
+                    <LockedOverlay 
+                      variant="experience-history" 
+                      onUpgrade={initiateCheckout}
+                      isLoading={isCheckingOut}
+                    />
                   )}
                 </div>
               )}
@@ -531,7 +542,11 @@ export default function Dashboard() {
                     completedResetsCount={allSessions.filter((s) => s.status === "completed").length}
                   />
                   {!isPaid && (
-                    <LockedOverlay variant="experience-history" />
+                    <LockedOverlay 
+                      variant="experience-history" 
+                      onUpgrade={initiateCheckout}
+                      isLoading={isCheckingOut}
+                    />
                   )}
                 </div>
               )}
@@ -544,7 +559,11 @@ export default function Dashboard() {
                     userId={user.id}
                   />
                   {!isPaid && allSessions.filter(s => s.status === "completed").length > 0 && (
-                    <LockedOverlay variant="experience-history" />
+                    <LockedOverlay 
+                      variant="experience-history" 
+                      onUpgrade={initiateCheckout}
+                      isLoading={isCheckingOut}
+                    />
                   )}
                 </div>
               )}
@@ -571,7 +590,11 @@ export default function Dashboard() {
                     onStartReset={() => navigate("/reset")}
                   />
                   {!isPaid && (
-                    <LockedOverlay variant="experience-history" />
+                    <LockedOverlay 
+                      variant="experience-history" 
+                      onUpgrade={initiateCheckout}
+                      isLoading={isCheckingOut}
+                    />
                   )}
                 </div>
               )}

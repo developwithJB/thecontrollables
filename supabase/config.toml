@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.generate-certificate]
 verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.check-payment]
+verify_jwt = false
