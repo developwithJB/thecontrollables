@@ -121,8 +121,8 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
       }
       
       if (result?.url) {
-        // Open checkout in new tab
-        window.open(result.url, "_blank");
+        // Redirect in same tab to avoid popup blockers on mobile
+        window.location.href = result.url;
       } else {
         throw new Error("No checkout URL returned");
       }
@@ -131,7 +131,6 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
       toast.error("Failed to start checkout", {
         description: error instanceof Error ? error.message : "Please try again",
       });
-    } finally {
       setIsCheckingOut(false);
     }
   }, [userId]);
