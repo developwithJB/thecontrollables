@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, Edit2 } from "lucide-react";
+import { Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -55,64 +55,11 @@ export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging }: TimeC
       transition={{ delay: 0.2 }}
       className="p-5 rounded-2xl bg-card border shadow-soft"
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-blue-500/10">
-            <Clock className="w-4 h-4 text-blue-500" />
-          </div>
-          <h3 className="font-display font-semibold text-foreground">Time Currency</h3>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-1.5 rounded-lg bg-blue-500/10">
+          <Clock className="w-4 h-4 text-blue-500" />
         </div>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <button className="p-1.5 rounded-lg hover:bg-muted transition-colors">
-              <Edit2 className="w-4 h-4 text-muted-foreground" />
-            </button>
-          </DialogTrigger>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle className="font-display">Log Your Time</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <p className="text-sm text-muted-foreground">
-                Awareness, not judgment. How did you spend today?
-              </p>
-              
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">
-                  Time invested (minutes)
-                </label>
-                <Input
-                  type="number"
-                  placeholder="e.g., 120"
-                  value={invested}
-                  onChange={(e) => setInvested(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Work, learning, meaningful activity
-                </p>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">
-                  Time wasted (minutes)
-                </label>
-                <Input
-                  type="number"
-                  placeholder="e.g., 45"
-                  value={wasted}
-                  onChange={(e) => setWasted(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Scrolling, distractions, regrets
-                </p>
-              </div>
-
-              <Button onClick={handleSubmit} className="w-full" disabled={isLogging}>
-                {isLogging ? "Logging..." : "Log Time"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <h3 className="font-display font-semibold text-foreground">Time Currency</h3>
       </div>
 
       {!todayTimeLog ? (
@@ -159,6 +106,56 @@ export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging }: TimeC
           </div>
         </>
       )}
+
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <span className="hidden" />
+        </DialogTrigger>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display">Log Your Time</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <p className="text-sm text-muted-foreground">
+              Awareness, not judgment. How did you spend today?
+            </p>
+            
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block">
+                Time invested (minutes)
+              </label>
+              <Input
+                type="number"
+                placeholder="e.g., 120"
+                value={invested}
+                onChange={(e) => setInvested(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Work, learning, meaningful activity
+              </p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block">
+                Time wasted (minutes)
+              </label>
+              <Input
+                type="number"
+                placeholder="e.g., 45"
+                value={wasted}
+                onChange={(e) => setWasted(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Scrolling, distractions, regrets
+              </p>
+            </div>
+
+            <Button onClick={handleSubmit} className="w-full" disabled={isLogging}>
+              {isLogging ? "Logging..." : "Log Time"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
