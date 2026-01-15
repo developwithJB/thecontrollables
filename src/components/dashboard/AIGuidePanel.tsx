@@ -20,6 +20,8 @@ interface AIGuidePanelProps {
   currentBuild?: UserBuildCurrent | null;
   onXpEarned?: () => void;
   isPaid?: boolean;
+  onUpgrade?: () => void;
+  isCheckingOut?: boolean;
 }
 
 interface Message {
@@ -152,7 +154,7 @@ const detectGuideFromMessage = (message: string): GuideType => {
   return maxGuide;
 };
 
-export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild, onXpEarned, isPaid = true }: AIGuidePanelProps) {
+export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild, onXpEarned, isPaid = true, onUpgrade, isCheckingOut = false }: AIGuidePanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedGuide, setSelectedGuide] = useState<Guide | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -482,9 +484,17 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                     {"Free includes the full 7-Day Reset.\n\nAI Companions unlock with Full Access."}
                   </p>
                   
-                  <Button className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground">
-                    <Sparkles className="w-4 h-4" />
-                    Unlock Full Access
+                  <Button 
+                    onClick={onUpgrade}
+                    disabled={isCheckingOut}
+                    className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                  >
+                    {isCheckingOut ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                    {isCheckingOut ? "Opening checkout..." : "Unlock Full Access"}
                   </Button>
                   
                   <p className="mt-3 text-xs text-muted-foreground">

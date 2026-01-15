@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { Lock, Sparkles } from "lucide-react";
+import { Lock, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getPricing } from "@/hooks/useEntitlements";
 
 interface LockedOverlayProps {
   featureName?: string;
@@ -9,14 +10,9 @@ interface LockedOverlayProps {
   buttonText?: string;
   priceLine?: string;
   onUpgrade?: () => void;
+  isLoading?: boolean;
   variant?: "default" | "experience-history" | "ai-companion";
 }
-
-// Check if we're in launch month (before March 1, 2025)
-const isLaunchMonth = () => {
-  const now = new Date();
-  return now < new Date("2025-03-01");
-};
 
 export function LockedOverlay({ 
   featureName,
@@ -25,29 +21,32 @@ export function LockedOverlay({
   buttonText = "Unlock Full Access",
   priceLine,
   onUpgrade,
+  isLoading = false,
   variant = "default"
 }: LockedOverlayProps) {
   
+  const pricing = getPricing();
+  
   // Default copy based on variant
   const getDefaultCopy = () => {
+    const priceText = pricing.isLaunchPeriod 
+      ? `$${pricing.launchAmount} one-time. $${pricing.regularAmount} after March 1.`
+      : `$${pricing.regularAmount} one-time purchase.`;
+      
     switch (variant) {
       case "experience-history":
         return {
           title: "Your progress deserves memory.",
           description: "You're building momentum right now.\n\nFull access unlocks history, patterns, and proof of growth over time.",
           buttonText: "Unlock Full Access",
-          priceLine: isLaunchMonth() 
-            ? "$29 one-time. $49 after March 1." 
-            : "$49 one-time purchase."
+          priceLine: priceText
         };
       case "ai-companion":
         return {
           title: "AI Companions",
           description: "Free includes the full 7-Day Reset.\n\nAI Companions unlock with Full Access.",
           buttonText: "Unlock Full Access",
-          priceLine: isLaunchMonth() 
-            ? "$29 one-time. $49 after March 1." 
-            : "$49 one-time purchase."
+          priceLine: priceText
         };
       default:
         return {
@@ -69,8 +68,7 @@ export function LockedOverlay({
     if (onUpgrade) {
       onUpgrade();
     } else {
-      // Default: open upgrade modal or navigate to pricing
-      console.log("Upgrade clicked");
+      console.log("Upgrade clicked - no handler provided");
     }
   };
 
@@ -104,10 +102,15 @@ export function LockedOverlay({
         {/* Upgrade CTA */}
         <Button
           onClick={handleUpgradeClick}
+          disabled={isLoading}
           className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
         >
-          <Sparkles className="w-4 h-4" />
-          {displayButtonText}
+          {isLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Sparkles className="w-4 h-4" />
+          )}
+          {isLoading ? "Opening checkout..." : displayButtonText}
         </Button>
 
         {/* Price line */}
