@@ -531,7 +531,18 @@ export default function Dashboard() {
 
               {!isSimplifiedMode && (
                 <MomentumDecay
-                  lastActivity={xpLogs[0]?.created_at || null}
+                  lastActivity={(() => {
+                    // Get the most recent activity from multiple sources
+                    const dates: Date[] = [];
+                    if (xpLogs[0]?.created_at) dates.push(new Date(xpLogs[0].created_at));
+                    const latestSession = allSessions[0];
+                    if (latestSession?.completed_at) dates.push(new Date(latestSession.completed_at));
+                    if (latestSession?.created_at) dates.push(new Date(latestSession.created_at));
+                    const latestCompletedDay = completedDays[0];
+                    if (latestCompletedDay?.completed_at) dates.push(new Date(latestCompletedDay.completed_at));
+                    if (dates.length === 0) return null;
+                    return dates.sort((a, b) => b.getTime() - a.getTime())[0].toISOString();
+                  })()}
                   currentStreak={completedDays.length}
                   hasActiveQuest={!!activeQuest}
                   hasActiveReset={!!activeSession && !isCompleted}
