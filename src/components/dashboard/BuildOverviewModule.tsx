@@ -83,48 +83,12 @@ export function BuildOverviewModule() {
         transition={{ delay: 0.25 }}
         className="p-5 rounded-2xl bg-card border shadow-soft"
       >
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-purple-500/10">
-              <Dna className="w-4 h-4 text-purple-500" />
-            </div>
-            <h3 className="font-display font-semibold text-foreground">Your Build</h3>
+        {/* Header - title only */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="p-1.5 rounded-lg bg-purple-500/10">
+            <Dna className="w-4 h-4 text-purple-500" />
           </div>
-          <div className="flex items-center gap-1">
-            {hasBuild && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => setIsShareModalOpen(true)}
-                      className="p-1.5 rounded-lg hover:bg-muted transition-colors"
-                    >
-                      <Share2 className="w-4 h-4 text-muted-foreground" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Share your build</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="p-1.5 rounded-lg hover:bg-muted transition-colors"
-                    disabled={questionsLoading}
-                  >
-                    <RefreshCw className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{hasBuild ? "Rescan your build" : "Take the assessment"}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+          <h3 className="font-display font-semibold text-foreground">Your Build</h3>
         </div>
 
         {!hasBuild ? (
@@ -145,22 +109,18 @@ export function BuildOverviewModule() {
           </div>
         ) : (
           <>
-            {/* Archetype badge */}
-            <div className="mb-3 flex items-center gap-2">
-              <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
-                {archetypeInfo.label}
-              </span>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="w-3 h-3 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p>{archetypeInfo.description}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
+            {/* Archetype badge - single line, tappable */}
+            <button
+              onClick={() => setIsShareModalOpen(true)}
+              className="mb-3 w-full text-left"
+            >
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 hover:bg-primary/15 transition-colors">
+                <span className="text-sm text-primary font-medium flex-1">
+                  {archetypeInfo.label}
+                </span>
+                <Info className="w-3.5 h-3.5 text-primary/60" />
+              </div>
+            </button>
 
             {/* Stat bars */}
             <div className="space-y-2">
@@ -194,6 +154,29 @@ export function BuildOverviewModule() {
                 <span className="text-xs text-muted-foreground font-normal">/4</span>
               </span>
             </div>
+
+            {/* Action buttons - moved to footer */}
+            <div className="mt-3 pt-3 border-t flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="flex-1 h-8 text-xs"
+                onClick={() => setIsShareModalOpen(true)}
+              >
+                <Share2 className="w-3 h-3 mr-1.5" />
+                Share
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="flex-1 h-8 text-xs"
+                onClick={() => setIsModalOpen(true)}
+                disabled={questionsLoading}
+              >
+                <RefreshCw className="w-3 h-3 mr-1.5" />
+                Rescan
+              </Button>
+            </div>
           </>
         )}
       </motion.div>
@@ -207,14 +190,21 @@ export function BuildOverviewModule() {
         isSubmitting={isSubmitting}
       />
 
-      {/* Share Modal */}
+      {/* Share Modal - also shows archetype description */}
       {hasBuild && currentBuild && (
         <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
-              <DialogTitle className="text-center">Share Your Build</DialogTitle>
+              <DialogTitle className="text-center">Your Build</DialogTitle>
             </DialogHeader>
-            <BuildCard build={currentBuild} />
+            <div className="space-y-4">
+              {/* Archetype explanation */}
+              <div className="p-4 rounded-xl bg-primary/10 text-center">
+                <p className="text-sm font-medium text-primary mb-1">{archetypeInfo.label}</p>
+                <p className="text-xs text-muted-foreground">{archetypeInfo.description}</p>
+              </div>
+              <BuildCard build={currentBuild} />
+            </div>
           </DialogContent>
         </Dialog>
       )}
