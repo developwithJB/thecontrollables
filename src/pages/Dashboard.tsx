@@ -37,7 +37,7 @@ import { BadgesEarned } from "@/components/experience/BadgesEarned";
 import { ResetHistory } from "@/components/experience/ResetHistory";
 
 
-type TabType = "dashboard" | "readings" | "experience";
+type TabType = "dashboard" | "experience" | "guide";
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
@@ -281,8 +281,8 @@ export default function Dashboard() {
           <div className="flex gap-1 py-2">
             {[
               { id: "dashboard" as TabType, label: "Dashboard", icon: "🎮" },
-              { id: "readings" as TabType, label: "Readings", icon: "📖" },
               { id: "experience" as TabType, label: "Experience", icon: "✨" },
+              { id: "guide" as TabType, label: "Guide", icon: "📖" },
             ].map((tab) => (
               <motion.button
                 key={tab.id}
@@ -377,9 +377,9 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          {activeTab === "readings" && (
+          {activeTab === "guide" && (
             <motion.div
-              key="readings"
+              key="guide"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
