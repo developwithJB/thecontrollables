@@ -313,43 +313,12 @@ export const useReset = () => {
     });
   };
 
-  // Check for global admin template (try multiple file formats)
-  const getTemplateUrl = async (): Promise<string | null> => {
-    const possibleNames = [
-      "certificate-background.png",
-      "Certificate Template.png",
-      "Cetificate Template.png",
-    ];
-    
-    for (const name of possibleNames) {
-      const { data } = supabase.storage
-        .from("certificates")
-        .getPublicUrl(`template/${name}`);
-      
-      try {
-        const response = await fetch(data.publicUrl, { method: "HEAD" });
-        if (response.ok) {
-          return data.publicUrl;
-        }
-      } catch {
-        // Try next
-      }
-      
-      // Also try root level
-      const { data: rootData } = supabase.storage
-        .from("certificates")
-        .getPublicUrl(name);
-      
-      try {
-        const response = await fetch(rootData.publicUrl, { method: "HEAD" });
-        if (response.ok) {
-          return rootData.publicUrl;
-        }
-      } catch {
-        // Try next
-      }
-    }
-    return null;
+  // Get the admin-uploaded certificate template
+  const getTemplateUrl = (): string => {
+    const { data } = supabase.storage
+      .from("certificates")
+      .getPublicUrl("Certificate Template.png");
+    return data.publicUrl;
   };
 
   // Generate and save certificate to storage
@@ -362,56 +331,48 @@ export const useReset = () => {
         return getCertificateUrl(existingCertificate.storage_path);
       }
       
-      // Check for custom template
-      const templateUrl = await getTemplateUrl();
+      // Load the admin template
+      const templateUrl = getTemplateUrl();
       
-      // Create a canvas-based certificate (matching template dimensions)
+      // Create a canvas-based certificate
       const canvas = document.createElement("canvas");
-      canvas.width = 1200;
-      canvas.height = 800;
       const ctx = canvas.getContext("2d");
       
       if (!ctx) throw new Error("Canvas not supported");
 
-      // Draw background - either custom template or default
-      if (templateUrl) {
-        try {
-          const templateImg = await loadImage(templateUrl);
-          ctx.drawImage(templateImg, 0, 0, 1200, 800);
-        } catch {
-          // Fallback to default background if template fails to load
-          ctx.fillStyle = "#fafafa";
-          ctx.fillRect(0, 0, 1200, 800);
-          ctx.strokeStyle = "#e5e5e5";
-          ctx.lineWidth = 2;
-          ctx.strokeRect(40, 40, 1120, 720);
-        }
-      } else {
-        // Default background
-        ctx.fillStyle = "#fafafa";
-        ctx.fillRect(0, 0, 1200, 800);
-        ctx.strokeStyle = "#e5e5e5";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(40, 40, 1120, 720);
+      // Load template and use its natural dimensions
+      let templateImg: HTMLImageElement;
+      try {
+        templateImg = await loadImage(templateUrl);
+        canvas.width = templateImg.naturalWidth;
+        canvas.height = templateImg.naturalHeight;
+        ctx.drawImage(templateImg, 0, 0);
+      } catch (err) {
+        console.error("Failed to load certificate template:", err);
+        throw new Error("Certificate template not found. Please contact support.");
       }
 
-      // Text styling - positioned for Canva template
+      // Calculate center X based on actual canvas width
+      const centerX = canvas.width / 2;
+      const canvasHeight = canvas.height;
+
+      // Text styling - positioned for template
       ctx.textAlign = "center";
 
-      // User's display name - replaces "Samira Hadid" in template (script font position)
+      // User's display name (centered, upper third)
       if (displayName) {
         ctx.fillStyle = "#1a1a1a";
         ctx.font = "italic 56px Georgia, serif";
-        ctx.fillText(displayName, 600, 400);
+        ctx.fillText(displayName, centerX, canvasHeight * 0.5);
       }
 
-      // Description text - replaces Lorem ipsum in template
+      // Description text
       ctx.fillStyle = "#404040";
       ctx.font = "18px system-ui, sans-serif";
-      ctx.fillText("For completing the 7-Day Reset Challenge", 600, 485);
-      ctx.fillText("I committed to controlling what I could and surrendering what I could not.", 600, 510);
+      ctx.fillText("For completing the 7-Day Reset Challenge", centerX, canvasHeight * 0.6);
+      ctx.fillText("I committed to controlling what I could and surrendering what I could not.", centerX, canvasHeight * 0.64);
 
-      // Date range - positioned in the DATE area (bottom left of badge)
+      // Date range
       const startFormatted = new Date(activeSession.start_date + "T00:00:00").toLocaleDateString("en-US", {
         month: "long",
         day: "numeric",
@@ -424,12 +385,12 @@ export const useReset = () => {
       });
       ctx.font = "16px system-ui, sans-serif";
       ctx.fillStyle = "#404040";
-      ctx.fillText(`${startFormatted} – ${endFormatted}`, 400, 665);
+      ctx.fillText(`${startFormatted} – ${endFormatted}`, centerX * 0.66, canvasHeight * 0.83);
 
-      // "The Controllables" branding - positioned in SIGNATURE area (bottom right)
+      // "The Controllables" branding
       ctx.font = "italic 20px Georgia, serif";
       ctx.fillStyle = "#1a1a1a";
-      ctx.fillText("The Controllables", 800, 665);
+      ctx.fillText("The Controllables", centerX * 1.34, canvasHeight * 0.83);
 
       // Convert canvas to blob
       const blob = await new Promise<Blob>((resolve, reject) => {
