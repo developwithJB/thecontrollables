@@ -303,6 +303,7 @@ export default function Dashboard() {
             ].map((tab) => (
               <motion.button
                 key={tab.id}
+                data-testid={`tab-${tab.id}`}
                 onClick={() => setActiveTab(tab.id)}
                 whileTap={{ scale: 0.95 }}
                 className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all ${
@@ -341,39 +342,43 @@ export default function Dashboard() {
               {dashboardLoading ? (
                 <MainQuestSkeleton />
               ) : (
-                <MainQuestModule
-                  activeQuest={activeQuest}
-                  onCreateQuest={handleCreateQuest}
-                  onUpdateQuest={handleUpdateQuest}
-                  onCompleteQuest={completeQuest}
-                  isCreating={isCreatingQuest}
-                  isUpdating={isUpdatingQuest}
-                  isCompleting={isCompletingQuest}
-                />
+                <div data-testid="main-quest-module">
+                  <MainQuestModule
+                    activeQuest={activeQuest}
+                    onCreateQuest={handleCreateQuest}
+                    onUpdateQuest={handleUpdateQuest}
+                    onCompleteQuest={completeQuest}
+                    isCreating={isCreatingQuest}
+                    isUpdating={isUpdatingQuest}
+                    isCompleting={isCompletingQuest}
+                  />
+                </div>
               )}
 
               {/* Reset Progress Module */}
               {resetLoading ? (
                 <ResetProgressSkeleton />
               ) : (
-                <ResetProgressModule
-                  hasActiveSession={!!activeSession}
-                  isCompleted={isCompleted}
-                  currentDay={currentDay}
-                  completedDays={completedDays}
-                  todayAlreadyCompleted={todayAlreadyCompleted}
-                  readings={readings}
-                />
+                <div data-testid="reset-progress-module">
+                  <ResetProgressModule
+                    hasActiveSession={!!activeSession}
+                    isCompleted={isCompleted}
+                    currentDay={currentDay}
+                    completedDays={completedDays}
+                    todayAlreadyCompleted={todayAlreadyCompleted}
+                    readings={readings}
+                  />
+                </div>
               )}
 
               {/* Build & Momentum - Hidden in simplified mode */}
               {!isSimplifiedMode && (
                 <div className="grid grid-cols-2 gap-3">
-                  {buildLoading ? <SmallModuleSkeleton /> : <BuildOverviewModule />}
+                  {buildLoading ? <SmallModuleSkeleton /> : <div data-testid="build-overview-module"><BuildOverviewModule /></div>}
                   {dashboardLoading ? (
                     <SmallModuleSkeleton />
                   ) : (
-                    <XpMomentumModule totalXp={totalXp} recentLogs={xpLogs} />
+                    <div data-testid="xp-momentum-module"><XpMomentumModule totalXp={totalXp} recentLogs={xpLogs} /></div>
                   )}
                 </div>
               )}
@@ -384,21 +389,25 @@ export default function Dashboard() {
                   {dashboardLoading ? (
                     <SmallModuleSkeleton />
                   ) : (
-                    <TimeCurrencyModule
-                      todayTimeLog={todayTimeLog}
-                      onLogTime={handleLogTime}
-                      isLogging={isLoggingTime}
-                    />
+                    <div data-testid="time-currency-module">
+                      <TimeCurrencyModule
+                        todayTimeLog={todayTimeLog}
+                        onLogTime={handleLogTime}
+                        isLogging={isLoggingTime}
+                      />
+                    </div>
                   )}
                   {dashboardLoading ? (
                     <SmallModuleSkeleton />
                   ) : (
-                    <IntegrityMeterModule
-                      integrityScore={integrityScore}
-                      pendingPromises={pendingPromises}
-                      onCreatePromise={createPromise}
-                      onResolvePromise={handleResolvePromise}
-                    />
+                    <div data-testid="integrity-meter-module">
+                      <IntegrityMeterModule
+                        integrityScore={integrityScore}
+                        pendingPromises={pendingPromises}
+                        onCreatePromise={createPromise}
+                        onResolvePromise={handleResolvePromise}
+                      />
+                    </div>
                   )}
                 </div>
               )}
@@ -407,16 +416,18 @@ export default function Dashboard() {
               {entitlementsLoading ? (
                 <AIGuideSkeleton />
               ) : (
-                <AIGuidePanel
-                  activeQuest={activeQuest}
-                  totalXp={totalXp}
-                  integrityScore={integrityScore}
-                  currentBuild={currentBuild}
-                  onXpEarned={handleOperatorInteraction}
-                  isPaid={isPaid}
-                  onUpgrade={initiateCheckout}
-                  isCheckingOut={isCheckingOut}
-                />
+                <div data-testid="ai-guide-panel">
+                  <AIGuidePanel
+                    activeQuest={activeQuest}
+                    totalXp={totalXp}
+                    integrityScore={integrityScore}
+                    currentBuild={currentBuild}
+                    onXpEarned={handleOperatorInteraction}
+                    isPaid={isPaid}
+                    onUpgrade={initiateCheckout}
+                    isCheckingOut={isCheckingOut}
+                  />
+                </div>
               )}
             </motion.div>
           )}
