@@ -336,7 +336,7 @@ export const useReset = () => {
       
       // Create a canvas-based certificate
       const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext("2d", { willReadFrequently: false });
       
       if (!ctx) throw new Error("Canvas not supported");
 
@@ -346,7 +346,12 @@ export const useReset = () => {
         templateImg = await loadImage(templateUrl);
         canvas.width = templateImg.naturalWidth;
         canvas.height = templateImg.naturalHeight;
-        ctx.drawImage(templateImg, 0, 0);
+        
+        // Enable image smoothing for better quality
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        
+        ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
       } catch (err) {
         console.error("Failed to load certificate template:", err);
         throw new Error("Certificate template not found. Please contact support.");
@@ -358,6 +363,7 @@ export const useReset = () => {
 
       // Text styling - positioned for template
       ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
 
       // User's display name (centered, upper third)
       if (displayName) {
@@ -392,13 +398,22 @@ export const useReset = () => {
       ctx.fillStyle = "#1a1a1a";
       ctx.fillText("The Controllables", centerX * 1.34, canvasHeight * 0.83);
 
-      // Convert canvas to blob
+      // Convert canvas to blob with high quality
       const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((b) => {
-          if (b) resolve(b);
-          else reject(new Error("Failed to create blob"));
-        }, "image/png");
+        canvas.toBlob(
+          (b) => {
+            if (b) resolve(b);
+            else reject(new Error("Failed to create certificate image"));
+          },
+          "image/png",
+          1.0 // Maximum quality
+        );
       });
+
+      // Verify blob is valid
+      if (blob.size === 0) {
+        throw new Error("Generated certificate is empty");
+      }
 
       // Upload to storage
       const storagePath = `${userId}/${activeSession.id}.png`;
