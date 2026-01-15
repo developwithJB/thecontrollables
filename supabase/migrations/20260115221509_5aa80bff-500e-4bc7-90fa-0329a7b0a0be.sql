@@ -1,0 +1,3 @@
+-- Allow service role to delete entitlements (for admin revoke functionality)
+-- Note: The edge function uses the service role key which bypasses RLS,
+-- so no additional RLS policies are needed for the admin operations.
