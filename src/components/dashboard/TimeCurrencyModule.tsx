@@ -25,8 +25,15 @@ interface TimeCurrencyModuleProps {
 
 export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging }: TimeCurrencyModuleProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [invested, setInvested] = useState(todayTimeLog?.time_invested_minutes?.toString() || "");
-  const [wasted, setWasted] = useState(todayTimeLog?.time_wasted_minutes?.toString() || "");
+  const [invested, setInvested] = useState("");
+  const [wasted, setWasted] = useState("");
+
+  const handleOpenDialog = () => {
+    // Pre-fill with existing values when opening
+    setInvested(todayTimeLog?.time_invested_minutes?.toString() || "");
+    setWasted(todayTimeLog?.time_wasted_minutes?.toString() || "");
+    setIsOpen(true);
+  };
 
   const handleSubmit = () => {
     onLogTime({
@@ -62,14 +69,7 @@ export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging }: TimeC
         <h3 className="font-display font-semibold text-foreground">Time Currency</h3>
       </div>
 
-      {!todayTimeLog ? (
-        <div className="text-center py-4">
-          <p className="text-sm text-muted-foreground mb-3">No time logged today</p>
-          <Button variant="outline" size="sm" onClick={() => setIsOpen(true)}>
-            Log Today's Time
-          </Button>
-        </div>
-      ) : (
+      {todayTimeLog && (
         <>
           {/* Time bar */}
           <div className="mb-4">
@@ -90,7 +90,7 @@ export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging }: TimeC
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 text-center">
+          <div className="grid grid-cols-2 gap-4 text-center mb-4">
             <div>
               <p className="text-2xl font-display font-bold text-green-600 dark:text-green-400">
                 {formatMinutes(investedMins)}
@@ -107,13 +107,23 @@ export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging }: TimeC
         </>
       )}
 
+      {!todayTimeLog && (
+        <p className="text-sm text-muted-foreground text-center mb-3">No time logged today</p>
+      )}
+
+      <Button variant="outline" size="sm" onClick={handleOpenDialog} className="w-full">
+        {todayTimeLog ? "Update Time" : "Log Today's Time"}
+      </Button>
+
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
           <span className="hidden" />
         </DialogTrigger>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="font-display">Log Your Time</DialogTitle>
+            <DialogTitle className="font-display">
+              {todayTimeLog ? "Update Your Time" : "Log Your Time"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <p className="text-sm text-muted-foreground">
@@ -151,7 +161,7 @@ export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging }: TimeC
             </div>
 
             <Button onClick={handleSubmit} className="w-full" disabled={isLogging}>
-              {isLogging ? "Logging..." : "Log Time"}
+              {isLogging ? "Saving..." : todayTimeLog ? "Update Time" : "Log Time"}
             </Button>
           </div>
         </DialogContent>
