@@ -161,6 +161,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [completedActionsCount, setCompletedActionsCount] = useState(0);
+  const [completedActionTexts, setCompletedActionTexts] = useState<Set<string>>(new Set());
   
   const { 
     patternData, 
@@ -177,26 +178,38 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
     }
   }, [isSessionLoading, sessionMessages, messages.length]);
 
-  // Load completed actions count
+  // Load completed actions (both count and action texts for deduplication)
   useEffect(() => {
-    const loadCompletedCount = async () => {
+    const loadCompletedActions = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       const today = new Date().toISOString().split('T')[0];
-      const { count } = await supabase
+      const { data, count } = await supabase
         .from('completed_actions')
-        .select('*', { count: 'exact', head: true })
+        .select('action_text', { count: 'exact' })
         .eq('user_id', user.id)
         .gte('completed_at', `${today}T00:00:00`);
 
       setCompletedActionsCount(count || 0);
+      
+      // Store all completed action texts in a Set for quick lookup
+      if (data) {
+        const texts = new Set(data.map(a => a.action_text));
+        setCompletedActionTexts(texts);
+      }
     };
 
-    loadCompletedCount();
+    loadCompletedActions();
   }, []);
 
   const completeAction = useCallback(async (actionText: string, messageIndex: number, controllable: GuideType | null) => {
+    // Check if already completed (prevents double-clicks and re-completions)
+    if (completedActionTexts.has(actionText)) {
+      toast.info("You've already completed this action!");
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       toast.error("Please log in to complete actions");
@@ -233,6 +246,8 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
         idx === messageIndex ? { ...msg, actionCompleted: true } : msg
       ));
 
+      // Add to completed actions set
+      setCompletedActionTexts(prev => new Set([...prev, actionText]));
       setCompletedActionsCount(prev => prev + 1);
       
       toast.success(
@@ -248,7 +263,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
       console.error("Error completing action:", error);
       toast.error("Failed to complete action");
     }
-  }, [onXpEarned]);
+  }, [onXpEarned, completedActionTexts]);
 
   const sendMessage = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
@@ -522,6 +537,11 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                           ? msg.content.split('→ ACTION:')[0].trim()
                           : msg.content;
                         
+                        // Check if action is completed - either from local state OR from database
+                        const isActionCompleted = action 
+                          ? (msg.actionCompleted || completedActionTexts.has(action))
+                          : false;
+                        
                         return (
                           <div key={idx}>
                             <div
@@ -542,7 +562,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                                 initial={{ opacity: 0, y: -5 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className={`mt-2 mr-8 p-3 rounded-xl border ${
-                                  msg.actionCompleted 
+                                  isActionCompleted 
                                     ? 'bg-accent/20 border-accent/50' 
                                     : 'bg-accent/10 border-accent/30'
                                 }`}
@@ -551,16 +571,16 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                                   <p className="text-xs font-semibold text-accent flex items-center gap-1">
                                     <Zap className="w-3 h-3" /> YOUR ACTION
                                   </p>
-                                  {!msg.actionCompleted && (
+                                  {!isActionCompleted && (
                                     <span className="text-xs text-accent/70">+{ACTION_XP} XP</span>
                                   )}
                                 </div>
                                 <p className="text-sm text-foreground mb-2">{action}</p>
                                 
-                                {msg.actionCompleted ? (
+                                {isActionCompleted ? (
                                   <div className="flex items-center gap-2 text-accent">
                                     <Check className="w-4 h-4" />
-                                    <span className="text-xs font-medium">Completed! +{ACTION_XP} XP</span>
+                                    <span className="text-xs font-medium">Completed</span>
                                   </div>
                                 ) : (
                                   <Button
