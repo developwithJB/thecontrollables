@@ -689,7 +689,7 @@ export default function Dashboard() {
 
               {/* Badges Earned - Locked for free users, hidden in simplified mode */}
               {!isSimplifiedMode && (
-                <div className="relative overflow-hidden rounded-2xl">
+                <div className="relative">
                   <BadgesEarned earnedBadges={earnedBadges} isLoading={badgesLoading} />
                   {!isPaid && (
                     <LockedOverlay 
@@ -710,7 +710,7 @@ export default function Dashboard() {
 
               {/* Progress History - Locked for free users, hidden in simplified mode */}
               {!isSimplifiedMode && (
-                <div className="relative overflow-hidden rounded-2xl">
+                <div className="relative">
                   <ProgressHistory
                     totalXp={totalXp}
                     xpLogs={xpLogs}
@@ -729,7 +729,7 @@ export default function Dashboard() {
 
               {/* Reset History with Certificates - Locked for free users */}
               {user?.id && (
-                <div className="relative overflow-hidden rounded-2xl">
+                <div className="relative">
                   <ResetHistory
                     resetSessions={allSessions}
                     userId={user.id}
@@ -746,7 +746,7 @@ export default function Dashboard() {
 
               {/* Momentum Decay - Locked for free users, hidden in simplified mode */}
               {!isSimplifiedMode && (
-                <div className="relative overflow-hidden rounded-2xl">
+                <div className="relative">
                   <MomentumDecay
                     lastActivity={(() => {
                       // Get the most recent activity from multiple sources
