@@ -76,27 +76,27 @@ export function LockedOverlay({
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="absolute inset-0 z-10 flex flex-col items-center justify-center backdrop-blur-md bg-background/70 rounded-2xl"
+      className="absolute inset-0 z-10 flex flex-col items-center justify-center backdrop-blur-md bg-background/80 rounded-2xl min-h-[280px]"
       data-testid="locked-overlay"
     >
-      <div className="text-center p-6 max-w-xs">
+      <div className="text-center px-6 py-8 max-w-xs">
         {/* Lock icon with subtle glow */}
         <motion.div
           initial={{ scale: 0.8 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 15 }}
-          className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center"
+          className="w-10 h-10 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center"
         >
-          <Lock className="w-5 h-5 text-primary/70" />
+          <Lock className="w-4 h-4 text-primary/70" />
         </motion.div>
         
         {/* Title */}
-        <h3 className="font-display font-semibold text-foreground mb-3 text-lg">
+        <h3 className="font-display font-semibold text-foreground mb-2 text-base">
           {displayTitle}
         </h3>
         
         {/* Description - preserves line breaks */}
-        <p className="text-sm text-muted-foreground mb-4 whitespace-pre-line leading-relaxed">
+        <p className="text-xs text-muted-foreground mb-4 whitespace-pre-line leading-relaxed">
           {displayDescription}
         </p>
         
@@ -104,20 +104,21 @@ export function LockedOverlay({
         <Button
           onClick={handleUpgradeClick}
           disabled={isLoading}
+          size="sm"
           className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
           data-testid="locked-overlay-upgrade-cta"
         >
           {isLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
           ) : (
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-3.5 h-3.5" />
           )}
           {isLoading ? "Opening checkout..." : displayButtonText}
         </Button>
 
         {/* Price line */}
         {displayPriceLine && (
-          <p className="mt-3 text-xs text-muted-foreground">
+          <p className="mt-2 text-xs text-muted-foreground">
             {displayPriceLine}
           </p>
         )}
