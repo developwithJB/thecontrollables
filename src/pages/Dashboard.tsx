@@ -523,6 +523,12 @@ export default function Dashboard() {
                         isCompleted={isUnlocked}
                         completedAt={completedDay?.completed_at}
                         isLocked={!isUnlocked}
+                        completedDayData={completedDay ? {
+                          day_number: completedDay.day_number,
+                          reflection: completedDay.reflection,
+                          completed_at: completedDay.completed_at,
+                        } : undefined}
+                        totalCompletedDays={completedDays.length}
                       />
                     );
                   })
@@ -542,6 +548,12 @@ export default function Dashboard() {
                         isCompleted={isUnlocked}
                         completedAt={completedDay?.completed_at}
                         isLocked={!isUnlocked}
+                        completedDayData={completedDay ? {
+                          day_number: completedDay.day_number,
+                          reflection: completedDay.reflection,
+                          completed_at: completedDay.completed_at,
+                        } : undefined}
+                        totalCompletedDays={completedDays.length}
                       />
                     );
                   })

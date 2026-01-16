@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, Lock, Check, Play, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronUp, Lock, Check, Play, RefreshCw, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getDayContent, RESET_DAYS } from "@/lib/resetContent";
+import { CompletedDayView } from "@/components/CompletedDayView";
 
 interface CompletedDay {
   day_number: number;
-  reflection?: string;
-  completed_at?: string;
+  reflection?: string | null;
+  completed_at?: string | null;
+  commitment?: string | null;
+  release?: string | null;
 }
 
 interface DailyReading {
@@ -39,8 +42,15 @@ export function ResetProgressModule({
 }: ResetProgressModuleProps) {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<CompletedDay | null>(null);
+  const [isViewOpen, setIsViewOpen] = useState(false);
 
   const todayContent = hasActiveSession && !isCompleted ? getDayContent(currentDay) : null;
+
+  const handleViewDay = (dayData: CompletedDay) => {
+    setSelectedDay(dayData);
+    setIsViewOpen(true);
+  };
 
   // Get day content - prefer database readings if available
   const getDayInfo = (dayNum: number) => {
@@ -216,17 +226,19 @@ export function ResetProgressModule({
                 const completedData = completedDays.find((d) => d.day_number === dayNum);
 
                 return (
-                  <motion.div
+                  <motion.button
                     key={dayNum}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.05 }}
-                    className={`p-3 rounded-lg border transition-colors ${
+                    onClick={() => status === "completed" && completedData && handleViewDay(completedData)}
+                    disabled={status !== "completed"}
+                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
                       status === "completed"
-                        ? "bg-primary/5 border-primary/20"
+                        ? "bg-primary/5 border-primary/20 hover:bg-primary/10 cursor-pointer"
                         : status === "current"
-                        ? "bg-muted/50 border-primary/30"
-                        : "bg-muted/20 border-muted/50 opacity-60"
+                        ? "bg-muted/50 border-primary/30 cursor-default"
+                        : "bg-muted/20 border-muted/50 opacity-60 cursor-default"
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -251,18 +263,23 @@ export function ResetProgressModule({
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">{dayInfo.emoji}</span>
-                          <h4 className="text-sm font-medium text-foreground">
-                            Day {dayNum}: {dayInfo.controllable}
-                          </h4>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">{dayInfo.emoji}</span>
+                            <h4 className="text-sm font-medium text-foreground">
+                              Day {dayNum}: {dayInfo.controllable}
+                            </h4>
+                          </div>
+                          {status === "completed" && (
+                            <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                          )}
                         </div>
 
                         {status === "completed" ? (
                           <p className="text-xs text-muted-foreground mt-1">
                             {completedData?.completed_at
                               ? `Completed ${new Date(completedData.completed_at).toLocaleDateString()}`
-                              : "Completed"}
+                              : "Completed"} · Tap to view
                           </p>
                         ) : status === "current" ? (
                           <p className="text-xs text-primary mt-1">
@@ -281,21 +298,29 @@ export function ResetProgressModule({
                           </p>
                         )}
 
-                        {/* Show reflection for completed days if available */}
+                        {/* Show reflection preview for completed days if available */}
                         {status === "completed" && completedData?.reflection && (
-                          <p className="text-xs text-foreground/80 mt-2 italic border-l-2 border-primary/30 pl-2">
+                          <p className="text-xs text-foreground/80 mt-2 italic border-l-2 border-primary/30 pl-2 line-clamp-1">
                             "{completedData.reflection}"
                           </p>
                         )}
                       </div>
                     </div>
-                  </motion.div>
+                  </motion.button>
                 );
               })}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Completed Day View Modal */}
+      <CompletedDayView
+        open={isViewOpen}
+        onOpenChange={setIsViewOpen}
+        dayData={selectedDay}
+        totalCompletedDays={completedDays.length}
+      />
     </motion.div>
   );
 }
