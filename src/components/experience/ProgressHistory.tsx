@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { TrendingUp, Zap, RefreshCw, Award, ChevronRight } from "lucide-react";
+import { TrendingUp, Zap, RefreshCw, Award } from "lucide-react";
 import { format, subDays } from "date-fns";
+import { CollapsibleSection } from "./CollapsibleSection";
 
 interface XpLog {
   id: string;
@@ -48,33 +49,33 @@ export function ProgressHistory({ totalXp, xpLogs, resetSessions, completedReset
   const xpForNextLevel = currentLevel * 500;
   const xpProgress = ((totalXp % 500) / 500) * 100;
 
-  // Recent activity grouped by source
-  const activityBySource = xpLogs.slice(0, 20).reduce((acc, log) => {
-    const source = log.source.replace(/_/g, " ");
-    acc[source] = (acc[source] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: 0.2 }}
-      className="rounded-2xl border bg-card/50 backdrop-blur-sm overflow-hidden"
-    >
-      {/* Header */}
-      <div className="p-4 border-b border-border/50 bg-gradient-to-r from-accent/10 to-primary/10">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
-            <TrendingUp className="w-4 h-4 text-accent" />
-          </div>
-          <div>
-            <h3 className="font-display font-semibold text-foreground">Progress History</h3>
-            <p className="text-xs text-muted-foreground">Your value gained over time</p>
-          </div>
+  // Summary row content
+  const summaryRow = (
+    <div className="flex items-center gap-3">
+      <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
+        <TrendingUp className="w-4 h-4 text-accent" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-display font-semibold text-foreground text-sm">Progress History</h3>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="font-medium text-accent">{totalXp.toLocaleString()} XP</span>
+          <span>•</span>
+          <span>Level {currentLevel}</span>
+          {xpTrend !== 0 && (
+            <>
+              <span>•</span>
+              <span className={xpTrend > 0 ? "text-green-500" : "text-red-400"}>
+                {xpTrend > 0 ? "+" : ""}{xpTrend}%
+              </span>
+            </>
+          )}
         </div>
       </div>
+    </div>
+  );
 
+  return (
+    <CollapsibleSection summaryRow={summaryRow} defaultExpanded={false}>
       <div className="p-4 space-y-4">
         {/* XP & Level */}
         <div className="p-4 rounded-xl bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/20">
@@ -132,25 +133,6 @@ export function ProgressHistory({ totalXp, xpLogs, resetSessions, completedReset
           </div>
         </div>
 
-        {/* Recent Activity Summary */}
-        {Object.keys(activityBySource).length > 0 && (
-          <div className="p-4 rounded-xl bg-muted/30">
-            <div className="flex items-center gap-2 mb-3">
-              <Award className="w-4 h-4 text-accent" />
-              <span className="font-medium text-foreground text-sm">Recent Activity</span>
-            </div>
-            
-            <div className="space-y-2">
-              {Object.entries(activityBySource).slice(0, 4).map(([source, count]) => (
-                <div key={source} className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground capitalize">{source}</span>
-                  <span className="font-medium text-foreground">{count}x</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Recent XP Logs */}
         {xpLogs.length > 0 && (
           <div className="space-y-2">
@@ -175,6 +157,6 @@ export function ProgressHistory({ totalXp, xpLogs, resetSessions, completedReset
           </div>
         )}
       </div>
-    </motion.div>
+    </CollapsibleSection>
   );
 }

@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CertificatePreview } from "./CertificatePreview";
+import { CollapsibleSection } from "./CollapsibleSection";
 
 const withCacheBust = (url: string) => `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
 
@@ -131,27 +132,24 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
     return null;
   }
 
+  // Summary row content
+  const summaryRow = (
+    <div className="flex items-center gap-3">
+      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+        <Award className="w-4 h-4 text-primary" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-display font-semibold text-foreground text-sm">Completed Resets</h3>
+        <p className="text-xs text-muted-foreground">
+          {completedSessions.length} completed • Tap to view certificates
+        </p>
+      </div>
+    </div>
+  );
+
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.3 }}
-        className="rounded-2xl border bg-card/50 backdrop-blur-sm overflow-hidden"
-      >
-        {/* Header */}
-        <div className="p-4 border-b border-border/50 bg-gradient-to-r from-primary/10 to-accent/10">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-              <Award className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-display font-semibold text-foreground">Completed Resets</h3>
-              <p className="text-xs text-muted-foreground">Your 7-Day journeys with certificates</p>
-            </div>
-          </div>
-        </div>
-
+      <CollapsibleSection summaryRow={summaryRow} defaultExpanded={true}>
         <div className="p-4 space-y-3">
           {completedSessions.map((session, index) => {
             const startDate = new Date(session.start_date + "T00:00:00");
@@ -205,7 +203,7 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
             );
           })}
         </div>
-      </motion.div>
+      </CollapsibleSection>
 
       {/* Certificate Preview Modal */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
