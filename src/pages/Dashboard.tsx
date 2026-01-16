@@ -497,68 +497,142 @@ export default function Dashboard() {
                 </p>
               </div>
 
-              {/* Game Philosophy Rules */}
-              <GameRulesSection />
+              {/* Conditional ordering based on active reset */}
+              {activeSession && !isCompleted ? (
+                <>
+                  {/* When reset IS ACTIVE: Daily Readings first */}
+                  {/* Current Focus label */}
+                  <p className="text-xs font-medium text-muted-foreground/70 tracking-wide uppercase mb-3">
+                    Current Focus
+                  </p>
+                  
+                  {/* Section Divider */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground font-medium">Daily Readings</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
 
-              {/* Section Divider */}
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted-foreground font-medium">Daily Readings</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
+                  <div className="space-y-4 mb-8">
+                    {readings.length > 0 ? (
+                      readings.map((reading) => {
+                        const completedDay = completedDays.find((d) => d.day_number === reading.day_number);
+                        const isUnlocked = !!completedDay;
+                        return (
+                          <ReadingCard
+                            key={reading.id}
+                            day={reading.day_number}
+                            emoji={reading.emoji}
+                            controllable={reading.controllable}
+                            chapter={reading.reading_chapter}
+                            text={reading.reading_text}
+                            isCompleted={isUnlocked}
+                            completedAt={completedDay?.completed_at}
+                            isLocked={!isUnlocked}
+                            completedDayData={completedDay ? {
+                              day_number: completedDay.day_number,
+                              reflection: completedDay.reflection,
+                              completed_at: completedDay.completed_at,
+                            } : undefined}
+                            totalCompletedDays={completedDays.length}
+                          />
+                        );
+                      })
+                    ) : (
+                      RESET_DAYS.map((day) => {
+                        const completedDay = completedDays.find((d) => d.day_number === day.day);
+                        const isUnlocked = !!completedDay;
+                        return (
+                          <ReadingCard
+                            key={day.day}
+                            day={day.day}
+                            emoji={day.emoji}
+                            controllable={day.controllable}
+                            chapter={day.reading.chapter}
+                            text={day.reading.text}
+                            isCompleted={isUnlocked}
+                            completedAt={completedDay?.completed_at}
+                            isLocked={!isUnlocked}
+                            completedDayData={completedDay ? {
+                              day_number: completedDay.day_number,
+                              reflection: completedDay.reflection,
+                              completed_at: completedDay.completed_at,
+                            } : undefined}
+                            totalCompletedDays={completedDays.length}
+                          />
+                        );
+                      })
+                    )}
+                  </div>
 
-              <div className="space-y-4">
-                {readings.length > 0 ? (
-                  readings.map((reading) => {
-                    const completedDay = completedDays.find((d) => d.day_number === reading.day_number);
-                    const isUnlocked = !!completedDay;
-                    return (
-                      <ReadingCard
-                        key={reading.id}
-                        day={reading.day_number}
-                        emoji={reading.emoji}
-                        controllable={reading.controllable}
-                        chapter={reading.reading_chapter}
-                        text={reading.reading_text}
-                        isCompleted={isUnlocked}
-                        completedAt={completedDay?.completed_at}
-                        isLocked={!isUnlocked}
-                        completedDayData={completedDay ? {
-                          day_number: completedDay.day_number,
-                          reflection: completedDay.reflection,
-                          completed_at: completedDay.completed_at,
-                        } : undefined}
-                        totalCompletedDays={completedDays.length}
-                      />
-                    );
-                  })
-                ) : (
-                  // Fallback to static content if database is empty
-                  RESET_DAYS.map((day) => {
-                    const completedDay = completedDays.find((d) => d.day_number === day.day);
-                    const isUnlocked = !!completedDay;
-                    return (
-                      <ReadingCard
-                        key={day.day}
-                        day={day.day}
-                        emoji={day.emoji}
-                        controllable={day.controllable}
-                        chapter={day.reading.chapter}
-                        text={day.reading.text}
-                        isCompleted={isUnlocked}
-                        completedAt={completedDay?.completed_at}
-                        isLocked={!isUnlocked}
-                        completedDayData={completedDay ? {
-                          day_number: completedDay.day_number,
-                          reflection: completedDay.reflection,
-                          completed_at: completedDay.completed_at,
-                        } : undefined}
-                        totalCompletedDays={completedDays.length}
-                      />
-                    );
-                  })
-                )}
-              </div>
+                  {/* Rules of the Game second when reset active */}
+                  <GameRulesSection />
+                </>
+              ) : (
+                <>
+                  {/* When NO reset active: Rules of the Game first */}
+                  <GameRulesSection />
+
+                  {/* Section Divider */}
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground font-medium">Daily Readings</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+
+                  <div className="space-y-4">
+                    {readings.length > 0 ? (
+                      readings.map((reading) => {
+                        const completedDay = completedDays.find((d) => d.day_number === reading.day_number);
+                        const isUnlocked = !!completedDay;
+                        return (
+                          <ReadingCard
+                            key={reading.id}
+                            day={reading.day_number}
+                            emoji={reading.emoji}
+                            controllable={reading.controllable}
+                            chapter={reading.reading_chapter}
+                            text={reading.reading_text}
+                            isCompleted={isUnlocked}
+                            completedAt={completedDay?.completed_at}
+                            isLocked={!isUnlocked}
+                            completedDayData={completedDay ? {
+                              day_number: completedDay.day_number,
+                              reflection: completedDay.reflection,
+                              completed_at: completedDay.completed_at,
+                            } : undefined}
+                            totalCompletedDays={completedDays.length}
+                          />
+                        );
+                      })
+                    ) : (
+                      RESET_DAYS.map((day) => {
+                        const completedDay = completedDays.find((d) => d.day_number === day.day);
+                        const isUnlocked = !!completedDay;
+                        return (
+                          <ReadingCard
+                            key={day.day}
+                            day={day.day}
+                            emoji={day.emoji}
+                            controllable={day.controllable}
+                            chapter={day.reading.chapter}
+                            text={day.reading.text}
+                            isCompleted={isUnlocked}
+                            completedAt={completedDay?.completed_at}
+                            isLocked={!isUnlocked}
+                            completedDayData={completedDay ? {
+                              day_number: completedDay.day_number,
+                              reflection: completedDay.reflection,
+                              completed_at: completedDay.completed_at,
+                            } : undefined}
+                            totalCompletedDays={completedDays.length}
+                          />
+                        );
+                      })
+                    )}
+                  </div>
+                </>
+              )}
 
               {/* Book promo */}
               <motion.a
@@ -593,7 +667,7 @@ export default function Dashboard() {
               transition={{ duration: 0.3 }}
               className="space-y-4"
             >
-              {/* Header */}
+              {/* Header with framing line */}
               <div className="mb-2">
                 <div className="flex items-center gap-2 mb-1">
                   <Sparkles className="w-5 h-5 text-accent" />
@@ -602,7 +676,7 @@ export default function Dashboard() {
                   </h1>
                 </div>
                 <p className="text-muted-foreground text-sm">
-                  Time anchors & reality bridges. Track your journey.
+                  This is where effort turns into evidence.
                 </p>
               </div>
 
