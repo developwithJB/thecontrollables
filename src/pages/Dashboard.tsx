@@ -371,44 +371,92 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Build & Momentum - Hidden in simplified mode */}
+              {/* Your Current State - Compact 2x2 grid of state indicators */}
               {!isSimplifiedMode && (
-                <div className="grid grid-cols-2 gap-3">
-                  {buildLoading ? <SmallModuleSkeleton /> : <div data-testid="build-overview-module"><BuildOverviewModule /></div>}
-                  {dashboardLoading ? (
-                    <SmallModuleSkeleton />
-                  ) : (
-                    <div data-testid="xp-momentum-module"><XpMomentumModule totalXp={totalXp} recentLogs={xpLogs} /></div>
-                  )}
+                <div className="space-y-2">
+                  {/* Section Label */}
+                  <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
+                    Your Current State
+                  </p>
+                  
+                  {/* 2x2 Grid - compact state indicators */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Top-left: Your Build */}
+                    {buildLoading ? (
+                      <SmallModuleSkeleton />
+                    ) : (
+                      <div data-testid="build-overview-module">
+                        <BuildOverviewModule compact />
+                      </div>
+                    )}
+                    
+                    {/* Top-right: Momentum */}
+                    {dashboardLoading ? (
+                      <SmallModuleSkeleton />
+                    ) : (
+                      <div data-testid="xp-momentum-module">
+                        <XpMomentumModule totalXp={totalXp} recentLogs={xpLogs} compact />
+                      </div>
+                    )}
+                    
+                    {/* Bottom-left: Time Currency */}
+                    {dashboardLoading ? (
+                      <SmallModuleSkeleton />
+                    ) : (
+                      <div data-testid="time-currency-module">
+                        <TimeCurrencyModule
+                          todayTimeLog={todayTimeLog}
+                          onLogTime={handleLogTime}
+                          isLogging={isLoggingTime}
+                          compact
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Bottom-right: Integrity */}
+                    {dashboardLoading ? (
+                      <SmallModuleSkeleton />
+                    ) : (
+                      <div data-testid="integrity-meter-module">
+                        <IntegrityMeterModule
+                          integrityScore={integrityScore}
+                          pendingPromises={pendingPromises}
+                          onCreatePromise={createPromise}
+                          onResolvePromise={handleResolvePromise}
+                          compact
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {/* Time & Integrity - Hidden in simplified mode */}
-              {!isSimplifiedMode && (
-                <div className="grid grid-cols-2 gap-3">
-                  {dashboardLoading ? (
-                    <SmallModuleSkeleton />
-                  ) : (
-                    <div data-testid="time-currency-module">
-                      <TimeCurrencyModule
-                        todayTimeLog={todayTimeLog}
-                        onLogTime={handleLogTime}
-                        isLogging={isLoggingTime}
-                      />
-                    </div>
-                  )}
-                  {dashboardLoading ? (
-                    <SmallModuleSkeleton />
-                  ) : (
-                    <div data-testid="integrity-meter-module">
-                      <IntegrityMeterModule
-                        integrityScore={integrityScore}
-                        pendingPromises={pendingPromises}
-                        onCreatePromise={createPromise}
-                        onResolvePromise={handleResolvePromise}
-                      />
-                    </div>
-                  )}
+              {/* Simplified mode: Show only Build & Momentum until first action */}
+              {isSimplifiedMode && (
+                <div className="space-y-2">
+                  {/* Section Label */}
+                  <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
+                    Your Current State
+                  </p>
+                  
+                  {/* 2x1 Grid - only Build & Momentum during onboarding */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {buildLoading ? (
+                      <SmallModuleSkeleton />
+                    ) : (
+                      <div data-testid="build-overview-module">
+                        <BuildOverviewModule compact />
+                      </div>
+                    )}
+                    
+                    {dashboardLoading ? (
+                      <SmallModuleSkeleton />
+                    ) : (
+                      <div data-testid="xp-momentum-module">
+                        <XpMomentumModule totalXp={totalXp} recentLogs={xpLogs} compact />
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
