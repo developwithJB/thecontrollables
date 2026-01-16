@@ -680,13 +680,24 @@ export default function Dashboard() {
                 </p>
               </div>
 
-              {/* Time Cycles - Where you are */}
+              {/* ===== FREE CONTENT FIRST ===== */}
+              
+              {/* Time Cycles - FREE for all users */}
               <TimeCycleCard
                 activeQuest={activeQuest}
                 currentResetDay={currentDay}
                 hasActiveReset={!!activeSession && !isCompleted}
               />
 
+              {/* Offline Triggers - FREE for all users */}
+              <OfflineTriggers
+                activeQuest={activeQuest}
+                currentResetDay={currentDay}
+                todayReading={readings.find(r => r.day_number === currentDay) || null}
+              />
+
+              {/* ===== LOCKED CONTENT (Premium) ===== */}
+              
               {/* Badges Earned - Locked for free users, hidden in simplified mode */}
               {!isSimplifiedMode && (
                 <div className="relative">
@@ -700,13 +711,6 @@ export default function Dashboard() {
                   )}
                 </div>
               )}
-
-              {/* Offline Triggers - FREE for all users */}
-              <OfflineTriggers
-                activeQuest={activeQuest}
-                currentResetDay={currentDay}
-                todayReading={readings.find(r => r.day_number === currentDay) || null}
-              />
 
               {/* Progress History - Locked for free users, hidden in simplified mode */}
               {!isSimplifiedMode && (
