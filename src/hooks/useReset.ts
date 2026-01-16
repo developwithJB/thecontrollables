@@ -244,6 +244,17 @@ export const useReset = () => {
 
       if (error) throw error;
 
+      // Award XP for completing the day (bonus XP for Day 7)
+      const xpAmount = currentDay === 7 ? 50 : 25;
+      await supabase
+        .from("xp_logs")
+        .insert({
+          user_id: userId,
+          amount: xpAmount,
+          source: "reset_day_complete",
+          description: `Completed Day ${currentDay} of 7-Day Reset`,
+        });
+
       // If this was day 7, mark session as completed
       if (currentDay >= 7) {
         await supabase
@@ -267,6 +278,8 @@ export const useReset = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reset-session"] });
       queryClient.invalidateQueries({ queryKey: ["daily-resets"] });
+      queryClient.invalidateQueries({ queryKey: ["xp-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["life-dashboard"] });
     },
     onError: (error) => {
       toast({
