@@ -1,0 +1,38 @@
+{
+  "name": "The Dashboard",
+  "short_name": "Dashboard",
+  "description": "Your personal command center for intentional living",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1f2e",
+  "theme_color": "#1a1f2e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["lifestyle", "productivity"],
+  "lang": "en"
+}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, Book, BookOpen, Sparkles } from "lucide-react";
@@ -13,6 +13,7 @@ import { useDailyReadings } from "@/hooks/useDailyReadings";
 import { useBadges } from "@/hooks/useBadges";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useEntitlements } from "@/hooks/useEntitlements";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayContent, RESET_DAYS } from "@/lib/resetContent";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -29,6 +30,7 @@ import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule"
 import { ReadingCard } from "@/components/ReadingCard";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
+import { InstallNudge } from "@/components/pwa/InstallNudge";
 import { 
   MainQuestSkeleton, 
   ResetProgressSkeleton, 
@@ -113,6 +115,27 @@ export default function Dashboard() {
     initiateCheckout, 
     isCheckingOut 
   } = useEntitlements(user?.id || null);
+
+  // PWA Install - check if user has completed meaningful action
+  const hasCompletedMeaningfulAction = useMemo(() => {
+    // Created a quest
+    if (activeQuest) return true;
+    // Completed at least Day 1 of reset
+    if (completedDays && completedDays.length > 0) return true;
+    // Has XP logs (indicates activity)
+    if (xpLogs && xpLogs.length > 0) return true;
+    return false;
+  }, [activeQuest, completedDays, xpLogs]);
+
+  const {
+    showNudge: showInstallNudge,
+    isIOSDevice,
+    handleInstall,
+    handleDismiss: handleInstallDismiss,
+  } = usePWAInstall({
+    isAuthenticated: !!user,
+    hasCompletedMeaningfulAction,
+  });
 
   // Callback to refresh XP when actions are completed
   const handleXpEarned = useCallback(() => {
@@ -851,6 +874,14 @@ export default function Dashboard() {
       <footer className="max-w-md mx-auto px-6 py-6 text-center">
         <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} The Controllables</p>
       </footer>
+
+      {/* PWA Install Nudge */}
+      <InstallNudge
+        show={showInstallNudge}
+        isIOS={isIOSDevice}
+        onInstall={handleInstall}
+        onDismiss={handleInstallDismiss}
+      />
     </div>
   );
 }
