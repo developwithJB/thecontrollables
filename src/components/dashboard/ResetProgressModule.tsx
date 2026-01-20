@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, Lock, Check, Play, RefreshCw, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getDayContent, RESET_DAYS } from "@/lib/resetContent";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { getDayContent, RESET_DAYS, COVENANT_TEXT, COVENANT_CHECKBOX_TEXT } from "@/lib/resetContent";
 import { CompletedDayView } from "@/components/CompletedDayView";
 
 interface CompletedDay {
@@ -30,6 +32,8 @@ interface ResetProgressModuleProps {
   completedDays: CompletedDay[];
   todayAlreadyCompleted: boolean;
   readings?: DailyReading[];
+  onStartReset?: () => void;
+  isStartingReset?: boolean;
 }
 
 export function ResetProgressModule({
@@ -39,11 +43,15 @@ export function ResetProgressModule({
   completedDays,
   todayAlreadyCompleted,
   readings = [],
+  onStartReset,
+  isStartingReset = false,
 }: ResetProgressModuleProps) {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedDay, setSelectedDay] = useState<CompletedDay | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
+  const [showCovenantDialog, setShowCovenantDialog] = useState(false);
+  const [covenantAccepted, setCovenantAccepted] = useState(false);
 
   const todayContent = hasActiveSession && !isCompleted ? getDayContent(currentDay) : null;
 
@@ -82,51 +90,141 @@ export function ResetProgressModule({
     return "locked";
   };
 
-  // No active session - show start prompt
+  const handleStartReset = () => {
+    if (onStartReset) {
+      onStartReset();
+      // Navigate to reset page after starting
+      setTimeout(() => {
+        navigate("/reset");
+      }, 500);
+    }
+  };
+
+  // No active session - show start prompt with covenant dialog
   if (!hasActiveSession) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="p-4 rounded-xl bg-card border"
-      >
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-foreground">7-Day Reset</p>
-            <p className="text-xs text-muted-foreground">Re-enter the game</p>
+      <>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="p-4 rounded-xl bg-card border"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">7-Day Reset</p>
+              <p className="text-xs text-muted-foreground">Re-enter the game</p>
+            </div>
+            <Button size="sm" onClick={() => setShowCovenantDialog(true)}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Start Reset
+            </Button>
           </div>
-          <Button size="sm" onClick={() => navigate("/reset")}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Start Reset
-          </Button>
-        </div>
-      </motion.div>
+        </motion.div>
+
+        {/* Covenant Dialog */}
+        <Dialog open={showCovenantDialog} onOpenChange={(open) => {
+          setShowCovenantDialog(open);
+          if (!open) setCovenantAccepted(false);
+        }}>
+          <DialogContent className="max-w-md p-6">
+            <div className="space-y-6">
+              <p className="text-foreground leading-relaxed whitespace-pre-line">
+                {COVENANT_TEXT}
+              </p>
+
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="covenant-dialog"
+                  checked={covenantAccepted}
+                  onCheckedChange={(checked) => setCovenantAccepted(checked === true)}
+                  className="mt-1"
+                />
+                <label
+                  htmlFor="covenant-dialog"
+                  className="text-foreground text-sm leading-relaxed cursor-pointer select-none"
+                >
+                  {COVENANT_CHECKBOX_TEXT}
+                </label>
+              </div>
+
+              <Button
+                onClick={handleStartReset}
+                disabled={!covenantAccepted || isStartingReset}
+                className="w-full"
+                size="lg"
+              >
+                {isStartingReset ? "Beginning..." : "Begin My 7 Days"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 
   // Completed session - show restart option
   if (isCompleted) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="p-4 rounded-xl bg-card border"
-      >
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">⚡</span>
-            <div>
-              <p className="text-sm font-medium text-foreground">Reset Complete</p>
-              <p className="text-xs text-muted-foreground">Well played</p>
+      <>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="p-4 rounded-xl bg-card border"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">⚡</span>
+              <div>
+                <p className="text-sm font-medium text-foreground">Reset Complete</p>
+                <p className="text-xs text-muted-foreground">Well played</p>
+              </div>
             </div>
+            <Button size="sm" variant="outline" onClick={() => setShowCovenantDialog(true)}>
+              New Reset
+            </Button>
           </div>
-          <Button size="sm" variant="outline" onClick={() => navigate("/reset")}>
-            New Reset
-          </Button>
-        </div>
-      </motion.div>
+        </motion.div>
+
+        {/* Covenant Dialog for new reset */}
+        <Dialog open={showCovenantDialog} onOpenChange={(open) => {
+          setShowCovenantDialog(open);
+          if (!open) setCovenantAccepted(false);
+        }}>
+          <DialogContent className="max-w-md p-6">
+            <div className="space-y-6">
+              <p className="text-foreground leading-relaxed whitespace-pre-line">
+                {COVENANT_TEXT}
+              </p>
+
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="covenant-dialog-restart"
+                  checked={covenantAccepted}
+                  onCheckedChange={(checked) => setCovenantAccepted(checked === true)}
+                  className="mt-1"
+                />
+                <label
+                  htmlFor="covenant-dialog-restart"
+                  className="text-foreground text-sm leading-relaxed cursor-pointer select-none"
+                >
+                  {COVENANT_CHECKBOX_TEXT}
+                </label>
+              </div>
+
+              <Button
+                onClick={handleStartReset}
+                disabled={!covenantAccepted || isStartingReset}
+                className="w-full"
+                size="lg"
+              >
+                {isStartingReset ? "Beginning..." : "Begin My 7 Days"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 
