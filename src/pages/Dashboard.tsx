@@ -320,8 +320,8 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b">
+      {/* Header - with safe area support for iOS PWA */}
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b pt-[env(safe-area-inset-top)]">
         <div className="max-w-md mx-auto px-6 py-4 flex items-center justify-between">
           <Logo />
           <div className="flex items-center gap-2">
@@ -344,7 +344,7 @@ export default function Dashboard() {
       </header>
 
       {/* Tab Navigation */}
-      <div className="sticky top-[65px] z-40 bg-background/80 backdrop-blur-lg border-b">
+      <div className="sticky top-[calc(65px+env(safe-area-inset-top))] z-40 bg-background/80 backdrop-blur-lg border-b">
         <div className="max-w-md mx-auto px-6">
           <div className="flex gap-1 py-2">
             {[
