@@ -40,6 +40,14 @@ const Reset = () => {
     }
   }, [userId, isLoading, navigate]);
 
+  // If user is logged in but has no active reset session, send them back to the dashboard
+  // (they can start a reset whenever they want from there).
+  useEffect(() => {
+    if (!isLoading && userId && !activeSession) {
+      navigate("/dashboard");
+    }
+  }, [isLoading, userId, activeSession, navigate]);
+
   // Handle day completion
   const handleComplete = (data: { userInput?: string }) => {
     const isDay7 = currentDay >= 7;
@@ -78,13 +86,6 @@ const Reset = () => {
   if (showDayComplete) {
     return <ResetComplete isFullReset={false} />;
   }
-
-  // No active session - redirect to dashboard (user can start a reset from there)
-  useEffect(() => {
-    if (!isLoading && userId && !activeSession) {
-      navigate("/dashboard");
-    }
-  }, [isLoading, userId, activeSession, navigate]);
 
   if (!activeSession) {
     return (
