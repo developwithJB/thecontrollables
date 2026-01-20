@@ -29,23 +29,34 @@ export default function Auth() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for password recovery event
+    // Set up auth state listener FIRST to catch PASSWORD_RECOVERY event
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth event:", event);
       if (event === "PASSWORD_RECOVERY") {
         setMode("reset");
-      } else if (session && mode !== "reset") {
+      } else if (event === "SIGNED_IN" && mode !== "reset") {
         navigate("/dashboard");
       }
     });
 
-    // Check if user is already logged in
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session && mode !== "reset") {
-        navigate("/dashboard");
-      }
-    };
-    checkSession();
+    // Check URL hash for recovery tokens (Supabase appends them there)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get("type");
+    const accessToken = hashParams.get("access_token");
+    
+    if (type === "recovery" && accessToken) {
+      // User clicked password reset link - set mode immediately
+      setMode("reset");
+    } else {
+      // Only check existing session if not in recovery flow
+      const checkSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && mode !== "reset") {
+          navigate("/dashboard");
+        }
+      };
+      checkSession();
+    }
 
     return () => subscription.unsubscribe();
   }, [navigate, mode]);
