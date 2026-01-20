@@ -1,5 +1,4 @@
-/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -214,15 +213,14 @@ Deno.serve(async (req) => {
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     
-    if (claimsError || !claimsData?.claims) {
-      console.error('Auth error:', claimsError);
+    if (userError || !userData?.user) {
+      console.error('Auth error:', userError);
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -230,7 +228,7 @@ Deno.serve(async (req) => {
     }
 
     // User is authenticated
-    const userId = claimsData.claims.sub;
+    const userId = userData.user.id;
     if (!userId) {
       return new Response(
         JSON.stringify({ error: 'Invalid user session' }),
