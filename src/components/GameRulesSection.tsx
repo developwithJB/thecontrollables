@@ -78,7 +78,7 @@ export function GameRulesSection() {
       <div className="flex items-center gap-2 mb-4">
         <Lightbulb className="w-4 h-4 text-primary" />
         <h2 className="font-display text-lg font-semibold text-foreground">
-          The Rules of the Game
+          The Rules for the Game of Life
         </h2>
       </div>
       
