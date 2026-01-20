@@ -12,9 +12,12 @@ import {
   MessageCircle,
   RotateCcw,
   Sparkles,
-  Download
+  Download,
+  Share
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { isStandalone, isIOS, hasDeferredPrompt, triggerInstallPrompt } from "@/lib/pwa";
+import { toast } from "sonner";
 
 interface ManualSection {
   title: string;
@@ -82,8 +85,83 @@ const MANUAL_SECTIONS: ManualSection[] = [
 
 export function DashboardManualSection() {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
   
   const visibleSections = isExpanded ? MANUAL_SECTIONS : MANUAL_SECTIONS.slice(0, 1);
+  
+  const alreadyInstalled = isStandalone();
+  const isiOSDevice = isIOS();
+  const canInstall = hasDeferredPrompt();
+
+  const handleInstallClick = async () => {
+    if (alreadyInstalled) {
+      toast.success("Already installed!", { description: "The Dashboard is on your home screen." });
+      return;
+    }
+
+    if (isiOSDevice) {
+      toast.info("Tap Share, then 'Add to Home Screen'", { 
+        description: "Use the share button in Safari to install.",
+        duration: 5000
+      });
+      return;
+    }
+
+    if (canInstall) {
+      setIsInstalling(true);
+      const result = await triggerInstallPrompt();
+      setIsInstalling(false);
+      
+      if (result === 'accepted') {
+        toast.success("Installing The Dashboard!");
+      } else if (result === 'dismissed') {
+        toast.info("No problem—you can install anytime from browser menu.");
+      }
+    } else {
+      toast.info("Install from browser menu", {
+        description: "Use your browser's menu to add to home screen.",
+        duration: 4000
+      });
+    }
+  };
+
+  // Render install button for the Install section
+  const renderInstallButton = () => {
+    if (alreadyInstalled) {
+      return (
+        <div className="flex items-center gap-2 mt-3 text-xs text-green-600 dark:text-green-400">
+          <Download className="w-3 h-3" />
+          <span>Already installed</span>
+        </div>
+      );
+    }
+
+    if (isiOSDevice) {
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleInstallClick}
+          className="mt-3 text-xs h-8"
+        >
+          <Share className="w-3 h-3 mr-1.5" />
+          How to Install
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        size="sm"
+        onClick={handleInstallClick}
+        disabled={isInstalling}
+        className="mt-3 text-xs h-8"
+      >
+        <Download className="w-3 h-3 mr-1.5" />
+        {isInstalling ? "Installing..." : "Install Now"}
+      </Button>
+    );
+  };
   
   return (
     <motion.div
@@ -109,6 +187,8 @@ export function DashboardManualSection() {
         <AnimatePresence mode="wait">
           {visibleSections.map((section, index) => {
             const IconComponent = section.icon;
+            const isInstallSection = section.title === "Install the App";
+            
             return (
               <motion.div
                 key={index}
@@ -142,6 +222,9 @@ export function DashboardManualSection() {
                         {section.howToUse}
                       </p>
                     </div>
+
+                    {/* Install Button - only for Install section */}
+                    {isInstallSection && renderInstallButton()}
                   </div>
                 </div>
               </motion.div>
