@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SplashScreen } from "@/components/SplashScreen";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -61,13 +62,7 @@ export default function Challenge() {
   }, [activeChallenge, selectedDay, getCurrentDay]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-muted-foreground">
-          Loading...
-        </motion.div>
-      </div>
-    );
+    return <SplashScreen />;
   }
 
   if (!activeChallenge) {
