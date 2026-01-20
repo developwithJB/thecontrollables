@@ -6,6 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Valid controllable types for validation
+const VALID_CONTROLLABLES = ['awareness', 'perspective', 'habit', 'wellness', 'environment'];
+
+// Input validation constants
+const MAX_MESSAGE_LENGTH = 4000;
+const MAX_MESSAGES_COUNT = 50;
+const MAX_SESSION_HISTORY_COUNT = 20;
+
 const CONTROLLABLE_PROMPTS: Record<string, string> = {
   awareness: `You are the Owl 🦉 - the Awareness Operator from The Controllables.
 
@@ -165,19 +173,114 @@ interface RequestBody {
   patternData?: PatternData | null;
 }
 
+// Validate a single message
+function validateMessage(msg: unknown): msg is ChatMessage {
+  if (!msg || typeof msg !== 'object') return false;
+  const m = msg as Record<string, unknown>;
+  if (!m.role || !['user', 'assistant'].includes(m.role as string)) return false;
+  if (!m.content || typeof m.content !== 'string') return false;
+  if ((m.content as string).length > MAX_MESSAGE_LENGTH) return false;
+  return true;
+}
+
+// Validate messages array
+function validateMessages(messages: unknown): messages is ChatMessage[] {
+  if (!Array.isArray(messages)) return false;
+  if (messages.length === 0 || messages.length > MAX_MESSAGES_COUNT) return false;
+  return messages.every(validateMessage);
+}
+
+// Validate controllable type
+function validateControllable(controllable: unknown): boolean {
+  if (controllable === undefined || controllable === null) return true;
+  if (typeof controllable !== 'string') return false;
+  return VALID_CONTROLLABLES.includes(controllable);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { controllable, messages, challengeContext, userContext, buildContext, sessionHistory, patternData } = await req.json() as RequestBody;
-
-    if (!messages || !Array.isArray(messages)) {
+    // ============ AUTHENTICATION ============
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.error('Auth error:', claimsError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // User is authenticated
+    const userId = claimsData.claims.sub;
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid user session' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ============ INPUT VALIDATION ============
+    let body: RequestBody;
+    try {
+      body = await req.json() as RequestBody;
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON body' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    const { controllable, messages, challengeContext, userContext, buildContext, sessionHistory, patternData } = body;
+
+    // Validate messages array
+    if (!validateMessages(messages)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid messages: must be array of 1-50 messages, each with valid role and content under 4000 characters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate controllable type
+    if (!validateControllable(controllable)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid controllable type. Must be one of: awareness, perspective, habit, wellness, environment' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate session history if provided
+    if (sessionHistory !== undefined && sessionHistory !== null) {
+      if (!Array.isArray(sessionHistory) || sessionHistory.length > MAX_SESSION_HISTORY_COUNT) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid session history: must be array of up to 20 messages' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (!sessionHistory.every(validateMessage)) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid session history message format' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Use controllable-specific prompt or fallback to general guide
