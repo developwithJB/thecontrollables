@@ -47,9 +47,161 @@ Deno.serve(async (req) => {
     const method = req.method;
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
+    const resource = url.searchParams.get("resource");
 
+    // Handle different resources
     if (method === "GET") {
-      // List all users with their entitlement status
+      // Get analytics data
+      if (resource === "events") {
+        const limit = parseInt(url.searchParams.get("limit") || "100");
+        const { data, error } = await adminClient
+          .from("app_events")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(limit);
+        if (error) throw error;
+        return new Response(JSON.stringify({ events: data }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (resource === "errors") {
+        const limit = parseInt(url.searchParams.get("limit") || "100");
+        const unresolvedOnly = url.searchParams.get("unresolved") === "true";
+        let query = adminClient
+          .from("app_errors")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(limit);
+        
+        if (unresolvedOnly) {
+          query = query.eq("resolved", false);
+        }
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        return new Response(JSON.stringify({ errors: data }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (resource === "page_views") {
+        const limit = parseInt(url.searchParams.get("limit") || "100");
+        const { data, error } = await adminClient
+          .from("page_views")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(limit);
+        if (error) throw error;
+        return new Response(JSON.stringify({ page_views: data }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (resource === "analytics_summary") {
+        // Get aggregated analytics
+        const now = new Date();
+        const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+        const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+        // Page views last 24h
+        const { count: pageViews24h } = await adminClient
+          .from("page_views")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", last24h);
+
+        // Page views last 7d
+        const { count: pageViews7d } = await adminClient
+          .from("page_views")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", last7d);
+
+        // Unique sessions last 24h
+        const { data: sessions24h } = await adminClient
+          .from("page_views")
+          .select("session_id")
+          .gte("created_at", last24h);
+        const uniqueSessions24h = new Set(sessions24h?.map(s => s.session_id)).size;
+
+        // Errors last 24h
+        const { count: errors24h } = await adminClient
+          .from("app_errors")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", last24h);
+
+        // Unresolved errors
+        const { count: unresolvedErrors } = await adminClient
+          .from("app_errors")
+          .select("*", { count: "exact", head: true })
+          .eq("resolved", false);
+
+        // Events last 24h
+        const { count: events24h } = await adminClient
+          .from("app_events")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", last24h);
+
+        // Top pages last 7d
+        const { data: topPagesData } = await adminClient
+          .from("page_views")
+          .select("page_path")
+          .gte("created_at", last7d);
+
+        const pageCounts: Record<string, number> = {};
+        topPagesData?.forEach(p => {
+          pageCounts[p.page_path] = (pageCounts[p.page_path] || 0) + 1;
+        });
+        const topPages = Object.entries(pageCounts)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 5)
+          .map(([path, count]) => ({ path, count }));
+
+        // Event breakdown last 7d
+        const { data: eventBreakdownData } = await adminClient
+          .from("app_events")
+          .select("event_type")
+          .gte("created_at", last7d);
+
+        const eventCounts: Record<string, number> = {};
+        eventBreakdownData?.forEach(e => {
+          eventCounts[e.event_type] = (eventCounts[e.event_type] || 0) + 1;
+        });
+        const eventBreakdown = Object.entries(eventCounts)
+          .sort(([, a], [, b]) => b - a)
+          .map(([type, count]) => ({ type, count }));
+
+        // Error breakdown by type
+        const { data: errorBreakdownData } = await adminClient
+          .from("app_errors")
+          .select("error_type")
+          .gte("created_at", last7d);
+
+        const errorCounts: Record<string, number> = {};
+        errorBreakdownData?.forEach(e => {
+          errorCounts[e.error_type || "unknown"] = (errorCounts[e.error_type || "unknown"] || 0) + 1;
+        });
+        const errorBreakdown = Object.entries(errorCounts)
+          .sort(([, a], [, b]) => b - a)
+          .map(([type, count]) => ({ type, count }));
+
+        return new Response(JSON.stringify({
+          summary: {
+            pageViews24h: pageViews24h || 0,
+            pageViews7d: pageViews7d || 0,
+            uniqueSessions24h,
+            errors24h: errors24h || 0,
+            unresolvedErrors: unresolvedErrors || 0,
+            events24h: events24h || 0,
+            topPages,
+            eventBreakdown,
+            errorBreakdown,
+          }
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Default: List all users with their entitlement status
       const { data: authUsers, error: authError } = await adminClient.auth.admin.listUsers();
       if (authError) throw authError;
 
@@ -125,14 +277,34 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (method === "POST" && action === "resolve_error") {
+      const { errorId } = await req.json();
+      if (!errorId) {
+        return new Response(JSON.stringify({ error: "errorId required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error: updateError } = await adminClient
+        .from("app_errors")
+        .update({ resolved: true, resolved_at: new Date().toISOString() })
+        .eq("id", errorId);
+
+      if (updateError) throw updateError;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error: unknown) {
-    console.error("Admin users error:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: message }), {
+  } catch (error: any) {
+    console.error("Admin function error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
