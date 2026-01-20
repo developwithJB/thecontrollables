@@ -152,25 +152,52 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      if (!session) {
-        navigate("/auth");
+    let isMounted = true;
+    
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (isMounted) {
+          setUser(session?.user ?? null);
+          if (!session) {
+            navigate("/auth");
+          }
+          setIsAuthLoading(false);
+        }
+      } catch (error) {
+        console.error("Auth init error:", error);
+        if (isMounted) {
+          setIsAuthLoading(false);
+          navigate("/auth");
+        }
       }
-      setIsAuthLoading(false);
+    };
+    
+    initAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (isMounted) {
+        setUser(session?.user ?? null);
+        if (!session) {
+          navigate("/auth");
+        }
+        setIsAuthLoading(false);
+      }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (!session) {
-        navigate("/auth");
+    // Safety timeout - never get stuck loading
+    const timeout = setTimeout(() => {
+      if (isMounted && isAuthLoading) {
+        console.warn("Auth loading timeout - forcing completion");
+        setIsAuthLoading(false);
       }
-      setIsAuthLoading(false);
-    });
+    }, 5000);
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, [navigate]);
 
   // Initialize onboarding record and check "returned" badge on mount
