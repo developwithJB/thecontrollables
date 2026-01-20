@@ -57,7 +57,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   
   // Reset data
-  const { activeSession, currentDay, isCompleted, isLoading: resetLoading, completedDays } = useReset();
+  const { activeSession, currentDay, isCompleted, isLoading: resetLoading, completedDays, acceptCovenant, isAcceptingCovenant } = useReset();
   
   // Life dashboard data
   const {
@@ -367,6 +367,8 @@ export default function Dashboard() {
                     completedDays={completedDays}
                     todayAlreadyCompleted={todayAlreadyCompleted}
                     readings={readings}
+                    onStartReset={acceptCovenant}
+                    isStartingReset={isAcceptingCovenant}
                   />
                 </div>
               )}

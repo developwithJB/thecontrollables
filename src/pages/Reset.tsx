@@ -79,13 +79,18 @@ const Reset = () => {
     return <ResetComplete isFullReset={false} />;
   }
 
-  // No active session - show covenant screen
+  // No active session - redirect to dashboard (user can start a reset from there)
+  useEffect(() => {
+    if (!isLoading && userId && !activeSession) {
+      navigate("/dashboard");
+    }
+  }, [isLoading, userId, activeSession, navigate]);
+
   if (!activeSession) {
     return (
-      <CovenantScreen
-        onAccept={() => acceptCovenant()}
-        isAccepting={isAcceptingCovenant}
-      />
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
     );
   }
 
