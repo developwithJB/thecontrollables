@@ -87,19 +87,43 @@ export const useLifeDashboard = () => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user?.id || null);
-      setIsAuthLoading(false);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (isMounted) {
+          setUserId(user?.id || null);
+          setIsAuthLoading(false);
+        }
+      } catch (error) {
+        console.error("useLifeDashboard auth error:", error);
+        if (isMounted) {
+          setIsAuthLoading(false);
+        }
+      }
     };
     getUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setUserId(session?.user?.id || null);
-      setIsAuthLoading(false);
+      if (isMounted) {
+        setUserId(session?.user?.id || null);
+        setIsAuthLoading(false);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    // Safety timeout - never get stuck loading
+    const timeout = setTimeout(() => {
+      if (isMounted) {
+        setIsAuthLoading(false);
+      }
+    }, 5000);
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   // Get active main quest

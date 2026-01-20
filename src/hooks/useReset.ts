@@ -71,38 +71,70 @@ export const useReset = () => {
   const [displayName, setDisplayName] = useState<string>("");
 
   useEffect(() => {
+    let isMounted = true;
+    
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user?.id || null);
-      setIsAuthLoading(false);
-      
-      // Fetch display name from profile
-      if (user?.id) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("display_name")
-          .eq("id", user.id)
-          .single();
-        setDisplayName(profile?.display_name || user.email?.split("@")[0] || "");
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (isMounted) {
+          setUserId(user?.id || null);
+          setIsAuthLoading(false);
+          
+          // Fetch display name from profile
+          if (user?.id) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("display_name")
+              .eq("id", user.id)
+              .single();
+            if (isMounted) {
+              setDisplayName(profile?.display_name || user.email?.split("@")[0] || "");
+            }
+          }
+        }
+      } catch (error) {
+        console.error("useReset auth error:", error);
+        if (isMounted) {
+          setIsAuthLoading(false);
+        }
       }
     };
     getUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_, session) => {
-      setUserId(session?.user?.id || null);
-      setIsAuthLoading(false);
-      
-      if (session?.user?.id) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("display_name")
-          .eq("id", session.user.id)
-          .single();
-        setDisplayName(profile?.display_name || session.user.email?.split("@")[0] || "");
+      if (isMounted) {
+        setUserId(session?.user?.id || null);
+        setIsAuthLoading(false);
+        
+        if (session?.user?.id) {
+          try {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("display_name")
+              .eq("id", session.user.id)
+              .single();
+            if (isMounted) {
+              setDisplayName(profile?.display_name || session.user.email?.split("@")[0] || "");
+            }
+          } catch (error) {
+            console.error("Profile fetch error:", error);
+          }
+        }
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Safety timeout - never get stuck loading
+    const timeout = setTimeout(() => {
+      if (isMounted) {
+        setIsAuthLoading(false);
+      }
+    }, 5000);
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   // Get active reset session
