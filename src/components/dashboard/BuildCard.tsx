@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Share2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { getArchetypeInfo, type UserBuildCurrent } from "@/lib/build";
+import { getArchetypeInfo, getArchetypeThemeColors, type UserBuildCurrent } from "@/lib/build";
 
 interface BuildCardProps {
   build: UserBuildCurrent;
@@ -21,6 +21,7 @@ export function BuildCard({ build }: BuildCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const archetypeInfo = getArchetypeInfo(build.build_archetype_key);
+  const themeColors = getArchetypeThemeColors(build.build_archetype_key);
 
   const getStatValue = (key: string) => {
     return Number(build[key as keyof typeof build]) || 0;
@@ -105,8 +106,9 @@ export function BuildCard({ build }: BuildCardProps) {
           <h2 className="font-display text-xl font-bold text-foreground mb-1">
             My Build
           </h2>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
-            <span className="text-sm font-medium text-primary">
+          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${themeColors.bg} border ${themeColors.border}`}>
+            <span className="text-base">{archetypeInfo.emoji}</span>
+            <span className={`text-sm font-medium ${themeColors.text}`}>
               {archetypeInfo.label}
             </span>
           </div>
