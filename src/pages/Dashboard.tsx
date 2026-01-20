@@ -28,6 +28,7 @@ import { AIGuidePanel } from "@/components/dashboard/AIGuidePanel";
 import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
 import { ReadingCard } from "@/components/ReadingCard";
 import { GameRulesSection } from "@/components/GameRulesSection";
+import { DashboardManualSection } from "@/components/DashboardManualSection";
 import { 
   MainQuestSkeleton, 
   ResetProgressSkeleton, 
@@ -596,11 +597,17 @@ export default function Dashboard() {
 
                   {/* Rules of the Game second when reset active */}
                   <GameRulesSection />
+
+                  {/* Dashboard Manual */}
+                  <DashboardManualSection />
                 </>
               ) : (
                 <>
                   {/* When NO reset active: Rules of the Game first */}
                   <GameRulesSection />
+
+                  {/* Dashboard Manual */}
+                  <DashboardManualSection />
 
                   {/* Section Divider */}
                   <div className="flex items-center gap-3 mb-6">
