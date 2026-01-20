@@ -52,6 +52,120 @@ export type Database = {
           },
         ]
       }
+      app_analytics: {
+        Row: {
+          created_at: string
+          dimensions: Json | null
+          id: string
+          metric_name: string
+          metric_type: string
+          metric_value: number | null
+          period_end: string
+          period_start: string
+        }
+        Insert: {
+          created_at?: string
+          dimensions?: Json | null
+          id?: string
+          metric_name: string
+          metric_type: string
+          metric_value?: number | null
+          period_end: string
+          period_start: string
+        }
+        Update: {
+          created_at?: string
+          dimensions?: Json | null
+          id?: string
+          metric_name?: string
+          metric_type?: string
+          metric_value?: number | null
+          period_end?: string
+          period_start?: string
+        }
+        Relationships: []
+      }
+      app_errors: {
+        Row: {
+          additional_context: Json | null
+          component_name: string | null
+          created_at: string
+          error_message: string
+          error_stack: string | null
+          error_type: string | null
+          id: string
+          page_path: string | null
+          resolved: boolean | null
+          resolved_at: string | null
+          session_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          additional_context?: Json | null
+          component_name?: string | null
+          created_at?: string
+          error_message: string
+          error_stack?: string | null
+          error_type?: string | null
+          id?: string
+          page_path?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          additional_context?: Json | null
+          component_name?: string | null
+          created_at?: string
+          error_message?: string
+          error_stack?: string | null
+          error_type?: string | null
+          id?: string
+          page_path?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      app_events: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_name: string
+          event_type: string
+          id: string
+          page_path: string | null
+          screen_size: string | null
+          session_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_name: string
+          event_type: string
+          id?: string
+          page_path?: string | null
+          screen_size?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_name?: string
+          event_type?: string
+          id?: string
+          page_path?: string | null
+          screen_size?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       build_answers: {
         Row: {
           assessment_id: string
@@ -662,6 +776,39 @@ export type Database = {
           status?: string
           title?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      page_views: {
+        Row: {
+          created_at: string
+          id: string
+          load_time_ms: number | null
+          page_path: string
+          referrer: string | null
+          screen_size: string | null
+          session_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          load_time_ms?: number | null
+          page_path: string
+          referrer?: string | null
+          screen_size?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          load_time_ms?: number | null
+          page_path?: string
+          referrer?: string | null
+          screen_size?: string | null
+          session_id?: string | null
+          user_agent?: string | null
         }
         Relationships: []
       }

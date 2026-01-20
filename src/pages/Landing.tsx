@@ -3,6 +3,7 @@ import { ArrowRight, Book } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
+import { usePageViewTracking } from "@/hooks/useAnalytics";
 
 const controllables = [
   { emoji: "🦉", name: "Awareness" },
@@ -13,6 +14,8 @@ const controllables = [
 ];
 
 export default function Landing() {
+  usePageViewTracking("Landing");
+  
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Navigation */}

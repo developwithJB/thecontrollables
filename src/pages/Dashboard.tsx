@@ -15,6 +15,7 @@ import { useBadges } from "@/hooks/useBadges";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { usePageViewTracking } from "@/hooks/useAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayContent, RESET_DAYS } from "@/lib/resetContent";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -52,6 +53,8 @@ import { LockedOverlay } from "@/components/experience/LockedOverlay";
 type TabType = "dashboard" | "experience" | "guide";
 
 export default function Dashboard() {
+  usePageViewTracking("Dashboard");
+  
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
