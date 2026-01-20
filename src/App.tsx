@@ -38,14 +38,14 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AnimatePresence mode="wait">
-          {showSplash && <SplashScreen key="splash" />}
-        </AnimatePresence>
-        <OfflineIndicator />
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+      <BrowserRouter>
+        <TooltipProvider>
+          <AnimatePresence mode="wait">
+            {showSplash && <SplashScreen key="splash" />}
+          </AnimatePresence>
+          <OfflineIndicator />
+          <Toaster />
+          <Sonner />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<Landing />} />
@@ -58,8 +58,8 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
-        </BrowserRouter>
-      </TooltipProvider>
+        </TooltipProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 };
