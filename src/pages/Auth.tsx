@@ -10,37 +10,120 @@ import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+type AuthMode = "signin" | "signup" | "forgot" | "reset";
+
 export default function Auth() {
   const [searchParams] = useSearchParams();
-  const [mode, setMode] = useState<"signin" | "signup">(
-    searchParams.get("mode") === "signup" ? "signup" : "signin"
-  );
+  const [mode, setMode] = useState<AuthMode>(() => {
+    const urlMode = searchParams.get("mode");
+    if (urlMode === "signup") return "signup";
+    if (urlMode === "forgot") return "forgot";
+    return "signin";
+  });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check for password recovery event
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setMode("reset");
+      } else if (session && mode !== "reset") {
+        navigate("/dashboard");
+      }
+    });
+
     // Check if user is already logged in
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+      if (session && mode !== "reset") {
         navigate("/dashboard");
       }
     };
     checkSession();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate("/dashboard");
-      }
-    });
-
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, mode]);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Check your email",
+        description: "We've sent you a password reset link.",
+      });
+      setMode("signin");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send reset email.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newPassword || newPassword.length < 6) {
+      toast({
+        title: "Invalid password",
+        description: "Password must be at least 6 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Password updated",
+        description: "Your password has been reset. Redirecting...",
+      });
+      
+      setTimeout(() => navigate("/dashboard"), 1500);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update password.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,6 +203,24 @@ export default function Auth() {
     }
   };
 
+  const getTitle = () => {
+    switch (mode) {
+      case "forgot": return "Reset your password";
+      case "reset": return "Set new password";
+      case "signup": return "Create your account";
+      default: return "Welcome back";
+    }
+  };
+
+  const getSubtitle = () => {
+    switch (mode) {
+      case "forgot": return "Enter your email and we'll send you a reset link";
+      case "reset": return "Enter your new password below";
+      case "signup": return "Start building momentum today";
+      default: return "Sign in to access your dashboard";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left Panel - Branding */}
@@ -184,84 +285,165 @@ export default function Auth() {
 
           <div className="mb-8">
             <h1 className="font-display text-2xl font-bold text-foreground mb-2">
-              {mode === "signin" ? "Welcome back" : "Create your account"}
+              {getTitle()}
             </h1>
             <p className="text-muted-foreground">
-              {mode === "signin" 
-                ? "Sign in to access your dashboard" 
-                : "Start building momentum today"
-              }
+              {getSubtitle()}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="pl-10"
-                  autoComplete="email"
-                  data-testid="auth-email-input"
-                />
+          {mode === "reset" ? (
+            <form onSubmit={handleResetPassword} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="newPassword"
+                    type={showPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="pl-10 pr-10"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="pl-10 pr-10"
-                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                  data-testid="auth-password-input"
-                />
+              <Button 
+                type="submit" 
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                disabled={isLoading}
+              >
+                {isLoading ? "Updating..." : "Update Password"}
+              </Button>
+            </form>
+          ) : mode === "forgot" ? (
+            <form onSubmit={handleForgotPassword} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="pl-10"
+                    autoComplete="email"
+                  />
+                </div>
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                disabled={isLoading}
+              >
+                {isLoading ? "Sending..." : "Send Reset Link"}
+              </Button>
+
+              <div className="text-center">
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setMode("signin")}
+                  className="text-sm text-accent hover:underline font-medium"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  Back to sign in
                 </button>
               </div>
-            </div>
+            </form>
+          ) : (
+            <>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="pl-10"
+                      autoComplete="email"
+                      data-testid="auth-email-input"
+                    />
+                  </div>
+                </div>
 
-            <Button 
-              type="submit" 
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={isLoading}
-              data-testid="auth-submit-button"
-            >
-              {isLoading 
-                ? (mode === "signin" ? "Signing in..." : "Creating account...")
-                : (mode === "signin" ? "Sign In" : "Create Account")
-              }
-            </Button>
-          </form>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    {mode === "signin" && (
+                      <button
+                        type="button"
+                        onClick={() => setMode("forgot")}
+                        className="text-xs text-accent hover:underline"
+                      >
+                        Forgot password?
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="pl-10 pr-10"
+                      autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                      data-testid="auth-password-input"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
-              <button
-                type="button"
-                onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-                className="text-accent hover:underline font-medium"
-                data-testid="auth-toggle-mode"
-              >
-                {mode === "signin" ? "Sign up" : "Sign in"}
-              </button>
-            </p>
-          </div>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  disabled={isLoading}
+                  data-testid="auth-submit-button"
+                >
+                  {isLoading 
+                    ? (mode === "signin" ? "Signing in..." : "Creating account...")
+                    : (mode === "signin" ? "Sign In" : "Create Account")
+                  }
+                </Button>
+              </form>
+
+              <div className="mt-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
+                  <button
+                    type="button"
+                    onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+                    className="text-accent hover:underline font-medium"
+                    data-testid="auth-toggle-mode"
+                  >
+                    {mode === "signin" ? "Sign up" : "Sign in"}
+                  </button>
+                </p>
+              </div>
+            </>
+          )}
 
           <p className="mt-8 text-xs text-center text-muted-foreground">
             Your data is private and secure. We never share your information.
