@@ -11,7 +11,8 @@ import {
   Dumbbell, 
   MessageCircle,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -26,8 +27,8 @@ const MANUAL_SECTIONS: ManualSection[] = [
   {
     title: "Main Quest",
     icon: Target,
-    description: "Your primary focus for the next 7 days. One clear objective that anchors your daily decisions.",
-    howToUse: "Tap to set your quest. Keep it specific and achievable. Update it anytime your focus shifts."
+    description: "Your primary focus for 7, 30, or 90 days. One clear objective that anchors your daily decisions.",
+    howToUse: "Tap to set your quest. Choose your duration. Keep it specific and achievable. Update it anytime your focus shifts."
   },
   {
     title: "7-Day Reset",
@@ -62,7 +63,7 @@ const MANUAL_SECTIONS: ManualSection[] = [
   {
     title: "AI Guide",
     icon: MessageCircle,
-    description: "Five AI operators—Owl, Turtle, Shark, Satellite, Rocket—each specialized in one Controllable.",
+    description: "Five AI operators—Awareness, Perspective, Habit, Wellness, and Environment—each specialized in one Controllable.",
     howToUse: "Ask questions when stuck. Each guide gives action-focused advice, not therapy. Use them as tools."
   },
   {
@@ -70,6 +71,12 @@ const MANUAL_SECTIONS: ManualSection[] = [
     icon: Sparkles,
     description: "Your full history: badges earned, progress over time, past Resets, and momentum trends.",
     howToUse: "Check weekly to see patterns. Review past Resets to remember what you've learned."
+  },
+  {
+    title: "Install the App",
+    icon: Download,
+    description: "Add The Dashboard to your home screen for quick access. Works offline and launches like a native app.",
+    howToUse: "On iPhone: tap Share → 'Add to Home Screen'. On Android/Desktop: tap the install prompt when it appears."
   }
 ];
 
