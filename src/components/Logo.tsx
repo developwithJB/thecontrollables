@@ -8,7 +8,7 @@ interface LogoProps {
 export function Logo({ className, showText = true }: LogoProps) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <div className="relative w-10 h-10">
+      <div className="relative w-10 h-10 group">
         {/* Sun/Dashboard logo mark with D in center */}
         <svg
           viewBox="0 0 40 40"
@@ -16,34 +16,43 @@ export function Logo({ className, showText = true }: LogoProps) {
           xmlns="http://www.w3.org/2000/svg"
           className="w-full h-full"
         >
-          {/* Background circle (optional, for standalone use) */}
+          {/* Glow filter for animation */}
+          <defs>
+            <filter id="logoGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="1.5" result="coloredBlur" />
+              <feMerge>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          {/* Background */}
           <rect
             x="0"
             y="0"
             width="40"
             height="40"
             rx="8"
-            className="fill-primary dark:fill-background"
+            className="fill-primary dark:fill-[hsl(222,47%,11%)]"
           />
           
-          {/* Sun rays */}
-          <g className="stroke-accent dark:stroke-accent" strokeWidth="2" strokeLinecap="round">
-            {/* Top ray */}
-            <line x1="20" y1="4" x2="20" y2="8" />
-            {/* Bottom ray */}
-            <line x1="20" y1="32" x2="20" y2="36" />
-            {/* Left ray */}
-            <line x1="4" y1="20" x2="8" y2="20" />
-            {/* Right ray */}
-            <line x1="32" y1="20" x2="36" y2="20" />
-            {/* Top-right diagonal */}
-            <line x1="30.3" y1="9.7" x2="27.5" y2="12.5" />
-            {/* Top-left diagonal */}
-            <line x1="9.7" y1="9.7" x2="12.5" y2="12.5" />
-            {/* Bottom-right diagonal */}
-            <line x1="30.3" y1="30.3" x2="27.5" y2="27.5" />
-            {/* Bottom-left diagonal */}
-            <line x1="9.7" y1="30.3" x2="12.5" y2="27.5" />
+          {/* Sun rays with glow animation */}
+          <g 
+            className="stroke-accent opacity-90 group-hover:opacity-100 transition-opacity duration-300"
+            strokeWidth="2" 
+            strokeLinecap="round"
+            filter="url(#logoGlow)"
+          >
+            {/* Animated rays */}
+            <line x1="20" y1="4" x2="20" y2="8" className="origin-center animate-[pulse_3s_ease-in-out_infinite]" />
+            <line x1="20" y1="32" x2="20" y2="36" className="origin-center animate-[pulse_3s_ease-in-out_0.4s_infinite]" />
+            <line x1="4" y1="20" x2="8" y2="20" className="origin-center animate-[pulse_3s_ease-in-out_0.8s_infinite]" />
+            <line x1="32" y1="20" x2="36" y2="20" className="origin-center animate-[pulse_3s_ease-in-out_1.2s_infinite]" />
+            <line x1="30.3" y1="9.7" x2="27.5" y2="12.5" className="origin-center animate-[pulse_3s_ease-in-out_0.2s_infinite]" />
+            <line x1="9.7" y1="9.7" x2="12.5" y2="12.5" className="origin-center animate-[pulse_3s_ease-in-out_0.6s_infinite]" />
+            <line x1="30.3" y1="30.3" x2="27.5" y2="27.5" className="origin-center animate-[pulse_3s_ease-in-out_1s_infinite]" />
+            <line x1="9.7" y1="30.3" x2="12.5" y2="27.5" className="origin-center animate-[pulse_3s_ease-in-out_1.4s_infinite]" />
           </g>
           
           {/* Center circle */}
@@ -51,24 +60,17 @@ export function Logo({ className, showText = true }: LogoProps) {
             cx="20"
             cy="20"
             r="9"
-            className="stroke-accent dark:stroke-accent fill-none"
+            className="stroke-accent fill-none"
             strokeWidth="2"
+            filter="url(#logoGlow)"
           />
           
-          {/* D letter */}
-          <text
-            x="20"
-            y="25"
-            textAnchor="middle"
-            className="fill-accent dark:fill-accent font-bold"
-            style={{ 
-              fontSize: '12px', 
-              fontFamily: 'Space Grotesk, system-ui, sans-serif',
-              fontWeight: 700
-            }}
-          >
-            D
-          </text>
+          {/* D letter - custom path for pixel-perfect match */}
+          <path
+            d="M16 13.5h3.5c3.5 0 6 2.5 6 6.5s-2.5 6.5-6 6.5H16V13.5z M18.5 15.8v8.4h1c2.3 0 3.8-1.7 3.8-4.2s-1.5-4.2-3.8-4.2h-1z"
+            className="fill-accent"
+            filter="url(#logoGlow)"
+          />
         </svg>
       </div>
       {showText && (
