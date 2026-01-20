@@ -4,7 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
-import { lazy, Suspense } from "react";
+import { SplashScreen } from "@/components/SplashScreen";
+import { lazy, Suspense, useState, useEffect } from "react";
+import { AnimatePresence } from "framer-motion";
 
 // Eagerly load Landing for fastest FCP
 import Landing from "./pages/Landing";
@@ -19,35 +21,47 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
-// Minimal loading fallback to avoid layout shift
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="animate-pulse text-muted-foreground">Loading...</div>
-  </div>
-);
+// Page loader using splash screen style
+const PageLoader = () => <SplashScreen />;
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <OfflineIndicator />
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/challenge" element={<Challenge />} />
-            <Route path="/reset" element={<Reset />} />
-            <Route path="/admin" element={<Admin />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    // Show splash for minimum time, then fade out
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AnimatePresence mode="wait">
+          {showSplash && <SplashScreen key="splash" />}
+        </AnimatePresence>
+        <OfflineIndicator />
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/challenge" element={<Challenge />} />
+              <Route path="/reset" element={<Reset />} />
+              <Route path="/admin" element={<Admin />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
