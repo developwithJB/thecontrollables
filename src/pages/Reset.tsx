@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { SplashScreen } from "@/components/SplashScreen";
 import { useReset } from "@/hooks/useReset";
 import { CovenantScreen } from "@/components/CovenantScreen";
 import { ResetDay } from "@/components/ResetDay";
@@ -63,11 +63,7 @@ const Reset = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <SplashScreen />;
   }
 
   // Show Day 7 complete with certificate
@@ -88,11 +84,7 @@ const Reset = () => {
   }
 
   if (!activeSession) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <SplashScreen />;
   }
 
   // Session exists but covenant not accepted (edge case)

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { SplashScreen } from "@/components/SplashScreen";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, Book, BookOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -299,13 +300,7 @@ export default function Dashboard() {
 
   // Only block on critical auth loading - let other data load in background
   if (isAuthLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-muted-foreground">
-          Loading...
-        </motion.div>
-      </div>
-    );
+    return <SplashScreen />;
   }
 
   const greeting = () => {
