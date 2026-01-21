@@ -38,14 +38,14 @@ Today's Action: ${todayReading.quest_action}` : ""}
 
 Control what you can. Accept what you can't.
 
-thecontrollables.lovable.app`;
+thedashboard.agbcoaching.com`;
 
     if (navigator.share) {
       try {
         await navigator.share({
           title: "My Controllables Journey",
           text: summary,
-          url: "https://thecontrollables.lovable.app",
+          url: "https://thedashboard.agbcoaching.com",
         });
       } catch {
         navigator.clipboard.writeText(summary);

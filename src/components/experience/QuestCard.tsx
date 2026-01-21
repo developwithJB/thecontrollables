@@ -119,7 +119,7 @@ export function QuestCard({ activeQuest, currentResetDay, todayReading, onClose 
           {/* Branding */}
           <div className="text-center mt-4">
             <p className="text-[10px] text-slate-600">
-              thecontrollables.lovable.app
+              thedashboard.agbcoaching.com
             </p>
           </div>
         </div>

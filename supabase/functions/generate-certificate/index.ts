@@ -451,7 +451,7 @@ Deno.serve(async (req) => {
   <!-- Footer URL -->
   <text x="${svgWidth/2}" y="${svgHeight - 25}" text-anchor="middle" 
         font-family="system-ui, -apple-system, sans-serif" font-size="12" 
-        fill="#64748b">thecontrollables.lovable.app</text>
+        fill="#64748b">thedashboard.agbcoaching.com</text>
 </svg>`;
 
     const svgBlob = new Blob([svgContent], { type: "image/svg+xml" });
