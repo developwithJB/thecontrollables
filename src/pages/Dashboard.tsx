@@ -33,11 +33,11 @@ import { ReadingCard } from "@/components/ReadingCard";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
 import { InstallNudge } from "@/components/pwa/InstallNudge";
-import { 
-  MainQuestSkeleton, 
-  ResetProgressSkeleton, 
-  SmallModuleSkeleton, 
-  AIGuideSkeleton 
+import {
+  MainQuestSkeleton,
+  ResetProgressSkeleton,
+  SmallModuleSkeleton,
+  AIGuideSkeleton,
 } from "@/components/dashboard/DashboardSkeletons";
 
 // Experience tab components
@@ -49,12 +49,11 @@ import { BadgesEarned } from "@/components/experience/BadgesEarned";
 import { ResetHistory } from "@/components/experience/ResetHistory";
 import { LockedOverlay } from "@/components/experience/LockedOverlay";
 
-
 type TabType = "dashboard" | "experience" | "guide";
 
 export default function Dashboard() {
   usePageViewTracking("Dashboard");
-  
+
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
@@ -62,10 +61,19 @@ export default function Dashboard() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+
   // Reset data
-  const { activeSession, currentDay, isCompleted, isExpired, isLoading: resetLoading, completedDays, acceptCovenant, isAcceptingCovenant } = useReset();
-  
+  const {
+    activeSession,
+    currentDay,
+    isCompleted,
+    isExpired,
+    isLoading: resetLoading,
+    completedDays,
+    acceptCovenant,
+    isAcceptingCovenant,
+  } = useReset();
+
   // Life dashboard data
   const {
     isLoading: dashboardLoading,
@@ -94,10 +102,10 @@ export default function Dashboard() {
   const { currentBuild, buildLoading } = useBuildAssessment();
 
   // Badges system
-  const { 
-    earnedBadges, 
-    isLoading: badgesLoading, 
-    awardBadge, 
+  const {
+    earnedBadges,
+    isLoading: badgesLoading,
+    awardBadge,
     checkReturnedBadge,
     checkProtectedTimeBadge,
     checkAskedGuidanceBadge,
@@ -105,20 +113,15 @@ export default function Dashboard() {
   } = useBadges(user?.id || null);
 
   // Onboarding / Simplified mode
-  const { 
-    isSimplifiedMode, 
-    isLoading: onboardingLoading, 
+  const {
+    isSimplifiedMode,
+    isLoading: onboardingLoading,
     completeOnboarding,
     ensureOnboardingRecord,
   } = useOnboarding(user?.id || null);
 
   // Entitlements (free vs paid)
-  const { 
-    isPaid, 
-    isLoading: entitlementsLoading, 
-    initiateCheckout, 
-    isCheckingOut 
-  } = useEntitlements(user?.id || null);
+  const { isPaid, isLoading: entitlementsLoading, initiateCheckout, isCheckingOut } = useEntitlements(user?.id || null);
 
   // PWA Install - check if user has completed meaningful action
   const hasCompletedMeaningfulAction = useMemo(() => {
@@ -181,10 +184,12 @@ export default function Dashboard() {
 
   useEffect(() => {
     let isMounted = true;
-    
+
     const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (isMounted) {
           setUser(session?.user ?? null);
           if (!session) {
@@ -200,10 +205,12 @@ export default function Dashboard() {
         }
       }
     };
-    
+
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (isMounted) {
         setUser(session?.user ?? null);
         if (!session) {
@@ -237,42 +244,54 @@ export default function Dashboard() {
   }, [user?.id, ensureOnboardingRecord, checkReturnedBadge]);
 
   // Handle quest creation - award badge and complete onboarding
-  const handleCreateQuest = useCallback((data: { title: string; durationDays: number }) => {
-    createQuest(data);
-    // Award "chose_quest" badge on first quest
-    if (!hasBadge("chose_quest")) {
-      awardBadge({ badgeKey: "chose_quest", triggerContext: { quest_title: data.title } });
-    }
-    // Complete onboarding if in simplified mode
-    if (isSimplifiedMode) {
-      completeOnboarding("quest");
-    }
-  }, [createQuest, hasBadge, awardBadge, isSimplifiedMode, completeOnboarding]);
+  const handleCreateQuest = useCallback(
+    (data: { title: string; durationDays: number }) => {
+      createQuest(data);
+      // Award "chose_quest" badge on first quest
+      if (!hasBadge("chose_quest")) {
+        awardBadge({ badgeKey: "chose_quest", triggerContext: { quest_title: data.title } });
+      }
+      // Complete onboarding if in simplified mode
+      if (isSimplifiedMode) {
+        completeOnboarding("quest");
+      }
+    },
+    [createQuest, hasBadge, awardBadge, isSimplifiedMode, completeOnboarding],
+  );
 
   // Handle quest update - award "respecd" badge
-  const handleUpdateQuest = useCallback((data: { questId: string; title: string }) => {
-    updateQuest(data);
-    // Award "respecd" badge for intentionally adjusting quest
-    if (!hasBadge("respecd")) {
-      awardBadge({ badgeKey: "respecd", triggerContext: { action: "quest_updated" } });
-    }
-  }, [updateQuest, hasBadge, awardBadge]);
+  const handleUpdateQuest = useCallback(
+    (data: { questId: string; title: string }) => {
+      updateQuest(data);
+      // Award "respecd" badge for intentionally adjusting quest
+      if (!hasBadge("respecd")) {
+        awardBadge({ badgeKey: "respecd", triggerContext: { action: "quest_updated" } });
+      }
+    },
+    [updateQuest, hasBadge, awardBadge],
+  );
 
   // Handle promise resolution - award badge
-  const handleResolvePromise = useCallback((data: { promiseId: string; kept: boolean }) => {
-    resolvePromise(data);
-    // Award "kept_promise" badge on first kept promise
-    if (data.kept && !hasBadge("kept_promise")) {
-      awardBadge({ badgeKey: "kept_promise", triggerContext: { promise_id: data.promiseId } });
-    }
-  }, [resolvePromise, hasBadge, awardBadge]);
+  const handleResolvePromise = useCallback(
+    (data: { promiseId: string; kept: boolean }) => {
+      resolvePromise(data);
+      // Award "kept_promise" badge on first kept promise
+      if (data.kept && !hasBadge("kept_promise")) {
+        awardBadge({ badgeKey: "kept_promise", triggerContext: { promise_id: data.promiseId } });
+      }
+    },
+    [resolvePromise, hasBadge, awardBadge],
+  );
 
   // Handle time logging - check badge
-  const handleLogTime = useCallback((data: { invested: number; wasted: number; notes?: string }) => {
-    logTime(data);
-    // Check if protected_time badge should be awarded
-    checkProtectedTimeBadge();
-  }, [logTime, checkProtectedTimeBadge]);
+  const handleLogTime = useCallback(
+    (data: { invested: number; wasted: number; notes?: string }) => {
+      logTime(data);
+      // Check if protected_time badge should be awarded
+      checkProtectedTimeBadge();
+    },
+    [logTime, checkProtectedTimeBadge],
+  );
 
   // Handle XP earned with onboarding completion for "rep" action
   const handleXpEarnedWithOnboarding = useCallback(() => {
@@ -430,7 +449,7 @@ export default function Dashboard() {
                   <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
                     Your Current State
                   </p>
-                  
+
                   {/* 2x2 Grid - compact state indicators */}
                   <div className="grid grid-cols-2 gap-2">
                     {/* Top-left: Your Build */}
@@ -441,7 +460,7 @@ export default function Dashboard() {
                         <BuildOverviewModule compact />
                       </div>
                     )}
-                    
+
                     {/* Top-right: Momentum */}
                     {dashboardLoading ? (
                       <SmallModuleSkeleton />
@@ -450,7 +469,7 @@ export default function Dashboard() {
                         <XpMomentumModule totalXp={totalXp} recentLogs={xpLogs} compact />
                       </div>
                     )}
-                    
+
                     {/* Bottom-left: Time Currency */}
                     {dashboardLoading ? (
                       <SmallModuleSkeleton />
@@ -464,7 +483,7 @@ export default function Dashboard() {
                         />
                       </div>
                     )}
-                    
+
                     {/* Bottom-right: Integrity */}
                     {dashboardLoading ? (
                       <SmallModuleSkeleton />
@@ -490,7 +509,7 @@ export default function Dashboard() {
                   <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
                     Your Current State
                   </p>
-                  
+
                   {/* 2x1 Grid - only Build & Momentum during onboarding */}
                   <div className="grid grid-cols-2 gap-2">
                     {buildLoading ? (
@@ -500,7 +519,7 @@ export default function Dashboard() {
                         <BuildOverviewModule compact />
                       </div>
                     )}
-                    
+
                     {dashboardLoading ? (
                       <SmallModuleSkeleton />
                     ) : (
@@ -541,12 +560,8 @@ export default function Dashboard() {
               transition={{ duration: 0.3 }}
             >
               <div className="mb-6">
-                <h1 className="font-display text-2xl font-semibold text-foreground mb-2">
-                  The Controllables
-                </h1>
-                <p className="text-muted-foreground text-sm">
-                  Play your life on purpose.
-                </p>
+                <h1 className="font-display text-2xl font-semibold text-foreground mb-2">The Controllables</h1>
+                <p className="text-muted-foreground text-sm">Play your life on purpose.</p>
               </div>
 
               {/* Conditional ordering based on active reset */}
@@ -557,7 +572,7 @@ export default function Dashboard() {
                   <p className="text-xs font-medium text-muted-foreground/70 tracking-wide uppercase mb-3">
                     Current Focus
                   </p>
-                  
+
                   {/* Section Divider */}
                   <div className="flex items-center gap-3 mb-4">
                     <div className="flex-1 h-px bg-border" />
@@ -566,55 +581,61 @@ export default function Dashboard() {
                   </div>
 
                   <div className="space-y-4 mb-8">
-                    {readings.length > 0 ? (
-                      readings.map((reading) => {
-                        const completedDay = completedDays.find((d) => d.day_number === reading.day_number);
-                        const isUnlocked = !!completedDay;
-                        return (
-                          <ReadingCard
-                            key={reading.id}
-                            day={reading.day_number}
-                            emoji={reading.emoji}
-                            controllable={reading.controllable}
-                            chapter={reading.reading_chapter}
-                            text={reading.reading_text}
-                            isCompleted={isUnlocked}
-                            completedAt={completedDay?.completed_at}
-                            isLocked={!isUnlocked}
-                            completedDayData={completedDay ? {
-                              day_number: completedDay.day_number,
-                              reflection: completedDay.reflection,
-                              completed_at: completedDay.completed_at,
-                            } : undefined}
-                            totalCompletedDays={completedDays.length}
-                          />
-                        );
-                      })
-                    ) : (
-                      RESET_DAYS.map((day) => {
-                        const completedDay = completedDays.find((d) => d.day_number === day.day);
-                        const isUnlocked = !!completedDay;
-                        return (
-                          <ReadingCard
-                            key={day.day}
-                            day={day.day}
-                            emoji={day.emoji}
-                            controllable={day.controllable}
-                            chapter={day.reading.chapter}
-                            text={day.reading.text}
-                            isCompleted={isUnlocked}
-                            completedAt={completedDay?.completed_at}
-                            isLocked={!isUnlocked}
-                            completedDayData={completedDay ? {
-                              day_number: completedDay.day_number,
-                              reflection: completedDay.reflection,
-                              completed_at: completedDay.completed_at,
-                            } : undefined}
-                            totalCompletedDays={completedDays.length}
-                          />
-                        );
-                      })
-                    )}
+                    {readings.length > 0
+                      ? readings.map((reading) => {
+                          const completedDay = completedDays.find((d) => d.day_number === reading.day_number);
+                          const isUnlocked = !!completedDay;
+                          return (
+                            <ReadingCard
+                              key={reading.id}
+                              day={reading.day_number}
+                              emoji={reading.emoji}
+                              controllable={reading.controllable}
+                              chapter={reading.reading_chapter}
+                              text={reading.reading_text}
+                              isCompleted={isUnlocked}
+                              completedAt={completedDay?.completed_at}
+                              isLocked={!isUnlocked}
+                              completedDayData={
+                                completedDay
+                                  ? {
+                                      day_number: completedDay.day_number,
+                                      reflection: completedDay.reflection,
+                                      completed_at: completedDay.completed_at,
+                                    }
+                                  : undefined
+                              }
+                              totalCompletedDays={completedDays.length}
+                            />
+                          );
+                        })
+                      : RESET_DAYS.map((day) => {
+                          const completedDay = completedDays.find((d) => d.day_number === day.day);
+                          const isUnlocked = !!completedDay;
+                          return (
+                            <ReadingCard
+                              key={day.day}
+                              day={day.day}
+                              emoji={day.emoji}
+                              controllable={day.controllable}
+                              chapter={day.reading.chapter}
+                              text={day.reading.text}
+                              isCompleted={isUnlocked}
+                              completedAt={completedDay?.completed_at}
+                              isLocked={!isUnlocked}
+                              completedDayData={
+                                completedDay
+                                  ? {
+                                      day_number: completedDay.day_number,
+                                      reflection: completedDay.reflection,
+                                      completed_at: completedDay.completed_at,
+                                    }
+                                  : undefined
+                              }
+                              totalCompletedDays={completedDays.length}
+                            />
+                          );
+                        })}
                   </div>
 
                   {/* Rules of the Game second when reset active */}
@@ -639,55 +660,61 @@ export default function Dashboard() {
                   </div>
 
                   <div className="space-y-4">
-                    {readings.length > 0 ? (
-                      readings.map((reading) => {
-                        const completedDay = completedDays.find((d) => d.day_number === reading.day_number);
-                        const isUnlocked = !!completedDay;
-                        return (
-                          <ReadingCard
-                            key={reading.id}
-                            day={reading.day_number}
-                            emoji={reading.emoji}
-                            controllable={reading.controllable}
-                            chapter={reading.reading_chapter}
-                            text={reading.reading_text}
-                            isCompleted={isUnlocked}
-                            completedAt={completedDay?.completed_at}
-                            isLocked={!isUnlocked}
-                            completedDayData={completedDay ? {
-                              day_number: completedDay.day_number,
-                              reflection: completedDay.reflection,
-                              completed_at: completedDay.completed_at,
-                            } : undefined}
-                            totalCompletedDays={completedDays.length}
-                          />
-                        );
-                      })
-                    ) : (
-                      RESET_DAYS.map((day) => {
-                        const completedDay = completedDays.find((d) => d.day_number === day.day);
-                        const isUnlocked = !!completedDay;
-                        return (
-                          <ReadingCard
-                            key={day.day}
-                            day={day.day}
-                            emoji={day.emoji}
-                            controllable={day.controllable}
-                            chapter={day.reading.chapter}
-                            text={day.reading.text}
-                            isCompleted={isUnlocked}
-                            completedAt={completedDay?.completed_at}
-                            isLocked={!isUnlocked}
-                            completedDayData={completedDay ? {
-                              day_number: completedDay.day_number,
-                              reflection: completedDay.reflection,
-                              completed_at: completedDay.completed_at,
-                            } : undefined}
-                            totalCompletedDays={completedDays.length}
-                          />
-                        );
-                      })
-                    )}
+                    {readings.length > 0
+                      ? readings.map((reading) => {
+                          const completedDay = completedDays.find((d) => d.day_number === reading.day_number);
+                          const isUnlocked = !!completedDay;
+                          return (
+                            <ReadingCard
+                              key={reading.id}
+                              day={reading.day_number}
+                              emoji={reading.emoji}
+                              controllable={reading.controllable}
+                              chapter={reading.reading_chapter}
+                              text={reading.reading_text}
+                              isCompleted={isUnlocked}
+                              completedAt={completedDay?.completed_at}
+                              isLocked={!isUnlocked}
+                              completedDayData={
+                                completedDay
+                                  ? {
+                                      day_number: completedDay.day_number,
+                                      reflection: completedDay.reflection,
+                                      completed_at: completedDay.completed_at,
+                                    }
+                                  : undefined
+                              }
+                              totalCompletedDays={completedDays.length}
+                            />
+                          );
+                        })
+                      : RESET_DAYS.map((day) => {
+                          const completedDay = completedDays.find((d) => d.day_number === day.day);
+                          const isUnlocked = !!completedDay;
+                          return (
+                            <ReadingCard
+                              key={day.day}
+                              day={day.day}
+                              emoji={day.emoji}
+                              controllable={day.controllable}
+                              chapter={day.reading.chapter}
+                              text={day.reading.text}
+                              isCompleted={isUnlocked}
+                              completedAt={completedDay?.completed_at}
+                              isLocked={!isUnlocked}
+                              completedDayData={
+                                completedDay
+                                  ? {
+                                      day_number: completedDay.day_number,
+                                      reflection: completedDay.reflection,
+                                      completed_at: completedDay.completed_at,
+                                    }
+                                  : undefined
+                              }
+                              totalCompletedDays={completedDays.length}
+                            />
+                          );
+                        })}
                   </div>
                 </>
               )}
@@ -703,12 +730,8 @@ export default function Dashboard() {
                 className="block mt-8 p-6 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 text-center"
               >
                 <BookOpen className="w-8 h-8 mx-auto mb-3 text-primary" />
-                <h3 className="font-display font-semibold text-foreground mb-2">
-                  Read the Full Book
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Dive deeper into The Controllables on Amazon
-                </p>
+                <h3 className="font-display font-semibold text-foreground mb-2">Read the Full Book</h3>
+                <p className="text-sm text-muted-foreground mb-4">Dive deeper into The Controllables on Amazon</p>
                 <Button variant="outline" size="sm">
                   Get the Book →
                 </Button>
@@ -729,17 +752,13 @@ export default function Dashboard() {
               <div className="mb-2">
                 <div className="flex items-center gap-2 mb-1">
                   <Sparkles className="w-5 h-5 text-accent" />
-                  <h1 className="font-display text-2xl font-semibold text-foreground">
-                    Experience
-                  </h1>
+                  <h1 className="font-display text-2xl font-semibold text-foreground">Experience</h1>
                 </div>
-                <p className="text-muted-foreground text-sm">
-                  This is where effort turns into evidence.
-                </p>
+                <p className="text-muted-foreground text-sm">This is where effort turns into evidence.</p>
               </div>
 
               {/* ===== FREE CONTENT FIRST ===== */}
-              
+
               {/* Time Cycles - FREE for all users */}
               <TimeCycleCard
                 activeQuest={activeQuest}
@@ -751,18 +770,18 @@ export default function Dashboard() {
               <OfflineTriggers
                 activeQuest={activeQuest}
                 currentResetDay={currentDay}
-                todayReading={readings.find(r => r.day_number === currentDay) || null}
+                todayReading={readings.find((r) => r.day_number === currentDay) || null}
               />
 
               {/* ===== LOCKED CONTENT (Premium) ===== */}
-              
+
               {/* Badges Earned - Locked for free users, hidden in simplified mode */}
               {!isSimplifiedMode && (
                 <div className="relative">
                   <BadgesEarned earnedBadges={earnedBadges} isLoading={badgesLoading} />
                   {!isPaid && (
-                    <LockedOverlay 
-                      variant="experience-history" 
+                    <LockedOverlay
+                      variant="experience-history"
                       onUpgrade={initiateCheckout}
                       isLoading={isCheckingOut}
                     />
@@ -780,8 +799,8 @@ export default function Dashboard() {
                     completedResetsCount={allSessions.filter((s) => s.status === "completed").length}
                   />
                   {!isPaid && (
-                    <LockedOverlay 
-                      variant="experience-history" 
+                    <LockedOverlay
+                      variant="experience-history"
                       onUpgrade={initiateCheckout}
                       isLoading={isCheckingOut}
                     />
@@ -792,14 +811,10 @@ export default function Dashboard() {
               {/* Reset History with Certificates - Locked for free users */}
               {user?.id && (
                 <div className="relative">
-                  <ResetHistory
-                    resetSessions={allSessions}
-                    userId={user.id}
-                    dailyResets={allCompletedDays}
-                  />
-                  {!isPaid && allSessions.filter(s => s.status === "completed").length > 0 && (
-                    <LockedOverlay 
-                      variant="experience-history" 
+                  <ResetHistory resetSessions={allSessions} userId={user.id} dailyResets={allCompletedDays} />
+                  {!isPaid && allSessions.filter((s) => s.status === "completed").length > 0 && (
+                    <LockedOverlay
+                      variant="experience-history"
                       onUpgrade={initiateCheckout}
                       isLoading={isCheckingOut}
                     />
@@ -829,8 +844,8 @@ export default function Dashboard() {
                     onStartReset={() => navigate("/reset")}
                   />
                   {!isPaid && (
-                    <LockedOverlay 
-                      variant="experience-history" 
+                    <LockedOverlay
+                      variant="experience-history"
                       onUpgrade={initiateCheckout}
                       isLoading={isCheckingOut}
                     />
@@ -845,9 +860,7 @@ export default function Dashboard() {
                 transition={{ delay: 0.5 }}
                 className="p-6 rounded-2xl bg-gradient-to-br from-accent/10 to-primary/10 border border-accent/20 text-center"
               >
-                <p className="text-sm text-muted-foreground mb-2">
-                  "People pay to protect progress."
-                </p>
+                <p className="text-sm text-muted-foreground mb-2">"Control The Controllables."</p>
                 <div className="flex items-center justify-center gap-4 text-sm">
                   <div>
                     <span className="font-display font-bold text-lg text-accent">{allSessions.length}</span>
