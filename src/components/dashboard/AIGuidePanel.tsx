@@ -658,15 +658,17 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
 
                   </div>
                   
-                  {/* Daily message limit indicator */}
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
-                    <span>
-                      {limitReached 
-                        ? "🔒 Daily limit reached — resets at midnight" 
-                        : `${remainingMessages} message${remainingMessages !== 1 ? 's' : ''} remaining today`
-                      }
-                    </span>
-                  </div>
+                  {/* Daily message limit indicator - only show when 10 or fewer remaining */}
+                  {(limitReached || remainingMessages <= 10) && (
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
+                      <span>
+                        {limitReached 
+                          ? "🔒 Daily limit reached — resets at midnight" 
+                          : `${remainingMessages} message${remainingMessages !== 1 ? 's' : ''} remaining today`
+                        }
+                      </span>
+                    </div>
+                  )}
 
                   {/* Pattern data hint */}
                   {patternData && patternData.recentThemes.length > 0 && messages.length === 0 && (
