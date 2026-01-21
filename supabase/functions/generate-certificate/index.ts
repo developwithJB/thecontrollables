@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch completed days for logging (session.status === "completed" is the authoritative check)
+    // Verify all 7 days are completed - this is the definitive check
     const { data: completedDays, error: daysError } = await supabaseAdmin
       .from("daily_resets")
       .select("day_number")
@@ -114,7 +114,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Session has ${completedDays?.length || 0} daily resets recorded`);
+    const completedDayNumbers = completedDays?.map(d => d.day_number) || [];
+    console.log(`Session has ${completedDayNumbers.length} daily resets: days ${completedDayNumbers.join(", ")}`);
+
+    // Must have all 7 days completed to generate certificate
+    if (completedDayNumbers.length < 7) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Certificate requires all 7 days completed",
+          completed_days: completedDayNumbers.length,
+          message: `You completed ${completedDayNumbers.length} of 7 days. Complete a full 7-day reset to earn your certificate.`
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Get user profile for display name
     const { data: profile } = await supabaseAdmin

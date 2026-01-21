@@ -25,6 +25,11 @@ interface ResetSession {
   current_day: number;
 }
 
+interface DailyReset {
+  session_id: string;
+  day_number: number;
+}
+
 interface Certificate {
   id: string;
   reset_session_id: string;
@@ -36,9 +41,10 @@ interface Certificate {
 interface ResetHistoryProps {
   resetSessions: ResetSession[];
   userId: string;
+  dailyResets?: DailyReset[];
 }
 
-export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
+export function ResetHistory({ resetSessions, userId, dailyResets = [] }: ResetHistoryProps) {
   const { toast } = useToast();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -47,7 +53,13 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
     startDate: string;
   } | null>(null);
 
-  const completedSessions = resetSessions.filter(s => s.status === "completed");
+  // Filter to only show completed or expired sessions (not active ones)
+  const historySessions = resetSessions.filter(s => s.status === "completed" || s.status === "expired");
+  
+  // Helper to get completed day count for a session
+  const getCompletedDaysForSession = (sessionId: string): number => {
+    return dailyResets.filter(d => d.session_id === sessionId).length;
+  };
 
   // Fetch all certificates for this user
   const { data: certificates = [], refetch: refetchCertificates } = useQuery({
@@ -128,9 +140,12 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
     setSelectedCertificate(null);
   };
 
-  if (completedSessions.length === 0) {
+  if (historySessions.length === 0) {
     return null;
   }
+
+  const fullyCompletedSessions = historySessions.filter(s => s.status === "completed" && getCompletedDaysForSession(s.id) >= 7);
+  const incompleteSessions = historySessions.filter(s => s.status === "expired" || (s.status === "completed" && getCompletedDaysForSession(s.id) < 7));
 
   // Summary row content
   const summaryRow = (
@@ -139,9 +154,9 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
         <Award className="w-4 h-4 text-primary" />
       </div>
       <div className="flex-1 min-w-0">
-        <h3 className="font-display font-semibold text-foreground text-sm">Completed Resets</h3>
+        <h3 className="font-display font-semibold text-foreground text-sm">Reset History</h3>
         <p className="text-xs text-muted-foreground">
-          {completedSessions.length} completed • Tap to view certificates
+          {fullyCompletedSessions.length} completed{incompleteSessions.length > 0 ? ` • ${incompleteSessions.length} incomplete` : ""} • Tap for details
         </p>
       </div>
     </div>
@@ -151,7 +166,8 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
     <>
       <CollapsibleSection summaryRow={summaryRow} defaultExpanded={true}>
         <div className="p-4 space-y-3">
-          {completedSessions.map((session, index) => {
+          {/* Fully completed sessions - can view certificates */}
+          {fullyCompletedSessions.map((session, index) => {
             const startDate = new Date(session.start_date + "T00:00:00");
             const endDate = new Date(session.start_date + "T00:00:00");
             endDate.setDate(endDate.getDate() + 6);
@@ -173,7 +189,7 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
                     </div>
                     <div>
                       <p className="font-medium text-foreground">
-                        Reset #{completedSessions.length - index}
+                        Reset #{fullyCompletedSessions.length - index}
                       </p>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Calendar className="w-3 h-3" />
@@ -198,6 +214,50 @@ export function ResetHistory({ resetSessions, userId }: ResetHistoryProps) {
                     )}
                     {isProcessing ? (hasCert ? "Loading..." : "Generating...") : "View Certificate"}
                   </Button>
+                </div>
+              </motion.div>
+            );
+          })}
+
+          {/* Incomplete/expired sessions - no certificate */}
+          {incompleteSessions.map((session, index) => {
+            const startDate = new Date(session.start_date + "T00:00:00");
+            const endDate = new Date(session.start_date + "T00:00:00");
+            endDate.setDate(endDate.getDate() + 6);
+            const completedDays = getCompletedDaysForSession(session.id);
+
+            return (
+              <motion.div
+                key={session.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: (fullyCompletedSessions.length + index) * 0.1 }}
+                className="p-4 rounded-xl bg-muted/20 border border-border/30"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                      <span className="text-amber-500 text-lg">⚠️</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">
+                        Incomplete Reset
+                      </p>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Calendar className="w-3 h-3" />
+                        <span>
+                          {format(startDate, "MMM d")} – {format(endDate, "MMM d, yyyy")}
+                        </span>
+                      </div>
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                        {completedDays} of 7 days completed
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="text-xs text-muted-foreground text-right max-w-[120px]">
+                    <p className="italic">No certificate earned</p>
+                  </div>
                 </div>
               </motion.div>
             );

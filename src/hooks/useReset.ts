@@ -8,7 +8,7 @@ interface ResetSession {
   user_id: string;
   start_date: string;
   current_day: number;
-  status: "active" | "completed" | "paused";
+  status: "active" | "completed" | "expired" | "paused";
   invite_code: string | null;
   timezone: string | null;
   covenant_accepted: boolean;
@@ -54,13 +54,20 @@ const getLogDateForDay = (startDate: string, dayNumber: number): string => {
 };
 
 // Calculate current day based on start_date and today's date
+// Returns the actual elapsed day, even if > 7 (to detect expired sessions)
 const calculateCurrentDay = (startDate: string): number => {
   const start = new Date(startDate + "T00:00:00");
   const today = new Date(getLocalDateString() + "T00:00:00");
   const diffTime = today.getTime() - start.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   // Day 1 is start_date, so add 1
-  return Math.max(1, Math.min(diffDays + 1, 7));
+  return Math.max(1, diffDays + 1);
+};
+
+// Check if session has expired (past day 7 without completing all 7 days)
+const isSessionExpired = (startDate: string, completedDaysCount: number): boolean => {
+  const elapsedDay = calculateCurrentDay(startDate);
+  return elapsedDay > 7 && completedDaysCount < 7;
 };
 
 export const useReset = () => {
@@ -176,27 +183,34 @@ export const useReset = () => {
     enabled: !!activeSession?.id,
   });
 
-  // Calculate current day based on start_date (date-anchored)
+  // Calculate current day based on start_date (date-anchored), capped at 7 for display
   const currentDay = useMemo(() => {
     if (!activeSession?.start_date) return 1;
-    return calculateCurrentDay(activeSession.start_date);
+    const elapsed = calculateCurrentDay(activeSession.start_date);
+    return Math.min(elapsed, 7); // Cap at 7 for display purposes
   }, [activeSession?.start_date]);
+
+  // Check if session has expired (past day 7 without completing all days)
+  const isExpired = useMemo(() => {
+    if (!activeSession?.start_date) return false;
+    return isSessionExpired(activeSession.start_date, completedDays.length);
+  }, [activeSession?.start_date, completedDays.length]);
 
   // Check if the current day has already been completed
   const isTodayCompleted = useMemo(() => {
     return completedDays.some((d) => d.day_number === currentDay);
   }, [completedDays, currentDay]);
 
-  // Check if user missed days (they can still continue)
+  // Check if user missed days (they can still continue if within 7-day window)
   const missedDays = useMemo(() => {
-    if (!activeSession?.start_date) return false;
+    if (!activeSession?.start_date || isExpired) return false;
     const lastCompletedDay = completedDays.length > 0 
       ? Math.max(...completedDays.map(d => d.day_number)) 
       : 0;
     // User has missed days if current calculated day > last completed day + 1
     // AND they haven't done today yet
     return currentDay > lastCompletedDay + 1 && !isTodayCompleted;
-  }, [activeSession?.start_date, completedDays, currentDay, isTodayCompleted]);
+  }, [activeSession?.start_date, completedDays, currentDay, isTodayCompleted, isExpired]);
 
   // Calculate log_date for current day
   const currentLogDate = useMemo(() => {
@@ -210,6 +224,7 @@ export const useReset = () => {
     return getLogDateForDay(activeSession.start_date, 7);
   }, [activeSession?.start_date]);
 
+  // Only truly completed if all 7 days are done
   const isCompleted = completedDays.length >= 7;
 
   // Accept covenant and start a new reset session
@@ -263,6 +278,11 @@ export const useReset = () => {
     }) => {
       if (!userId || !activeSession) throw new Error("No active session");
 
+      // Check if session has expired before allowing completion
+      if (isSessionExpired(activeSession.start_date, completedDays.length)) {
+        throw new Error("This reset session has expired. Start a new 7-day reset to continue.");
+      }
+
       const { data, error } = await supabase
         .from("daily_resets")
         .insert({
@@ -287,8 +307,11 @@ export const useReset = () => {
           description: `Completed Day ${currentDay} of 7-Day Reset`,
         });
 
-      // If this was day 7, mark session as completed
-      if (currentDay >= 7) {
+      // Calculate if this completes all 7 days (need to include the one we just added)
+      const newCompletedCount = completedDays.length + 1;
+      
+      // Only mark as "completed" if ALL 7 days are now done
+      if (newCompletedCount >= 7) {
         await supabase
           .from("reset_sessions")
           .update({ 
@@ -517,6 +540,7 @@ export const useReset = () => {
     isTodayCompleted,
     missedDays,
     isCompleted,
+    isExpired,
     isLoading: isAuthLoading || isLoadingSession || isLoadingDays || isLoadingCertificate,
     covenantAccepted: activeSession?.covenant_accepted ?? false,
     acceptCovenant: acceptCovenantMutation.mutate,

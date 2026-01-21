@@ -28,6 +28,7 @@ interface DailyReading {
 interface ResetProgressModuleProps {
   hasActiveSession: boolean;
   isCompleted: boolean;
+  isExpired?: boolean;
   currentDay: number;
   completedDays: CompletedDay[];
   todayAlreadyCompleted: boolean;
@@ -39,6 +40,7 @@ interface ResetProgressModuleProps {
 export function ResetProgressModule({
   hasActiveSession,
   isCompleted,
+  isExpired = false,
   currentDay,
   completedDays,
   todayAlreadyCompleted,
@@ -142,6 +144,77 @@ export function ResetProgressModule({
                 />
                 <label
                   htmlFor="covenant-dialog"
+                  className="text-foreground text-sm leading-relaxed cursor-pointer select-none"
+                >
+                  {COVENANT_CHECKBOX_TEXT}
+                </label>
+              </div>
+
+              <Button
+                onClick={handleStartReset}
+                disabled={!covenantAccepted || isStartingReset}
+                className="w-full"
+                size="lg"
+              >
+                {isStartingReset ? "Beginning..." : "Begin My 7 Days"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
+  // Session expired (past day 7 without completing all days) - show try again prompt
+  if (isExpired) {
+    return (
+      <>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="p-4 rounded-xl bg-card border border-amber-500/30"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">⚠️</span>
+              <div>
+                <p className="text-sm font-medium text-foreground">Reset Incomplete</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  {completedDays.length} of 7 days completed
+                </p>
+              </div>
+            </div>
+            <Button size="sm" onClick={() => setShowCovenantDialog(true)}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Complete all 7 days in a row to earn your certificate.
+          </p>
+        </motion.div>
+
+        {/* Covenant Dialog for retry */}
+        <Dialog open={showCovenantDialog} onOpenChange={(open) => {
+          setShowCovenantDialog(open);
+          if (!open) setCovenantAccepted(false);
+        }}>
+          <DialogContent className="max-w-md p-6">
+            <div className="space-y-6">
+              <p className="text-foreground leading-relaxed whitespace-pre-line">
+                {COVENANT_TEXT}
+              </p>
+
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="covenant-dialog-retry"
+                  checked={covenantAccepted}
+                  onCheckedChange={(checked) => setCovenantAccepted(checked === true)}
+                  className="mt-1"
+                />
+                <label
+                  htmlFor="covenant-dialog-retry"
                   className="text-foreground text-sm leading-relaxed cursor-pointer select-none"
                 >
                   {COVENANT_CHECKBOX_TEXT}
