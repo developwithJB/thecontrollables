@@ -208,12 +208,14 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
-              <div className="text-xs text-muted-foreground mt-2 text-center">
-                {limitReached 
-                  ? "🔒 Daily limit reached — resets at midnight" 
-                  : `${remainingMessages} message${remainingMessages !== 1 ? 's' : ''} remaining today`
-                }
-              </div>
+              {(limitReached || remainingMessages <= 10) && (
+                <div className="text-xs text-muted-foreground mt-2 text-center">
+                  {limitReached 
+                    ? "🔒 Daily limit reached — resets at midnight" 
+                    : `${remainingMessages} message${remainingMessages !== 1 ? 's' : ''} remaining today`
+                  }
+                </div>
+              )}
             </div>
           </motion.div>
         </motion.div>
