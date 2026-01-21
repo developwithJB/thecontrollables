@@ -45,11 +45,11 @@ export const getPricing = (launchEndDate: Date = DEFAULT_LAUNCH_END_DATE) => ({
 });
 
 /**
- * Stripe price IDs
+ * Stripe price IDs (Production)
  */
 export const PRICE_IDS = {
-  launch: "price_1SpvHDIMSETiQTDGpCxLkNtR", // $29
-  regular: "price_regular_TODO", // $49 - to be created after launch
+  launch: "price_1Ss8UWIrFORWV7K41FKh4zVY", // $29.99
+  regular: "price_1Ss8XUIrFORWV7K4M9uAE2kY", // $49.99
 } as const;
 
 /**

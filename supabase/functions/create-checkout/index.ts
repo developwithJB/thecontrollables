@@ -7,10 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Pricing configuration
-// Launch price: $29 (before March 1, 2025)
-// Regular price: $49 (after March 1, 2025)
-const LAUNCH_PRICE_ID = "price_1SpvHDIMSETiQTDGpCxLkNtR"; // $29
+// Pricing configuration (Production)
+// Launch price: $29.99 (Feb 1 - March 1, 2025)
+// Regular price: $49.99 (after March 1, 2025)
+const LAUNCH_PRICE_ID = "price_1Ss8UWIrFORWV7K41FKh4zVY"; // $29.99
+const REGULAR_PRICE_ID = "price_1Ss8XUIrFORWV7K4M9uAE2kY"; // $49.99
 const LAUNCH_END_DATE = new Date("2025-03-01T00:00:00Z");
 
 // Helper logging function
@@ -89,7 +90,7 @@ serve(async (req) => {
     // Determine which price to use based on current date
     const now = new Date();
     const isLaunchPeriod = now < LAUNCH_END_DATE;
-    const priceId = LAUNCH_PRICE_ID; // For now, use launch price; add regular price ID when created
+    const priceId = isLaunchPeriod ? LAUNCH_PRICE_ID : REGULAR_PRICE_ID;
     
     logStep("Price selected", { 
       isLaunchPeriod, 
