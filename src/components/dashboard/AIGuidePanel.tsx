@@ -154,6 +154,8 @@ const detectGuideFromMessage = (message: string): GuideType => {
   return maxGuide;
 };
 
+const DAILY_MESSAGE_LIMIT = 25;
+
 export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild, onXpEarned, isPaid = true, onUpgrade, isCheckingOut = false }: AIGuidePanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedGuide, setSelectedGuide] = useState<Guide | null>(null);
@@ -162,6 +164,8 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
   const [isLoading, setIsLoading] = useState(false);
   const [completedActionsCount, setCompletedActionsCount] = useState(0);
   const [completedActionTexts, setCompletedActionTexts] = useState<Set<string>>(new Set());
+  const [remainingMessages, setRemainingMessages] = useState<number>(DAILY_MESSAGE_LIMIT);
+  const [limitReached, setLimitReached] = useState(false);
   
   const { 
     patternData, 
@@ -316,7 +320,21 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check if it's a limit reached error
+        if (error.message?.includes('limit') || data?.limitReached) {
+          setLimitReached(true);
+          setRemainingMessages(0);
+          toast.error("Daily message limit reached. Resets at midnight.");
+          return;
+        }
+        throw error;
+      }
+
+      // Update remaining messages from response
+      if (data.remaining !== undefined) {
+        setRemainingMessages(data.remaining);
+      }
 
       const assistantMessage: Message = {
         role: "assistant",
@@ -611,17 +629,17 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                   {/* Input row */}
                   <div className="flex gap-2">
                     <Input
-                      placeholder={selectedGuide ? `Ask ${selectedGuide.name}...` : "Ask any operator..."}
+                      placeholder={limitReached ? "Daily limit reached" : (selectedGuide ? `Ask ${selectedGuide.name}...` : "Ask any operator...")}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
+                      onKeyDown={(e) => e.key === "Enter" && !limitReached && sendMessage(input)}
                       className="flex-1"
-                      disabled={isLoading}
+                      disabled={isLoading || limitReached}
                     />
                     <Button
                       size="icon"
                       onClick={() => sendMessage(input)}
-                      disabled={!input.trim() || isLoading}
+                      disabled={!input.trim() || isLoading || limitReached}
                       className="bg-accent hover:bg-accent/90 text-accent-foreground"
                     >
                       <Send className="w-4 h-4" />
@@ -638,6 +656,16 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                       </Button>
                     )}
 
+                  </div>
+                  
+                  {/* Daily message limit indicator */}
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
+                    <span>
+                      {limitReached 
+                        ? "🔒 Daily limit reached — resets at midnight" 
+                        : `${remainingMessages} message${remainingMessages !== 1 ? 's' : ''} remaining today`
+                      }
+                    </span>
                   </div>
 
                   {/* Pattern data hint */}

@@ -13,6 +13,9 @@ const MAX_MESSAGE_LENGTH = 4000;
 const MAX_MESSAGES_COUNT = 50;
 const MAX_SESSION_HISTORY_COUNT = 20;
 
+// Daily message limit (cost-effective at $29 price point)
+const DAILY_MESSAGE_LIMIT = 25;
+
 const CONTROLLABLE_PROMPTS: Record<string, string> = {
   awareness: `You are the Owl 🦉 - the Awareness Operator from The Controllables.
 
@@ -196,6 +199,52 @@ function validateControllable(controllable: unknown): boolean {
   return VALID_CONTROLLABLES.includes(controllable);
 }
 
+// Check and update daily usage
+async function checkAndUpdateDailyUsage(
+  supabaseClient: any,
+  userId: string
+): Promise<{ allowed: boolean; remaining: number; used: number }> {
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Get current usage for today
+  const { data: usageData, error: fetchError } = await supabaseClient
+    .from('ai_usage_logs')
+    .select('id, message_count')
+    .eq('user_id', userId)
+    .eq('usage_date', today)
+    .maybeSingle();
+  
+  if (fetchError) {
+    console.error('Error fetching usage:', fetchError);
+    // Allow on error to not block users
+    return { allowed: true, remaining: DAILY_MESSAGE_LIMIT, used: 0 };
+  }
+  
+  const currentCount = usageData?.message_count || 0;
+  
+  if (currentCount >= DAILY_MESSAGE_LIMIT) {
+    return { allowed: false, remaining: 0, used: currentCount };
+  }
+  
+  // Update or insert usage record
+  if (usageData) {
+    await supabaseClient
+      .from('ai_usage_logs')
+      .update({ message_count: currentCount + 1 })
+      .eq('id', usageData.id);
+  } else {
+    await supabaseClient
+      .from('ai_usage_logs')
+      .insert({ user_id: userId, usage_date: today, message_count: 1 });
+  }
+  
+  return { 
+    allowed: true, 
+    remaining: DAILY_MESSAGE_LIMIT - currentCount - 1, 
+    used: currentCount + 1 
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -233,6 +282,27 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Invalid user session' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ============ DAILY LIMIT CHECK ============
+    // Need to use service role for insert/update since RLS uses auth.uid()
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    
+    const usageResult = await checkAndUpdateDailyUsage(serviceClient, userId);
+    
+    if (!usageResult.allowed) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Daily message limit reached. Your 25 messages reset at midnight.',
+          limitReached: true,
+          remaining: 0,
+          dailyLimit: DAILY_MESSAGE_LIMIT
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -426,7 +496,11 @@ Guide them through this specific task with action-first responses.`;
     }
 
     return new Response(
-      JSON.stringify({ message: assistantMessage }),
+      JSON.stringify({ 
+        message: assistantMessage,
+        remaining: usageResult.remaining,
+        dailyLimit: DAILY_MESSAGE_LIMIT
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

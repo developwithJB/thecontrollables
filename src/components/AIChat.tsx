@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -26,6 +27,8 @@ interface AIChatProps {
   challengeContext?: ChallengeContext;
 }
 
+const DAILY_MESSAGE_LIMIT = 25;
+
 const WELCOME_MESSAGES: Record<string, string> = {
   awareness: "Hello, I am the Owl 🦉. I help you see things clearly, as they truly are. What's weighing on your mind today?",
   perspective: "Greetings, I am the Turtle 🐢. I teach the power of patience and perspective. What situation would you like to pause and reflect on?",
@@ -39,6 +42,8 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [remainingMessages, setRemainingMessages] = useState<number>(DAILY_MESSAGE_LIMIT);
+  const [limitReached, setLimitReached] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,7 +64,7 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || limitReached) return;
 
     const userMessage = input.trim();
     setInput("");
@@ -75,7 +80,20 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message?.includes('limit') || data?.limitReached) {
+          setLimitReached(true);
+          setRemainingMessages(0);
+          toast.error("Daily message limit reached. Resets at midnight.");
+          return;
+        }
+        throw error;
+      }
+
+      // Update remaining messages from response
+      if (data.remaining !== undefined) {
+        setRemainingMessages(data.remaining);
+      }
 
       setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
     } catch (error) {
@@ -90,7 +108,7 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !limitReached) {
       e.preventDefault();
       sendMessage();
     }
@@ -176,18 +194,25 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Type your message..."
+                  placeholder={limitReached ? "Daily limit reached" : "Type your message..."}
                   className="min-h-[44px] max-h-[120px] resize-none bg-background"
                   rows={1}
+                  disabled={limitReached}
                 />
                 <Button
                   onClick={sendMessage}
-                  disabled={!input.trim() || isLoading}
+                  disabled={!input.trim() || isLoading || limitReached}
                   size="icon"
                   className="shrink-0"
                 >
                   <Send className="w-4 h-4" />
                 </Button>
+              </div>
+              <div className="text-xs text-muted-foreground mt-2 text-center">
+                {limitReached 
+                  ? "🔒 Daily limit reached — resets at midnight" 
+                  : `${remainingMessages} message${remainingMessages !== 1 ? 's' : ''} remaining today`
+                }
               </div>
             </div>
           </motion.div>
