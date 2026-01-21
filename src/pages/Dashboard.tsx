@@ -64,7 +64,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   
   // Reset data
-  const { activeSession, currentDay, isCompleted, isLoading: resetLoading, completedDays, acceptCovenant, isAcceptingCovenant } = useReset();
+  const { activeSession, currentDay, isCompleted, isExpired, isLoading: resetLoading, completedDays, acceptCovenant, isAcceptingCovenant } = useReset();
   
   // Life dashboard data
   const {
@@ -412,6 +412,7 @@ export default function Dashboard() {
                   <ResetProgressModule
                     hasActiveSession={!!activeSession}
                     isCompleted={isCompleted}
+                    isExpired={isExpired}
                     currentDay={currentDay}
                     completedDays={completedDays}
                     todayAlreadyCompleted={todayAlreadyCompleted}
@@ -794,6 +795,7 @@ export default function Dashboard() {
                   <ResetHistory
                     resetSessions={allSessions}
                     userId={user.id}
+                    dailyResets={allCompletedDays}
                   />
                   {!isPaid && allSessions.filter(s => s.status === "completed").length > 0 && (
                     <LockedOverlay 
