@@ -860,7 +860,7 @@ export default function Dashboard() {
                 transition={{ delay: 0.5 }}
                 className="p-6 rounded-2xl bg-gradient-to-br from-accent/10 to-primary/10 border border-accent/20 text-center"
               >
-                <p className="text-sm text-muted-foreground mb-2">"Control The Controllables."</p>
+                <p className="text-sm text-muted-foreground mb-2">"Control The Controllables"</p>
                 <div className="flex items-center justify-center gap-4 text-sm">
                   <div>
                     <span className="font-display font-bold text-lg text-accent">{allSessions.length}</span>
