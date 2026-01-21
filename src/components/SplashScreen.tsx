@@ -21,23 +21,11 @@ export function SplashScreen() {
           xmlns="http://www.w3.org/2000/svg"
           className="w-full h-full"
         >
-          {/* Glow filter */}
-          <defs>
-            <filter id="splashGlow" x="-100%" y="-100%" width="300%" height="300%">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur" />
-              <feMerge>
-                <feMergeNode in="coloredBlur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-
           {/* Sun rays with staggered animation */}
           <g 
             className="stroke-accent"
             strokeWidth="2" 
             strokeLinecap="round"
-            filter="url(#splashGlow)"
           >
             <motion.line 
               x1="20" y1="2" x2="20" y2="7"
@@ -96,7 +84,6 @@ export function SplashScreen() {
             r="10"
             className="stroke-accent fill-none"
             strokeWidth="2"
-            filter="url(#splashGlow)"
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
@@ -106,7 +93,6 @@ export function SplashScreen() {
           <motion.path
             d="M15.5 13h4c3.8 0 6.5 2.8 6.5 7s-2.7 7-6.5 7h-4V13z M18 15.5v9h1.5c2.5 0 4-1.8 4-4.5s-1.5-4.5-4-4.5H18z"
             className="fill-accent"
-            filter="url(#splashGlow)"
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4, duration: 0.3 }}

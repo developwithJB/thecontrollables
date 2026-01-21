@@ -16,17 +16,6 @@ export function Logo({ className, showText = true }: LogoProps) {
           xmlns="http://www.w3.org/2000/svg"
           className="w-full h-full"
         >
-          {/* Glow filter for animation */}
-          <defs>
-            <filter id="logoGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="1.5" result="coloredBlur" />
-              <feMerge>
-                <feMergeNode in="coloredBlur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-
           {/* Background */}
           <rect
             x="0"
@@ -37,22 +26,21 @@ export function Logo({ className, showText = true }: LogoProps) {
             className="fill-primary dark:fill-[hsl(222,47%,11%)]"
           />
           
-          {/* Sun rays with glow animation */}
+          {/* Sun rays */}
           <g 
             className="stroke-accent opacity-90 group-hover:opacity-100 transition-opacity duration-300"
             strokeWidth="2" 
             strokeLinecap="round"
-            filter="url(#logoGlow)"
           >
-            {/* Animated rays */}
-            <line x1="20" y1="4" x2="20" y2="8" className="origin-center animate-[pulse_3s_ease-in-out_infinite]" />
-            <line x1="20" y1="32" x2="20" y2="36" className="origin-center animate-[pulse_3s_ease-in-out_0.4s_infinite]" />
-            <line x1="4" y1="20" x2="8" y2="20" className="origin-center animate-[pulse_3s_ease-in-out_0.8s_infinite]" />
-            <line x1="32" y1="20" x2="36" y2="20" className="origin-center animate-[pulse_3s_ease-in-out_1.2s_infinite]" />
-            <line x1="30.3" y1="9.7" x2="27.5" y2="12.5" className="origin-center animate-[pulse_3s_ease-in-out_0.2s_infinite]" />
-            <line x1="9.7" y1="9.7" x2="12.5" y2="12.5" className="origin-center animate-[pulse_3s_ease-in-out_0.6s_infinite]" />
-            <line x1="30.3" y1="30.3" x2="27.5" y2="27.5" className="origin-center animate-[pulse_3s_ease-in-out_1s_infinite]" />
-            <line x1="9.7" y1="30.3" x2="12.5" y2="27.5" className="origin-center animate-[pulse_3s_ease-in-out_1.4s_infinite]" />
+            {/* Rays */}
+            <line x1="20" y1="4" x2="20" y2="8" />
+            <line x1="20" y1="32" x2="20" y2="36" />
+            <line x1="4" y1="20" x2="8" y2="20" />
+            <line x1="32" y1="20" x2="36" y2="20" />
+            <line x1="30.3" y1="9.7" x2="27.5" y2="12.5" />
+            <line x1="9.7" y1="9.7" x2="12.5" y2="12.5" />
+            <line x1="30.3" y1="30.3" x2="27.5" y2="27.5" />
+            <line x1="9.7" y1="30.3" x2="12.5" y2="27.5" />
           </g>
           
           {/* Center circle */}
@@ -62,14 +50,12 @@ export function Logo({ className, showText = true }: LogoProps) {
             r="9"
             className="stroke-accent fill-none"
             strokeWidth="2"
-            filter="url(#logoGlow)"
           />
           
-          {/* D letter - custom path for pixel-perfect match */}
+          {/* D letter */}
           <path
             d="M16 13.5h3.5c3.5 0 6 2.5 6 6.5s-2.5 6.5-6 6.5H16V13.5z M18.5 15.8v8.4h1c2.3 0 3.8-1.7 3.8-4.2s-1.5-4.2-3.8-4.2h-1z"
             className="fill-accent"
-            filter="url(#logoGlow)"
           />
         </svg>
       </div>
