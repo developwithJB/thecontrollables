@@ -52,6 +52,33 @@ export type Database = {
           },
         ]
       }
+      ai_usage_logs: {
+        Row: {
+          created_at: string
+          id: string
+          message_count: number
+          updated_at: string
+          usage_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_count?: number
+          updated_at?: string
+          usage_date?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_count?: number
+          updated_at?: string
+          usage_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       app_analytics: {
         Row: {
           created_at: string
