@@ -1,18 +1,30 @@
 // The Dashboard - Service Worker
-// Minimal offline shell caching with network-first for API requests
+// Enhanced caching with pre-cached critical assets
 
-const CACHE_NAME = 'dashboard-v1';
-const SHELL_ASSETS = [
+const CACHE_VERSION = 'v2';
+const STATIC_CACHE = `dashboard-static-${CACHE_VERSION}`;
+const RUNTIME_CACHE = `dashboard-runtime-${CACHE_VERSION}`;
+
+// Critical assets to pre-cache during install
+const PRECACHE_ASSETS = [
   '/',
   '/index.html',
-  '/offline.html'
+  '/offline.html',
+  '/favicon.png',
+  '/manifest.webmanifest',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png'
 ];
 
-// Install: cache app shell
+// Asset types to cache at runtime
+const CACHEABLE_EXTENSIONS = ['.js', '.css', '.woff2', '.woff', '.png', '.jpg', '.svg', '.webp'];
+
+// Install: pre-cache critical assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(SHELL_ASSETS);
+    caches.open(STATIC_CACHE).then((cache) => {
+      console.log('[SW] Pre-caching critical assets');
+      return cache.addAll(PRECACHE_ASSETS);
     })
   );
   self.skipWaiting();
@@ -23,14 +35,24 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys
+          .filter((key) => key.startsWith('dashboard-') && key !== STATIC_CACHE && key !== RUNTIME_CACHE)
+          .map((key) => {
+            console.log('[SW] Removing old cache:', key);
+            return caches.delete(key);
+          })
       );
     })
   );
   self.clients.claim();
 });
 
-// Fetch: network-first for API, cache-first for shell
+// Check if URL should be cached
+function isCacheableAsset(url) {
+  return CACHEABLE_EXTENSIONS.some(ext => url.pathname.endsWith(ext));
+}
+
+// Fetch: network-first for API, stale-while-revalidate for assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -53,28 +75,90 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
+        .then((response) => {
+          // Cache the latest HTML
+          const responseClone = response.clone();
+          caches.open(STATIC_CACHE).then((cache) => {
+            cache.put(request, responseClone);
+          });
+          return response;
+        })
         .catch(() => {
-          return caches.match('/offline.html');
+          // Try cache first, then offline page
+          return caches.match(request).then((cachedResponse) => {
+            return cachedResponse || caches.match('/offline.html');
+          });
         })
     );
     return;
   }
 
-  // For static assets: stale-while-revalidate
-  event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      const fetchPromise = fetch(request).then((networkResponse) => {
-        // Only cache successful responses
-        if (networkResponse.ok) {
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
-          });
+  // For JS/CSS vendor chunks - cache-first (they have hashed filenames)
+  if (url.pathname.includes('/assets/') && (url.pathname.includes('vendor-') || url.pathname.includes('chunk-'))) {
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
         }
-        return networkResponse;
-      }).catch(() => cachedResponse);
+        return fetch(request).then((networkResponse) => {
+          if (networkResponse.ok) {
+            const responseClone = networkResponse.clone();
+            caches.open(RUNTIME_CACHE).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
+          return networkResponse;
+        });
+      })
+    );
+    return;
+  }
 
-      return cachedResponse || fetchPromise;
-    })
-  );
+  // For other static assets: stale-while-revalidate
+  if (isCacheableAsset(url)) {
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
+        const fetchPromise = fetch(request).then((networkResponse) => {
+          if (networkResponse.ok) {
+            const responseClone = networkResponse.clone();
+            caches.open(RUNTIME_CACHE).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
+          return networkResponse;
+        }).catch(() => cachedResponse);
+
+        return cachedResponse || fetchPromise;
+      })
+    );
+    return;
+  }
+
+  // For Google Fonts - cache-first
+  if (url.hostname.includes('fonts.googleapis.com') || url.hostname.includes('fonts.gstatic.com')) {
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        return fetch(request).then((networkResponse) => {
+          if (networkResponse.ok) {
+            const responseClone = networkResponse.clone();
+            caches.open(RUNTIME_CACHE).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
+          return networkResponse;
+        });
+      })
+    );
+    return;
+  }
+});
+
+// Listen for messages from the app
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
