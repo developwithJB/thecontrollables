@@ -19,7 +19,15 @@ const Reset = lazy(() => import("./pages/Reset"));
 const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 minute - reduces unnecessary refetches
+      refetchOnWindowFocus: false, // Don't refetch on tab focus
+      retry: 1, // Only retry once on failure
+    },
+  },
+});
 
 // Page loader using splash screen style
 const PageLoader = () => <SplashScreen />;
@@ -28,10 +36,11 @@ const App = () => {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    // Show splash for minimum time, then fade out
+    // Quick splash for branding (800ms), then fade immediately
+    // Reduced from 1500ms for faster perceived load
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 1500);
+    }, 800);
 
     return () => clearTimeout(timer);
   }, []);
