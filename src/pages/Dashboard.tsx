@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { SplashScreen } from "@/components/SplashScreen";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,6 +18,7 @@ import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { usePageViewTracking } from "@/hooks/useAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayContent, RESET_DAYS } from "@/lib/resetContent";
+import { APP_VERSION } from "@/lib/version";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@supabase/supabase-js";
 
@@ -27,12 +28,12 @@ import { XpMomentumModule } from "@/components/dashboard/XpMomentumModule";
 import { IntegrityMeterModule } from "@/components/dashboard/IntegrityMeterModule";
 import { TimeCurrencyModule } from "@/components/dashboard/TimeCurrencyModule";
 import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule";
-import { AIGuidePanel } from "@/components/dashboard/AIGuidePanel";
 import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
 import { ReadingCard } from "@/components/ReadingCard";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
 import { InstallNudge } from "@/components/pwa/InstallNudge";
+import { UpdatePrompt } from "@/components/UpdatePrompt";
 import {
   MainQuestSkeleton,
   ResetProgressSkeleton,
@@ -40,13 +41,20 @@ import {
   AIGuideSkeleton,
 } from "@/components/dashboard/DashboardSkeletons";
 
-// Experience tab components
+// Lazy load heavy components
+import { LazyAIGuidePanelWrapper } from "@/components/dashboard/LazyAIGuidePanel";
+import {
+  LazyProgressHistory,
+  LazyMomentumDecay,
+  LazyBadgesEarned,
+  LazyResetHistory,
+  SuspenseExperienceComponent,
+  ExperienceLoadingSkeleton,
+} from "@/components/experience/LazyExperienceComponents";
+
+// Experience tab components (lighter ones loaded normally)
 import { TimeCycleCard } from "@/components/experience/TimeCycleCard";
 import { OfflineTriggers } from "@/components/experience/OfflineTriggers";
-import { ProgressHistory } from "@/components/experience/ProgressHistory";
-import { MomentumDecay } from "@/components/experience/MomentumDecay";
-import { BadgesEarned } from "@/components/experience/BadgesEarned";
-import { ResetHistory } from "@/components/experience/ResetHistory";
 import { LockedOverlay } from "@/components/experience/LockedOverlay";
 
 type TabType = "dashboard" | "experience" | "guide";
@@ -531,12 +539,12 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* AI Guide - Locked for free users */}
+              {/* AI Guide - Lazy loaded, Locked for free users */}
               {entitlementsLoading ? (
                 <AIGuideSkeleton />
               ) : (
                 <div data-testid="ai-guide-panel">
-                  <AIGuidePanel
+                  <LazyAIGuidePanelWrapper
                     activeQuest={activeQuest}
                     totalXp={totalXp}
                     integrityScore={integrityScore}
@@ -775,10 +783,12 @@ export default function Dashboard() {
 
               {/* ===== LOCKED CONTENT (Premium) ===== */}
 
-              {/* Badges Earned - Locked for free users, hidden in simplified mode */}
+              {/* Badges Earned - Lazy loaded, Locked for free users, hidden in simplified mode */}
               {!isSimplifiedMode && (
                 <div className="relative">
-                  <BadgesEarned earnedBadges={earnedBadges} isLoading={badgesLoading} />
+                  <SuspenseExperienceComponent>
+                    <LazyBadgesEarned earnedBadges={earnedBadges} isLoading={badgesLoading} />
+                  </SuspenseExperienceComponent>
                   {!isPaid && (
                     <LockedOverlay
                       variant="experience-history"
@@ -789,15 +799,17 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Progress History - Locked for free users, hidden in simplified mode */}
+              {/* Progress History - Lazy loaded, Locked for free users, hidden in simplified mode */}
               {!isSimplifiedMode && (
                 <div className="relative">
-                  <ProgressHistory
-                    totalXp={totalXp}
-                    xpLogs={xpLogs}
-                    resetSessions={allSessions}
-                    completedResetsCount={allSessions.filter((s) => s.status === "completed").length}
-                  />
+                  <SuspenseExperienceComponent>
+                    <LazyProgressHistory
+                      totalXp={totalXp}
+                      xpLogs={xpLogs}
+                      resetSessions={allSessions}
+                      completedResetsCount={allSessions.filter((s) => s.status === "completed").length}
+                    />
+                  </SuspenseExperienceComponent>
                   {!isPaid && (
                     <LockedOverlay
                       variant="experience-history"
@@ -808,10 +820,12 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Reset History with Certificates - Locked for free users */}
+              {/* Reset History with Certificates - Lazy loaded, Locked for free users */}
               {user?.id && (
                 <div className="relative">
-                  <ResetHistory resetSessions={allSessions} userId={user.id} dailyResets={allCompletedDays} />
+                  <SuspenseExperienceComponent>
+                    <LazyResetHistory resetSessions={allSessions} userId={user.id} dailyResets={allCompletedDays} />
+                  </SuspenseExperienceComponent>
                   {!isPaid && allSessions.filter((s) => s.status === "completed").length > 0 && (
                     <LockedOverlay
                       variant="experience-history"
@@ -822,27 +836,29 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Momentum Decay - Locked for free users, hidden in simplified mode */}
+              {/* Momentum Decay - Lazy loaded, Locked for free users, hidden in simplified mode */}
               {!isSimplifiedMode && (
                 <div className="relative">
-                  <MomentumDecay
-                    lastActivity={(() => {
-                      // Get the most recent activity from multiple sources
-                      const dates: Date[] = [];
-                      if (xpLogs[0]?.created_at) dates.push(new Date(xpLogs[0].created_at));
-                      const latestSession = allSessions[0];
-                      if (latestSession?.completed_at) dates.push(new Date(latestSession.completed_at));
-                      if (latestSession?.created_at) dates.push(new Date(latestSession.created_at));
-                      const latestCompletedDay = completedDays[0];
-                      if (latestCompletedDay?.completed_at) dates.push(new Date(latestCompletedDay.completed_at));
-                      if (dates.length === 0) return null;
-                      return dates.sort((a, b) => b.getTime() - a.getTime())[0].toISOString();
-                    })()}
-                    currentStreak={completedDays.length}
-                    hasActiveQuest={!!activeQuest}
-                    hasActiveReset={!!activeSession && !isCompleted}
-                    onStartReset={() => navigate("/reset")}
-                  />
+                  <SuspenseExperienceComponent>
+                    <LazyMomentumDecay
+                      lastActivity={(() => {
+                        // Get the most recent activity from multiple sources
+                        const dates: Date[] = [];
+                        if (xpLogs[0]?.created_at) dates.push(new Date(xpLogs[0].created_at));
+                        const latestSession = allSessions[0];
+                        if (latestSession?.completed_at) dates.push(new Date(latestSession.completed_at));
+                        if (latestSession?.created_at) dates.push(new Date(latestSession.created_at));
+                        const latestCompletedDay = completedDays[0];
+                        if (latestCompletedDay?.completed_at) dates.push(new Date(latestCompletedDay.completed_at));
+                        if (dates.length === 0) return null;
+                        return dates.sort((a, b) => b.getTime() - a.getTime())[0].toISOString();
+                      })()}
+                      currentStreak={completedDays.length}
+                      hasActiveQuest={!!activeQuest}
+                      hasActiveReset={!!activeSession && !isCompleted}
+                      onStartReset={() => navigate("/reset")}
+                    />
+                  </SuspenseExperienceComponent>
                   {!isPaid && (
                     <LockedOverlay
                       variant="experience-history"
@@ -883,9 +899,14 @@ export default function Dashboard() {
         </AnimatePresence>
       </main>
 
-      {/* Footer */}
+      {/* Footer with version on Guide tab */}
       <footer className="max-w-md mx-auto px-6 py-6 text-center">
-        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} The Controllables</p>
+        <p className="text-xs text-muted-foreground">
+          © {new Date().getFullYear()} The Controllables
+          {activeTab === "guide" && (
+            <span className="ml-2 text-muted-foreground/50">v{APP_VERSION}</span>
+          )}
+        </p>
       </footer>
 
       {/* PWA Install Nudge */}
@@ -895,6 +916,9 @@ export default function Dashboard() {
         onInstall={handleInstall}
         onDismiss={handleInstallDismiss}
       />
+
+      {/* App Update Prompt for PWA users */}
+      <UpdatePrompt />
     </div>
   );
 }
