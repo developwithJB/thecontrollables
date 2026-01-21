@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify all 7 days are completed
+    // Fetch completed days for logging (session.status === "completed" is the authoritative check)
     const { data: completedDays, error: daysError } = await supabaseAdmin
       .from("daily_resets")
       .select("day_number")
@@ -114,12 +114,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!completedDays || completedDays.length < 7) {
-      return new Response(
-        JSON.stringify({ error: "All 7 days must be completed" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    console.log(`Session has ${completedDays?.length || 0} daily resets recorded`);
 
     // Get user profile for display name
     const { data: profile } = await supabaseAdmin
