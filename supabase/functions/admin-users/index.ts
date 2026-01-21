@@ -244,7 +244,7 @@ Deno.serve(async (req) => {
       const { error: insertError } = await adminClient.from("user_entitlements").insert({
         user_id: userId,
         entitlement_type: "full_access",
-        source: "admin_grant",
+        source: "manual",
         granted_by: user.email,
       });
 
