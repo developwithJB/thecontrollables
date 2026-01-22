@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, Lock, Check, Play, RefreshCw, Eye } from "lucide-react";
+import { ChevronDown, ChevronUp, Lock, Check, Play, RefreshCw, Eye, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { getDayContent, RESET_DAYS, COVENANT_TEXT, COVENANT_CHECKBOX_TEXT } from "@/lib/resetContent";
 import { CompletedDayView } from "@/components/CompletedDayView";
 import { useActionTracking } from "@/hooks/useActionTracking";
+import { getPricing } from "@/hooks/useEntitlements";
 
 interface CompletedDay {
   day_number: number;
@@ -37,6 +38,8 @@ interface ResetProgressModuleProps {
   onStartReset?: (isPaid: boolean) => void;
   isStartingReset?: boolean;
   isPaid?: boolean;
+  totalSessionCount?: number;
+  onUpgrade?: () => void;
 }
 
 export function ResetProgressModule({
@@ -50,6 +53,8 @@ export function ResetProgressModule({
   onStartReset,
   isStartingReset = false,
   isPaid = false,
+  totalSessionCount = 0,
+  onUpgrade,
 }: ResetProgressModuleProps) {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -59,6 +64,10 @@ export function ResetProgressModule({
   const [covenantAccepted, setCovenantAccepted] = useState(false);
 
   const { trackButtonClick, trackModalAction, trackResetAction } = useActionTracking();
+
+  // Check if free user has used their one free reset
+  const hasUsedFreeReset = !isPaid && totalSessionCount >= 1;
+  const pricing = getPricing();
 
   const todayContent = hasActiveSession && !isCompleted ? getDayContent(currentDay) : null;
 
@@ -192,6 +201,49 @@ export function ResetProgressModule({
 
   // Session expired (past day 7 without completing all days) - show try again prompt
   if (isExpired) {
+    // Free user who has used their one free reset - show upgrade prompt
+    if (hasUsedFreeReset) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="p-4 rounded-xl bg-card border border-amber-500/30"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-lg">⚠️</span>
+            <div>
+              <p className="text-sm font-medium text-foreground">Reset Incomplete</p>
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                {completedDays.length} of 7 days completed
+              </p>
+            </div>
+          </div>
+          
+          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 mb-3">
+            <div className="flex items-start gap-2">
+              <Lock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Free reset used</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Upgrade to try again and unlock certificate downloads when you complete.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <Button 
+            size="sm" 
+            className="w-full"
+            onClick={onUpgrade}
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Unlock for ${pricing.amount}
+          </Button>
+        </motion.div>
+      );
+    }
+
     return (
       <>
         <motion.div
@@ -263,6 +315,47 @@ export function ResetProgressModule({
 
   // Completed session - show restart option
   if (isCompleted) {
+    // Free user who has used their one free reset - show upgrade prompt
+    if (hasUsedFreeReset) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="p-4 rounded-xl bg-card border border-primary/20"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-lg">⚡</span>
+            <div>
+              <p className="text-sm font-medium text-foreground">Reset Complete</p>
+              <p className="text-xs text-muted-foreground">Well played</p>
+            </div>
+          </div>
+          
+          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 mb-3">
+            <div className="flex items-start gap-2">
+              <Lock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Free reset complete</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Upgrade to download your certificate, start new resets, and unlock AI Companions.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <Button 
+            size="sm" 
+            className="w-full"
+            onClick={onUpgrade}
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Unlock for ${pricing.amount}
+          </Button>
+        </motion.div>
+      );
+    }
+
     return (
       <>
         <motion.div

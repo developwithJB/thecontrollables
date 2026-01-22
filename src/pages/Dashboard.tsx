@@ -521,6 +521,8 @@ export default function Dashboard() {
                     onStartReset={(isPaidArg) => acceptCovenant({ isPaid: isPaidArg })}
                     isStartingReset={isAcceptingCovenant}
                     isPaid={isPaid}
+                    totalSessionCount={allSessions.length}
+                    onUpgrade={initiateCheckout}
                   />
                 </div>
               )}
