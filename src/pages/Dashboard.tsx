@@ -16,6 +16,7 @@ import { useOnboarding } from "@/hooks/useOnboarding";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { usePageViewTracking } from "@/hooks/useAnalytics";
+import { useActionTracking } from "@/hooks/useActionTracking";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayContent, RESET_DAYS } from "@/lib/resetContent";
 import { APP_VERSION } from "@/lib/version";
@@ -65,10 +66,22 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
+  const [prevTab, setPrevTab] = useState<TabType | null>(null);
 
   const { toast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  // Action tracking
+  const { 
+    trackTabChange, 
+    trackQuestAction, 
+    trackResetAction, 
+    trackTimeLog,
+    trackPromiseAction,
+    trackGuideInteraction,
+    trackButtonClick,
+  } = useActionTracking();
 
   // Reset data
   const {
@@ -255,6 +268,7 @@ export default function Dashboard() {
   const handleCreateQuest = useCallback(
     (data: { title: string; durationDays: number }) => {
       createQuest(data);
+      trackQuestAction("create", data.title, data.durationDays);
       // Award "chose_quest" badge on first quest
       if (!hasBadge("chose_quest")) {
         awardBadge({ badgeKey: "chose_quest", triggerContext: { quest_title: data.title } });
@@ -264,41 +278,44 @@ export default function Dashboard() {
         completeOnboarding("quest");
       }
     },
-    [createQuest, hasBadge, awardBadge, isSimplifiedMode, completeOnboarding],
+    [createQuest, hasBadge, awardBadge, isSimplifiedMode, completeOnboarding, trackQuestAction],
   );
 
   // Handle quest update - award "respecd" badge
   const handleUpdateQuest = useCallback(
     (data: { questId: string; title: string }) => {
       updateQuest(data);
+      trackQuestAction("update", data.title);
       // Award "respecd" badge for intentionally adjusting quest
       if (!hasBadge("respecd")) {
         awardBadge({ badgeKey: "respecd", triggerContext: { action: "quest_updated" } });
       }
     },
-    [updateQuest, hasBadge, awardBadge],
+    [updateQuest, hasBadge, awardBadge, trackQuestAction],
   );
 
   // Handle promise resolution - award badge
   const handleResolvePromise = useCallback(
     (data: { promiseId: string; kept: boolean }) => {
       resolvePromise(data);
+      trackPromiseAction(data.kept ? "kept" : "broken");
       // Award "kept_promise" badge on first kept promise
       if (data.kept && !hasBadge("kept_promise")) {
         awardBadge({ badgeKey: "kept_promise", triggerContext: { promise_id: data.promiseId } });
       }
     },
-    [resolvePromise, hasBadge, awardBadge],
+    [resolvePromise, hasBadge, awardBadge, trackPromiseAction],
   );
 
   // Handle time logging - check badge
   const handleLogTime = useCallback(
     (data: { invested: number; wasted: number; notes?: string }) => {
       logTime(data);
+      trackTimeLog(data.invested, data.wasted);
       // Check if protected_time badge should be awarded
       checkProtectedTimeBadge();
     },
-    [logTime, checkProtectedTimeBadge],
+    [logTime, checkProtectedTimeBadge, trackTimeLog],
   );
 
   // Handle XP earned with onboarding completion for "rep" action
@@ -313,11 +330,19 @@ export default function Dashboard() {
   // Handle operator interaction for onboarding
   const handleOperatorInteraction = useCallback(() => {
     handleXpEarned();
+    trackGuideInteraction("message");
     // Complete onboarding if in simplified mode
     if (isSimplifiedMode) {
       completeOnboarding("operator");
     }
-  }, [handleXpEarned, isSimplifiedMode, completeOnboarding]);
+  }, [handleXpEarned, isSimplifiedMode, completeOnboarding, trackGuideInteraction]);
+
+  // Handle tab changes with tracking
+  const handleTabChange = useCallback((tab: TabType) => {
+    trackTabChange(tab, activeTab);
+    setPrevTab(activeTab);
+    setActiveTab(tab);
+  }, [activeTab, trackTabChange]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -380,7 +405,7 @@ export default function Dashboard() {
               <motion.button
                 key={tab.id}
                 data-testid={`tab-${tab.id}`}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 whileTap={{ scale: 0.95 }}
                 className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all ${
                   activeTab === tab.id
