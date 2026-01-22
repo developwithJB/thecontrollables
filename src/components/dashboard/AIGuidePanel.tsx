@@ -425,18 +425,18 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
       >
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-accent/10 text-xl">
-            {selectedGuide ? selectedGuide.emoji : "🧭"}
+            {selectedGuide ? selectedGuide.emoji : "🧠"}
           </div>
           <div className="text-left">
             <h3 className="font-display font-semibold text-foreground">
-              {selectedGuide ? `${selectedGuide.name} Operator` : "AI Operators"}
+              {selectedGuide ? selectedGuide.name : "The Controllables"}
             </h3>
             <p className="text-sm text-muted-foreground">
               {selectedGuide 
                 ? selectedGuide.tagline 
                 : patternData && patternData.conversationCount > 0
                   ? `${patternData.conversationCount} sessions • Patterns tracked`
-                  : "Choose your operator or just ask"
+                  : "Choose a guide or just ask"
               }
             </p>
           </div>
@@ -646,7 +646,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                   {/* Input row */}
                   <div className="flex gap-2">
                     <Input
-                      placeholder={limitReached ? "Daily limit reached" : (selectedGuide ? `Ask ${selectedGuide.name}...` : "Ask any operator...")}
+                      placeholder={limitReached ? "Daily limit reached" : (selectedGuide ? `Ask ${selectedGuide.name}...` : "Ask a Controllable...")}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && !limitReached && sendMessage(input)}
@@ -716,7 +716,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
 
                   {!selectedGuide && !messages.length && (
                     <p className="text-xs text-muted-foreground text-center mt-2">
-                      Select an operator or just type — we'll route to the right one
+                      Select a Controllable or just type — we'll route to the right one
                     </p>
                   )}
                 </>
