@@ -64,9 +64,9 @@ const MANUAL_SECTIONS: ManualSection[] = [
     howToUse: "Make small promises you can keep. Mark them complete when done. Your score reflects your word."
   },
   {
-    title: "AI Guide",
+    title: "The Controllables",
     icon: MessageCircle,
-    description: "Five AI operators—Awareness, Perspective, Habit, Wellness, and Environment—each specialized in one Controllable.",
+    description: "Five guides—Awareness, Perspective, Habit, Wellness, and Environment—each specialized in one Controllable.",
     howToUse: "Ask questions when stuck. Each guide gives action-focused advice, not therapy. Use them as tools."
   },
   {

@@ -74,7 +74,7 @@ export const BADGES: Record<BadgeKey, Badge> = {
     emoji: "🧠",
     name: "Asked for Guidance",
     meaning: "You didn't carry this alone.",
-    trigger: "Engaged with 3+ different AI Operators",
+    trigger: "Engaged with 3+ different Controllables",
   },
 };
 
