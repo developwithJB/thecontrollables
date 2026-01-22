@@ -5,8 +5,8 @@
  * the current date for testing purposes.
  */
 
-// Default launch end date
-const DEFAULT_LAUNCH_END_DATE = new Date("2025-03-01T00:00:00Z");
+// Default launch end date - $29 until March 1, 2026, then $49
+const DEFAULT_LAUNCH_END_DATE = new Date("2026-03-01T00:00:00Z");
 
 // Clock override for testing - only set in test environment
 let clockOverride: Date | null = null;

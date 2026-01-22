@@ -8,11 +8,11 @@ const corsHeaders = {
 };
 
 // Pricing configuration (Production)
-// Launch price: $29.99 (Feb 1 - March 1, 2025)
-// Regular price: $49.99 (after March 1, 2025)
+// Launch price: $29.99 (until March 1, 2026)
+// Regular price: $49.99 (after March 1, 2026)
 const LAUNCH_PRICE_ID = "price_1Ss8UWIrFORWV7K41FKh4zVY"; // $29.99
 const REGULAR_PRICE_ID = "price_1Ss8XUIrFORWV7K4M9uAE2kY"; // $49.99
-const LAUNCH_END_DATE = new Date("2025-03-01T00:00:00Z");
+const LAUNCH_END_DATE = new Date("2026-03-01T00:00:00Z");
 
 // Helper logging function
 const logStep = (step: string, details?: Record<string, unknown>) => {
