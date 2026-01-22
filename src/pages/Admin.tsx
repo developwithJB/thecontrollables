@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   ArrowLeft, Shield, Crown, User, RefreshCw, Activity, AlertTriangle, 
-  BarChart3, Eye, CheckCircle, XCircle, Clock
+  BarChart3, Eye, CheckCircle, XCircle, Clock, Route, MousePointerClick,
+  ChevronDown, ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,6 +13,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Table,
   TableBody,
@@ -64,6 +70,25 @@ interface PageView {
   created_at: string;
 }
 
+interface UserJourney {
+  session_id: string;
+  started_at: string;
+  duration_ms: number;
+  activity_count: number;
+  screen_size: string;
+  activities: Array<{
+    type: string;
+    name: string;
+    timestamp: string;
+    data: Record<string, any>;
+  }>;
+}
+
+interface ActionFlow {
+  flow: string;
+  count: number;
+}
+
 interface AnalyticsSummary {
   pageViews24h: number;
   pageViews7d: number;
@@ -74,6 +99,7 @@ interface AnalyticsSummary {
   topPages: { path: string; count: number }[];
   eventBreakdown: { type: string; count: number }[];
   errorBreakdown: { type: string; count: number }[];
+  actionBreakdown: { action: string; count: number }[];
 }
 
 export default function Admin() {
@@ -81,11 +107,14 @@ export default function Admin() {
   const [events, setEvents] = useState<AppEvent[]>([]);
   const [errors, setErrors] = useState<AppError[]>([]);
   const [pageViews, setPageViews] = useState<PageView[]>([]);
+  const [journeys, setJourneys] = useState<UserJourney[]>([]);
+  const [actionFlows, setActionFlows] = useState<ActionFlow[]>([]);
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -132,6 +161,8 @@ export default function Admin() {
         loadErrors(),
         loadPageViews(),
         loadSummary(),
+        loadJourneys(),
+        loadActionFlows(),
       ]);
     } finally {
       setIsLoading(false);
@@ -224,6 +255,80 @@ export default function Admin() {
     } catch (error) {
       console.error("Error loading summary:", error);
     }
+  };
+
+  const loadJourneys = async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users?resource=user_journeys&limit=20`,
+        { headers }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setJourneys(data.journeys || []);
+      }
+    } catch (error) {
+      console.error("Error loading journeys:", error);
+    }
+  };
+
+  const loadActionFlows = async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users?resource=action_flow`,
+        { headers }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setActionFlows(data.commonFlows || []);
+      }
+    } catch (error) {
+      console.error("Error loading action flows:", error);
+    }
+  };
+
+  const toggleSession = (sessionId: string) => {
+    setExpandedSessions(prev => {
+      const next = new Set(prev);
+      if (next.has(sessionId)) {
+        next.delete(sessionId);
+      } else {
+        next.add(sessionId);
+      }
+      return next;
+    });
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case "page_view": return "📄";
+      case "button_click": return "👆";
+      case "quest": return "🎯";
+      case "reset": return "🔄";
+      case "guide": return "🤖";
+      case "build": return "🏗️";
+      case "navigation": return "🧭";
+      case "feature": return "⚡";
+      case "modal": return "📦";
+      case "upgrade": return "💎";
+      case "time": return "⏰";
+      case "integrity": return "🤝";
+      case "xp": return "✨";
+      default: return "📌";
+    }
+  };
+
+  const formatDuration = (ms: number) => {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    if (minutes > 0) {
+      return `${minutes}m ${seconds % 60}s`;
+    }
+    return `${seconds}s`;
   };
 
   const handleToggleAccess = async (userId: string, currentlyPaid: boolean) => {
@@ -348,10 +453,18 @@ export default function Admin() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid grid-cols-5 w-full max-w-2xl">
+          <TabsList className="grid grid-cols-7 w-full max-w-3xl">
             <TabsTrigger value="overview" className="flex items-center gap-1">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="journeys" className="flex items-center gap-1">
+              <Route className="h-4 w-4" />
+              <span className="hidden sm:inline">Journeys</span>
+            </TabsTrigger>
+            <TabsTrigger value="actions" className="flex items-center gap-1">
+              <MousePointerClick className="h-4 w-4" />
+              <span className="hidden sm:inline">Actions</span>
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-1">
               <User className="h-4 w-4" />
@@ -478,31 +591,228 @@ export default function Admin() {
               </Card>
             </div>
 
+            <div className="grid md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <MousePointerClick className="h-4 w-4" />
+                    Top Actions (7d)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {summary?.actionBreakdown?.slice(0, 8).map((action, i) => (
+                      <div key={i} className="flex justify-between items-center text-sm">
+                        <span className="truncate text-muted-foreground font-mono text-xs">
+                          {action.action}
+                        </span>
+                        <Badge variant="outline">{action.count}</Badge>
+                      </div>
+                    )) || <p className="text-muted-foreground text-sm">No actions tracked yet</p>}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">User Stats</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-8">
+                    <div>
+                      <div className="text-2xl font-bold">{users.length}</div>
+                      <p className="text-xs text-muted-foreground">Total Users</p>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-green-500">
+                        {users.filter(u => u.isPaid).length}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Paid Users</p>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-muted-foreground">
+                        {users.filter(u => !u.isPaid).length}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Free Users</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* User Journeys Tab */}
+          <TabsContent value="journeys">
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">User Stats</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Route className="h-5 w-5 text-purple-500" />
+                  User Journeys
+                </CardTitle>
+                <CardDescription>
+                  View session-by-session user flows through the app
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-8">
-                  <div>
-                    <div className="text-2xl font-bold">{users.length}</div>
-                    <p className="text-xs text-muted-foreground">Total Users</p>
+                <ScrollArea className="h-[600px]">
+                  <div className="space-y-3">
+                    {journeys.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">
+                        No user journeys recorded yet
+                      </p>
+                    ) : (
+                      journeys.map((journey) => (
+                        <Collapsible
+                          key={journey.session_id}
+                          open={expandedSessions.has(journey.session_id)}
+                          onOpenChange={() => toggleSession(journey.session_id)}
+                        >
+                          <Card>
+                            <CollapsibleTrigger asChild>
+                              <CardContent className="p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    {expandedSessions.has(journey.session_id) ? (
+                                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                    ) : (
+                                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                    <div>
+                                      <p className="font-medium text-sm">
+                                        Session: {journey.session_id.slice(0, 8)}...
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {formatTime(journey.started_at)} • {journey.screen_size}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline">
+                                      {journey.activity_count} actions
+                                    </Badge>
+                                    <Badge variant="secondary">
+                                      {formatDuration(journey.duration_ms)}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <div className="px-4 pb-4 border-t">
+                                <div className="pt-4 space-y-2">
+                                  {journey.activities.map((activity, i) => (
+                                    <div
+                                      key={i}
+                                      className="flex items-start gap-3 text-sm"
+                                    >
+                                      <span className="text-lg">
+                                        {getActivityIcon(activity.type)}
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <Badge variant="outline" className="text-xs">
+                                            {activity.type}
+                                          </Badge>
+                                          <span className="font-medium">{activity.name}</span>
+                                        </div>
+                                        {activity.data && Object.keys(activity.data).length > 0 && (
+                                          <pre className="mt-1 text-xs text-muted-foreground bg-muted p-1 rounded overflow-x-auto">
+                                            {JSON.stringify(activity.data, null, 0)}
+                                          </pre>
+                                        )}
+                                      </div>
+                                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                        {new Date(activity.timestamp).toLocaleTimeString()}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </CollapsibleContent>
+                          </Card>
+                        </Collapsible>
+                      ))
+                    )}
                   </div>
-                  <div>
-                    <div className="text-2xl font-bold text-green-500">
-                      {users.filter(u => u.isPaid).length}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Paid Users</p>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-muted-foreground">
-                      {users.filter(u => !u.isPaid).length}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Free Users</p>
-                  </div>
-                </div>
+                </ScrollArea>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Actions Tab */}
+          <TabsContent value="actions">
+            <div className="grid md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MousePointerClick className="h-5 w-5 text-blue-500" />
+                    Common User Flows
+                  </CardTitle>
+                  <CardDescription>
+                    Most frequent action sequences (7d)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[400px]">
+                    <div className="space-y-2">
+                      {actionFlows.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">
+                          Not enough data to show common flows yet
+                        </p>
+                      ) : (
+                        actionFlows.map((flow, i) => (
+                          <div
+                            key={i}
+                            className="flex justify-between items-center p-2 bg-muted/50 rounded text-sm"
+                          >
+                            <span className="font-mono text-xs truncate flex-1 mr-2">
+                              {flow.flow}
+                            </span>
+                            <Badge>{flow.count}x</Badge>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-green-500" />
+                    Action Breakdown (7d)
+                  </CardTitle>
+                  <CardDescription>
+                    All tracked actions by frequency
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[400px]">
+                    <div className="space-y-2">
+                      {summary?.actionBreakdown?.map((action, i) => (
+                        <div
+                          key={i}
+                          className="flex justify-between items-center text-sm"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span>{getActivityIcon(action.action.split(":")[0])}</span>
+                            <span className="font-mono text-xs truncate">
+                              {action.action}
+                            </span>
+                          </div>
+                          <Badge variant="outline">{action.count}</Badge>
+                        </div>
+                      )) || (
+                        <p className="text-muted-foreground text-sm">
+                          No actions tracked yet
+                        </p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Users Tab */}

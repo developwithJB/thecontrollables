@@ -184,6 +184,23 @@ Deno.serve(async (req) => {
           .sort(([, a], [, b]) => b - a)
           .map(([type, count]) => ({ type, count }));
 
+        // Action breakdown - specific button/feature usage
+        const { data: actionData } = await adminClient
+          .from("app_events")
+          .select("event_name, event_type")
+          .gte("created_at", last7d)
+          .in("event_type", ["button_click", "quest", "reset", "feature", "guide", "build", "upgrade"]);
+
+        const actionCounts: Record<string, number> = {};
+        actionData?.forEach(e => {
+          const key = `${e.event_type}:${e.event_name}`;
+          actionCounts[key] = (actionCounts[key] || 0) + 1;
+        });
+        const actionBreakdown = Object.entries(actionCounts)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 15)
+          .map(([action, count]) => ({ action, count }));
+
         return new Response(JSON.stringify({
           summary: {
             pageViews24h: pageViews24h || 0,
@@ -195,8 +212,129 @@ Deno.serve(async (req) => {
             topPages,
             eventBreakdown,
             errorBreakdown,
+            actionBreakdown,
           }
         }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // User journeys - group events by session to show flow
+      if (resource === "user_journeys") {
+        const limit = parseInt(url.searchParams.get("limit") || "20");
+        
+        // Get recent sessions with their events
+        const { data: recentSessions } = await adminClient
+          .from("page_views")
+          .select("session_id, created_at")
+          .order("created_at", { ascending: false })
+          .limit(200);
+
+        // Get unique sessions
+        const sessionMap = new Map<string, string>();
+        recentSessions?.forEach(s => {
+          if (!sessionMap.has(s.session_id)) {
+            sessionMap.set(s.session_id, s.created_at);
+          }
+        });
+
+        // Take the most recent unique sessions
+        const uniqueSessionIds = Array.from(sessionMap.entries())
+          .sort((a, b) => new Date(b[1]).getTime() - new Date(a[1]).getTime())
+          .slice(0, limit)
+          .map(([id]) => id);
+
+        // Get all events and page views for these sessions
+        const [eventsResult, viewsResult] = await Promise.all([
+          adminClient
+            .from("app_events")
+            .select("*")
+            .in("session_id", uniqueSessionIds)
+            .order("created_at", { ascending: true }),
+          adminClient
+            .from("page_views")
+            .select("*")
+            .in("session_id", uniqueSessionIds)
+            .order("created_at", { ascending: true }),
+        ]);
+
+        // Build journey for each session
+        const journeys = uniqueSessionIds.map(sessionId => {
+          const sessionEvents = eventsResult.data?.filter(e => e.session_id === sessionId) || [];
+          const sessionViews = viewsResult.data?.filter(v => v.session_id === sessionId) || [];
+          
+          // Merge and sort all activities
+          const allActivities = [
+            ...sessionViews.map(v => ({
+              type: "page_view" as const,
+              name: v.page_path,
+              timestamp: v.created_at,
+              data: { screen_size: v.screen_size, load_time_ms: v.load_time_ms },
+            })),
+            ...sessionEvents.map(e => ({
+              type: e.event_type as string,
+              name: e.event_name,
+              timestamp: e.created_at,
+              data: e.event_data,
+            })),
+          ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+          const startTime = allActivities[0]?.timestamp;
+          const endTime = allActivities[allActivities.length - 1]?.timestamp;
+          const durationMs = startTime && endTime 
+            ? new Date(endTime).getTime() - new Date(startTime).getTime()
+            : 0;
+
+          return {
+            session_id: sessionId,
+            started_at: startTime,
+            duration_ms: durationMs,
+            activity_count: allActivities.length,
+            activities: allActivities,
+            screen_size: sessionViews[0]?.screen_size,
+          };
+        });
+
+        return new Response(JSON.stringify({ journeys }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Action flow - shows common paths through the app
+      if (resource === "action_flow") {
+        const { data: flowData } = await adminClient
+          .from("app_events")
+          .select("session_id, event_type, event_name, created_at")
+          .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+          .order("created_at", { ascending: true });
+
+        // Group by session
+        const sessionFlows = new Map<string, Array<{ type: string; name: string }>>();
+        flowData?.forEach(e => {
+          if (!sessionFlows.has(e.session_id)) {
+            sessionFlows.set(e.session_id, []);
+          }
+          sessionFlows.get(e.session_id)?.push({ type: e.event_type, name: e.event_name });
+        });
+
+        // Count transition pairs (from action A to action B)
+        const transitionCounts: Record<string, number> = {};
+        sessionFlows.forEach(flow => {
+          for (let i = 0; i < flow.length - 1; i++) {
+            const from = `${flow[i].type}:${flow[i].name}`;
+            const to = `${flow[i + 1].type}:${flow[i + 1].name}`;
+            const key = `${from} → ${to}`;
+            transitionCounts[key] = (transitionCounts[key] || 0) + 1;
+          }
+        });
+
+        const commonFlows = Object.entries(transitionCounts)
+          .filter(([, count]) => count >= 2)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 20)
+          .map(([flow, count]) => ({ flow, count }));
+
+        return new Response(JSON.stringify({ commonFlows }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
