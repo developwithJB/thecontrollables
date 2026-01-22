@@ -24,6 +24,7 @@ interface IntegrityMeterModuleProps {
   onCreatePromise: (data: { promiseText: string }) => void;
   onResolvePromise: (data: { promiseId: string; kept: boolean }) => void;
   compact?: boolean;
+  disabled?: boolean;
 }
 
 export function IntegrityMeterModule({
@@ -32,6 +33,7 @@ export function IntegrityMeterModule({
   onCreatePromise,
   onResolvePromise,
   compact = false,
+  disabled = false,
 }: IntegrityMeterModuleProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -157,13 +159,15 @@ export function IntegrityMeterModule({
                       <div className="flex gap-1">
                         <button
                           onClick={() => onResolvePromise({ promiseId: promise.id, kept: true })}
-                          className="p-1 rounded hover:bg-green-500/20 text-green-600 dark:text-green-400"
+                          className="p-1 rounded hover:bg-green-500/20 text-green-600 dark:text-green-400 disabled:opacity-50"
+                          disabled={disabled}
                         >
                           <Check className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => onResolvePromise({ promiseId: promise.id, kept: false })}
-                          className="p-1 rounded hover:bg-destructive/20 text-destructive"
+                          className="p-1 rounded hover:bg-destructive/20 text-destructive disabled:opacity-50"
+                          disabled={disabled}
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -179,12 +183,13 @@ export function IntegrityMeterModule({
                   variant="outline"
                   size="sm"
                   className="w-full"
+                  disabled={disabled}
                   onClick={() => {
                     setIsDetailOpen(false);
                     setIsOpen(true);
                   }}
                 >
-                  Make a Promise
+                  {disabled ? "Loading..." : "Make a Promise"}
                 </Button>
               </div>
             </div>
@@ -210,8 +215,8 @@ export function IntegrityMeterModule({
                 onChange={(e) => setPromiseText(e.target.value)}
                 className="text-base"
               />
-              <Button onClick={handleSubmit} className="w-full" disabled={!promiseText.trim()}>
-                Make Promise
+              <Button onClick={handleSubmit} className="w-full" disabled={!promiseText.trim() || disabled}>
+                {disabled ? "Loading..." : "Make Promise"}
               </Button>
             </div>
           </DialogContent>
@@ -278,13 +283,15 @@ export function IntegrityMeterModule({
               <div className="flex gap-1">
                 <button
                   onClick={() => onResolvePromise({ promiseId: promise.id, kept: true })}
-                  className="p-1 rounded hover:bg-green-500/20 text-green-600 dark:text-green-400"
+                  className="p-1 rounded hover:bg-green-500/20 text-green-600 dark:text-green-400 disabled:opacity-50"
+                  disabled={disabled}
                 >
                   <Check className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => onResolvePromise({ promiseId: promise.id, kept: false })}
-                  className="p-1 rounded hover:bg-destructive/20 text-destructive"
+                  className="p-1 rounded hover:bg-destructive/20 text-destructive disabled:opacity-50"
+                  disabled={disabled}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -296,8 +303,8 @@ export function IntegrityMeterModule({
 
       {/* Make a Promise button */}
       <div className="mt-3 pt-3 border-t">
-        <Button variant="outline" size="sm" className="w-full" onClick={() => setIsOpen(true)}>
-          Make a Promise
+        <Button variant="outline" size="sm" className="w-full" onClick={() => setIsOpen(true)} disabled={disabled}>
+          {disabled ? "Loading..." : "Make a Promise"}
         </Button>
       </div>
 
@@ -319,8 +326,8 @@ export function IntegrityMeterModule({
               onChange={(e) => setPromiseText(e.target.value)}
               className="text-base"
             />
-            <Button onClick={handleSubmit} className="w-full" disabled={!promiseText.trim()}>
-              Make Promise
+            <Button onClick={handleSubmit} className="w-full" disabled={!promiseText.trim() || disabled}>
+              {disabled ? "Loading..." : "Make Promise"}
             </Button>
           </div>
         </DialogContent>
