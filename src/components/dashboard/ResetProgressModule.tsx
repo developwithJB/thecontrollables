@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { getDayContent, RESET_DAYS, COVENANT_TEXT, COVENANT_CHECKBOX_TEXT } from "@/lib/resetContent";
 import { CompletedDayView } from "@/components/CompletedDayView";
+import { useActionTracking } from "@/hooks/useActionTracking";
 
 interface CompletedDay {
   day_number: number;
@@ -55,9 +56,12 @@ export function ResetProgressModule({
   const [showCovenantDialog, setShowCovenantDialog] = useState(false);
   const [covenantAccepted, setCovenantAccepted] = useState(false);
 
+  const { trackButtonClick, trackModalAction, trackResetAction } = useActionTracking();
+
   const todayContent = hasActiveSession && !isCompleted ? getDayContent(currentDay) : null;
 
   const handleViewDay = (dayData: CompletedDay) => {
+    trackModalAction("completed_day_view", "open");
     setSelectedDay(dayData);
     setIsViewOpen(true);
   };
@@ -93,12 +97,31 @@ export function ResetProgressModule({
   };
 
   const handleStartReset = () => {
+    trackResetAction("start");
     if (onStartReset) {
       onStartReset();
       // Navigate to reset page after starting
       setTimeout(() => {
         navigate("/reset");
       }, 500);
+    }
+  };
+
+  const handleContinueReset = () => {
+    trackButtonClick("reset_continue", { day: currentDay });
+    navigate("/reset");
+  };
+
+  const handleOpenCovenantDialog = () => {
+    trackModalAction("covenant_dialog", "open");
+    setShowCovenantDialog(true);
+  };
+
+  const handleExpandToggle = () => {
+    const newState = !isExpanded;
+    setIsExpanded(newState);
+    if (newState) {
+      trackModalAction("reset_days_expanded", "open");
     }
   };
 
@@ -117,7 +140,7 @@ export function ResetProgressModule({
               <p className="text-sm font-medium text-foreground">7-Day Reset</p>
               <p className="text-xs text-muted-foreground">Re-enter the game</p>
             </div>
-            <Button size="sm" onClick={() => setShowCovenantDialog(true)}>
+            <Button size="sm" onClick={handleOpenCovenantDialog}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Start Reset
             </Button>
@@ -185,7 +208,7 @@ export function ResetProgressModule({
                 </p>
               </div>
             </div>
-            <Button size="sm" onClick={() => setShowCovenantDialog(true)}>
+            <Button size="sm" onClick={handleOpenCovenantDialog}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Try Again
             </Button>
@@ -254,7 +277,7 @@ export function ResetProgressModule({
                 <p className="text-xs text-muted-foreground">Well played</p>
               </div>
             </div>
-            <Button size="sm" variant="outline" onClick={() => setShowCovenantDialog(true)}>
+            <Button size="sm" variant="outline" onClick={handleOpenCovenantDialog}>
               New Reset
             </Button>
           </div>
@@ -312,7 +335,7 @@ export function ResetProgressModule({
       {/* Header - Current status */}
       <div
         className="p-4 cursor-pointer hover:bg-muted/30 transition-colors"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={handleExpandToggle}
       >
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -344,7 +367,7 @@ export function ResetProgressModule({
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate("/reset");
+                  handleContinueReset();
                 }}
               >
                 Continue

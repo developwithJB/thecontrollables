@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useActionTracking } from "@/hooks/useActionTracking";
 
 interface TimeLog {
   time_invested_minutes: number;
@@ -31,7 +32,10 @@ export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging, compact
   const [invested, setInvested] = useState("");
   const [wasted, setWasted] = useState("");
 
+  const { trackButtonClick, trackModalAction } = useActionTracking();
+
   const handleOpenDialog = () => {
+    trackModalAction("time_log", "open");
     // Pre-fill with existing values when opening
     setInvested(todayTimeLog?.time_invested_minutes?.toString() || "");
     setWasted(todayTimeLog?.time_wasted_minutes?.toString() || "");
@@ -39,11 +43,22 @@ export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging, compact
   };
 
   const handleSubmit = () => {
+    trackButtonClick("time_log_submit", { 
+      invested: parseInt(invested) || 0, 
+      wasted: parseInt(wasted) || 0 
+    });
     onLogTime({
       invested: parseInt(invested) || 0,
       wasted: parseInt(wasted) || 0,
     });
     setIsOpen(false);
+  };
+
+  const handleDetailOpen = (open: boolean) => {
+    setIsDetailOpen(open);
+    if (open) {
+      trackModalAction("time_detail", "open");
+    }
   };
 
   const formatMinutes = (minutes: number): string => {
@@ -106,7 +121,7 @@ export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging, compact
         </motion.button>
 
         {/* Detail Modal */}
-        <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <Dialog open={isDetailOpen} onOpenChange={handleDetailOpen}>
           <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">

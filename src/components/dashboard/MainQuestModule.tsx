@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useActionTracking } from "@/hooks/useActionTracking";
 
 interface MainQuest {
   id: string;
@@ -49,8 +50,11 @@ export function MainQuestModule({
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
 
+  const { trackButtonClick, trackModalAction } = useActionTracking();
+
   const handleSubmit = () => {
     if (!title.trim()) return;
+    trackButtonClick("quest_create_submit", { duration_days: duration });
     onCreateQuest({ title: title.trim(), durationDays: duration });
     setIsOpen(false);
     setTitle("");
@@ -58,6 +62,7 @@ export function MainQuestModule({
 
   const handleStartEdit = () => {
     if (activeQuest) {
+      trackButtonClick("quest_edit_start");
       setEditTitle(activeQuest.title);
       setIsEditing(true);
     }
@@ -65,13 +70,24 @@ export function MainQuestModule({
 
   const handleSaveEdit = () => {
     if (!editTitle.trim() || !activeQuest || !onUpdateQuest) return;
+    trackButtonClick("quest_edit_save");
     onUpdateQuest({ questId: activeQuest.id, title: editTitle.trim() });
     setIsEditing(false);
   };
 
   const handleCancelEdit = () => {
+    trackButtonClick("quest_edit_cancel");
     setIsEditing(false);
     setEditTitle("");
+  };
+
+  const handleOpenDialog = (open: boolean) => {
+    setIsOpen(open);
+    if (open) {
+      trackModalAction("quest_create", "open");
+    } else {
+      trackModalAction("quest_create", "close");
+    }
   };
 
   // Calculate days remaining
@@ -104,7 +120,7 @@ export function MainQuestModule({
           Without a quest, life plays you instead of you playing it.
         </p>
 
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={handleOpenDialog}>
           <DialogTrigger asChild>
             <Button className="w-full" disabled={disabled}>
               <Target className="w-4 h-4 mr-2" />
@@ -256,7 +272,10 @@ export function MainQuestModule({
           variant="outline"
           size="sm"
           className="w-full mt-4 border-primary/30 text-primary hover:bg-primary/10"
-          onClick={() => onCompleteQuest(activeQuest.id)}
+          onClick={() => {
+            trackButtonClick("quest_complete", { quest_id: activeQuest.id });
+            onCompleteQuest(activeQuest.id);
+          }}
           disabled={isCompleting || disabled}
         >
           <CheckCircle className="w-4 h-4 mr-2" />

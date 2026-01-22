@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useActionTracking } from "@/hooks/useActionTracking";
 
 interface XpLog {
   id: string;
@@ -24,6 +25,14 @@ interface XpMomentumModuleProps {
 
 export function XpMomentumModule({ totalXp, recentLogs, compact = false }: XpMomentumModuleProps) {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const { trackModalAction } = useActionTracking();
+
+  const handleDetailOpen = (open: boolean) => {
+    setIsDetailOpen(open);
+    if (open) {
+      trackModalAction("xp_momentum_detail", "open");
+    }
+  };
 
   // Calculate level (every 500 XP = 1 level)
   const level = Math.floor(totalXp / 500) + 1;
@@ -52,7 +61,7 @@ export function XpMomentumModule({ totalXp, recentLogs, compact = false }: XpMom
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          onClick={() => setIsDetailOpen(true)}
+          onClick={() => handleDetailOpen(true)}
           className="w-full text-left p-3 rounded-xl bg-card/60 border border-border/50 hover:bg-card/80 hover:border-border transition-all"
         >
           {/* Header */}
@@ -90,7 +99,7 @@ export function XpMomentumModule({ totalXp, recentLogs, compact = false }: XpMom
         </motion.button>
 
         {/* Detail Modal */}
-        <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <Dialog open={isDetailOpen} onOpenChange={handleDetailOpen}>
           <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
