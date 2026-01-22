@@ -28,6 +28,7 @@ interface MainQuestModuleProps {
   isCreating: boolean;
   isUpdating?: boolean;
   isCompleting?: boolean;
+  disabled?: boolean;
 }
 
 export function MainQuestModule({ 
@@ -37,7 +38,8 @@ export function MainQuestModule({
   onCompleteQuest,
   isCreating,
   isUpdating = false,
-  isCompleting = false 
+  isCompleting = false,
+  disabled = false,
 }: MainQuestModuleProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -104,9 +106,9 @@ export function MainQuestModule({
 
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full">
+            <Button className="w-full" disabled={disabled}>
               <Target className="w-4 h-4 mr-2" />
-              Choose Your Quest
+              {disabled ? "Loading..." : "Choose Your Quest"}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-sm">
@@ -150,7 +152,7 @@ export function MainQuestModule({
               <Button 
                 onClick={handleSubmit} 
                 className="w-full" 
-                disabled={!title.trim() || isCreating}
+                disabled={!title.trim() || isCreating || disabled}
               >
                 {isCreating ? "Activating..." : "Activate Quest"}
               </Button>
@@ -255,7 +257,7 @@ export function MainQuestModule({
           size="sm"
           className="w-full mt-4 border-primary/30 text-primary hover:bg-primary/10"
           onClick={() => onCompleteQuest(activeQuest.id)}
-          disabled={isCompleting}
+          disabled={isCompleting || disabled}
         >
           <CheckCircle className="w-4 h-4 mr-2" />
           {isCompleting ? "Completing..." : "Complete Quest"}

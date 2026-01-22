@@ -98,6 +98,7 @@ export default function Dashboard() {
   // Life dashboard data - single optimized query
   const {
     isLoading: dashboardLoading,
+    isAuthReady,
     activeQuest,
     createQuest,
     isCreatingQuest,
@@ -452,6 +453,7 @@ export default function Dashboard() {
                     isCreating={isCreatingQuest}
                     isUpdating={isUpdatingQuest}
                     isCompleting={isCompletingQuest}
+                    disabled={!isAuthReady}
                   />
                 </div>
               )}
@@ -513,6 +515,7 @@ export default function Dashboard() {
                           onLogTime={handleLogTime}
                           isLogging={isLoggingTime}
                           compact
+                          disabled={!isAuthReady}
                         />
                       </div>
                     )}
@@ -528,6 +531,7 @@ export default function Dashboard() {
                           onCreatePromise={createPromise}
                           onResolvePromise={handleResolvePromise}
                           compact
+                          disabled={!isAuthReady}
                         />
                       </div>
                     )}

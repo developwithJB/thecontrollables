@@ -22,9 +22,10 @@ interface TimeCurrencyModuleProps {
   onLogTime: (data: { invested: number; wasted: number; notes?: string }) => void;
   isLogging: boolean;
   compact?: boolean;
+  disabled?: boolean;
 }
 
-export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging, compact = false }: TimeCurrencyModuleProps) {
+export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging, compact = false, disabled = false }: TimeCurrencyModuleProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [invested, setInvested] = useState("");
@@ -164,8 +165,9 @@ export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging, compact
                   handleOpenDialog();
                 }}
                 className="w-full"
+                disabled={disabled}
               >
-                {todayTimeLog ? "Update Time" : "Log Today's Time"}
+                {disabled ? "Loading..." : todayTimeLog ? "Update Time" : "Log Today's Time"}
               </Button>
             </div>
           </DialogContent>
@@ -217,8 +219,8 @@ export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging, compact
                 </p>
               </div>
 
-              <Button onClick={handleSubmit} className="w-full" disabled={isLogging}>
-                {isLogging ? "Saving..." : todayTimeLog ? "Update Time" : "Log Time"}
+              <Button onClick={handleSubmit} className="w-full" disabled={isLogging || disabled}>
+                {isLogging ? "Saving..." : disabled ? "Loading..." : todayTimeLog ? "Update Time" : "Log Time"}
               </Button>
             </div>
           </DialogContent>
@@ -284,8 +286,8 @@ export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging, compact
         <p className="text-sm text-muted-foreground text-center mb-3">No time logged today</p>
       )}
 
-      <Button variant="outline" size="sm" onClick={handleOpenDialog} className="w-full">
-        {todayTimeLog ? "Update Time" : "Log Today's Time"}
+      <Button variant="outline" size="sm" onClick={handleOpenDialog} className="w-full" disabled={disabled}>
+        {disabled ? "Loading..." : todayTimeLog ? "Update Time" : "Log Today's Time"}
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -333,8 +335,8 @@ export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging, compact
               </p>
             </div>
 
-            <Button onClick={handleSubmit} className="w-full" disabled={isLogging}>
-              {isLogging ? "Saving..." : todayTimeLog ? "Update Time" : "Log Time"}
+            <Button onClick={handleSubmit} className="w-full" disabled={isLogging || disabled}>
+              {isLogging ? "Saving..." : disabled ? "Loading..." : todayTimeLog ? "Update Time" : "Log Time"}
             </Button>
           </div>
         </DialogContent>

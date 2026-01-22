@@ -447,6 +447,7 @@ export const useDashboardSummary = () => {
   return {
     userId,
     isLoading: isAuthLoading || isLoadingSummary,
+    isAuthReady: !isAuthLoading && !!userId,
     error,
     
     // Quest
