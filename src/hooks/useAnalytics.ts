@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { APP_VERSION } from "@/lib/version";
 
 // Generate a session ID for tracking (persists across page loads in same tab)
 const getSessionId = () => {
@@ -46,14 +47,14 @@ export const useAnalytics = () => {
     }
   }, []);
 
-  // Track custom event
+  // Track custom event - now includes app version
   const trackEvent = useCallback(
     async (eventType: string, eventName: string, eventData?: EventData) => {
       try {
         await supabase.from("app_events").insert({
           event_type: eventType,
           event_name: eventName,
-          event_data: eventData || {},
+          event_data: { ...eventData, app_version: APP_VERSION },
           page_path: window.location.pathname,
           session_id: sessionId.current,
           user_agent: navigator.userAgent,
@@ -66,7 +67,7 @@ export const useAnalytics = () => {
     []
   );
 
-  // Track error
+  // Track error - now includes app version
   const trackError = useCallback(
     async (
       errorMessage: string,
@@ -84,7 +85,7 @@ export const useAnalytics = () => {
           page_path: window.location.pathname,
           session_id: sessionId.current,
           user_agent: navigator.userAgent,
-          additional_context: additionalContext || {},
+          additional_context: { ...additionalContext, app_version: APP_VERSION },
         });
       } catch (error) {
         console.warn("Failed to track error:", error);
@@ -96,7 +97,7 @@ export const useAnalytics = () => {
   return { trackPageView, trackEvent, trackError, sessionId: sessionId.current };
 };
 
-// Global error handler for uncaught errors
+// Global error handler for uncaught errors - includes app version
 export const setupGlobalErrorTracking = () => {
   const sessionId = getSessionId();
 
@@ -110,7 +111,7 @@ export const setupGlobalErrorTracking = () => {
         page_path: window.location.pathname,
         session_id: sessionId,
         user_agent: navigator.userAgent,
-        additional_context: { source, lineno, colno },
+        additional_context: { source, lineno, colno, app_version: APP_VERSION },
       });
     } catch (e) {
       console.warn("Failed to track uncaught error:", e);
@@ -134,7 +135,7 @@ export const setupGlobalErrorTracking = () => {
         page_path: window.location.pathname,
         session_id: sessionId,
         user_agent: navigator.userAgent,
-        additional_context: {},
+        additional_context: { app_version: APP_VERSION },
       });
     } catch (e) {
       console.warn("Failed to track unhandled rejection:", e);
