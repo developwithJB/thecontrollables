@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
 import { Lock, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getPricing } from "@/hooks/useEntitlements";
-
+import { getPricing } from "@/lib/pricing";
+import { LaunchCountdownBadge } from "@/components/LaunchCountdownBadge";
 interface LockedOverlayProps {
   featureName?: string;
   title?: string;
@@ -116,8 +116,11 @@ export function LockedOverlay({
           {isLoading ? "Opening checkout..." : displayButtonText}
         </Button>
 
-        {/* Price line */}
-        {displayPriceLine && (
+        {/* Launch countdown badge */}
+        <LaunchCountdownBadge variant="compact" className="mt-3" />
+        
+        {/* Price line - only show if not in launch period (countdown shows price) */}
+        {displayPriceLine && !getPricing().isLaunchPeriod && (
           <p className="mt-2 text-xs text-muted-foreground">
             {displayPriceLine}
           </p>
