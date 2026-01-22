@@ -229,8 +229,22 @@ export const useReset = () => {
 
   // Accept covenant and start a new reset session
   const acceptCovenantMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async ({ isPaid }: { isPaid: boolean }) => {
       if (!userId) throw new Error("Not authenticated");
+
+      // Check if free user has already used their one free reset
+      if (!isPaid) {
+        const { count, error: countError } = await supabase
+          .from("reset_sessions")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", userId);
+
+        if (countError) throw countError;
+
+        if (count && count >= 1) {
+          throw new Error("Free users are limited to one 7-Day Reset. Upgrade to unlock unlimited resets.");
+        }
+      }
 
       const now = new Date().toISOString();
       const localDate = getLocalDateString();

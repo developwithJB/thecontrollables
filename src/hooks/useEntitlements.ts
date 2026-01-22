@@ -153,6 +153,7 @@ export const PAID_FEATURES = {
   momentumDecay: true,
   aiCompanions: true,
   certificateDownload: true,
+  multipleResets: true,
 } as const;
 
 export type PaidFeature = keyof typeof PAID_FEATURES;

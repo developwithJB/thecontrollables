@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SplashScreen } from "@/components/SplashScreen";
 import { useReset } from "@/hooks/useReset";
+import { useEntitlements } from "@/hooks/useEntitlements";
 import { CovenantScreen } from "@/components/CovenantScreen";
 import { ResetDay } from "@/components/ResetDay";
 import { WelcomeBack } from "@/components/WelcomeBack";
@@ -28,6 +29,8 @@ const Reset = () => {
     completeDay,
     isCompleting,
   } = useReset();
+
+  const { isPaid } = useEntitlements(userId || null);
 
   const [showDayComplete, setShowDayComplete] = useState(false);
   const [showDay7Complete, setShowDay7Complete] = useState(false);
@@ -91,7 +94,7 @@ const Reset = () => {
   if (!covenantAccepted) {
     return (
       <CovenantScreen
-        onAccept={() => acceptCovenant()}
+        onAccept={() => acceptCovenant({ isPaid })}
         isAccepting={isAcceptingCovenant}
       />
     );
