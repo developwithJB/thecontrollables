@@ -99,7 +99,7 @@ serve(async (req) => {
     });
 
     // Get origin for redirect URLs
-    const origin = req.headers.get("origin") || "https://thecontrollables.lovable.app";
+    const origin = req.headers.get("origin") || "https://thedashboard.agbcoaching.com";
 
     // Create a one-time payment session
     const session = await stripe.checkout.sessions.create({
