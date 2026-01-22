@@ -14,6 +14,7 @@ export const PAID_FEATURES = {
   badgesEarned: true,
   momentumDecay: true,
   aiCompanions: true,
+  certificateDownload: true,
 } as const;
 
 export type PaidFeature = keyof typeof PAID_FEATURES;

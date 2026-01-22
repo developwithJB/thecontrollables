@@ -37,6 +37,10 @@ describe('Entitlement Gating Logic', () => {
     it('includes reset history', () => {
       expect(PAID_FEATURES.resetHistory).toBe(true);
     });
+
+    it('includes certificate download', () => {
+      expect(PAID_FEATURES.certificateDownload).toBe(true);
+    });
   });
 
   describe('FREE_FEATURES', () => {
@@ -68,6 +72,7 @@ describe('Entitlement Gating Logic', () => {
       'badgesEarned',
       'momentumDecay',
       'aiCompanions',
+      'certificateDownload',
     ];
 
     paidFeatures.forEach(feature => {
@@ -126,7 +131,8 @@ describe('Entitlement Gating Logic', () => {
       expect(locked).toContain('badgesEarned');
       expect(locked).toContain('momentumDecay');
       expect(locked).toContain('resetHistory');
-      expect(locked.length).toBe(5);
+      expect(locked).toContain('certificateDownload');
+      expect(locked.length).toBe(6);
     });
 
     it('returns empty array for paid users', () => {
@@ -208,6 +214,10 @@ describe('Gating Rules - Business Logic', () => {
       expect(canAccessFeature('aiCompanions', isPaid)).toBe(false);
     });
 
+    it('cannot download certificates', () => {
+      expect(canAccessFeature('certificateDownload', isPaid)).toBe(false);
+    });
+
     it('cannot access full Experience History', () => {
       expect(canAccessFeature('progressHistory', isPaid)).toBe(false);
       expect(canAccessFeature('badgesEarned', isPaid)).toBe(false);
@@ -232,6 +242,10 @@ describe('Gating Rules - Business Logic', () => {
       expect(canAccessFeature('progressHistory', isPaid)).toBe(true);
       expect(canAccessFeature('badgesEarned', isPaid)).toBe(true);
       expect(canAccessFeature('momentumDecay', isPaid)).toBe(true);
+    });
+
+    it('can download certificates', () => {
+      expect(canAccessFeature('certificateDownload', isPaid)).toBe(true);
     });
   });
 });

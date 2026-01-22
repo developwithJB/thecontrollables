@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Download, Share2, Loader2, Eye, X } from "lucide-react";
+import { Download, Share2, Loader2, Eye, Lock } from "lucide-react";
 import { useCertificate } from "@/hooks/useCertificate";
 import { useState } from "react";
 import {
@@ -10,6 +10,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { isFeatureLocked } from "@/lib/entitlements";
+import { getPricing } from "@/lib/pricing";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Day7CompleteProps {
   displayName: string;
@@ -26,6 +30,7 @@ export const Day7Complete = ({
 }: Day7CompleteProps) => {
   const navigate = useNavigate();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const {
     certificate,
     isLoading,
@@ -34,6 +39,16 @@ export const Day7Complete = ({
     downloadCertificate,
     shareCertificate,
   } = useCertificate(resetSessionId);
+  const { isPaid } = useEntitlements(userId);
+  const isLocked = isFeatureLocked("certificateDownload", isPaid);
+  const pricing = getPricing();
+
+  // Get user ID on mount
+  useState(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUserId(data.user?.id ?? null);
+    });
+  });
 
   // Format dates nicely
   const formatDate = (dateStr: string) => {
@@ -130,39 +145,70 @@ export const Day7Complete = ({
             transition={{ delay: 0.5 }}
             className="space-y-3 mb-8"
           >
-            {certificate?.certificate_url && (
-              <Button
-                onClick={() => setIsPreviewOpen(true)}
-                className="w-full h-12"
-                variant="default"
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                View Certificate
-              </Button>
+            {isLocked ? (
+              <>
+                <div className="bg-muted/50 rounded-xl p-4 border border-border/50">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                    <Lock className="w-4 h-4" />
+                    <span className="text-sm font-medium">Certificate Download</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Unlock certificate downloads and your full experience history.
+                  </p>
+                  <Button
+                    onClick={() => navigate("/dashboard?upgrade=true")}
+                    className="w-full h-10"
+                    size="sm"
+                  >
+                    Unlock for ${pricing.amount}
+                  </Button>
+                </div>
+                <Button
+                  onClick={handleShare}
+                  className="w-full h-12"
+                  variant="ghost"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share Your Achievement
+                </Button>
+              </>
+            ) : (
+              <>
+                {certificate?.certificate_url && (
+                  <Button
+                    onClick={() => setIsPreviewOpen(true)}
+                    className="w-full h-12"
+                    variant="default"
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    View Certificate
+                  </Button>
+                )}
+
+                <Button
+                  onClick={downloadCertificate}
+                  disabled={isWorking}
+                  className="w-full h-12"
+                  variant="outline"
+                >
+                  {isWorking ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4 mr-2" />
+                  )}
+                  {isGenerating ? "Generating..." : isDownloading ? "Downloading..." : "Download Certificate"}
+                </Button>
+
+                <Button
+                  onClick={handleShare}
+                  className="w-full h-12"
+                  variant="ghost"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
+              </>
             )}
-
-            <Button
-              onClick={downloadCertificate}
-              disabled={isWorking}
-              className="w-full h-12"
-              variant="outline"
-            >
-              {isWorking ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4 mr-2" />
-              )}
-              {isGenerating ? "Generating..." : isDownloading ? "Downloading..." : "Download Certificate"}
-            </Button>
-
-            <Button
-              onClick={handleShare}
-              className="w-full h-12"
-              variant="ghost"
-            >
-              <Share2 className="w-4 h-4 mr-2" />
-              Share
-            </Button>
           </motion.div>
 
           {/* Book link - subtle, no pressure */}
