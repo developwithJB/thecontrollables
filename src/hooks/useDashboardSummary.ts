@@ -164,13 +164,15 @@ export const useDashboardSummary = () => {
   // Create main quest
   const createQuestMutation = useMutation({
     mutationFn: async ({ title, durationDays }: { title: string; durationDays: number }) => {
-      if (!userId) throw new Error("Not authenticated");
+      // Always get fresh user from session to avoid stale state race conditions
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) throw new Error("Not authenticated");
 
       // First, pause any active quests
       await supabase
         .from("main_quests")
         .update({ status: "paused" })
-        .eq("user_id", userId)
+        .eq("user_id", user.id)
         .eq("status", "active");
 
       const endsAt = new Date();
@@ -179,7 +181,7 @@ export const useDashboardSummary = () => {
       const { data, error } = await supabase
         .from("main_quests")
         .insert({
-          user_id: userId,
+          user_id: user.id,
           title,
           duration_days: durationDays,
           ends_at: endsAt.toISOString(),
@@ -209,13 +211,14 @@ export const useDashboardSummary = () => {
   // Update quest title
   const updateQuestMutation = useMutation({
     mutationFn: async ({ questId, title }: { questId: string; title: string }) => {
-      if (!userId) throw new Error("Not authenticated");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("main_quests")
         .update({ title })
         .eq("id", questId)
-        .eq("user_id", userId)
+        .eq("user_id", user.id)
         .select()
         .single();
 
@@ -241,7 +244,8 @@ export const useDashboardSummary = () => {
   // Complete quest
   const completeQuestMutation = useMutation({
     mutationFn: async (questId: string) => {
-      if (!userId) throw new Error("Not authenticated");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("main_quests")
@@ -250,7 +254,7 @@ export const useDashboardSummary = () => {
           completed_at: new Date().toISOString()
         })
         .eq("id", questId)
-        .eq("user_id", userId)
+        .eq("user_id", user.id)
         .select()
         .single();
 
@@ -282,12 +286,13 @@ export const useDashboardSummary = () => {
   // Award XP
   const awardXpMutation = useMutation({
     mutationFn: async ({ amount, source, description }: { amount: number; source: string; description?: string }) => {
-      if (!userId) throw new Error("Not authenticated");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("xp_logs")
         .insert({
-          user_id: userId,
+          user_id: user.id,
           amount,
           source,
           description,
@@ -306,12 +311,13 @@ export const useDashboardSummary = () => {
   // Create promise
   const createPromiseMutation = useMutation({
     mutationFn: async ({ promiseText, dueDate }: { promiseText: string; dueDate?: string }) => {
-      if (!userId) throw new Error("Not authenticated");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("integrity_logs")
         .insert({
-          user_id: userId,
+          user_id: user.id,
           promise_text: promiseText,
           due_date: dueDate,
         })
@@ -333,7 +339,8 @@ export const useDashboardSummary = () => {
   // Resolve promise
   const resolvePromiseMutation = useMutation({
     mutationFn: async ({ promiseId, kept }: { promiseId: string; kept: boolean }) => {
-      if (!userId) throw new Error("Not authenticated");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("integrity_logs")
@@ -342,7 +349,7 @@ export const useDashboardSummary = () => {
           kept_at: new Date().toISOString(),
         })
         .eq("id", promiseId)
-        .eq("user_id", userId)
+        .eq("user_id", user.id)
         .select()
         .single();
 
@@ -371,12 +378,13 @@ export const useDashboardSummary = () => {
   // Log time
   const logTimeMutation = useMutation({
     mutationFn: async ({ invested, wasted, notes }: { invested: number; wasted: number; notes?: string }) => {
-      if (!userId) throw new Error("Not authenticated");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("time_logs")
         .upsert({
-          user_id: userId,
+          user_id: user.id,
           log_date: getLocalDateString(),
           time_invested_minutes: invested,
           time_wasted_minutes: wasted,
@@ -410,12 +418,13 @@ export const useDashboardSummary = () => {
   // Create or update user build
   const updateBuildMutation = useMutation({
     mutationFn: async (build: Partial<Omit<NonNullable<DashboardSummary["userBuild"]>, "id" | "user_id" | "created_at" | "updated_at">>) => {
-      if (!userId) throw new Error("Not authenticated");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("user_builds")
         .upsert({
-          user_id: userId,
+          user_id: user.id,
           ...build,
         }, {
           onConflict: "user_id",
