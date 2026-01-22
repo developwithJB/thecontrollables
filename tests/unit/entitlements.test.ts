@@ -41,6 +41,10 @@ describe('Entitlement Gating Logic', () => {
     it('includes certificate download', () => {
       expect(PAID_FEATURES.certificateDownload).toBe(true);
     });
+
+    it('includes multiple resets', () => {
+      expect(PAID_FEATURES.multipleResets).toBe(true);
+    });
   });
 
   describe('FREE_FEATURES', () => {
@@ -73,6 +77,7 @@ describe('Entitlement Gating Logic', () => {
       'momentumDecay',
       'aiCompanions',
       'certificateDownload',
+      'multipleResets',
     ];
 
     paidFeatures.forEach(feature => {
@@ -132,7 +137,8 @@ describe('Entitlement Gating Logic', () => {
       expect(locked).toContain('momentumDecay');
       expect(locked).toContain('resetHistory');
       expect(locked).toContain('certificateDownload');
-      expect(locked.length).toBe(6);
+      expect(locked).toContain('multipleResets');
+      expect(locked.length).toBe(7);
     });
 
     it('returns empty array for paid users', () => {

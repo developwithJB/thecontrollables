@@ -518,8 +518,9 @@ export default function Dashboard() {
                     completedDays={completedDays}
                     todayAlreadyCompleted={todayAlreadyCompleted}
                     readings={readings}
-                    onStartReset={acceptCovenant}
+                    onStartReset={(isPaidArg) => acceptCovenant({ isPaid: isPaidArg })}
                     isStartingReset={isAcceptingCovenant}
+                    isPaid={isPaid}
                   />
                 </div>
               )}

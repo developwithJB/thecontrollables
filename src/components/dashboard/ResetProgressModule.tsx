@@ -34,8 +34,9 @@ interface ResetProgressModuleProps {
   completedDays: CompletedDay[];
   todayAlreadyCompleted: boolean;
   readings?: DailyReading[];
-  onStartReset?: () => void;
+  onStartReset?: (isPaid: boolean) => void;
   isStartingReset?: boolean;
+  isPaid?: boolean;
 }
 
 export function ResetProgressModule({
@@ -48,6 +49,7 @@ export function ResetProgressModule({
   readings = [],
   onStartReset,
   isStartingReset = false,
+  isPaid = false,
 }: ResetProgressModuleProps) {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -99,7 +101,7 @@ export function ResetProgressModule({
   const handleStartReset = () => {
     trackResetAction("start");
     if (onStartReset) {
-      onStartReset();
+      onStartReset(isPaid);
       // Navigate to reset page after starting
       setTimeout(() => {
         navigate("/reset");
