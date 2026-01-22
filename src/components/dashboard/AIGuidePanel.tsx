@@ -8,6 +8,7 @@ import { getArchetypeInfo, type UserBuildCurrent } from "@/lib/build";
 import { useGuideSession } from "@/hooks/useGuideSession";
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { toast } from "sonner";
+import { LaunchCountdownBadge } from "@/components/LaunchCountdownBadge";
 
 interface MainQuest {
   title: string;
@@ -548,11 +549,8 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                     {isCheckingOut ? "Opening checkout..." : "Unlock Full Access"}
                   </Button>
                   
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    {new Date() < new Date("2025-03-01") 
-                      ? "$29 one-time. $49 after March 1." 
-                      : "$49 one-time purchase."}
-                  </p>
+                  {/* Launch countdown badge */}
+                  <LaunchCountdownBadge variant="compact" className="mt-3" />
                 </div>
               )}
 
