@@ -1,6 +1,10 @@
 // App version management
 // Increment this when deploying significant updates
-export const APP_VERSION = "1.0.0";
+// Format: MAJOR.MINOR.PATCH (e.g., 1.2.3)
+// - MAJOR: Breaking changes or major feature overhauls
+// - MINOR: New features, significant improvements
+// - PATCH: Bug fixes, small improvements
+export const APP_VERSION = "1.3.0";
 
 // Check if running as installed PWA
 export const isStandalonePWA = (): boolean => {
