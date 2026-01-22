@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react
 import { useNavigate } from "react-router-dom";
 import { SplashScreen } from "@/components/SplashScreen";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, Book, BookOpen, Sparkles } from "lucide-react";
+import { LogOut, Book, BookOpen, Sparkles, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -17,6 +17,8 @@ import { useEntitlements } from "@/hooks/useEntitlements";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { usePageViewTracking } from "@/hooks/useAnalytics";
 import { useActionTracking } from "@/hooks/useActionTracking";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayContent, RESET_DAYS } from "@/lib/resetContent";
 import { APP_VERSION } from "@/lib/version";
@@ -57,6 +59,7 @@ import {
 import { TimeCycleCard } from "@/components/experience/TimeCycleCard";
 import { OfflineTriggers } from "@/components/experience/OfflineTriggers";
 import { LockedOverlay } from "@/components/experience/LockedOverlay";
+import { PullToRefreshIndicator } from "@/components/pwa/PullToRefreshIndicator";
 
 type TabType = "dashboard" | "experience" | "guide";
 
@@ -164,6 +167,30 @@ export default function Dashboard() {
   } = usePWAInstall({
     isAuthenticated: !!user,
     hasCompletedMeaningfulAction,
+  });
+
+  // Online status for pull-to-refresh
+  const isOnline = useOnlineStatus();
+
+  // Pull-to-refresh for mobile
+  const handlePullRefresh = useCallback(async () => {
+    // Invalidate all queries to refresh data
+    await queryClient.invalidateQueries();
+    toast({
+      title: "Refreshed",
+      description: "Data updated successfully.",
+    });
+  }, [queryClient, toast]);
+
+  const {
+    containerRef: pullRefreshRef,
+    isRefreshing: isPullRefreshing,
+    pullProgress,
+    pullDistance,
+    triggerRefresh,
+  } = usePullToRefresh({
+    onRefresh: handlePullRefresh,
+    threshold: 80,
   });
 
   // Callback to refresh XP when actions are completed
@@ -376,6 +403,17 @@ export default function Dashboard() {
         <div className="max-w-md mx-auto px-6 py-4 flex items-center justify-between">
           <Logo />
           <div className="flex items-center gap-2">
+            {/* Manual refresh button - always visible on mobile for stuck states */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={triggerRefresh}
+              disabled={isPullRefreshing}
+              className="text-muted-foreground hover:text-foreground md:hidden"
+              title="Refresh"
+            >
+              <RefreshCw className={`w-4 h-4 ${isPullRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
             <ThemeToggle />
             <a href="https://a.co/d/1DGPGEV" target="_blank" rel="noopener noreferrer">
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
@@ -422,8 +460,17 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <main className="flex-1 max-w-md mx-auto px-6 py-6 w-full">
+      {/* Main Content with Pull-to-Refresh */}
+      <main 
+        ref={pullRefreshRef}
+        className="flex-1 max-w-md mx-auto px-6 py-6 w-full overflow-y-auto relative"
+      >
+        {/* Pull-to-Refresh Indicator */}
+        <PullToRefreshIndicator
+          pullProgress={pullProgress}
+          isRefreshing={isPullRefreshing}
+          pullDistance={pullDistance}
+        />
         <AnimatePresence mode="wait">
           {activeTab === "dashboard" && (
             <motion.div
