@@ -8,7 +8,7 @@ import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { useReset } from "@/hooks/useReset";
-import { useLifeDashboard } from "@/hooks/useLifeDashboard";
+import { useDashboardSummary } from "@/hooks/useDashboardSummary";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { useDailyReadings } from "@/hooks/useDailyReadings";
 import { useBadges } from "@/hooks/useBadges";
@@ -82,7 +82,7 @@ export default function Dashboard() {
     isAcceptingCovenant,
   } = useReset();
 
-  // Life dashboard data
+  // Life dashboard data - single optimized query
   const {
     isLoading: dashboardLoading,
     activeQuest,
@@ -101,7 +101,7 @@ export default function Dashboard() {
     todayTimeLog,
     logTime,
     isLoggingTime,
-  } = useLifeDashboard();
+  } = useDashboardSummary();
 
   // Daily readings from database
   const { readings, isLoading: readingsLoading } = useDailyReadings();
