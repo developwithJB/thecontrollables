@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useActionTracking } from "@/hooks/useActionTracking";
 
 interface IntegrityLog {
   id: string;
@@ -39,11 +40,33 @@ export function IntegrityMeterModule({
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [promiseText, setPromiseText] = useState("");
 
+  const { trackButtonClick, trackModalAction } = useActionTracking();
+
   const handleSubmit = () => {
     if (!promiseText.trim()) return;
+    trackButtonClick("promise_create_submit");
     onCreatePromise({ promiseText: promiseText.trim() });
     setIsOpen(false);
     setPromiseText("");
+  };
+
+  const handleResolve = (promiseId: string, kept: boolean) => {
+    trackButtonClick(kept ? "promise_kept" : "promise_broken", { promise_id: promiseId });
+    onResolvePromise({ promiseId, kept });
+  };
+
+  const handleDetailOpen = (open: boolean) => {
+    setIsDetailOpen(open);
+    if (open) {
+      trackModalAction("integrity_detail", "open");
+    }
+  };
+
+  const handlePromiseModalOpen = (open: boolean) => {
+    setIsOpen(open);
+    if (open) {
+      trackModalAction("promise_create", "open");
+    }
   };
 
   // Determine integrity status
@@ -107,7 +130,7 @@ export function IntegrityMeterModule({
         </motion.button>
 
         {/* Detail Modal */}
-        <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <Dialog open={isDetailOpen} onOpenChange={handleDetailOpen}>
           <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -158,14 +181,14 @@ export function IntegrityMeterModule({
                       <p className="text-sm text-foreground truncate flex-1">{promise.promise_text}</p>
                       <div className="flex gap-1">
                         <button
-                          onClick={() => onResolvePromise({ promiseId: promise.id, kept: true })}
+                          onClick={() => handleResolve(promise.id, true)}
                           className="p-1 rounded hover:bg-green-500/20 text-green-600 dark:text-green-400 disabled:opacity-50"
                           disabled={disabled}
                         >
                           <Check className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => onResolvePromise({ promiseId: promise.id, kept: false })}
+                          onClick={() => handleResolve(promise.id, false)}
                           className="p-1 rounded hover:bg-destructive/20 text-destructive disabled:opacity-50"
                           disabled={disabled}
                         >
@@ -186,7 +209,7 @@ export function IntegrityMeterModule({
                   disabled={disabled}
                   onClick={() => {
                     setIsDetailOpen(false);
-                    setIsOpen(true);
+                    handlePromiseModalOpen(true);
                   }}
                 >
                   {disabled ? "Loading..." : "Make a Promise"}
@@ -197,7 +220,7 @@ export function IntegrityMeterModule({
         </Dialog>
 
         {/* Promise Dialog */}
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={handlePromiseModalOpen}>
           <DialogTrigger asChild>
             <span className="hidden" />
           </DialogTrigger>
@@ -282,14 +305,14 @@ export function IntegrityMeterModule({
               <p className="text-sm text-foreground truncate flex-1">{promise.promise_text}</p>
               <div className="flex gap-1">
                 <button
-                  onClick={() => onResolvePromise({ promiseId: promise.id, kept: true })}
+                  onClick={() => handleResolve(promise.id, true)}
                   className="p-1 rounded hover:bg-green-500/20 text-green-600 dark:text-green-400 disabled:opacity-50"
                   disabled={disabled}
                 >
                   <Check className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => onResolvePromise({ promiseId: promise.id, kept: false })}
+                  onClick={() => handleResolve(promise.id, false)}
                   className="p-1 rounded hover:bg-destructive/20 text-destructive disabled:opacity-50"
                   disabled={disabled}
                 >
@@ -303,12 +326,12 @@ export function IntegrityMeterModule({
 
       {/* Make a Promise button */}
       <div className="mt-3 pt-3 border-t">
-        <Button variant="outline" size="sm" className="w-full" onClick={() => setIsOpen(true)} disabled={disabled}>
+        <Button variant="outline" size="sm" className="w-full" onClick={() => handlePromiseModalOpen(true)} disabled={disabled}>
           {disabled ? "Loading..." : "Make a Promise"}
         </Button>
       </div>
 
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog open={isOpen} onOpenChange={handlePromiseModalOpen}>
         <DialogTrigger asChild>
           <span className="hidden" />
         </DialogTrigger>

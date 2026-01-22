@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { getArchetypeInfo, type UserBuildCurrent } from "@/lib/build";
 import { useGuideSession } from "@/hooks/useGuideSession";
+import { useActionTracking } from "@/hooks/useActionTracking";
 import { toast } from "sonner";
 
 interface MainQuest {
@@ -175,6 +176,8 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
     isLoading: isSessionLoading 
   } = useGuideSession();
 
+  const { trackButtonClick, trackModalAction, trackGuideInteraction, trackFeatureUse } = useActionTracking();
+
   // Load session messages when session is ready
   useEffect(() => {
     if (!isSessionLoading && sessionMessages.length > 0 && messages.length === 0) {
@@ -282,6 +285,9 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
       respondingGuide = GUIDES.find(g => g.id === detectedGuideId) || GUIDES[0];
     }
 
+    // Track message send
+    trackGuideInteraction("message", respondingGuide.name);
+
     const userMessage: Message = { role: "user", content: messageText };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
@@ -364,17 +370,28 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
   };
 
   const handleGuideSelect = (guide: Guide) => {
+    trackGuideInteraction("operator_select", guide.name);
     setSelectedGuide(guide);
   };
 
   const handleBack = () => {
+    trackButtonClick("guide_back");
     setSelectedGuide(null);
   };
 
   const handleNewConversation = () => {
+    trackButtonClick("guide_new_conversation");
     setMessages([]);
     setSelectedGuide(null);
     clearSession();
+  };
+
+  const handleExpand = () => {
+    const newState = !isExpanded;
+    setIsExpanded(newState);
+    if (newState) {
+      trackModalAction("ai_guide_panel", "open");
+    }
   };
 
   const getActionFromMessage = (content: string): string | null => {
@@ -403,7 +420,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
     >
       {/* Header */}
       <button
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={handleExpand}
         className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
       >
         <div className="flex items-center gap-3">
