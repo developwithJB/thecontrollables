@@ -168,9 +168,9 @@ export function JourneySwitcher({
         was_custom: selectedJourney.startsWith("custom-"),
       });
 
-      // Invalidate queries
+      // Invalidate queries - use partial match to catch userId-keyed queries
       queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
-      queryClient.invalidateQueries({ queryKey: ["reset-session"] });
+      queryClient.invalidateQueries({ queryKey: ["reset-session"], exact: false });
       queryClient.invalidateQueries({ queryKey: ["journey-changes"] });
 
       setIsOpen(false);
