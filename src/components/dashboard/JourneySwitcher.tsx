@@ -127,17 +127,24 @@ export function JourneySwitcher({
   };
 
   const handleConfirm = async () => {
-    if (!selectedJourney || selectedJourney === currentJourneyId) {
+    if (!selectedJourney) {
+      setIsOpen(false);
+      return;
+    }
+
+    // If custom focus, map to standard journey for storage
+    const journeyIdToStore = selectedJourney.startsWith("custom-") 
+      ? getStandardJourneyForCustom(selectedJourney)
+      : selectedJourney;
+    
+    // Compare resolved journey IDs to check if it's actually a change
+    if (journeyIdToStore === currentJourneyId) {
+      toast.info("You're already on this focus path");
       setIsOpen(false);
       return;
     }
 
     setIsChanging(true);
-    
-    // If custom focus, map to standard journey for storage
-    const journeyIdToStore = selectedJourney.startsWith("custom-") 
-      ? getStandardJourneyForCustom(selectedJourney)
-      : selectedJourney;
     
     const newControllable = journeyToControllable(journeyIdToStore);
     const newJourney = selectedJourney.startsWith("custom-")
