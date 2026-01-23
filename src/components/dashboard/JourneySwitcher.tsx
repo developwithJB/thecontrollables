@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Check, RefreshCw, Compass, AlertCircle, Sparkles, Brain } from "lucide-react";
+import { Check, RefreshCw, Compass, AlertCircle, Sparkles, Brain, TrendingDown, RotateCcw } from "lucide-react";
 import { 
   GUIDED_JOURNEYS, 
   getJourneyById, 
@@ -23,6 +23,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
+import { BuildAssessmentModal } from "./BuildAssessmentModal";
 
 interface JourneySwitcherProps {
   currentJourneyControllable: string | null;
@@ -80,8 +81,9 @@ export function JourneySwitcher({
   const { trackFeatureUse } = useActionTracking();
   
   // Fetch build data for custom focus
-  const { currentBuild, assessmentHistory } = useBuildAssessment();
+  const { currentBuild, assessmentHistory, questions, submitAssessment, isSubmitting } = useBuildAssessment();
   const customFocus = generateCustomFocus(currentBuild, assessmentHistory);
+  const [showBuildModal, setShowBuildModal] = useState(false);
 
   const currentJourneyId = controllableToJourneyId(currentJourneyControllable);
   const currentJourney = currentJourneyId ? getJourneyById(currentJourneyId) : null;
@@ -90,6 +92,29 @@ export function JourneySwitcher({
   const allJourneys: GuidedJourney[] = customFocus 
     ? [customFocus, ...GUIDED_JOURNEYS]
     : GUIDED_JOURNEYS;
+
+  // Find lowest score for highlighting
+  const getLowestControllable = () => {
+    if (!currentBuild) return null;
+    const scores = [
+      { key: "awareness", value: currentBuild.awareness },
+      { key: "perspective", value: currentBuild.perspective },
+      { key: "habit", value: currentBuild.habit },
+      { key: "wellness", value: currentBuild.wellness },
+      { key: "environment", value: currentBuild.environment },
+    ];
+    return scores.reduce((min, curr) => curr.value < min.value ? curr : min).key;
+  };
+  const lowestControllable = getLowestControllable();
+
+  const handleBuildComplete = async (answers: Record<string, number>) => {
+    const result = await submitAssessment(answers);
+    // Refresh after a moment to allow new custom focus to generate
+    setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ["build-assessment"] });
+    }, 500);
+    return result;
+  };
 
   const handleOpen = () => {
     setSelectedJourney(currentJourneyId);
@@ -277,17 +302,79 @@ export function JourneySwitcher({
             </p>
           </div>
 
-          {/* Build Rescan CTA */}
-          {!currentBuild && (
+          {/* Build Scores Inline */}
+          {currentBuild ? (
+            <div className="p-3 rounded-lg bg-muted/50 border border-border mb-2">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-medium text-foreground">Your Current Build</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowBuildModal(true)}
+                >
+                  <RotateCcw className="w-3 h-3 mr-1" />
+                  Re-scan
+                </Button>
+              </div>
+              <div className="grid grid-cols-5 gap-1">
+                {[
+                  { key: "awareness", label: "AWR", emoji: "🦉" },
+                  { key: "perspective", label: "PER", emoji: "🐢" },
+                  { key: "habit", label: "HAB", emoji: "🦈" },
+                  { key: "wellness", label: "WEL", emoji: "🛰️" },
+                  { key: "environment", label: "ENV", emoji: "🚀" },
+                ].map((stat) => {
+                  const value = Number(currentBuild[stat.key as keyof typeof currentBuild]) || 0;
+                  const isLowest = stat.key === lowestControllable;
+                  return (
+                    <div 
+                      key={stat.key} 
+                      className={`text-center p-1.5 rounded-lg ${
+                        isLowest 
+                          ? "bg-amber-500/10 border border-amber-500/30" 
+                          : "bg-background"
+                      }`}
+                    >
+                      <span className="text-sm block">{stat.emoji}</span>
+                      <span className={`text-xs font-medium block ${
+                        isLowest ? "text-amber-600 dark:text-amber-400" : "text-foreground"
+                      }`}>
+                        {value.toFixed(1)}
+                      </span>
+                      {isLowest && (
+                        <TrendingDown className="w-2.5 h-2.5 mx-auto text-amber-500 mt-0.5" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                {lowestControllable && (
+                  <>Your lowest area is highlighted • </>
+                )}
+                Choose a focus that addresses it
+              </p>
+            </div>
+          ) : (
             <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 mb-2">
               <div className="flex items-start gap-2">
                 <Brain className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                <div>
+                <div className="flex-1">
                   <p className="text-xs font-medium text-foreground">No Build data found</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Take the Build Assessment to unlock a personalized focus recommendation.
+                    Scan your Build to unlock a personalized focus recommendation.
                   </p>
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs shrink-0"
+                  onClick={() => setShowBuildModal(true)}
+                >
+                  <RotateCcw className="w-3 h-3 mr-1" />
+                  Scan Now
+                </Button>
               </div>
             </div>
           )}
@@ -427,6 +514,15 @@ export function JourneySwitcher({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Build Assessment Modal */}
+      <BuildAssessmentModal
+        open={showBuildModal}
+        onOpenChange={setShowBuildModal}
+        questions={questions}
+        onSubmit={handleBuildComplete}
+        isSubmitting={isSubmitting}
+      />
     </>
   );
 }
