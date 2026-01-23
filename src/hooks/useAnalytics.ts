@@ -28,12 +28,15 @@ export const useAnalytics = () => {
   const sessionId = useRef(getSessionId());
   const pageLoadTime = useRef<number>(Date.now());
 
-  // Track page view
+  // Track page view - now includes user_id
   const trackPageView = useCallback(async (pagePath?: string) => {
     const path = pagePath || window.location.pathname;
     const loadTime = Date.now() - pageLoadTime.current;
 
     try {
+      // Get current user if authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      
       await supabase.from("page_views").insert({
         page_path: path,
         referrer: document.referrer || null,
@@ -41,16 +44,20 @@ export const useAnalytics = () => {
         user_agent: navigator.userAgent,
         screen_size: getScreenSize(),
         load_time_ms: loadTime,
+        user_id: user?.id || null,
       });
     } catch (error) {
       console.warn("Failed to track page view:", error);
     }
   }, []);
 
-  // Track custom event - now includes app version
+  // Track custom event - now includes app version and user_id
   const trackEvent = useCallback(
     async (eventType: string, eventName: string, eventData?: EventData) => {
       try {
+        // Get current user if authenticated
+        const { data: { user } } = await supabase.auth.getUser();
+        
         await supabase.from("app_events").insert({
           event_type: eventType,
           event_name: eventName,
@@ -59,6 +66,7 @@ export const useAnalytics = () => {
           session_id: sessionId.current,
           user_agent: navigator.userAgent,
           screen_size: getScreenSize(),
+          user_id: user?.id || null,
         });
       } catch (error) {
         console.warn("Failed to track event:", error);
