@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, Lock, Check, Play, RefreshCw, Eye, Sparkles, Target, Compass, AlertCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, Lock, Check, Play, RefreshCw, Eye, Sparkles, Target, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -43,7 +43,6 @@ interface ResetProgressModuleProps {
   onUpgrade?: () => void;
   // Journey integration
   currentJourneyId?: string | null;
-  currentQuestTitle?: string | null;
   onSwitchJourney?: () => void;
   // Last completed session info
   lastCompletedAt?: string | null;
@@ -58,14 +57,12 @@ function daysSince(dateStr: string | null | undefined): number | null {
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
-// Journey display with alignment indicator - always shows (with fallback for no journey)
+// Simple Focus display for the Reset - shows the Journey as the Reset's focus
 function JourneyDisplay({ 
   journeyId, 
-  questTitle,
   onSwitchJourney,
 }: { 
   journeyId: string | null | undefined;
-  questTitle: string | null | undefined;
   onSwitchJourney?: () => void;
 }) {
   const journey = journeyId ? getJourneyById(journeyId) : null;
@@ -86,17 +83,14 @@ function JourneyDisplay({
             <Compass className="w-4 h-4 text-muted-foreground" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Select a Journey</p>
-            <p className="text-xs text-muted-foreground">Choose a focus for this reset</p>
+            <p className="text-sm font-medium text-foreground">Select a Focus</p>
+            <p className="text-xs text-muted-foreground">Choose a direction for this reset</p>
           </div>
           <ChevronDown className="w-4 h-4 text-muted-foreground" />
         </button>
       </motion.div>
     );
   }
-
-  const journeyQuestTitle = getQuestTitleFromJourney(journey);
-  const isAligned = questTitle === journeyQuestTitle;
 
   return (
     <motion.div
@@ -112,21 +106,8 @@ function JourneyDisplay({
           <Compass className="w-4 h-4 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">Journey</span>
-            {isAligned ? (
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10">
-                <Check className="w-3 h-3 text-primary" />
-                <span className="text-[10px] font-medium text-primary">Aligned</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10">
-                <AlertCircle className="w-3 h-3 text-amber-500" />
-                <span className="text-[10px] font-medium text-amber-500">Different</span>
-              </div>
-            )}
-          </div>
-          <p className="text-sm font-medium text-foreground mt-0.5 truncate">
+          <span className="text-xs text-muted-foreground">Focus:</span>
+          <p className="text-sm font-medium text-foreground truncate">
             {journey.emoji} {journey.title}
           </p>
         </div>
@@ -150,7 +131,6 @@ export function ResetProgressModule({
   totalSessionCount = 0,
   onUpgrade,
   currentJourneyId,
-  currentQuestTitle,
   onSwitchJourney,
   lastCompletedAt,
 }: ResetProgressModuleProps) {
@@ -628,11 +608,10 @@ export function ResetProgressModule({
           </span>
         </div>
 
-{/* Journey nested inside - always shows with alignment indicator */}
+{/* Journey nested inside - shows the Reset's focus */}
         <div onClick={(e) => e.stopPropagation()}>
           <JourneyDisplay
             journeyId={currentJourneyId}
-            questTitle={currentQuestTitle}
             onSwitchJourney={onSwitchJourney}
           />
         </div>
