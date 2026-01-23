@@ -6,7 +6,7 @@ import { useAnalytics } from "./useAnalytics";
  * Provides semantic tracking methods for common app flows
  */
 export const useActionTracking = () => {
-  const { trackEvent } = useAnalytics();
+  const { trackEvent, trackPageView } = useAnalytics();
 
   // Button clicks
   const trackButtonClick = useCallback(
@@ -42,16 +42,22 @@ export const useActionTracking = () => {
     [trackEvent]
   );
 
-  // Tab navigation
+  // Tab navigation - now also tracks as virtual page view for analytics
   const trackTabChange = useCallback(
     (tabName: string, fromTab?: string) => {
+      // Track as event (backwards compatible - existing behavior)
       trackEvent("navigation", "tab_change", {
         to_tab: tabName,
         from_tab: fromTab,
         timestamp: Date.now(),
       });
+      
+      // Also track as virtual page view for page-level analytics
+      // This creates entries like /dashboard/experience, /dashboard/guide
+      const virtualPath = `/dashboard/${tabName}`;
+      trackPageView(virtualPath, true);
     },
-    [trackEvent]
+    [trackEvent, trackPageView]
   );
 
   // Feature interactions
