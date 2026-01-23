@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Dna, RefreshCw, Info, Share2, History, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -380,30 +380,37 @@ export function BuildOverviewModule({ compact = false }: BuildOverviewModuleProp
                     </span>
                   </div>
 
-                  {/* Action buttons */}
-                  <div className="pt-3 border-t grid grid-cols-2 gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 text-xs"
-                      onClick={() => setIsShareModalOpen(true)}
-                    >
-                      <Share2 className="w-3 h-3 mr-1.5" />
-                      Share
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 text-xs"
-                      onClick={() => {
-                        setIsDetailOpen(false);
-                        setIsModalOpen(true);
-                      }}
-                      disabled={questionsLoading}
-                    >
-                      <RefreshCw className="w-3 h-3 mr-1.5" />
-                      Rescan
-                    </Button>
+                  {/* Last scanned indicator + Action buttons */}
+                  <div className="pt-3 border-t space-y-2">
+                    {currentBuild.updated_at && (
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        Last scanned {formatDistanceToNow(new Date(currentBuild.updated_at), { addSuffix: true })}
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs"
+                        onClick={() => setIsShareModalOpen(true)}
+                      >
+                        <Share2 className="w-3 h-3 mr-1.5" />
+                        Share
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs"
+                        onClick={() => {
+                          setIsDetailOpen(false);
+                          setIsModalOpen(true);
+                        }}
+                        disabled={questionsLoading}
+                      >
+                        <RefreshCw className="w-3 h-3 mr-1.5" />
+                        Rescan
+                      </Button>
+                    </div>
                   </div>
 
                   {/* History button */}

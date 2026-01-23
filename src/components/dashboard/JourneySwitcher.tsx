@@ -9,6 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Check, RefreshCw, Compass, AlertCircle, Sparkles, Brain, TrendingDown, RotateCcw } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { 
   GUIDED_JOURNEYS, 
   getJourneyById, 
@@ -305,7 +306,14 @@ export function JourneySwitcher({
           {currentBuild ? (
             <div className="p-3 rounded-lg bg-muted/50 border border-border mb-2">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-medium text-foreground">Your Current Build</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-medium text-foreground">Your Current Build</p>
+                  {currentBuild.updated_at && (
+                    <span className="text-[10px] text-muted-foreground">
+                      • {formatDistanceToNow(new Date(currentBuild.updated_at), { addSuffix: true })}
+                    </span>
+                  )}
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
