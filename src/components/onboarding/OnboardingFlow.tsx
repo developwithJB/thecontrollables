@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { useReset } from "@/hooks/useReset";
@@ -7,6 +7,7 @@ import { OnboardingArchetypeResult } from "./OnboardingArchetypeResult";
 import { OnboardingJourneySelection } from "./OnboardingJourneySelection";
 import { OnboardingStarting } from "./OnboardingStarting";
 import { OnboardingSkipConfirmation } from "./OnboardingSkipConfirmation";
+import { OnboardingRecovery } from "./OnboardingRecovery";
 import { 
   getDefaultJourney, 
   journeyToControllable, 
@@ -16,7 +17,7 @@ import type { BuildScore } from "@/lib/build";
 import type { OnboardingStep } from "@/hooks/useOnboarding";
 
 // Internal step type that includes transitional states
-type InternalOnboardingStep = OnboardingStep | "starting" | "skip_confirmation";
+type InternalOnboardingStep = OnboardingStep | "starting" | "skip_confirmation" | "recovery";
 
 interface OnboardingFlowProps {
   userId: string;
@@ -28,6 +29,9 @@ interface OnboardingFlowProps {
   }) => Promise<void>;
   initialStep?: OnboardingStep;
 }
+
+// Timeout for stuck states (10 seconds)
+const STUCK_TIMEOUT_MS = 10000;
 
 // Map build scores to recommended journey
 function getRecommendedJourneyId(buildResult: BuildScore | null): string {
@@ -73,14 +77,49 @@ export function OnboardingFlow({
   const [currentStep, setCurrentStep] = useState<InternalOnboardingStep>(initialStep);
   const [buildResult, setBuildResult] = useState<BuildScore | null>(null);
   const [selectedJourney, setSelectedJourney] = useState<GuidedJourney | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
+  
+  // Timeout tracking for stuck states
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastActionRef = useRef<(() => void) | null>(null);
   
   const { questions, questionsLoading, submitAssessment, isSubmitting } = useBuildAssessment();
   const { acceptCovenant } = useReset();
+
+  // Clear timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Start stuck timeout when in "starting" step
+  useEffect(() => {
+    if (currentStep === "starting") {
+      timeoutRef.current = setTimeout(() => {
+        console.warn("Onboarding stuck - showing recovery");
+        setCurrentStep("recovery");
+      }, STUCK_TIMEOUT_MS);
+    } else {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    }
+    
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [currentStep]);
 
   const handleAssessmentComplete = async (answers: Record<string, number>) => {
     try {
       const result = await submitAssessment(answers);
       setBuildResult(result);
+      // Save progress incrementally
       await onUpdateOnboarding({ 
         step: "archetype_result", 
         buildCompleted: true 
@@ -88,6 +127,8 @@ export function OnboardingFlow({
       setCurrentStep("archetype_result");
     } catch (error) {
       console.error("Assessment submission error:", error);
+      lastActionRef.current = () => handleAssessmentComplete(answers);
+      setCurrentStep("recovery");
     }
   };
 
@@ -101,44 +142,76 @@ export function OnboardingFlow({
     setSelectedJourney(defaultJourney);
     setCurrentStep("starting");
     
-    try {
-      await acceptCovenant({ isPaid: false });
-      await onUpdateOnboarding({ 
-        step: "completed", 
-        journeyControllable: journeyToControllable(defaultJourney.id)
-      });
-      // Small delay to show the starting animation
-      setTimeout(() => {
-        onComplete();
-      }, 2000);
-    } catch (error) {
-      console.error("Failed to start reset:", error);
-      onComplete();
-    }
+    const startReset = async () => {
+      try {
+        await acceptCovenant({ isPaid: false });
+        await onUpdateOnboarding({ 
+          step: "completed", 
+          journeyControllable: journeyToControllable(defaultJourney.id)
+        });
+        // Small delay to show the starting animation
+        setTimeout(() => {
+          onComplete();
+        }, 2000);
+      } catch (error) {
+        console.error("Failed to start reset:", error);
+        lastActionRef.current = startReset;
+        setCurrentStep("recovery");
+      }
+    };
+    
+    lastActionRef.current = startReset;
+    await startReset();
   };
 
   const handleArchetypeAcknowledged = async () => {
-    await onUpdateOnboarding({ step: "journey_selection" });
-    setCurrentStep("journey_selection");
+    try {
+      await onUpdateOnboarding({ step: "journey_selection" });
+      setCurrentStep("journey_selection");
+    } catch (error) {
+      console.error("Failed to save progress:", error);
+      lastActionRef.current = handleArchetypeAcknowledged;
+      setCurrentStep("recovery");
+    }
   };
 
   const handleJourneySelected = async (journey: GuidedJourney) => {
     setSelectedJourney(journey);
     setCurrentStep("starting");
     
+    const startReset = async () => {
+      try {
+        await acceptCovenant({ isPaid: false });
+        await onUpdateOnboarding({ 
+          step: "completed", 
+          journeyControllable: journeyToControllable(journey.id)
+        });
+        // Small delay to show the starting animation
+        setTimeout(() => {
+          onComplete();
+        }, 2000);
+      } catch (error) {
+        console.error("Failed to start reset:", error);
+        lastActionRef.current = startReset;
+        setCurrentStep("recovery");
+      }
+    };
+    
+    lastActionRef.current = startReset;
+    await startReset();
+  };
+
+  const handleRetry = async () => {
+    setIsRetrying(true);
     try {
-      await acceptCovenant({ isPaid: false });
-      await onUpdateOnboarding({ 
-        step: "completed", 
-        journeyControllable: journeyToControllable(journey.id)
-      });
-      // Small delay to show the starting animation
-      setTimeout(() => {
+      if (lastActionRef.current) {
+        await lastActionRef.current();
+      } else {
+        // Fallback: just complete onboarding
         onComplete();
-      }, 2000);
-    } catch (error) {
-      console.error("Failed to start reset:", error);
-      onComplete();
+      }
+    } finally {
+      setIsRetrying(false);
     }
   };
 
@@ -184,6 +257,14 @@ export function OnboardingFlow({
           <OnboardingSkipConfirmation
             key="skip"
             onComplete={handleSkipConfirmationComplete}
+          />
+        )}
+        
+        {currentStep === "recovery" && (
+          <OnboardingRecovery
+            key="recovery"
+            onRetry={handleRetry}
+            isRetrying={isRetrying}
           />
         )}
       </AnimatePresence>

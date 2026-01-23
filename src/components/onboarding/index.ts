@@ -4,3 +4,4 @@ export { OnboardingArchetypeResult } from "./OnboardingArchetypeResult";
 export { OnboardingJourneySelection } from "./OnboardingJourneySelection";
 export { OnboardingStarting } from "./OnboardingStarting";
 export { OnboardingSkipConfirmation } from "./OnboardingSkipConfirmation";
+export { OnboardingRecovery } from "./OnboardingRecovery";

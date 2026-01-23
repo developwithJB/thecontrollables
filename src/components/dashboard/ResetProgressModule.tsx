@@ -146,16 +146,23 @@ export function ResetProgressModule({
           transition={{ delay: 0.05 }}
           className="p-4 rounded-xl bg-card border"
         >
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-foreground">7-Day Reset</p>
-              <p className="text-xs text-muted-foreground">Re-enter the game</p>
-            </div>
-            <Button size="sm" onClick={handleOpenCovenantDialog}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Start Reset
-            </Button>
+        <div className="max-w-md mx-auto w-full flex-1 flex flex-col">
+          <div>
+            <p className="text-sm font-medium text-foreground">7-Day Reset</p>
+            <p className="text-xs text-muted-foreground">Re-enter the game</p>
           </div>
+          
+          {/* Quest clarification text */}
+          <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+            The Reset helps you recalibrate.{" "}
+            <span className="text-foreground/70">Your Quest gives you direction.</span>
+          </p>
+          
+          <Button size="sm" className="mt-3" onClick={handleOpenCovenantDialog}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Begin Your Reset
+          </Button>
+        </div>
         </motion.div>
 
         {/* Covenant Dialog */}

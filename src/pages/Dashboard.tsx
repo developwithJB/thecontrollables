@@ -32,6 +32,7 @@ import { IntegrityMeterModule } from "@/components/dashboard/IntegrityMeterModul
 import { TimeCurrencyModule } from "@/components/dashboard/TimeCurrencyModule";
 import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule";
 import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
+import { BuildEntryPoint } from "@/components/dashboard/BuildEntryPoint";
 import { ReadingCard } from "@/components/ReadingCard";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
@@ -501,11 +502,17 @@ export default function Dashboard() {
               transition={{ duration: 0.3 }}
               className="space-y-4"
             >
-              {/* Greeting */}
+              {/* Greeting with intentional usage microcopy */}
               <div className="mb-2">
                 <h1 className="font-display text-2xl font-semibold text-foreground">{greeting()}</h1>
                 <p className="text-sm text-muted-foreground">Your life dashboard</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">
+                  Designed for intentional check-ins. Desktop or mobile.
+                </p>
               </div>
+
+              {/* Build Entry Point - shows if user hasn't done assessment */}
+              <BuildEntryPoint />
 
               {/* Main Quest Module */}
               {dashboardLoading ? (

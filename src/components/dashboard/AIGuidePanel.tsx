@@ -9,6 +9,7 @@ import { useGuideSession } from "@/hooks/useGuideSession";
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { toast } from "sonner";
 import { LaunchCountdownBadge } from "@/components/LaunchCountdownBadge";
+import { AIOperatorIntro, useAIOperatorIntro } from "./AIOperatorIntro";
 
 interface MainQuest {
   title: string;
@@ -168,6 +169,9 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
   const [completedActionTexts, setCompletedActionTexts] = useState<Set<string>>(new Set());
   const [remainingMessages, setRemainingMessages] = useState<number>(DAILY_MESSAGE_LIMIT);
   const [limitReached, setLimitReached] = useState(false);
+  
+  // One-time intro for AI operators
+  const { hasSeenIntro, markAsSeen } = useAIOperatorIntro();
   
   const { 
     patternData, 
@@ -557,9 +561,16 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
               {/* Full functionality for paid users */}
               {isPaid && (
                 <>
-                  {/* Messages Area - Always show if there are messages */}
-                  {messages.length > 0 && (
-                    <div className="space-y-3 max-h-80 overflow-y-auto mb-4 pr-2">
+                  {/* One-time intro for new users */}
+                  {!hasSeenIntro && messages.length === 0 && (
+                    <AIOperatorIntro onDismiss={markAsSeen} />
+                  )}
+                  
+                  {(hasSeenIntro || messages.length > 0) && (
+                    <>
+                      {/* Messages Area - Always show if there are messages */}
+                      {messages.length > 0 && (
+                        <div className="space-y-3 max-h-80 overflow-y-auto mb-4 pr-2">
                       {messages.map((msg, idx) => {
                         // Get the guide that sent this message (for assistant messages)
                         const messageGuide = msg.role === "assistant" 
@@ -712,10 +723,12 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                     </div>
                   )}
 
-                  {!selectedGuide && !messages.length && (
+                  {!selectedGuide && !messages.length && hasSeenIntro && (
                     <p className="text-xs text-muted-foreground text-center mt-2">
                       Select a Controllable or just type — we'll route to the right one
                     </p>
+                  )}
+                  </>
                   )}
                 </>
               )}
