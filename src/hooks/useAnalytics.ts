@@ -29,9 +29,11 @@ export const useAnalytics = () => {
   const pageLoadTime = useRef<number>(Date.now());
 
   // Track page view - now includes user_id
-  const trackPageView = useCallback(async (pagePath?: string) => {
+  // Supports virtual paths for in-page navigation (e.g., tab changes)
+  const trackPageView = useCallback(async (pagePath?: string, isVirtual?: boolean) => {
     const path = pagePath || window.location.pathname;
-    const loadTime = Date.now() - pageLoadTime.current;
+    // For virtual page views (tab changes), don't use load time since it's not a real page load
+    const loadTime = isVirtual ? null : Date.now() - pageLoadTime.current;
 
     try {
       // Get current user if authenticated
@@ -39,7 +41,7 @@ export const useAnalytics = () => {
       
       await supabase.from("page_views").insert({
         page_path: path,
-        referrer: document.referrer || null,
+        referrer: isVirtual ? window.location.pathname : (document.referrer || null),
         session_id: sessionId.current,
         user_agent: navigator.userAgent,
         screen_size: getScreenSize(),
