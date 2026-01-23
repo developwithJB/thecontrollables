@@ -58,6 +58,8 @@ interface AppError {
   session_id: string;
   resolved: boolean;
   created_at: string;
+  user_id: string | null;
+  user_email?: string | null;
 }
 
 interface PageView {
@@ -978,6 +980,12 @@ export default function Admin() {
                                 <p className="text-xs text-muted-foreground mt-1">
                                   {error.page_path}
                                   {error.component_name && ` • ${error.component_name}`}
+                                  {error.user_email && (
+                                    <span className="ml-2 text-primary">• {error.user_email}</span>
+                                  )}
+                                  {!error.user_email && error.user_id && (
+                                    <span className="ml-2 text-muted-foreground/60">• User ID: {truncate(error.user_id, 8)}</span>
+                                  )}
                                 </p>
                                 {error.error_stack && (
                                   <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-x-auto max-h-24">
