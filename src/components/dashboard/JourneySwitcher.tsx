@@ -23,6 +23,9 @@ interface JourneySwitcherProps {
   currentQuestTitle?: string | null;
   onJourneyChanged?: () => void;
   onUpdateQuestTitle?: (title: string) => void;
+  // Controlled open state (optional - for external triggers)
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 // Reverse map controllable to journey ID
@@ -45,12 +48,24 @@ export function JourneySwitcher({
   currentQuestTitle,
   onJourneyChanged,
   onUpdateQuestTitle,
+  isOpen: controlledIsOpen,
+  onOpenChange,
 }: JourneySwitcherProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [selectedJourney, setSelectedJourney] = useState<string | null>(null);
   const [isChanging, setIsChanging] = useState(false);
   const [showQuestUpdatePrompt, setShowQuestUpdatePrompt] = useState(false);
   const [pendingJourney, setPendingJourney] = useState<GuidedJourney | null>(null);
+  
+  // Use controlled state if provided, otherwise internal state
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+  const setIsOpen = (value: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(value);
+    } else {
+      setInternalIsOpen(value);
+    }
+  };
   
   const queryClient = useQueryClient();
   const { trackFeatureUse } = useActionTracking();
@@ -182,33 +197,38 @@ export function JourneySwitcher({
     setPendingJourney(null);
   };
 
+  // When controlled externally (isOpen prop provided), don't show the button
+  const isControlled = controlledIsOpen !== undefined;
+
   return (
     <>
-      {/* Current Journey Display with Edit Button */}
-      <motion.button
-        onClick={handleOpen}
-        whileTap={{ scale: 0.98 }}
-        className="w-full p-4 rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/20 hover:border-primary/40 transition-all text-left group"
-      >
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-            <Compass className="w-5 h-5 text-primary" />
+      {/* Current Journey Display with Edit Button - only show when not controlled externally */}
+      {!isControlled && (
+        <motion.button
+          onClick={handleOpen}
+          whileTap={{ scale: 0.98 }}
+          className="w-full p-4 rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/20 hover:border-primary/40 transition-all text-left group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+              <Compass className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-muted-foreground mb-0.5">Current Journey</p>
+              <p className="font-medium text-foreground truncate">
+                {currentJourney ? (
+                  <>
+                    {currentJourney.emoji} {currentJourney.title}
+                  </>
+                ) : (
+                  "No journey selected"
+                )}
+              </p>
+            </div>
+            <RefreshCw className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground mb-0.5">Current Journey</p>
-            <p className="font-medium text-foreground truncate">
-              {currentJourney ? (
-                <>
-                  {currentJourney.emoji} {currentJourney.title}
-                </>
-              ) : (
-                "No journey selected"
-              )}
-            </p>
-          </div>
-          <RefreshCw className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-        </div>
-      </motion.button>
+        </motion.button>
+      )}
 
       {/* Journey Selection Dialog */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
