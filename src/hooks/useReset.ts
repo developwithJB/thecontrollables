@@ -15,6 +15,7 @@ interface ResetSession {
   covenant_accepted_at: string | null;
   completed_at: string | null;
   created_at: string;
+  journey_id: string | null;
 }
 
 interface DailyReset {

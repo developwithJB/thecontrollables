@@ -74,6 +74,7 @@ export default function Dashboard() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [prevTab, setPrevTab] = useState<TabType | null>(null);
+  const [showJourneySwitcher, setShowJourneySwitcher] = useState(false);
 
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -537,7 +538,7 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Reset Progress Module */}
+              {/* Reset Progress Module with nested Journey */}
               {resetLoading ? (
                 <ResetProgressSkeleton />
               ) : (
@@ -555,13 +556,20 @@ export default function Dashboard() {
                     isPaid={isPaid}
                     totalSessionCount={allSessions.length}
                     onUpgrade={initiateCheckout}
+                    currentJourneyId={activeSession?.journey_id}
+                    currentQuestTitle={activeQuest?.title}
+                    onSwitchJourney={() => setShowJourneySwitcher(true)}
+                    lastCompletedAt={
+                      // Find the most recent completed session
+                      allSessions.find((s) => s.status === "completed")?.completed_at
+                    }
                   />
                 </div>
               )}
 
-              {/* Journey Switcher - shown when user has an active reset */}
+              {/* Journey Switcher Dialog - triggered from within Reset module */}
               {activeSession && !isCompleted && user?.id && (
-                <div className="space-y-3">
+                <>
                   <JourneySwitcher
                     currentJourneyControllable={journeyControllable}
                     sessionId={activeSession.id}
@@ -570,12 +578,15 @@ export default function Dashboard() {
                     currentQuestTitle={activeQuest?.title}
                     onJourneyChanged={() => {
                       queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
+                      setShowJourneySwitcher(false);
                     }}
                     onUpdateQuestTitle={(title) => {
                       if (activeQuest?.id) {
                         updateQuest({ questId: activeQuest.id, title });
                       }
                     }}
+                    isOpen={showJourneySwitcher}
+                    onOpenChange={setShowJourneySwitcher}
                   />
                   
                   {/* Show journey change history */}
@@ -583,7 +594,7 @@ export default function Dashboard() {
                     sessionId={activeSession.id}
                     userId={user.id}
                   />
-                </div>
+                </>
               )}
 
               {/* Your Current State - Compact 2x2 grid of state indicators */}

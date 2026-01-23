@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, Lock, Check, Play, RefreshCw, Eye, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronUp, Lock, Check, Play, RefreshCw, Eye, Sparkles, Target, Compass, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -9,6 +9,7 @@ import { getDayContent, RESET_DAYS, COVENANT_TEXT, COVENANT_CHECKBOX_TEXT } from
 import { CompletedDayView } from "@/components/CompletedDayView";
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { getPricing } from "@/hooks/useEntitlements";
+import { getJourneyById, getQuestTitleFromJourney } from "@/lib/guidedJourneys";
 
 interface CompletedDay {
   day_number: number;
@@ -40,6 +41,75 @@ interface ResetProgressModuleProps {
   isPaid?: boolean;
   totalSessionCount?: number;
   onUpgrade?: () => void;
+  // Journey integration
+  currentJourneyId?: string | null;
+  currentQuestTitle?: string | null;
+  onSwitchJourney?: () => void;
+  // Last completed session info
+  lastCompletedAt?: string | null;
+}
+
+// Helper to calculate days since a date
+function daysSince(dateStr: string | null | undefined): number | null {
+  if (!dateStr) return null;
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+}
+
+// Quest/Journey alignment indicator
+function AlignmentIndicator({ 
+  journeyId, 
+  questTitle,
+  onSwitchJourney,
+}: { 
+  journeyId: string | null | undefined;
+  questTitle: string | null | undefined;
+  onSwitchJourney?: () => void;
+}) {
+  const journey = journeyId ? getJourneyById(journeyId) : null;
+  
+  if (!journey) {
+    return null;
+  }
+
+  const journeyQuestTitle = getQuestTitleFromJourney(journey);
+  const isAligned = questTitle === journeyQuestTitle;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      className="mt-3 pt-3 border-t border-primary/10"
+    >
+      <button
+        onClick={onSwitchJourney}
+        className="w-full flex items-center gap-2 text-left hover:bg-primary/5 -mx-2 px-2 py-1.5 rounded-lg transition-colors"
+      >
+        <Compass className="w-4 h-4 text-primary/60 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">Journey:</span>
+            <span className="text-xs font-medium text-foreground truncate">
+              {journey.emoji} {journey.title}
+            </span>
+          </div>
+        </div>
+        {isAligned ? (
+          <div className="flex items-center gap-1 shrink-0">
+            <Check className="w-3 h-3 text-primary" />
+            <span className="text-xs text-primary">Aligned</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 shrink-0">
+            <AlertCircle className="w-3 h-3 text-amber-500" />
+            <span className="text-xs text-amber-500">Different</span>
+          </div>
+        )}
+      </button>
+    </motion.div>
+  );
 }
 
 export function ResetProgressModule({
@@ -55,6 +125,10 @@ export function ResetProgressModule({
   isPaid = false,
   totalSessionCount = 0,
   onUpgrade,
+  currentJourneyId,
+  currentQuestTitle,
+  onSwitchJourney,
+  lastCompletedAt,
 }: ResetProgressModuleProps) {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -136,33 +210,47 @@ export function ResetProgressModule({
     }
   };
 
-  // No active session - show start prompt with covenant dialog
+  // Calculate progress
+  const progressPercent = (completedDays.length / 7) * 100;
+  const daysSinceLastReset = daysSince(lastCompletedAt);
+
+  // No active session - show start prompt (Quest-like styling)
   if (!hasActiveSession) {
     return (
       <>
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="p-4 rounded-xl bg-card border"
+          className="p-6 rounded-2xl bg-card border border-dashed border-muted-foreground/30"
         >
-        <div className="max-w-md mx-auto w-full flex-1 flex flex-col">
-          <div>
-            <p className="text-sm font-medium text-foreground">7-Day Reset</p>
-            <p className="text-xs text-muted-foreground">Re-enter the game</p>
+          <div className="flex items-start gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-muted">
+              <RefreshCw className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="font-display font-semibold text-foreground">7-Day Reset</h3>
+              <p className="text-sm text-muted-foreground">Re-enter the game</p>
+            </div>
           </div>
+
+          {/* Days since last reset (if applicable) */}
+          {daysSinceLastReset !== null && (
+            <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-muted">
+              <p className="text-sm text-muted-foreground">
+                <span className="text-foreground font-medium">{daysSinceLastReset} days</span> since your last reset
+              </p>
+            </div>
+          )}
           
-          {/* Quest clarification text */}
-          <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+          <p className="text-sm text-muted-foreground mb-4">
             The Reset helps you recalibrate.{" "}
             <span className="text-foreground/70">Your Quest gives you direction.</span>
           </p>
           
-          <Button size="sm" className="mt-3" onClick={handleOpenCovenantDialog}>
+          <Button className="w-full" onClick={handleOpenCovenantDialog}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Begin Your Reset
           </Button>
-        </div>
         </motion.div>
 
         {/* Covenant Dialog */}
@@ -206,7 +294,7 @@ export function ResetProgressModule({
     );
   }
 
-  // Session expired (past day 7 without completing all days) - show try again prompt
+  // Session expired (past day 7 without completing all days)
   if (isExpired) {
     // Free user who has used their one free reset - show upgrade prompt
     if (hasUsedFreeReset) {
@@ -214,36 +302,33 @@ export function ResetProgressModule({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="p-4 rounded-xl bg-card border border-amber-500/30"
+          className="p-6 rounded-2xl bg-card border border-amber-500/30"
         >
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-lg">⚠️</span>
+          <div className="flex items-start gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-amber-500/10">
+              <RefreshCw className="w-5 h-5 text-amber-500" />
+            </div>
             <div>
-              <p className="text-sm font-medium text-foreground">Reset Incomplete</p>
-              <p className="text-xs text-amber-600 dark:text-amber-400">
-                {completedDays.length} of 7 days completed
+              <h3 className="font-display font-semibold text-foreground">7-Day Reset</h3>
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                Incomplete • {completedDays.length} of 7 days
               </p>
             </div>
           </div>
           
-          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 mb-3">
+          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 mb-4">
             <div className="flex items-start gap-2">
               <Lock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-medium text-foreground">Free reset used</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Upgrade to try again and unlock certificate downloads when you complete.
+                  Upgrade to try again and unlock certificate downloads.
                 </p>
               </div>
             </div>
           </div>
           
-          <Button 
-            size="sm" 
-            className="w-full"
-            onClick={onUpgrade}
-          >
+          <Button className="w-full" onClick={onUpgrade}>
             <Sparkles className="w-4 h-4 mr-2" />
             Unlock for ${pricing.amount}
           </Button>
@@ -256,27 +341,28 @@ export function ResetProgressModule({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="p-4 rounded-xl bg-card border border-amber-500/30"
+          className="p-6 rounded-2xl bg-card border border-amber-500/30"
         >
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">⚠️</span>
-              <div>
-                <p className="text-sm font-medium text-foreground">Reset Incomplete</p>
-                <p className="text-xs text-amber-600 dark:text-amber-400">
-                  {completedDays.length} of 7 days completed
-                </p>
-              </div>
+          <div className="flex items-start gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-amber-500/10">
+              <RefreshCw className="w-5 h-5 text-amber-500" />
             </div>
-            <Button size="sm" onClick={handleOpenCovenantDialog}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Try Again
-            </Button>
+            <div className="flex-1">
+              <h3 className="font-display font-semibold text-foreground">7-Day Reset</h3>
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                Incomplete • {completedDays.length} of 7 days
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-3">
+          
+          <p className="text-sm text-muted-foreground mb-4">
             Complete all 7 days in a row to earn your certificate.
           </p>
+          
+          <Button className="w-full" onClick={handleOpenCovenantDialog}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Try Again
+          </Button>
         </motion.div>
 
         {/* Covenant Dialog for retry */}
@@ -320,7 +406,7 @@ export function ResetProgressModule({
     );
   }
 
-  // Completed session - show restart option
+  // Completed session - show "days since" and option to start new
   if (isCompleted) {
     // Free user who has used their one free reset - show upgrade prompt
     if (hasUsedFreeReset) {
@@ -328,34 +414,40 @@ export function ResetProgressModule({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="p-4 rounded-xl bg-card border border-primary/20"
+          className="p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
         >
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-lg">⚡</span>
+          <div className="flex items-start gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-primary/20">
+              <Check className="w-5 h-5 text-primary" />
+            </div>
             <div>
-              <p className="text-sm font-medium text-foreground">Reset Complete</p>
-              <p className="text-xs text-muted-foreground">Well played</p>
+              <h3 className="font-display font-semibold text-foreground">7-Day Reset</h3>
+              <p className="text-sm text-primary">Complete • Well played</p>
             </div>
           </div>
+
+          {/* Days since last reset */}
+          {daysSinceLastReset !== null && (
+            <div className="mb-4 p-3 rounded-lg bg-background/50 border border-primary/10">
+              <p className="text-sm text-muted-foreground">
+                <span className="text-foreground font-medium">{daysSinceLastReset} days</span> since you completed your reset
+              </p>
+            </div>
+          )}
           
-          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 mb-3">
+          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 mb-4">
             <div className="flex items-start gap-2">
               <Lock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-medium text-foreground">Free reset complete</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Upgrade to download your certificate, start new resets, and unlock AI Companions.
+                  Upgrade to download your certificate and start new resets.
                 </p>
               </div>
             </div>
           </div>
           
-          <Button 
-            size="sm" 
-            className="w-full"
-            onClick={onUpgrade}
-          >
+          <Button className="w-full" onClick={onUpgrade}>
             <Sparkles className="w-4 h-4 mr-2" />
             Unlock for ${pricing.amount}
           </Button>
@@ -368,21 +460,37 @@ export function ResetProgressModule({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="p-4 rounded-xl bg-card border"
+          className="p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
         >
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">⚡</span>
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-primary/20">
+                <Check className="w-5 h-5 text-primary" />
+              </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Reset Complete</p>
-                <p className="text-xs text-muted-foreground">Well played</p>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">7-Day Reset</p>
+                <h3 className="font-display font-semibold text-foreground text-lg">Complete</h3>
               </div>
             </div>
-            <Button size="sm" variant="outline" onClick={handleOpenCovenantDialog}>
-              New Reset
-            </Button>
           </div>
+
+          {/* Days since last reset - prominent display */}
+          <div className="mb-4">
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-display font-bold text-foreground">
+                {daysSinceLastReset ?? 0}
+              </span>
+              <span className="text-sm text-muted-foreground">days since reset</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Your Quest continues. Start a new reset when ready.
+            </p>
+          </div>
+
+          <Button variant="outline" className="w-full border-primary/30 text-primary hover:bg-primary/10" onClick={handleOpenCovenantDialog}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Start New Reset
+          </Button>
         </motion.div>
 
         {/* Covenant Dialog for new reset */}
@@ -426,40 +534,34 @@ export function ResetProgressModule({
     );
   }
 
-  // Active session - show progress with expandable days
+  // Active session - show progress (Quest-like styling)
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.05 }}
-      className="rounded-xl bg-card border overflow-hidden"
+      className="rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 overflow-hidden"
     >
-      {/* Header - Current status */}
+      {/* Header */}
       <div
-        className="p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+        className="p-6 cursor-pointer hover:bg-primary/5 transition-colors"
         onClick={handleExpandToggle}
       >
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="text-lg shrink-0">{todayContent?.emoji}</span>
-            <div className="min-w-0">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="p-2 rounded-lg bg-primary/20 shrink-0">
+              <RefreshCw className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">7-Day Reset</p>
               {todayAlreadyCompleted ? (
-                <>
-                  <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                    Day {currentDay} complete
-                    <Check className="w-3.5 h-3.5 text-primary" />
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {todayContent?.controllable} — Return tomorrow
-                  </p>
-                </>
+                <h3 className="font-display font-semibold text-foreground text-lg flex items-center gap-2">
+                  Day {currentDay} Complete
+                  <Check className="w-4 h-4 text-primary" />
+                </h3>
               ) : (
-                <>
-                  <p className="text-sm font-medium text-foreground">
-                    Day {currentDay}: {todayContent?.controllable}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Quest action waiting</p>
-                </>
+                <h3 className="font-display font-semibold text-foreground text-lg">
+                  Day {currentDay}: {todayContent?.controllable}
+                </h3>
               )}
             </div>
           </div>
@@ -481,27 +583,37 @@ export function ResetProgressModule({
           </div>
         </div>
 
-        {/* Progress dots */}
-        <div className="flex gap-1.5 mt-3">
-          {RESET_DAYS.map((_, idx) => {
-            const dayNum = idx + 1;
-            const status = getDayStatus(dayNum);
-            return (
-              <div
-                key={dayNum}
-                className={`h-1.5 flex-1 rounded-full transition-colors ${
-                  status === "completed"
-                    ? "bg-primary"
-                    : status === "current"
-                    ? todayAlreadyCompleted
-                      ? "bg-primary"
-                      : "bg-primary/50"
-                    : "bg-muted"
-                }`}
-              />
-            );
-          })}
+        {/* Progress bar */}
+        <div className="mb-3">
+          <div className="h-2 rounded-full bg-muted overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="h-full bg-primary rounded-full"
+            />
+          </div>
         </div>
+
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">
+            {7 - currentDay + (todayAlreadyCompleted ? 0 : 1)} days remaining
+          </span>
+          <span className="text-primary font-medium">
+            {completedDays.length}/7 complete
+          </span>
+        </div>
+
+        {/* Journey nested inside - with alignment indicator */}
+        {currentJourneyId && (
+          <div onClick={(e) => e.stopPropagation()}>
+            <AlignmentIndicator
+              journeyId={currentJourneyId}
+              questTitle={currentQuestTitle}
+              onSwitchJourney={onSwitchJourney}
+            />
+          </div>
+        )}
       </div>
 
       {/* Expandable day list */}
@@ -512,7 +624,7 @@ export function ResetProgressModule({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="border-t overflow-hidden"
+            className="border-t border-primary/10 overflow-hidden"
           >
             <div className="p-3 space-y-2 max-h-80 overflow-y-auto">
               {RESET_DAYS.map((_, idx) => {
