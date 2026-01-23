@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Award, Eye, Calendar, Check, Loader2 } from "lucide-react";
+import { Award, Eye, Calendar, Check, Loader2, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CertificatePreview } from "./CertificatePreview";
-import { CollapsibleSection } from "./CollapsibleSection";
+import { CollapsibleCard } from "./CollapsibleCard";
 
 const withCacheBust = (url: string) => `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
 
@@ -38,13 +38,13 @@ interface Certificate {
   end_date: string;
 }
 
-interface ResetHistoryProps {
+interface CertificatesProps {
   resetSessions: ResetSession[];
   userId: string;
   dailyResets?: DailyReset[];
 }
 
-export function ResetHistory({ resetSessions, userId, dailyResets = [] }: ResetHistoryProps) {
+export function Certificates({ resetSessions, userId, dailyResets = [] }: CertificatesProps) {
   const { toast } = useToast();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -53,13 +53,15 @@ export function ResetHistory({ resetSessions, userId, dailyResets = [] }: ResetH
     startDate: string;
   } | null>(null);
 
-  // Filter to only show completed or expired sessions (not active ones)
-  const historySessions = resetSessions.filter(s => s.status === "completed" || s.status === "expired");
-  
   // Helper to get completed day count for a session
   const getCompletedDaysForSession = (sessionId: string): number => {
     return dailyResets.filter(d => d.session_id === sessionId).length;
   };
+
+  // Only show fully completed sessions (7 days completed)
+  const fullyCompletedSessions = resetSessions.filter(
+    s => s.status === "completed" && getCompletedDaysForSession(s.id) >= 7
+  );
 
   // Fetch all certificates for this user
   const { data: certificates = [], refetch: refetchCertificates } = useQuery({
@@ -140,33 +142,21 @@ export function ResetHistory({ resetSessions, userId, dailyResets = [] }: ResetH
     setSelectedCertificate(null);
   };
 
-  if (historySessions.length === 0) {
+  // Don't render if no certificates earned
+  if (fullyCompletedSessions.length === 0) {
     return null;
   }
 
-  const fullyCompletedSessions = historySessions.filter(s => s.status === "completed" && getCompletedDaysForSession(s.id) >= 7);
-  const incompleteSessions = historySessions.filter(s => s.status === "expired" || (s.status === "completed" && getCompletedDaysForSession(s.id) < 7));
-
-  // Summary row content
-  const summaryRow = (
-    <div className="flex items-center gap-3">
-      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-        <Award className="w-4 h-4 text-primary" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <h3 className="font-display font-semibold text-foreground text-sm">Reset History</h3>
-        <p className="text-xs text-muted-foreground">
-          {fullyCompletedSessions.length} completed{incompleteSessions.length > 0 ? ` • ${incompleteSessions.length} incomplete` : ""} • Tap for details
-        </p>
-      </div>
-    </div>
-  );
-
   return (
     <>
-      <CollapsibleSection summaryRow={summaryRow} defaultExpanded={true}>
+      <CollapsibleCard
+        icon={<Award className="w-4 h-4 text-primary" />}
+        title="Certificates"
+        subtitle={`${fullyCompletedSessions.length} earned • Tap to view`}
+        headerGradient="bg-gradient-to-r from-primary/10 to-primary/5"
+        defaultOpen={false}
+      >
         <div className="p-4 space-y-3">
-          {/* Fully completed sessions - can view certificates */}
           {fullyCompletedSessions.map((session, index) => {
             const startDate = new Date(session.start_date + "T00:00:00");
             const endDate = new Date(session.start_date + "T00:00:00");
@@ -212,58 +202,14 @@ export function ResetHistory({ resetSessions, userId, dailyResets = [] }: ResetH
                     ) : (
                       <Eye className="w-3.5 h-3.5" />
                     )}
-                    {isProcessing ? (hasCert ? "Loading..." : "Generating...") : "View Certificate"}
+                    {isProcessing ? (hasCert ? "Loading..." : "Generating...") : "View"}
                   </Button>
                 </div>
               </motion.div>
             );
           })}
-
-          {/* Incomplete/expired sessions - no certificate */}
-          {incompleteSessions.map((session, index) => {
-            const startDate = new Date(session.start_date + "T00:00:00");
-            const endDate = new Date(session.start_date + "T00:00:00");
-            endDate.setDate(endDate.getDate() + 6);
-            const completedDays = getCompletedDaysForSession(session.id);
-
-            return (
-              <motion.div
-                key={session.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: (fullyCompletedSessions.length + index) * 0.1 }}
-                className="p-4 rounded-xl bg-muted/20 border border-border/30"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-                      <span className="text-amber-500 text-lg">⚠️</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">
-                        Incomplete Reset
-                      </p>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Calendar className="w-3 h-3" />
-                        <span>
-                          {format(startDate, "MMM d")} – {format(endDate, "MMM d, yyyy")}
-                        </span>
-                      </div>
-                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                        {completedDays} of 7 days completed
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="text-xs text-muted-foreground text-right max-w-[120px]">
-                    <p className="italic">No certificate earned</p>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
         </div>
-      </CollapsibleSection>
+      </CollapsibleCard>
 
       {/* Certificate Preview Modal */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>

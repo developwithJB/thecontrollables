@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { TrendingUp, Zap, RefreshCw, Award } from "lucide-react";
 import { format, subDays } from "date-fns";
-import { CollapsibleSection } from "./CollapsibleSection";
+import { CollapsibleCard } from "./CollapsibleCard";
 
 interface XpLog {
   id: string;
@@ -19,14 +19,14 @@ interface ResetSession {
   current_day: number;
 }
 
-interface ProgressHistoryProps {
+interface ActivityHistoryProps {
   totalXp: number;
   xpLogs: XpLog[];
   resetSessions: ResetSession[];
   completedResetsCount: number;
 }
 
-export function ProgressHistory({ totalXp, xpLogs, resetSessions, completedResetsCount }: ProgressHistoryProps) {
+export function ActivityHistory({ totalXp, xpLogs, resetSessions, completedResetsCount }: ActivityHistoryProps) {
   // Calculate XP trends (last 7 days vs previous 7 days)
   const now = new Date();
   const last7Days = xpLogs.filter(log => 
@@ -49,33 +49,22 @@ export function ProgressHistory({ totalXp, xpLogs, resetSessions, completedReset
   const xpForNextLevel = currentLevel * 500;
   const xpProgress = ((totalXp % 500) / 500) * 100;
 
-  // Summary row content
-  const summaryRow = (
-    <div className="flex items-center gap-3">
-      <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
-        <TrendingUp className="w-4 h-4 text-accent" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <h3 className="font-display font-semibold text-foreground text-sm">Progress History</h3>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="font-medium text-accent">{totalXp.toLocaleString()} XP</span>
-          <span>•</span>
-          <span>Level {currentLevel}</span>
-          {xpTrend !== 0 && (
-            <>
-              <span>•</span>
-              <span className={xpTrend > 0 ? "text-green-500" : "text-red-400"}>
-                {xpTrend > 0 ? "+" : ""}{xpTrend}%
-              </span>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  // Build subtitle with key metrics
+  const abandonedCount = resetSessions.length - completedResetsCount;
+  const subtitleParts = [
+    `${totalXp.toLocaleString()} XP`,
+    `Level ${currentLevel}`,
+    `${resetSessions.length} resets recorded`,
+  ];
 
   return (
-    <CollapsibleSection summaryRow={summaryRow} defaultExpanded={false}>
+    <CollapsibleCard
+      icon={<TrendingUp className="w-4 h-4 text-accent" />}
+      title="Activity History"
+      subtitle={subtitleParts.join(" • ")}
+      headerGradient="bg-gradient-to-r from-accent/10 to-accent/5"
+      defaultOpen={false}
+    >
       <div className="p-4 space-y-4">
         {/* XP & Level */}
         <div className="p-4 rounded-xl bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/20">
@@ -108,7 +97,7 @@ export function ProgressHistory({ totalXp, xpLogs, resetSessions, completedReset
           )}
         </div>
 
-        {/* Resets History */}
+        {/* Resets Statistics */}
         <div className="p-4 rounded-xl bg-muted/30">
           <div className="flex items-center gap-2 mb-3">
             <RefreshCw className="w-4 h-4 text-primary" />
@@ -125,9 +114,7 @@ export function ProgressHistory({ totalXp, xpLogs, resetSessions, completedReset
               <p className="text-xs text-muted-foreground">Completed</p>
             </div>
             <div className="p-2 rounded-lg bg-background/50">
-              <p className="text-xl font-display font-bold text-muted-foreground">
-                {resetSessions.length - completedResetsCount}
-              </p>
+              <p className="text-xl font-display font-bold text-muted-foreground">{abandonedCount}</p>
               <p className="text-xs text-muted-foreground">Abandoned</p>
             </div>
           </div>
@@ -157,6 +144,6 @@ export function ProgressHistory({ totalXp, xpLogs, resetSessions, completedReset
           </div>
         )}
       </div>
-    </CollapsibleSection>
+    </CollapsibleCard>
   );
 }

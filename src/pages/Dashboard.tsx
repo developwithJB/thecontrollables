@@ -34,7 +34,7 @@ import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule"
 import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
 import { BuildEntryPoint } from "@/components/dashboard/BuildEntryPoint";
 import { JourneySwitcher } from "@/components/dashboard/JourneySwitcher";
-import { JourneyChangesLog } from "@/components/dashboard/JourneyChangesLog";
+// JourneyChangesLog removed - consolidated into Activity History
 import { ReadingCard } from "@/components/ReadingCard";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
@@ -50,10 +50,10 @@ import {
 // Lazy load heavy components
 import { LazyAIGuidePanelWrapper } from "@/components/dashboard/LazyAIGuidePanel";
 import {
-  LazyProgressHistory,
+  LazyActivityHistory,
   LazyMomentumDecay,
   LazyBadgesEarned,
-  LazyResetHistory,
+  LazyCertificates,
   SuspenseExperienceComponent,
   ExperienceLoadingSkeleton,
 } from "@/components/experience/LazyExperienceComponents";
@@ -939,11 +939,11 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Progress History - Lazy loaded, Locked for free users, hidden in simplified mode */}
+              {/* Activity History - Lazy loaded, Locked for free users, hidden in simplified mode */}
               {!isSimplifiedMode && (
                 <div className="relative">
                   <SuspenseExperienceComponent>
-                    <LazyProgressHistory
+                    <LazyActivityHistory
                       totalXp={totalXp}
                       xpLogs={xpLogs}
                       resetSessions={allSessions}
@@ -960,30 +960,13 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Reset History with Certificates - Lazy loaded, Locked for free users */}
+              {/* Certificates - Lazy loaded, Locked for free users */}
               {user?.id && (
                 <div className="relative">
                   <SuspenseExperienceComponent>
-                    <LazyResetHistory resetSessions={allSessions} userId={user.id} dailyResets={allCompletedDays} />
+                    <LazyCertificates resetSessions={allSessions} userId={user.id} dailyResets={allCompletedDays} />
                   </SuspenseExperienceComponent>
                   {!isPaid && allSessions.filter((s) => s.status === "completed").length > 0 && (
-                    <LockedOverlay
-                      variant="experience-history"
-                      onUpgrade={initiateCheckout}
-                      isLoading={isCheckingOut}
-                    />
-                  )}
-                </div>
-              )}
-
-              {/* Journey/Focus Changes - Lazy loaded, Locked for free users */}
-              {user?.id && activeSession && (
-                <div className="relative">
-                  <JourneyChangesLog
-                    sessionId={activeSession.id}
-                    userId={user.id}
-                  />
-                  {!isPaid && (
                     <LockedOverlay
                       variant="experience-history"
                       onUpgrade={initiateCheckout}

@@ -2,8 +2,8 @@ import { lazy, Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Lazy load heavy experience components
-export const LazyProgressHistory = lazy(() =>
-  import("./ProgressHistory").then((m) => ({ default: m.ProgressHistory }))
+export const LazyActivityHistory = lazy(() =>
+  import("./ActivityHistory").then((m) => ({ default: m.ActivityHistory }))
 );
 
 export const LazyMomentumDecay = lazy(() =>
@@ -14,8 +14,8 @@ export const LazyBadgesEarned = lazy(() =>
   import("./BadgesEarned").then((m) => ({ default: m.BadgesEarned }))
 );
 
-export const LazyResetHistory = lazy(() =>
-  import("./ResetHistory").then((m) => ({ default: m.ResetHistory }))
+export const LazyCertificates = lazy(() =>
+  import("./Certificates").then((m) => ({ default: m.Certificates }))
 );
 
 // Loading skeleton for experience components
