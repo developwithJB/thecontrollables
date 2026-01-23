@@ -75,6 +75,14 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [prevTab, setPrevTab] = useState<TabType | null>(null);
   const [showJourneySwitcher, setShowJourneySwitcher] = useState(false);
+  
+  // Track dashboard visits for conditional microcopy placement
+  const [dashboardVisitCount] = useState(() => {
+    const stored = localStorage.getItem("dashboard_visit_count");
+    const count = stored ? parseInt(stored, 10) + 1 : 1;
+    localStorage.setItem("dashboard_visit_count", count.toString());
+    return count;
+  });
 
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -508,13 +516,15 @@ export default function Dashboard() {
               transition={{ duration: 0.3 }}
               className="space-y-4"
             >
-              {/* Greeting with intentional usage microcopy */}
+              {/* Greeting with intentional usage microcopy - shown at top only for first 5 visits */}
               <div className="mb-2">
                 <h1 className="font-display text-2xl font-semibold text-foreground">{greeting()}</h1>
                 <p className="text-sm text-muted-foreground">Your life dashboard</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">
-                  Designed for intentional check-ins. Desktop or mobile.
-                </p>
+                {dashboardVisitCount <= 5 && (
+                  <p className="text-xs text-muted-foreground/70 mt-1">
+                    Designed for intentional check-ins. Desktop or mobile.
+                  </p>
+                )}
               </div>
 
               {/* Build Entry Point - shows if user hasn't done assessment */}
@@ -1039,8 +1049,13 @@ export default function Dashboard() {
         </AnimatePresence>
       </main>
 
-      {/* Footer with version on Guide tab */}
-      <footer className="max-w-md mx-auto px-6 py-6 text-center">
+      {/* Footer with version on Guide tab and intentional usage microcopy after 5 visits */}
+      <footer className="max-w-md mx-auto px-6 py-6 text-center space-y-1">
+        {dashboardVisitCount > 5 && (
+          <p className="text-xs text-muted-foreground/60">
+            Designed for intentional check-ins. Desktop or mobile.
+          </p>
+        )}
         <p className="text-xs text-muted-foreground">
           © {new Date().getFullYear()} The Controllables
           {activeTab === "guide" && (
