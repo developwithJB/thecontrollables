@@ -33,6 +33,8 @@ import { TimeCurrencyModule } from "@/components/dashboard/TimeCurrencyModule";
 import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule";
 import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
 import { BuildEntryPoint } from "@/components/dashboard/BuildEntryPoint";
+import { JourneySwitcher } from "@/components/dashboard/JourneySwitcher";
+import { JourneyChangesLog } from "@/components/dashboard/JourneyChangesLog";
 import { ReadingCard } from "@/components/ReadingCard";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
@@ -148,6 +150,7 @@ export default function Dashboard() {
     needsOnboarding,
     currentOnboardingStep,
     updateOnboardingProgress,
+    journeyControllable,
   } = useOnboarding(user?.id || null);
 
   // Entitlements (free vs paid)
@@ -551,6 +554,27 @@ export default function Dashboard() {
                     isPaid={isPaid}
                     totalSessionCount={allSessions.length}
                     onUpgrade={initiateCheckout}
+                  />
+                </div>
+              )}
+
+              {/* Journey Switcher - shown when user has an active reset */}
+              {activeSession && !isCompleted && user?.id && (
+                <div className="space-y-3">
+                  <JourneySwitcher
+                    currentJourneyControllable={journeyControllable}
+                    sessionId={activeSession.id}
+                    currentDay={currentDay}
+                    userId={user.id}
+                    onJourneyChanged={() => {
+                      queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
+                    }}
+                  />
+                  
+                  {/* Show journey change history */}
+                  <JourneyChangesLog
+                    sessionId={activeSession.id}
+                    userId={user.id}
                   />
                 </div>
               )}
