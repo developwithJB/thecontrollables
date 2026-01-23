@@ -12,6 +12,7 @@ import {
   getDefaultJourney, 
   journeyToControllable,
   getQuestTitleFromJourney,
+  getStandardJourneyForCustom,
   type GuidedJourney 
 } from "@/lib/guidedJourneys";
 import type { BuildScore } from "@/lib/build";
@@ -192,10 +193,15 @@ export function OnboardingFlow({
     setSelectedJourney(journey);
     setCurrentStep("starting");
     
+    // Map custom journey to standard journey ID for storage
+    const journeyIdToStore = journey.isCustom && journey.id.startsWith("custom-")
+      ? getStandardJourneyForCustom(journey.id)
+      : journey.id;
+    
     const startReset = async () => {
       try {
-        // Start the reset with journey ID
-        await acceptCovenant({ isPaid, journeyId: journey.id });
+        // Start the reset with journey ID (use standard ID for storage)
+        await acceptCovenant({ isPaid, journeyId: journeyIdToStore });
         
         // Auto-create Main Quest with Journey title
         if (createQuest) {
@@ -205,7 +211,7 @@ export function OnboardingFlow({
         
         await onUpdateOnboarding({ 
           step: "completed", 
-          journeyControllable: journeyToControllable(journey.id)
+          journeyControllable: journeyToControllable(journeyIdToStore)
         });
         // Small delay to show the starting animation
         setTimeout(() => {
@@ -262,6 +268,7 @@ export function OnboardingFlow({
           <OnboardingJourneySelection
             key="journey"
             recommendedJourneyId={getRecommendedJourneyId(buildResult)}
+            buildResult={buildResult}
             onSelect={handleJourneySelected}
           />
         )}
