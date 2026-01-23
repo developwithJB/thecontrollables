@@ -4,6 +4,7 @@
 export interface GuidedJourney {
   id: string;
   title: string;
+  questTitle?: string; // Optional custom quest title (defaults to title)
   tagline: string;
   description: string;
   whatItHelps: string;
@@ -11,6 +12,11 @@ export interface GuidedJourney {
   duration: number; // days
   emoji: string;
   isDefault?: boolean;
+}
+
+// Get the quest title from a journey (uses questTitle if set, otherwise title)
+export function getQuestTitleFromJourney(journey: GuidedJourney): string {
+  return journey.questTitle || journey.title;
 }
 
 export const GUIDED_JOURNEYS: GuidedJourney[] = [

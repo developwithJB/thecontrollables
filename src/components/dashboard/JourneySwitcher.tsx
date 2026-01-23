@@ -8,8 +8,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Check, RefreshCw, Compass } from "lucide-react";
-import { GUIDED_JOURNEYS, getJourneyById, journeyToControllable, type GuidedJourney } from "@/lib/guidedJourneys";
+import { Check, RefreshCw, Compass, AlertCircle } from "lucide-react";
+import { GUIDED_JOURNEYS, getJourneyById, journeyToControllable, getQuestTitleFromJourney, type GuidedJourney } from "@/lib/guidedJourneys";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -20,7 +20,9 @@ interface JourneySwitcherProps {
   sessionId: string;
   currentDay: number;
   userId: string;
+  currentQuestTitle?: string | null;
   onJourneyChanged?: () => void;
+  onUpdateQuestTitle?: (title: string) => void;
 }
 
 // Reverse map controllable to journey ID
@@ -40,11 +42,15 @@ export function JourneySwitcher({
   sessionId,
   currentDay,
   userId,
+  currentQuestTitle,
   onJourneyChanged,
+  onUpdateQuestTitle,
 }: JourneySwitcherProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedJourney, setSelectedJourney] = useState<string | null>(null);
   const [isChanging, setIsChanging] = useState(false);
+  const [showQuestUpdatePrompt, setShowQuestUpdatePrompt] = useState(false);
+  const [pendingJourney, setPendingJourney] = useState<GuidedJourney | null>(null);
   
   const queryClient = useQueryClient();
   const { trackFeatureUse } = useActionTracking();
@@ -125,11 +131,26 @@ export function JourneySwitcher({
       queryClient.invalidateQueries({ queryKey: ["reset-session"] });
       queryClient.invalidateQueries({ queryKey: ["journey-changes"] });
 
-      toast.success(`Switched to "${newJourney?.title}"`, {
-        description: "Your course has been updated. Previous direction logged.",
-      });
-
       setIsOpen(false);
+      
+      // Check if quest title should be updated
+      if (newJourney && onUpdateQuestTitle) {
+        const newQuestTitle = getQuestTitleFromJourney(newJourney);
+        // Only prompt if current quest title differs from new journey title
+        if (currentQuestTitle && currentQuestTitle !== newQuestTitle) {
+          setPendingJourney(newJourney);
+          setShowQuestUpdatePrompt(true);
+        } else {
+          toast.success(`Switched to "${newJourney.title}"`, {
+            description: "Your journey and quest have been updated.",
+          });
+        }
+      } else {
+        toast.success(`Switched to "${newJourney?.title}"`, {
+          description: "Your course has been updated.",
+        });
+      }
+
       onJourneyChanged?.();
     } catch (error) {
       console.error("Failed to change journey:", error);
@@ -139,6 +160,26 @@ export function JourneySwitcher({
     } finally {
       setIsChanging(false);
     }
+  };
+
+  const handleUpdateQuestTitle = () => {
+    if (pendingJourney && onUpdateQuestTitle) {
+      const newQuestTitle = getQuestTitleFromJourney(pendingJourney);
+      onUpdateQuestTitle(newQuestTitle);
+      toast.success(`Quest updated to "${newQuestTitle}"`, {
+        description: "Your journey and quest are now aligned.",
+      });
+    }
+    setShowQuestUpdatePrompt(false);
+    setPendingJourney(null);
+  };
+
+  const handleSkipQuestUpdate = () => {
+    toast.success(`Switched to "${pendingJourney?.title}"`, {
+      description: "Your quest title was kept as-is.",
+    });
+    setShowQuestUpdatePrompt(false);
+    setPendingJourney(null);
   };
 
   return (
@@ -247,6 +288,51 @@ export function JourneySwitcher({
           <p className="text-xs text-muted-foreground text-center">
             Day {currentDay} of your reset • Changes are logged for reflection
           </p>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quest Update Prompt Dialog */}
+      <Dialog open={showQuestUpdatePrompt} onOpenChange={setShowQuestUpdatePrompt}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-primary" />
+              Update Your Quest?
+            </DialogTitle>
+            <DialogDescription>
+              You've switched to a new journey. Would you like to update your Main Quest to match?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            <div className="p-4 rounded-xl bg-muted/50 border border-border">
+              <p className="text-xs text-muted-foreground mb-1">Current Quest</p>
+              <p className="font-medium text-foreground">{currentQuestTitle}</p>
+            </div>
+            
+            <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+              <p className="text-xs text-muted-foreground mb-1">New Journey Title</p>
+              <p className="font-medium text-foreground">
+                {pendingJourney?.emoji} {pendingJourney ? getQuestTitleFromJourney(pendingJourney) : ""}
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={handleSkipQuestUpdate}
+                className="flex-1"
+              >
+                Keep Current
+              </Button>
+              <Button
+                onClick={handleUpdateQuestTitle}
+                className="flex-1"
+              >
+                Update Quest
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>

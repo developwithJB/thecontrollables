@@ -401,6 +401,7 @@ export default function Dashboard() {
         userId={user.id}
         initialStep={currentOnboardingStep}
         isPaid={isPaid}
+        createQuest={createQuest}
         onComplete={() => {
           queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
         }}
@@ -566,8 +567,14 @@ export default function Dashboard() {
                     sessionId={activeSession.id}
                     currentDay={currentDay}
                     userId={user.id}
+                    currentQuestTitle={activeQuest?.title}
                     onJourneyChanged={() => {
                       queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
+                    }}
+                    onUpdateQuestTitle={(title) => {
+                      if (activeQuest?.id) {
+                        updateQuest({ questId: activeQuest.id, title });
+                      }
                     }}
                   />
                   
