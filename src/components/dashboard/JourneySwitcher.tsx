@@ -8,12 +8,21 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Check, RefreshCw, Compass, AlertCircle } from "lucide-react";
-import { GUIDED_JOURNEYS, getJourneyById, journeyToControllable, getQuestTitleFromJourney, type GuidedJourney } from "@/lib/guidedJourneys";
+import { Check, RefreshCw, Compass, AlertCircle, Sparkles, Brain } from "lucide-react";
+import { 
+  GUIDED_JOURNEYS, 
+  getJourneyById, 
+  journeyToControllable, 
+  getQuestTitleFromJourney, 
+  generateCustomFocus,
+  getStandardJourneyForCustom,
+  type GuidedJourney 
+} from "@/lib/guidedJourneys";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useActionTracking } from "@/hooks/useActionTracking";
+import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 
 interface JourneySwitcherProps {
   currentJourneyControllable: string | null;
@@ -69,9 +78,18 @@ export function JourneySwitcher({
   
   const queryClient = useQueryClient();
   const { trackFeatureUse } = useActionTracking();
+  
+  // Fetch build data for custom focus
+  const { currentBuild, assessmentHistory } = useBuildAssessment();
+  const customFocus = generateCustomFocus(currentBuild, assessmentHistory);
 
   const currentJourneyId = controllableToJourneyId(currentJourneyControllable);
   const currentJourney = currentJourneyId ? getJourneyById(currentJourneyId) : null;
+
+  // Combine default journeys with custom focus
+  const allJourneys: GuidedJourney[] = customFocus 
+    ? [customFocus, ...GUIDED_JOURNEYS]
+    : GUIDED_JOURNEYS;
 
   const handleOpen = () => {
     setSelectedJourney(currentJourneyId);
@@ -90,8 +108,16 @@ export function JourneySwitcher({
     }
 
     setIsChanging(true);
-    const newControllable = journeyToControllable(selectedJourney);
-    const newJourney = getJourneyById(selectedJourney);
+    
+    // If custom focus, map to standard journey for storage
+    const journeyIdToStore = selectedJourney.startsWith("custom-") 
+      ? getStandardJourneyForCustom(selectedJourney)
+      : selectedJourney;
+    
+    const newControllable = journeyToControllable(journeyIdToStore);
+    const newJourney = selectedJourney.startsWith("custom-")
+      ? allJourneys.find(j => j.id === selectedJourney)
+      : getJourneyById(selectedJourney);
 
     try {
       // 1. Log the change in journey_changes table
@@ -101,7 +127,7 @@ export function JourneySwitcher({
           user_id: userId,
           session_id: sessionId,
           previous_journey_id: currentJourneyId,
-          new_journey_id: selectedJourney,
+          new_journey_id: journeyIdToStore,
           changed_on_day: currentDay,
         } as any);
 
@@ -114,7 +140,7 @@ export function JourneySwitcher({
       const { error: sessionError } = await supabase
         .from("reset_sessions")
         .update({
-          journey_id: selectedJourney,
+          journey_id: journeyIdToStore,
           journey_changed_at: new Date().toISOString(),
         } as any)
         .eq("id", sessionId);
@@ -137,8 +163,9 @@ export function JourneySwitcher({
       // Track the change
       trackFeatureUse("journey_switcher", "change", {
         from: currentJourneyId,
-        to: selectedJourney,
+        to: journeyIdToStore,
         on_day: currentDay,
+        was_custom: selectedJourney.startsWith("custom-"),
       });
 
       // Invalidate queries
@@ -157,19 +184,19 @@ export function JourneySwitcher({
           setShowQuestUpdatePrompt(true);
         } else {
           toast.success(`Switched to "${newJourney.title}"`, {
-            description: "Your journey and quest have been updated.",
+            description: "Your focus has been updated.",
           });
         }
       } else {
         toast.success(`Switched to "${newJourney?.title}"`, {
-          description: "Your course has been updated.",
+          description: "Your focus has been updated.",
         });
       }
 
       onJourneyChanged?.();
     } catch (error) {
       console.error("Failed to change journey:", error);
-      toast.error("Failed to change journey", {
+      toast.error("Failed to change focus", {
         description: "Please try again.",
       });
     } finally {
@@ -182,7 +209,7 @@ export function JourneySwitcher({
       const newQuestTitle = getQuestTitleFromJourney(pendingJourney);
       onUpdateQuestTitle(newQuestTitle);
       toast.success(`Quest updated to "${newQuestTitle}"`, {
-        description: "Your journey and quest are now aligned.",
+        description: "Your focus and quest are now aligned.",
       });
     }
     setShowQuestUpdatePrompt(false);
@@ -214,14 +241,14 @@ export function JourneySwitcher({
               <Compass className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground mb-0.5">Current Journey</p>
+              <p className="text-xs text-muted-foreground mb-0.5">Current Focus</p>
               <p className="font-medium text-foreground truncate">
                 {currentJourney ? (
                   <>
                     {currentJourney.emoji} {currentJourney.title}
                   </>
                 ) : (
-                  "No journey selected"
+                  "No focus selected"
                 )}
               </p>
             </div>
@@ -234,16 +261,42 @@ export function JourneySwitcher({
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display">Change Your Journey</DialogTitle>
-            <DialogDescription>
-              Changing direction is part of the process. Your previous path will be logged for reflection.
+            <DialogTitle className="font-display">Choose Your Focus</DialogTitle>
+            <DialogDescription className="space-y-2">
+              <span className="block">
+                Changing direction is part of the process. Your previous path will be logged for reflection.
+              </span>
             </DialogDescription>
           </DialogHeader>
+          
+          {/* Importance of Focus callout */}
+          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 mb-2">
+            <p className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">A clear focus guides your energy.</span>{" "}
+              Without one, progress scatters. Choose what resonates—you can always adjust.
+            </p>
+          </div>
+
+          {/* Build Rescan CTA */}
+          {!currentBuild && (
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 mb-2">
+              <div className="flex items-start gap-2">
+                <Brain className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-foreground">No Build data found</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Take the Build Assessment to unlock a personalized focus recommendation.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-3 pt-2">
-            {GUIDED_JOURNEYS.map((journey) => {
+            {allJourneys.map((journey) => {
               const isSelected = selectedJourney === journey.id;
-              const isCurrent = currentJourneyId === journey.id;
+              const isCurrent = currentJourneyId === journey.id || 
+                (journey.isCustom && currentJourneyId === getStandardJourneyForCustom(journey.id));
 
               return (
                 <motion.button
@@ -253,17 +306,31 @@ export function JourneySwitcher({
                   className={`w-full p-4 rounded-xl border text-left transition-all relative ${
                     isSelected
                       ? "border-primary bg-primary/5 shadow-[0_0_12px_rgba(102,189,239,0.15)]"
+                      : journey.isCustom
+                      ? "border-amber-500/30 bg-amber-500/5 hover:border-amber-500/50"
                       : "border-border bg-card hover:border-primary/30"
                   }`}
                 >
-                  {isCurrent && (
+                  {/* Custom focus badge */}
+                  {journey.isCustom && (
+                    <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
+                      <Sparkles className="w-3 h-3" />
+                      Based on your Build
+                    </div>
+                  )}
+                  
+                  {isCurrent && !journey.isCustom && (
                     <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs">
                       Current
                     </div>
                   )}
 
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-xl shrink-0">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0 ${
+                      journey.isCustom 
+                        ? "bg-gradient-to-br from-amber-500/20 to-orange-500/20"
+                        : "bg-gradient-to-br from-primary/10 to-accent/10"
+                    }`}>
                       {journey.emoji}
                     </div>
                     <div className="flex-1 min-w-0 pr-16">
@@ -271,6 +338,11 @@ export function JourneySwitcher({
                       <p className="text-xs text-muted-foreground mt-0.5 italic">
                         {journey.tagline}
                       </p>
+                      {journey.isCustom && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {journey.whatItHelps}
+                        </p>
+                      )}
                     </div>
                     <div
                       className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 transition-colors ${
@@ -301,7 +373,7 @@ export function JourneySwitcher({
               className="flex-1"
               disabled={isChanging || selectedJourney === currentJourneyId}
             >
-              {isChanging ? "Changing..." : "Confirm Change"}
+              {isChanging ? "Changing..." : "Confirm Focus"}
             </Button>
           </div>
 
@@ -320,7 +392,7 @@ export function JourneySwitcher({
               Update Your Quest?
             </DialogTitle>
             <DialogDescription>
-              You've switched to a new journey. Would you like to update your Main Quest to match?
+              You've switched to a new focus. Would you like to update your Main Quest to match?
             </DialogDescription>
           </DialogHeader>
 
@@ -331,7 +403,7 @@ export function JourneySwitcher({
             </div>
             
             <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-              <p className="text-xs text-muted-foreground mb-1">New Journey Title</p>
+              <p className="text-xs text-muted-foreground mb-1">New Focus Title</p>
               <p className="font-medium text-foreground">
                 {pendingJourney?.emoji} {pendingJourney ? getQuestTitleFromJourney(pendingJourney) : ""}
               </p>
