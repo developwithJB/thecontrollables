@@ -27,6 +27,8 @@ import { BuildAssessmentModal } from "./BuildAssessmentModal";
 
 interface JourneySwitcherProps {
   currentJourneyControllable: string | null;
+  /** Current focus id from the active reset session (source of truth for display/selection). */
+  currentJourneyId?: string | null;
   sessionId: string;
   currentDay: number;
   userId: string;
@@ -52,6 +54,7 @@ function controllableToJourneyId(controllable: string | null): string | null {
 
 export function JourneySwitcher({
   currentJourneyControllable,
+  currentJourneyId: currentJourneyIdProp,
   sessionId,
   currentDay,
   userId,
@@ -85,7 +88,8 @@ export function JourneySwitcher({
   const customFocus = generateCustomFocus(currentBuild, assessmentHistory);
   const [showBuildModal, setShowBuildModal] = useState(false);
 
-  const currentJourneyId = controllableToJourneyId(currentJourneyControllable);
+  // Prefer the session's journey_id (can be custom-*), fall back to legacy controllable mapping.
+  const currentJourneyId = currentJourneyIdProp ?? controllableToJourneyId(currentJourneyControllable);
   const currentJourney = currentJourneyId ? getJourneyById(currentJourneyId) : null;
 
   // Combine default journeys with custom focus
@@ -127,29 +131,17 @@ export function JourneySwitcher({
   };
 
   const handleConfirm = async () => {
-    if (!selectedJourney) {
-      setIsOpen(false);
-      return;
-    }
-
-    // If custom focus, map to standard journey for storage
-    const journeyIdToStore = selectedJourney.startsWith("custom-") 
-      ? getStandardJourneyForCustom(selectedJourney)
-      : selectedJourney;
-    
-    // Compare resolved journey IDs to check if it's actually a change
-    if (journeyIdToStore === currentJourneyId) {
-      toast.info("You're already on this focus path");
+    if (!selectedJourney || selectedJourney === currentJourneyId) {
       setIsOpen(false);
       return;
     }
 
     setIsChanging(true);
     
+    // Store the selected focus id directly (supports custom-*).
+    const journeyIdToStore = selectedJourney;
     const newControllable = journeyToControllable(journeyIdToStore);
-    const newJourney = selectedJourney.startsWith("custom-")
-      ? allJourneys.find(j => j.id === selectedJourney)
-      : getJourneyById(selectedJourney);
+    const newJourney = getJourneyById(selectedJourney);
 
     try {
       // 1. Log the change in journey_changes table
@@ -389,8 +381,7 @@ export function JourneySwitcher({
           <div className="space-y-3 pt-2">
             {allJourneys.map((journey) => {
               const isSelected = selectedJourney === journey.id;
-              const isCurrent = currentJourneyId === journey.id || 
-                (journey.isCustom && currentJourneyId === getStandardJourneyForCustom(journey.id));
+              const isCurrent = currentJourneyId === journey.id;
 
               return (
                 <motion.button
