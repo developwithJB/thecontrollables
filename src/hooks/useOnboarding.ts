@@ -150,6 +150,7 @@ export const useOnboarding = (userId: string | null) => {
     isSimplifiedMode,
     needsOnboarding,
     currentOnboardingStep: onboarding?.onboarding_step || null,
+    journeyControllable: onboarding?.journey_controllable || null,
     ensureOnboardingRecord,
     updateOnboardingProgress: updateOnboardingProgressMutation.mutateAsync,
     isUpdatingOnboarding: updateOnboardingProgressMutation.isPending,

@@ -770,6 +770,47 @@ export type Database = {
         }
         Relationships: []
       }
+      journey_changes: {
+        Row: {
+          changed_on_day: number
+          created_at: string
+          id: string
+          new_journey_id: string
+          previous_journey_id: string | null
+          reason: string | null
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          changed_on_day: number
+          created_at?: string
+          id?: string
+          new_journey_id: string
+          previous_journey_id?: string | null
+          reason?: string | null
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          changed_on_day?: number
+          created_at?: string
+          id?: string
+          new_journey_id?: string
+          previous_journey_id?: string | null
+          reason?: string | null
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_changes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "reset_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       main_quests: {
         Row: {
           completed_at: string | null
@@ -872,6 +913,8 @@ export type Database = {
           current_day: number
           id: string
           invite_code: string | null
+          journey_changed_at: string | null
+          journey_id: string | null
           start_date: string
           status: string
           timezone: string | null
@@ -885,6 +928,8 @@ export type Database = {
           current_day?: number
           id?: string
           invite_code?: string | null
+          journey_changed_at?: string | null
+          journey_id?: string | null
           start_date?: string
           status?: string
           timezone?: string | null
@@ -898,6 +943,8 @@ export type Database = {
           current_day?: number
           id?: string
           invite_code?: string | null
+          journey_changed_at?: string | null
+          journey_id?: string | null
           start_date?: string
           status?: string
           timezone?: string | null
