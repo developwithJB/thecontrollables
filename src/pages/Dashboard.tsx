@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
+import { useEffect, useCallback, useMemo, lazy, Suspense, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SplashScreen } from "@/components/SplashScreen";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,6 +19,7 @@ import { usePageViewTracking } from "@/hooks/useAnalytics";
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { useDashboardVisitCount } from "@/hooks/useDashboardVisitCount";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayContent, RESET_DAYS } from "@/lib/resetContent";
 import { APP_VERSION } from "@/lib/version";
@@ -77,12 +78,7 @@ export default function Dashboard() {
   const [showJourneySwitcher, setShowJourneySwitcher] = useState(false);
   
   // Track dashboard visits for conditional microcopy placement
-  const [dashboardVisitCount] = useState(() => {
-    const stored = localStorage.getItem("dashboard_visit_count");
-    const count = stored ? parseInt(stored, 10) + 1 : 1;
-    localStorage.setItem("dashboard_visit_count", count.toString());
-    return count;
-  });
+  const dashboardVisitCount = useDashboardVisitCount();
 
   const { toast } = useToast();
   const navigate = useNavigate();
