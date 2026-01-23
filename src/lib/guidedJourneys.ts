@@ -22,6 +22,24 @@ export function getQuestTitleFromJourney(journey: GuidedJourney): string {
   return journey.questTitle || journey.title;
 }
 
+function getCustomJourneyById(id: string): GuidedJourney | undefined {
+  if (!id.startsWith("custom-")) return undefined;
+  const controllable = id.replace("custom-", "");
+  const config = CUSTOM_FOCUS_CONFIG[controllable];
+  if (!config) return undefined;
+  return {
+    id,
+    title: config.title,
+    tagline: config.tagline,
+    description: config.description,
+    whatItHelps: config.whatItHelps,
+    dailyAction: config.dailyAction,
+    duration: 7,
+    emoji: config.emoji,
+    isCustom: true,
+  };
+}
+
 export const GUIDED_JOURNEYS: GuidedJourney[] = [
   {
     id: "reenter-the-game",
@@ -79,7 +97,7 @@ export const GUIDED_JOURNEYS: GuidedJourney[] = [
 export const DEFAULT_JOURNEY_ID = "reenter-the-game";
 
 export function getJourneyById(id: string): GuidedJourney | undefined {
-  return GUIDED_JOURNEYS.find((j) => j.id === id);
+  return GUIDED_JOURNEYS.find((j) => j.id === id) || getCustomJourneyById(id);
 }
 
 export function getDefaultJourney(): GuidedJourney {
@@ -88,6 +106,9 @@ export function getDefaultJourney(): GuidedJourney {
 
 // Map journey to controllable focus (for internal tracking)
 export function journeyToControllable(journeyId: string): string {
+  if (journeyId.startsWith("custom-")) {
+    return journeyId.replace("custom-", "");
+  }
   const mapping: Record<string, string> = {
     "reenter-the-game": "habit",
     "reduce-mental-noise": "awareness",
