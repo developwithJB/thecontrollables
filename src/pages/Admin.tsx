@@ -68,8 +68,10 @@ interface PageView {
   referrer: string | null;
   session_id: string;
   screen_size: string;
-  load_time_ms: number;
+  load_time_ms: number | null;
   created_at: string;
+  user_id: string | null;
+  user_email?: string | null;
 }
 
 interface UserJourney {
@@ -118,6 +120,8 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState("overview");
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
   const [errorUserFilter, setErrorUserFilter] = useState<string>("");
+  const [pageViewUserFilter, setPageViewUserFilter] = useState<string>("");
+  const [pageViewPathFilter, setPageViewPathFilter] = useState<string>("");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -1045,13 +1049,46 @@ export default function Admin() {
           <TabsContent value="pageviews">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Eye className="h-5 w-5 text-green-500" />
-                  Page Views
-                </CardTitle>
-                <CardDescription>
-                  Last 100 page views
-                </CardDescription>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Eye className="h-5 w-5 text-green-500" />
+                      Page Views
+                    </CardTitle>
+                    <CardDescription>
+                      Last 100 page views (includes virtual tab navigations)
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <select
+                      value={pageViewPathFilter}
+                      onChange={(e) => setPageViewPathFilter(e.target.value)}
+                      className="text-sm border rounded-md px-2 py-1 bg-background"
+                    >
+                      <option value="">All Pages</option>
+                      <option value="/dashboard">Dashboard (main)</option>
+                      <option value="/dashboard/dashboard">Dashboard Tab</option>
+                      <option value="/dashboard/experience">Experience Tab</option>
+                      <option value="/dashboard/guide">Guide Tab</option>
+                      <option value="/auth">Auth</option>
+                      <option value="/">Landing</option>
+                    </select>
+                    <select
+                      value={pageViewUserFilter}
+                      onChange={(e) => setPageViewUserFilter(e.target.value)}
+                      className="text-sm border rounded-md px-2 py-1 bg-background"
+                    >
+                      <option value="">All Users</option>
+                      <option value="__anonymous__">Anonymous Only</option>
+                      {[...new Set(pageViews.filter(v => v.user_email).map(v => v.user_email))]
+                        .sort()
+                        .map(email => (
+                          <option key={email} value={email || ""}>{email}</option>
+                        ))
+                      }
+                    </select>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[500px]">
@@ -1060,8 +1097,8 @@ export default function Admin() {
                       <TableRow>
                         <TableHead>Time</TableHead>
                         <TableHead>Page</TableHead>
+                        <TableHead>User</TableHead>
                         <TableHead>Referrer</TableHead>
-                        <TableHead>Screen</TableHead>
                         <TableHead>Load Time</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1073,22 +1110,52 @@ export default function Admin() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        pageViews.map((view) => (
+                        pageViews
+                          .filter(view => {
+                            // Path filter
+                            if (pageViewPathFilter && !view.page_path.startsWith(pageViewPathFilter)) {
+                              return false;
+                            }
+                            // User filter
+                            if (pageViewUserFilter) {
+                              if (pageViewUserFilter === "__anonymous__") return !view.user_id;
+                              return view.user_email === pageViewUserFilter;
+                            }
+                            return true;
+                          })
+                          .map((view) => (
                           <TableRow key={view.id}>
                             <TableCell className="text-muted-foreground text-xs">
                               {formatTime(view.created_at)}
                             </TableCell>
-                            <TableCell className="font-medium">{view.page_path}</TableCell>
-                            <TableCell className="text-muted-foreground text-xs">
-                              {view.referrer ? truncate(view.referrer, 30) : "-"}
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-1">
+                                {view.page_path.includes("/dashboard/") && (
+                                  <Badge variant="outline" className="text-xs">tab</Badge>
+                                )}
+                                {view.page_path}
+                              </div>
                             </TableCell>
-                            <TableCell className="text-xs font-mono">
-                              {view.screen_size}
+                            <TableCell className="text-xs">
+                              {view.user_email ? (
+                                <span className="text-primary">{view.user_email}</span>
+                              ) : view.user_id ? (
+                                <span className="text-muted-foreground font-mono">{truncate(view.user_id, 8)}</span>
+                              ) : (
+                                <span className="text-muted-foreground/50">anonymous</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-xs">
+                              {view.referrer ? truncate(view.referrer, 25) : "-"}
                             </TableCell>
                             <TableCell>
-                              <Badge variant={view.load_time_ms < 1000 ? "secondary" : "destructive"}>
-                                {view.load_time_ms}ms
-                              </Badge>
+                              {view.load_time_ms !== null ? (
+                                <Badge variant={view.load_time_ms < 1000 ? "secondary" : "destructive"}>
+                                  {view.load_time_ms}ms
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-xs">virtual</Badge>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))
