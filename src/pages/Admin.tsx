@@ -117,6 +117,7 @@ export default function Admin() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
+  const [errorUserFilter, setErrorUserFilter] = useState<string>("");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -941,13 +942,33 @@ export default function Admin() {
           <TabsContent value="errors">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                  Error Tracking
-                </CardTitle>
-                <CardDescription>
-                  {errors.filter(e => !e.resolved).length} unresolved errors
-                </CardDescription>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                      Error Tracking
+                    </CardTitle>
+                    <CardDescription>
+                      {errors.filter(e => !e.resolved).length} unresolved errors
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={errorUserFilter}
+                      onChange={(e) => setErrorUserFilter(e.target.value)}
+                      className="text-sm border rounded-md px-2 py-1 bg-background"
+                    >
+                      <option value="">All Users</option>
+                      <option value="__anonymous__">Anonymous Only</option>
+                      {[...new Set(errors.filter(e => e.user_email).map(e => e.user_email))]
+                        .sort()
+                        .map(email => (
+                          <option key={email} value={email || ""}>{email}</option>
+                        ))
+                      }
+                    </select>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[500px]">
@@ -957,7 +978,13 @@ export default function Admin() {
                         No errors recorded yet 🎉
                       </p>
                     ) : (
-                      errors.map((error) => (
+                      errors
+                        .filter(error => {
+                          if (!errorUserFilter) return true;
+                          if (errorUserFilter === "__anonymous__") return !error.user_id;
+                          return error.user_email === errorUserFilter;
+                        })
+                        .map((error) => (
                         <Card key={error.id} className={error.resolved ? "opacity-50" : ""}>
                           <CardContent className="p-4">
                             <div className="flex justify-between items-start gap-2">

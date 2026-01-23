@@ -54,13 +54,35 @@ Deno.serve(async (req) => {
       // Get analytics data
       if (resource === "events") {
         const limit = parseInt(url.searchParams.get("limit") || "100");
-        const { data, error } = await adminClient
+        const { data: eventsData, error } = await adminClient
           .from("app_events")
           .select("*")
           .order("created_at", { ascending: false })
           .limit(limit);
         if (error) throw error;
-        return new Response(JSON.stringify({ events: data }), {
+
+        // Get user emails for events that have user_id
+        const userIds = [...new Set(eventsData?.filter(e => e.user_id).map(e => e.user_id) || [])];
+        let userEmailMap = new Map<string, string>();
+        
+        if (userIds.length > 0) {
+          const { data: authUsers } = await adminClient.auth.admin.listUsers();
+          if (authUsers?.users) {
+            authUsers.users.forEach(u => {
+              if (userIds.includes(u.id) && u.email) {
+                userEmailMap.set(u.id, u.email);
+              }
+            });
+          }
+        }
+
+        // Enrich events with user email
+        const enrichedEvents = eventsData?.map(e => ({
+          ...e,
+          user_email: e.user_id ? userEmailMap.get(e.user_id) || null : null,
+        })) || [];
+
+        return new Response(JSON.stringify({ events: enrichedEvents }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -109,13 +131,35 @@ Deno.serve(async (req) => {
 
       if (resource === "page_views") {
         const limit = parseInt(url.searchParams.get("limit") || "100");
-        const { data, error } = await adminClient
+        const { data: viewsData, error } = await adminClient
           .from("page_views")
           .select("*")
           .order("created_at", { ascending: false })
           .limit(limit);
         if (error) throw error;
-        return new Response(JSON.stringify({ page_views: data }), {
+
+        // Get user emails for page views that have user_id
+        const userIds = [...new Set(viewsData?.filter(v => v.user_id).map(v => v.user_id) || [])];
+        let userEmailMap = new Map<string, string>();
+        
+        if (userIds.length > 0) {
+          const { data: authUsers } = await adminClient.auth.admin.listUsers();
+          if (authUsers?.users) {
+            authUsers.users.forEach(u => {
+              if (userIds.includes(u.id) && u.email) {
+                userEmailMap.set(u.id, u.email);
+              }
+            });
+          }
+        }
+
+        // Enrich page views with user email
+        const enrichedViews = viewsData?.map(v => ({
+          ...v,
+          user_email: v.user_id ? userEmailMap.get(v.user_id) || null : null,
+        })) || [];
+
+        return new Response(JSON.stringify({ page_views: enrichedViews }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
