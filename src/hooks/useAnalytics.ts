@@ -67,7 +67,7 @@ export const useAnalytics = () => {
     []
   );
 
-  // Track error - now includes app version
+  // Track error - now includes app version and user_id
   const trackError = useCallback(
     async (
       errorMessage: string,
@@ -77,6 +77,9 @@ export const useAnalytics = () => {
       additionalContext?: ErrorContext
     ) => {
       try {
+        // Get current user if authenticated
+        const { data: { user } } = await supabase.auth.getUser();
+        
         await supabase.from("app_errors").insert({
           error_message: errorMessage,
           error_stack: errorStack || null,
@@ -86,6 +89,7 @@ export const useAnalytics = () => {
           session_id: sessionId.current,
           user_agent: navigator.userAgent,
           additional_context: { ...additionalContext, app_version: APP_VERSION },
+          user_id: user?.id || null,
         });
       } catch (error) {
         console.warn("Failed to track error:", error);
@@ -97,12 +101,15 @@ export const useAnalytics = () => {
   return { trackPageView, trackEvent, trackError, sessionId: sessionId.current };
 };
 
-// Global error handler for uncaught errors - includes app version
+// Global error handler for uncaught errors - includes app version and user_id
 export const setupGlobalErrorTracking = () => {
   const sessionId = getSessionId();
 
   window.onerror = async (message, source, lineno, colno, error) => {
     try {
+      // Get current user if authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      
       await supabase.from("app_errors").insert({
         error_message: String(message),
         error_stack: error?.stack || `at ${source}:${lineno}:${colno}`,
@@ -112,6 +119,7 @@ export const setupGlobalErrorTracking = () => {
         session_id: sessionId,
         user_agent: navigator.userAgent,
         additional_context: { source, lineno, colno, app_version: APP_VERSION },
+        user_id: user?.id || null,
       });
     } catch (e) {
       console.warn("Failed to track uncaught error:", e);
@@ -127,6 +135,9 @@ export const setupGlobalErrorTracking = () => {
       const errorStack =
         event.reason instanceof Error ? event.reason.stack : undefined;
 
+      // Get current user if authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+
       await supabase.from("app_errors").insert({
         error_message: errorMessage,
         error_stack: errorStack || null,
@@ -136,6 +147,7 @@ export const setupGlobalErrorTracking = () => {
         session_id: sessionId,
         user_agent: navigator.userAgent,
         additional_context: { app_version: APP_VERSION },
+        user_id: user?.id || null,
       });
     } catch (e) {
       console.warn("Failed to track unhandled rejection:", e);

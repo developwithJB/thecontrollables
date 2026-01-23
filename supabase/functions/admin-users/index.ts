@@ -78,9 +78,31 @@ Deno.serve(async (req) => {
           query = query.eq("resolved", false);
         }
         
-        const { data, error } = await query;
+        const { data: errorsData, error } = await query;
         if (error) throw error;
-        return new Response(JSON.stringify({ errors: data }), {
+
+        // Get user emails for errors that have user_id
+        const userIds = [...new Set(errorsData?.filter(e => e.user_id).map(e => e.user_id) || [])];
+        let userEmailMap = new Map<string, string>();
+        
+        if (userIds.length > 0) {
+          const { data: authUsers } = await adminClient.auth.admin.listUsers();
+          if (authUsers?.users) {
+            authUsers.users.forEach(u => {
+              if (userIds.includes(u.id) && u.email) {
+                userEmailMap.set(u.id, u.email);
+              }
+            });
+          }
+        }
+
+        // Enrich errors with user email
+        const enrichedErrors = errorsData?.map(e => ({
+          ...e,
+          user_email: e.user_id ? userEmailMap.get(e.user_id) || null : null,
+        })) || [];
+
+        return new Response(JSON.stringify({ errors: enrichedErrors }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }

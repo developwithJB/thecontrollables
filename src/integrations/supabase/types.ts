@@ -126,6 +126,7 @@ export type Database = {
           resolved_at: string | null
           session_id: string | null
           user_agent: string | null
+          user_id: string | null
         }
         Insert: {
           additional_context?: Json | null
@@ -140,6 +141,7 @@ export type Database = {
           resolved_at?: string | null
           session_id?: string | null
           user_agent?: string | null
+          user_id?: string | null
         }
         Update: {
           additional_context?: Json | null
@@ -154,6 +156,7 @@ export type Database = {
           resolved_at?: string | null
           session_id?: string | null
           user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
