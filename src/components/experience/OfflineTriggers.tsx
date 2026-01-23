@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Smartphone, Share2, Bell, Download, Copy, X } from "lucide-react";
+import { motion } from "framer-motion";
+import { Smartphone, Share2, Bell, Download, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { QuestCard } from "./QuestCard";
+import { CollapsibleCard } from "./CollapsibleCard";
 import {
   Dialog,
   DialogContent,
@@ -65,25 +66,17 @@ thedashboard.agbcoaching.com`;
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-        className="rounded-2xl border bg-card/50 backdrop-blur-sm overflow-hidden"
-      >
-        {/* Header */}
-        <div className="p-4 border-b border-border/50 bg-gradient-to-r from-amber-500/10 to-transparent">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
-              <Bell className="w-4 h-4 text-amber-500" />
-            </div>
-            <div>
-              <h3 className="font-display font-semibold text-foreground">Offline Triggers</h3>
-              <p className="text-xs text-muted-foreground">Real change happens away from the screen</p>
-            </div>
+      <CollapsibleCard
+        icon={
+          <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+            <Bell className="w-4 h-4 text-amber-500" />
           </div>
-        </div>
-
+        }
+        title="Offline Triggers"
+        subtitle="Real change happens away from the screen"
+        headerGradient="bg-gradient-to-r from-amber-500/10 to-transparent"
+        defaultOpen={false}
+      >
         <div className="p-4 space-y-2">
           {/* Lock Screen / Print Card - Download */}
           <motion.button
@@ -119,7 +112,7 @@ thedashboard.agbcoaching.com`;
             <Copy className="w-4 h-4 text-green-500" />
           </motion.button>
         </div>
-      </motion.div>
+      </CollapsibleCard>
 
       {/* Quest Card Modal */}
       <Dialog open={showQuestCard} onOpenChange={setShowQuestCard}>
