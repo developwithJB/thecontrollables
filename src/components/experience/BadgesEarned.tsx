@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Award } from "lucide-react";
 import { BADGES, type BadgeKey } from "@/lib/badges";
 import type { UserBadge } from "@/hooks/useBadges";
+import { CollapsibleCard } from "./CollapsibleCard";
 
 interface BadgesEarnedProps {
   earnedBadges: UserBadge[];
@@ -21,27 +22,19 @@ export function BadgesEarned({ earnedBadges, isLoading }: BadgesEarnedProps) {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
-      className="rounded-2xl bg-card border shadow-soft overflow-hidden"
+    <CollapsibleCard
+      icon={<Award className="w-4 h-4 text-muted-foreground" />}
+      title="Badges Earned"
+      headerBadge={
+        earnedBadges.length > 0 ? (
+          <span className="text-xs text-muted-foreground">
+            {earnedBadges.length} earned
+          </span>
+        ) : null
+      }
+      defaultOpen={false}
+      className="shadow-soft"
     >
-      {/* Header */}
-      <div className="p-4 border-b border-border/50">
-        <div className="flex items-center gap-2">
-          <Award className="w-4 h-4 text-muted-foreground" />
-          <h3 className="font-display font-semibold text-foreground">
-            Badges Earned
-          </h3>
-          {earnedBadges.length > 0 && (
-            <span className="text-xs text-muted-foreground ml-auto">
-              {earnedBadges.length} earned
-            </span>
-          )}
-        </div>
-      </div>
-
       {/* Badges Grid */}
       <div className="p-4">
         {earnedBadges.length === 0 ? (
@@ -120,6 +113,6 @@ export function BadgesEarned({ earnedBadges, isLoading }: BadgesEarnedProps) {
           </div>
         </div>
       )}
-    </motion.div>
+    </CollapsibleCard>
   );
 }

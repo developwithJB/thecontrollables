@@ -3,6 +3,7 @@ import { AlertTriangle, Flame, Clock, TrendingDown, RefreshCw, Zap } from "lucid
 import { differenceInDays, differenceInHours } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useMemo } from "react";
+import { CollapsibleCard } from "./CollapsibleCard";
 
 interface MomentumDecayProps {
   lastActivity?: string | null;
@@ -105,33 +106,25 @@ export function MomentumDecay({
   const showWarning = momentum.status !== "active" && momentum.status !== "dormant";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: 0.3 }}
-      className="rounded-2xl border bg-card/50 backdrop-blur-sm overflow-hidden"
-    >
-      {/* Header */}
-      <div className={`p-4 border-b border-border/50 ${
+    <CollapsibleCard
+      icon={
+        <div className={`w-8 h-8 rounded-full ${momentum.bgColor} flex items-center justify-center`}>
+          {showWarning ? (
+            <AlertTriangle className={`w-4 h-4 ${momentum.color}`} />
+          ) : (
+            <Flame className="w-4 h-4 text-green-500" />
+          )}
+        </div>
+      }
+      title="Cost of Inaction"
+      subtitle="Gravity beats motivation"
+      headerGradient={
         showWarning 
           ? "bg-gradient-to-r from-red-500/10 to-amber-500/10" 
           : "bg-gradient-to-r from-green-500/10 to-transparent"
-      }`}>
-        <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-full ${momentum.bgColor} flex items-center justify-center`}>
-            {showWarning ? (
-              <AlertTriangle className={`w-4 h-4 ${momentum.color}`} />
-            ) : (
-              <Flame className="w-4 h-4 text-green-500" />
-            )}
-          </div>
-          <div>
-            <h3 className="font-display font-semibold text-foreground">Cost of Inaction</h3>
-            <p className="text-xs text-muted-foreground">Gravity beats motivation</p>
-          </div>
-        </div>
-      </div>
-
+      }
+      defaultOpen={false}
+    >
       <div className="p-4 space-y-4">
         {/* Current Momentum Status */}
         <div className={`p-4 rounded-xl ${momentum.bgColor} border border-current/10`}>
@@ -234,6 +227,6 @@ export function MomentumDecay({
           </div>
         )}
       </div>
-    </motion.div>
+    </CollapsibleCard>
   );
 }
