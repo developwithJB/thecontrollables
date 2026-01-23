@@ -58,8 +58,8 @@ function daysSince(dateStr: string | null | undefined): number | null {
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
-// Quest/Journey alignment indicator
-function AlignmentIndicator({ 
+// Journey display with alignment indicator - always shows (with fallback for no journey)
+function JourneyDisplay({ 
   journeyId, 
   questTitle,
   onSwitchJourney,
@@ -70,8 +70,29 @@ function AlignmentIndicator({
 }) {
   const journey = journeyId ? getJourneyById(journeyId) : null;
   
+  // If no journey selected, show prompt to select one
   if (!journey) {
-    return null;
+    return (
+      <motion.div
+        initial={{ opacity: 0, height: 0 }}
+        animate={{ opacity: 1, height: "auto" }}
+        className="mt-4 p-3 rounded-lg bg-muted/50 border border-dashed border-muted-foreground/30"
+      >
+        <button
+          onClick={onSwitchJourney}
+          className="w-full flex items-center gap-3 text-left"
+        >
+          <div className="p-1.5 rounded bg-muted">
+            <Compass className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">Select a Journey</p>
+            <p className="text-xs text-muted-foreground">Choose a focus for this reset</p>
+          </div>
+          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+        </button>
+      </motion.div>
+    );
   }
 
   const journeyQuestTitle = getQuestTitleFromJourney(journey);
@@ -81,32 +102,35 @@ function AlignmentIndicator({
     <motion.div
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
-      className="mt-3 pt-3 border-t border-primary/10"
+      className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/20"
     >
       <button
         onClick={onSwitchJourney}
-        className="w-full flex items-center gap-2 text-left hover:bg-primary/5 -mx-2 px-2 py-1.5 rounded-lg transition-colors"
+        className="w-full flex items-center gap-3 text-left"
       >
-        <Compass className="w-4 h-4 text-primary/60 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">Journey:</span>
-            <span className="text-xs font-medium text-foreground truncate">
-              {journey.emoji} {journey.title}
-            </span>
-          </div>
+        <div className="p-1.5 rounded bg-primary/20">
+          <Compass className="w-4 h-4 text-primary" />
         </div>
-        {isAligned ? (
-          <div className="flex items-center gap-1 shrink-0">
-            <Check className="w-3 h-3 text-primary" />
-            <span className="text-xs text-primary">Aligned</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">Journey</span>
+            {isAligned ? (
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10">
+                <Check className="w-3 h-3 text-primary" />
+                <span className="text-[10px] font-medium text-primary">Aligned</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10">
+                <AlertCircle className="w-3 h-3 text-amber-500" />
+                <span className="text-[10px] font-medium text-amber-500">Different</span>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="flex items-center gap-1 shrink-0">
-            <AlertCircle className="w-3 h-3 text-amber-500" />
-            <span className="text-xs text-amber-500">Different</span>
-          </div>
-        )}
+          <p className="text-sm font-medium text-foreground mt-0.5 truncate">
+            {journey.emoji} {journey.title}
+          </p>
+        </div>
+        <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
       </button>
     </motion.div>
   );
@@ -604,16 +628,14 @@ export function ResetProgressModule({
           </span>
         </div>
 
-        {/* Journey nested inside - with alignment indicator */}
-        {currentJourneyId && (
-          <div onClick={(e) => e.stopPropagation()}>
-            <AlignmentIndicator
-              journeyId={currentJourneyId}
-              questTitle={currentQuestTitle}
-              onSwitchJourney={onSwitchJourney}
-            />
-          </div>
-        )}
+{/* Journey nested inside - always shows with alignment indicator */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <JourneyDisplay
+            journeyId={currentJourneyId}
+            questTitle={currentQuestTitle}
+            onSwitchJourney={onSwitchJourney}
+          />
+        </div>
       </div>
 
       {/* Expandable day list */}
