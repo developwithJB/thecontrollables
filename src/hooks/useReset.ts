@@ -229,7 +229,7 @@ export const useReset = () => {
 
   // Accept covenant and start a new reset session
   const acceptCovenantMutation = useMutation({
-    mutationFn: async ({ isPaid }: { isPaid: boolean }) => {
+    mutationFn: async ({ isPaid, journeyId }: { isPaid: boolean; journeyId?: string }) => {
       if (!userId) throw new Error("Not authenticated");
 
       // Check if free user has already used their one free reset
@@ -260,6 +260,7 @@ export const useReset = () => {
           timezone: timezone,
           covenant_accepted: true,
           covenant_accepted_at: now,
+          journey_id: journeyId || null,
         })
         .select()
         .single();

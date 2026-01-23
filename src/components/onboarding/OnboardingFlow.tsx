@@ -10,7 +10,8 @@ import { OnboardingSkipConfirmation } from "./OnboardingSkipConfirmation";
 import { OnboardingRecovery } from "./OnboardingRecovery";
 import { 
   getDefaultJourney, 
-  journeyToControllable, 
+  journeyToControllable,
+  getQuestTitleFromJourney,
   type GuidedJourney 
 } from "@/lib/guidedJourneys";
 import type { BuildScore } from "@/lib/build";
@@ -29,6 +30,7 @@ interface OnboardingFlowProps {
   }) => Promise<void>;
   initialStep?: OnboardingStep;
   isPaid?: boolean;
+  createQuest?: (data: { title: string; durationDays: number }) => Promise<unknown>;
 }
 
 // Timeout for stuck states (10 seconds)
@@ -75,6 +77,7 @@ export function OnboardingFlow({
   onUpdateOnboarding,
   initialStep = "build_assessment",
   isPaid = false,
+  createQuest,
 }: OnboardingFlowProps) {
   const [currentStep, setCurrentStep] = useState<InternalOnboardingStep>(initialStep);
   const [buildResult, setBuildResult] = useState<BuildScore | null>(null);
@@ -146,7 +149,15 @@ export function OnboardingFlow({
     
     const startReset = async () => {
       try {
-        await acceptCovenant({ isPaid });
+        // Start the reset with journey ID
+        await acceptCovenant({ isPaid, journeyId: defaultJourney.id });
+        
+        // Auto-create Main Quest with Journey title
+        if (createQuest) {
+          const questTitle = getQuestTitleFromJourney(defaultJourney);
+          await createQuest({ title: questTitle, durationDays: 7 });
+        }
+        
         await onUpdateOnboarding({ 
           step: "completed", 
           journeyControllable: journeyToControllable(defaultJourney.id)
@@ -183,7 +194,15 @@ export function OnboardingFlow({
     
     const startReset = async () => {
       try {
-        await acceptCovenant({ isPaid });
+        // Start the reset with journey ID
+        await acceptCovenant({ isPaid, journeyId: journey.id });
+        
+        // Auto-create Main Quest with Journey title
+        if (createQuest) {
+          const questTitle = getQuestTitleFromJourney(journey);
+          await createQuest({ title: questTitle, durationDays: 7 });
+        }
+        
         await onUpdateOnboarding({ 
           step: "completed", 
           journeyControllable: journeyToControllable(journey.id)
