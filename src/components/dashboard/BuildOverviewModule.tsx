@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Dna, RefreshCw, Info, Share2, Target, History, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Dna, RefreshCw, Info, Share2, History, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
-import { useFocusMode } from "@/hooks/useFocusMode";
 import { getArchetypeInfo, getArchetypeThemeColors, type BuildScore } from "@/lib/build";
 import { BuildAssessmentModal } from "./BuildAssessmentModal";
 import { BuildCard } from "./BuildCard";
@@ -43,7 +42,6 @@ export function BuildOverviewModule({ compact = false }: BuildOverviewModuleProp
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isFocusPlanOpen, setIsFocusPlanOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
   const {
@@ -55,16 +53,6 @@ export function BuildOverviewModule({ compact = false }: BuildOverviewModuleProp
     submitAssessment,
     isSubmitting,
   } = useBuildAssessment();
-
-  const {
-    focusState,
-    focusPlan,
-    currentDay,
-    todaysPlan,
-    activateFocusMode,
-    deactivateFocusMode,
-    isActive: isFocusModeActive,
-  } = useFocusMode(currentBuild);
 
   const hasBuild = currentBuild && currentBuild.overall > 0;
   const archetypeInfo = getArchetypeInfo(currentBuild?.build_archetype_key || null);
@@ -87,7 +75,7 @@ export function BuildOverviewModule({ compact = false }: BuildOverviewModuleProp
     return (value / 4) * 100;
   };
 
-  // Get lowest controllable for focus mode
+  // Get lowest controllable for highlighting
   const lowestControllable = useMemo(() => {
     if (!currentBuild) return null;
     const scores = {
@@ -124,6 +112,116 @@ export function BuildOverviewModule({ compact = false }: BuildOverviewModuleProp
     );
   }
 
+  // Shared modals for both compact and full versions
+  const renderModals = () => (
+    <>
+      {/* Assessment Modal */}
+      <BuildAssessmentModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        questions={questions}
+        onSubmit={submitAssessment}
+        isSubmitting={isSubmitting}
+      />
+
+      {/* Share Modal */}
+      {hasBuild && currentBuild && (
+        <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-center">Your Build</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className={`p-4 rounded-xl ${themeColors.bg} border ${themeColors.border} text-center`}>
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <span className="text-lg">{archetypeInfo.emoji}</span>
+                  <p className={`text-sm font-medium ${themeColors.text}`}>{archetypeInfo.label}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">{archetypeInfo.description}</p>
+              </div>
+              <BuildCard build={currentBuild} />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* History Modal */}
+      <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+        <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="w-4 h-4 text-primary" />
+              Build History
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-2" data-testid="build-history">
+            {historyItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No previous assessments yet.
+              </p>
+            ) : (
+              historyItems.map((item: BuildScore, index: number) => {
+                const itemArchetype = getArchetypeInfo(item.build_archetype_key);
+                const itemTheme = getArchetypeThemeColors(item.build_archetype_key);
+                const prevItem = historyItems[index - 1];
+                
+                return (
+                  <div
+                    key={item.id}
+                    data-testid={`build-history-item-${index}`}
+                    className={`p-3 rounded-lg border ${itemTheme.bg} ${itemTheme.border}`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(item.computed_at), "MMM d, yyyy")}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm">{itemArchetype.emoji}</span>
+                        <span className={`text-xs font-medium ${itemTheme.text}`}>
+                          {itemArchetype.label}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Overall score with trend */}
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-muted-foreground">Overall</span>
+                      <div className="flex items-center gap-1.5">
+                        {prevItem && (
+                          <TrendIndicator current={item.overall} previous={prevItem.overall} />
+                        )}
+                        <span className="text-sm font-bold">{item.overall.toFixed(1)}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Mini stat indicators */}
+                    <div className="flex gap-2 text-xs">
+                      {BASE_STATS.map((stat) => {
+                        const value = Number(item[stat.key as keyof typeof item]) || 0;
+                        const prevValue = prevItem ? Number(prevItem[stat.key as keyof typeof prevItem]) || 0 : value;
+                        return (
+                          <div key={stat.key} className="flex items-center gap-0.5" title={stat.label}>
+                            <span className="text-[10px]">{stat.emoji}</span>
+                            <span className="text-[10px] text-muted-foreground">{value.toFixed(1)}</span>
+                            {prevItem && Math.abs(value - prevValue) >= 0.1 && (
+                              <span className={`text-[9px] ${value > prevValue ? "text-emerald-500" : "text-red-500"}`}>
+                                {value > prevValue ? "↑" : "↓"}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+
   // Compact state indicator version
   if (compact) {
     return (
@@ -142,11 +240,6 @@ export function BuildOverviewModule({ compact = false }: BuildOverviewModuleProp
               <Dna className="w-3.5 h-3.5 text-purple-500" />
             </div>
             <h3 className="text-sm font-medium text-foreground">Your Build</h3>
-            {isFocusModeActive && (
-              <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                Focus: {focusState.controllable}
-              </span>
-            )}
           </div>
 
           {!hasBuild ? (
@@ -237,20 +330,6 @@ export function BuildOverviewModule({ compact = false }: BuildOverviewModuleProp
                     </div>
                   </button>
 
-                  {/* Focus Mode indicator */}
-                  {isFocusModeActive && (
-                    <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-primary">Focus Mode Active</span>
-                        <span className="text-xs text-muted-foreground">Day {currentDay}/7</span>
-                      </div>
-                      <p className="text-sm font-medium capitalize">{focusState.controllable}</p>
-                      {todaysPlan && (
-                        <p className="text-xs text-muted-foreground mt-1">{todaysPlan.intention}</p>
-                      )}
-                    </div>
-                  )}
-
                   {/* Recommendations */}
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground">Recommendations</p>
@@ -284,7 +363,7 @@ export function BuildOverviewModule({ compact = false }: BuildOverviewModuleProp
                           <span className="text-xs text-muted-foreground w-6 text-right">
                             {value.toFixed(1)}
                           </span>
-                          {isLowest && !isFocusModeActive && (
+                          {isLowest && (
                             <span className="text-[9px] text-amber-600 dark:text-amber-400">low</span>
                           )}
                         </div>
@@ -327,151 +406,16 @@ export function BuildOverviewModule({ compact = false }: BuildOverviewModuleProp
                     </Button>
                   </div>
 
-                  {/* Focus Mode & History buttons */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      size="sm"
-                      variant={isFocusModeActive ? "secondary" : "outline"}
-                      className="h-8 text-xs"
-                      onClick={() => setIsFocusPlanOpen(true)}
-                      data-testid="build-focus-mode"
-                    >
-                      <Target className="w-3 h-3 mr-1.5" />
-                      {isFocusModeActive ? "Focus Plan" : "Focus Mode"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 text-xs"
-                      onClick={() => setIsHistoryOpen(true)}
-                      data-testid="build-history"
-                    >
-                      <History className="w-3 h-3 mr-1.5" />
-                      History
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Assessment Modal */}
-        <BuildAssessmentModal
-          open={isModalOpen}
-          onOpenChange={setIsModalOpen}
-          questions={questions}
-          onSubmit={submitAssessment}
-          isSubmitting={isSubmitting}
-        />
-
-        {/* Share Modal */}
-        {hasBuild && currentBuild && (
-          <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
-            <DialogContent className="max-w-sm">
-              <DialogHeader>
-                <DialogTitle className="text-center">Your Build</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className={`p-4 rounded-xl ${themeColors.bg} border ${themeColors.border} text-center`}>
-                  <div className="flex items-center justify-center gap-2 mb-1">
-                    <span className="text-lg">{archetypeInfo.emoji}</span>
-                    <p className={`text-sm font-medium ${themeColors.text}`}>{archetypeInfo.label}</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{archetypeInfo.description}</p>
-                </div>
-                <BuildCard build={currentBuild} />
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
-
-        {/* Focus Plan Modal */}
-        <Dialog open={isFocusPlanOpen} onOpenChange={setIsFocusPlanOpen}>
-          <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Target className="w-4 h-4 text-primary" />
-                Focus Mode
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              {!isFocusModeActive ? (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    Focus on your lowest controllable for 7 days with daily intentions, reps, and surrender lines.
-                  </p>
-                  {lowestControllable && (
-                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                      <p className="text-xs text-amber-600 dark:text-amber-400 mb-1">Lowest Controllable</p>
-                      <p className="text-sm font-medium capitalize">{lowestControllable}</p>
-                    </div>
-                  )}
+                  {/* History button */}
                   <Button
-                    className="w-full"
-                    onClick={() => {
-                      activateFocusMode();
-                      setIsFocusPlanOpen(false);
-                    }}
-                  >
-                    <Target className="w-4 h-4 mr-2" />
-                    Start 7-Day Focus
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Focusing on</p>
-                      <p className="text-sm font-medium capitalize">{focusState.controllable}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground">Day</p>
-                      <p className="text-sm font-bold text-primary">{currentDay}/7</p>
-                    </div>
-                  </div>
-
-                  {/* 7-day plan */}
-                  {focusPlan && (
-                    <div className="space-y-2">
-                      {focusPlan.days.map((day, index) => {
-                        const isToday = index + 1 === currentDay;
-                        const isPast = index + 1 < currentDay;
-                        return (
-                          <div
-                            key={day.day}
-                            data-testid={`build-history-item-${index}`}
-                            className={`p-3 rounded-lg border transition-all ${
-                              isToday
-                                ? "bg-primary/10 border-primary/30"
-                                : isPast
-                                ? "bg-muted/30 border-border/50 opacity-60"
-                                : "bg-card border-border/50"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>
-                                Day {day.day} {isToday && "• Today"}
-                              </span>
-                            </div>
-                            <p className="text-sm font-medium mb-1">{day.intention}</p>
-                            <p className="text-xs text-muted-foreground mb-1">→ {day.rep}</p>
-                            <p className="text-xs text-muted-foreground/70 italic">"{day.surrender}"</p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  <Button
+                    size="sm"
                     variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      deactivateFocusMode();
-                      setIsFocusPlanOpen(false);
-                    }}
+                    className="w-full h-8 text-xs"
+                    onClick={() => setIsHistoryOpen(true)}
+                    data-testid="build-history"
                   >
-                    End Focus Mode
+                    <History className="w-3 h-3 mr-1.5" />
+                    View History
                   </Button>
                 </>
               )}
@@ -479,80 +423,7 @@ export function BuildOverviewModule({ compact = false }: BuildOverviewModuleProp
           </DialogContent>
         </Dialog>
 
-        {/* History Modal */}
-        <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-          <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <History className="w-4 h-4 text-primary" />
-                Build History
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3 pt-2" data-testid="build-history">
-              {historyItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No previous assessments yet.
-                </p>
-              ) : (
-                historyItems.map((item: BuildScore, index: number) => {
-                  const itemArchetype = getArchetypeInfo(item.build_archetype_key);
-                  const itemTheme = getArchetypeThemeColors(item.build_archetype_key);
-                  const prevItem = historyItems[index - 1];
-                  
-                  return (
-                    <div
-                      key={item.id}
-                      data-testid={`build-history-item-${index}`}
-                      className={`p-3 rounded-lg border ${itemTheme.bg} ${itemTheme.border}`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(item.computed_at), "MMM d, yyyy")}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm">{itemArchetype.emoji}</span>
-                          <span className={`text-xs font-medium ${itemTheme.text}`}>
-                            {itemArchetype.label}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {/* Overall score with trend */}
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-muted-foreground">Overall</span>
-                        <div className="flex items-center gap-1.5">
-                          {prevItem && (
-                            <TrendIndicator current={item.overall} previous={prevItem.overall} />
-                          )}
-                          <span className="text-sm font-bold">{item.overall.toFixed(1)}</span>
-                        </div>
-                      </div>
-                      
-                      {/* Mini stat indicators */}
-                      <div className="flex gap-2 text-xs">
-                        {BASE_STATS.map((stat) => {
-                          const value = Number(item[stat.key as keyof typeof item]) || 0;
-                          const prevValue = prevItem ? Number(prevItem[stat.key as keyof typeof prevItem]) || 0 : value;
-                          return (
-                            <div key={stat.key} className="flex items-center gap-0.5" title={stat.label}>
-                              <span className="text-[10px]">{stat.emoji}</span>
-                              <span className="text-[10px] text-muted-foreground">{value.toFixed(1)}</span>
-                              {prevItem && Math.abs(value - prevValue) >= 0.1 && (
-                                <span className={`text-[9px] ${value > prevValue ? "text-emerald-500" : "text-red-500"}`}>
-                                  {value > prevValue ? "↑" : "↓"}
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+        {renderModals()}
       </>
     );
   }
@@ -573,11 +444,6 @@ export function BuildOverviewModule({ compact = false }: BuildOverviewModuleProp
             <Dna className="w-4 h-4 text-purple-500" />
           </div>
           <h3 className="font-display font-semibold text-foreground">Your Build</h3>
-          {isFocusModeActive && (
-            <span className="ml-auto text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary font-medium">
-              Focus: {focusState.controllable}
-            </span>
-          )}
         </div>
 
         {!hasBuild ? (
@@ -635,7 +501,7 @@ export function BuildOverviewModule({ compact = false }: BuildOverviewModuleProp
                     <span className="text-xs text-muted-foreground w-6 text-right">
                       {value.toFixed(1)}
                     </span>
-                    {isLowest && !isFocusModeActive && (
+                    {isLowest && (
                       <span className="text-[9px] text-amber-600 dark:text-amber-400">low</span>
                     )}
                   </div>
@@ -675,230 +541,24 @@ export function BuildOverviewModule({ compact = false }: BuildOverviewModuleProp
               </Button>
             </div>
 
-            {/* Focus Mode & History buttons */}
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <Button
-                size="sm"
-                variant={isFocusModeActive ? "secondary" : "outline"}
-                className="h-8 text-xs"
-                onClick={() => setIsFocusPlanOpen(true)}
-                data-testid="build-focus-mode"
-              >
-                <Target className="w-3 h-3 mr-1.5" />
-                {isFocusModeActive ? "Focus Plan" : "Focus Mode"}
-              </Button>
+            {/* History button */}
+            <div className="mt-2">
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 text-xs"
+                className="w-full h-8 text-xs"
                 onClick={() => setIsHistoryOpen(true)}
                 data-testid="build-history"
               >
                 <History className="w-3 h-3 mr-1.5" />
-                History
+                View History
               </Button>
             </div>
           </>
         )}
       </motion.div>
 
-      {/* Assessment Modal */}
-      <BuildAssessmentModal
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        questions={questions}
-        onSubmit={submitAssessment}
-        isSubmitting={isSubmitting}
-      />
-
-      {/* Share Modal - also shows archetype description */}
-      {hasBuild && currentBuild && (
-        <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle className="text-center">Your Build</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              {/* Archetype explanation */}
-              <div className={`p-4 rounded-xl ${themeColors.bg} border ${themeColors.border} text-center`}>
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <span className="text-lg">{archetypeInfo.emoji}</span>
-                  <p className={`text-sm font-medium ${themeColors.text}`}>{archetypeInfo.label}</p>
-                </div>
-                <p className="text-xs text-muted-foreground">{archetypeInfo.description}</p>
-              </div>
-              <BuildCard build={currentBuild} />
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Focus Plan Modal */}
-      <Dialog open={isFocusPlanOpen} onOpenChange={setIsFocusPlanOpen}>
-        <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-primary" />
-              Focus Mode
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            {!isFocusModeActive ? (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  Focus on your lowest controllable for 7 days with daily intentions, reps, and surrender lines.
-                </p>
-                {lowestControllable && (
-                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <p className="text-xs text-amber-600 dark:text-amber-400 mb-1">Lowest Controllable</p>
-                    <p className="text-sm font-medium capitalize">{lowestControllable}</p>
-                  </div>
-                )}
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    activateFocusMode();
-                    setIsFocusPlanOpen(false);
-                  }}
-                >
-                  <Target className="w-4 h-4 mr-2" />
-                  Start 7-Day Focus
-                </Button>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Focusing on</p>
-                    <p className="text-sm font-medium capitalize">{focusState.controllable}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Day</p>
-                    <p className="text-sm font-bold text-primary">{currentDay}/7</p>
-                  </div>
-                </div>
-
-                {/* 7-day plan */}
-                {focusPlan && (
-                  <div className="space-y-2">
-                    {focusPlan.days.map((day, index) => {
-                      const isToday = index + 1 === currentDay;
-                      const isPast = index + 1 < currentDay;
-                      return (
-                        <div
-                          key={day.day}
-                          className={`p-3 rounded-lg border transition-all ${
-                            isToday
-                              ? "bg-primary/10 border-primary/30"
-                              : isPast
-                              ? "bg-muted/30 border-border/50 opacity-60"
-                              : "bg-card border-border/50"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>
-                              Day {day.day} {isToday && "• Today"}
-                            </span>
-                          </div>
-                          <p className="text-sm font-medium mb-1">{day.intention}</p>
-                          <p className="text-xs text-muted-foreground mb-1">→ {day.rep}</p>
-                          <p className="text-xs text-muted-foreground/70 italic">"{day.surrender}"</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    deactivateFocusMode();
-                    setIsFocusPlanOpen(false);
-                  }}
-                >
-                  End Focus Mode
-                </Button>
-              </>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* History Modal */}
-      <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-        <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <History className="w-4 h-4 text-primary" />
-              Build History
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 pt-2" data-testid="build-history">
-            {historyItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No previous assessments yet.
-              </p>
-            ) : (
-              historyItems.map((item: BuildScore, index: number) => {
-                const itemArchetype = getArchetypeInfo(item.build_archetype_key);
-                const itemTheme = getArchetypeThemeColors(item.build_archetype_key);
-                const prevItem = historyItems[index - 1];
-                
-                return (
-                  <div
-                    key={item.id}
-                    data-testid={`build-history-item-${index}`}
-                    className={`p-3 rounded-lg border ${itemTheme.bg} ${itemTheme.border}`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(item.computed_at), "MMM d, yyyy")}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm">{itemArchetype.emoji}</span>
-                        <span className={`text-xs font-medium ${itemTheme.text}`}>
-                          {itemArchetype.label}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Overall score with trend */}
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-muted-foreground">Overall</span>
-                      <div className="flex items-center gap-1.5">
-                        {prevItem && (
-                          <TrendIndicator current={item.overall} previous={prevItem.overall} />
-                        )}
-                        <span className="text-sm font-bold">{item.overall.toFixed(1)}</span>
-                      </div>
-                    </div>
-                    
-                    {/* Mini stat indicators */}
-                    <div className="flex gap-2 text-xs">
-                      {BASE_STATS.map((stat) => {
-                        const value = Number(item[stat.key as keyof typeof item]) || 0;
-                        const prevValue = prevItem ? Number(prevItem[stat.key as keyof typeof prevItem]) || 0 : value;
-                        return (
-                          <div key={stat.key} className="flex items-center gap-0.5" title={stat.label}>
-                            <span className="text-[10px]">{stat.emoji}</span>
-                            <span className="text-[10px] text-muted-foreground">{value.toFixed(1)}</span>
-                            {prevItem && Math.abs(value - prevValue) >= 0.1 && (
-                              <span className={`text-[9px] ${value > prevValue ? "text-emerald-500" : "text-red-500"}`}>
-                                {value > prevValue ? "↑" : "↓"}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {renderModals()}
     </>
   );
 }
