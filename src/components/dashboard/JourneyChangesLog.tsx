@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { getJourneyById } from "@/lib/guidedJourneys";
 import { ArrowRight, History } from "lucide-react";
-import { format } from "date-fns";
+import { CollapsibleSection } from "@/components/experience/CollapsibleSection";
 
 interface JourneyChange {
   id: string;
@@ -39,19 +38,24 @@ export function JourneyChangesLog({ sessionId, userId }: JourneyChangesLogProps)
     return null;
   }
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-4 rounded-xl bg-muted/30 border border-border"
-    >
-      <div className="flex items-center gap-2 mb-3">
+  const summaryRow = (
+    <div className="flex items-center gap-3">
+      <div className="p-2 rounded-lg bg-muted">
         <History className="w-4 h-4 text-muted-foreground" />
-        <h4 className="text-sm font-medium text-foreground">Journey Changes</h4>
       </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-medium text-foreground text-sm">Focus Changes</h3>
+        <p className="text-xs text-muted-foreground">
+          {changes.length} change{changes.length !== 1 ? "s" : ""} this reset
+        </p>
+      </div>
+    </div>
+  );
 
-      <div className="space-y-2">
-        {changes.map((change, index) => {
+  return (
+    <CollapsibleSection summaryRow={summaryRow} defaultExpanded={false}>
+      <div className="p-4 space-y-2">
+        {changes.map((change) => {
           const prevJourney = change.previous_journey_id
             ? getJourneyById(change.previous_journey_id)
             : null;
@@ -60,7 +64,7 @@ export function JourneyChangesLog({ sessionId, userId }: JourneyChangesLogProps)
           return (
             <div
               key={change.id}
-              className="flex items-center gap-2 text-sm p-2 rounded-lg bg-background/50"
+              className="flex items-center gap-2 text-sm p-2 rounded-lg bg-muted/50"
             >
               <span className="text-xs text-muted-foreground w-12 shrink-0">
                 Day {change.changed_on_day}
@@ -83,11 +87,10 @@ export function JourneyChangesLog({ sessionId, userId }: JourneyChangesLogProps)
             </div>
           );
         })}
+        <p className="text-xs text-muted-foreground pt-2 italic">
+          Changing direction is part of finding your way.
+        </p>
       </div>
-
-      <p className="text-xs text-muted-foreground mt-3 italic">
-        Changing direction is part of finding your way.
-      </p>
-    </motion.div>
+    </CollapsibleSection>
   );
 }

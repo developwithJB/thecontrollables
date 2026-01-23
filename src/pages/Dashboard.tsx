@@ -557,7 +557,6 @@ export default function Dashboard() {
                     totalSessionCount={allSessions.length}
                     onUpgrade={initiateCheckout}
                     currentJourneyId={activeSession?.journey_id}
-                    currentQuestTitle={activeQuest?.title}
                     onSwitchJourney={() => setShowJourneySwitcher(true)}
                     lastCompletedAt={
                       // Find the most recent completed session
@@ -569,32 +568,24 @@ export default function Dashboard() {
 
               {/* Journey Switcher Dialog - triggered from within Reset module */}
               {activeSession && !isCompleted && user?.id && (
-                <>
-                  <JourneySwitcher
-                    currentJourneyControllable={journeyControllable}
-                    sessionId={activeSession.id}
-                    currentDay={currentDay}
-                    userId={user.id}
-                    currentQuestTitle={activeQuest?.title}
-                    onJourneyChanged={() => {
-                      queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
-                      setShowJourneySwitcher(false);
-                    }}
-                    onUpdateQuestTitle={(title) => {
-                      if (activeQuest?.id) {
-                        updateQuest({ questId: activeQuest.id, title });
-                      }
-                    }}
-                    isOpen={showJourneySwitcher}
-                    onOpenChange={setShowJourneySwitcher}
-                  />
-                  
-                  {/* Show journey change history */}
-                  <JourneyChangesLog
-                    sessionId={activeSession.id}
-                    userId={user.id}
-                  />
-                </>
+                <JourneySwitcher
+                  currentJourneyControllable={journeyControllable}
+                  sessionId={activeSession.id}
+                  currentDay={currentDay}
+                  userId={user.id}
+                  currentQuestTitle={activeQuest?.title}
+                  onJourneyChanged={() => {
+                    queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
+                    setShowJourneySwitcher(false);
+                  }}
+                  onUpdateQuestTitle={(title) => {
+                    if (activeQuest?.id) {
+                      updateQuest({ questId: activeQuest.id, title });
+                    }
+                  }}
+                  isOpen={showJourneySwitcher}
+                  onOpenChange={setShowJourneySwitcher}
+                />
               )}
 
               {/* Your Current State - Compact 2x2 grid of state indicators */}
@@ -976,6 +967,23 @@ export default function Dashboard() {
                     <LazyResetHistory resetSessions={allSessions} userId={user.id} dailyResets={allCompletedDays} />
                   </SuspenseExperienceComponent>
                   {!isPaid && allSessions.filter((s) => s.status === "completed").length > 0 && (
+                    <LockedOverlay
+                      variant="experience-history"
+                      onUpgrade={initiateCheckout}
+                      isLoading={isCheckingOut}
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Journey/Focus Changes - Lazy loaded, Locked for free users */}
+              {user?.id && activeSession && (
+                <div className="relative">
+                  <JourneyChangesLog
+                    sessionId={activeSession.id}
+                    userId={user.id}
+                  />
+                  {!isPaid && (
                     <LockedOverlay
                       variant="experience-history"
                       onUpgrade={initiateCheckout}
