@@ -1087,23 +1087,38 @@ export type Database = {
       }
       user_onboarding: {
         Row: {
+          build_assessment_completed: boolean | null
+          build_assessment_completed_at: string | null
           created_at: string
           first_action_completed_at: string | null
           first_action_type: string | null
+          journey_controllable: string | null
+          journey_selected_at: string | null
+          onboarding_step: string | null
           simplified_mode_completed: boolean
           user_id: string
         }
         Insert: {
+          build_assessment_completed?: boolean | null
+          build_assessment_completed_at?: string | null
           created_at?: string
           first_action_completed_at?: string | null
           first_action_type?: string | null
+          journey_controllable?: string | null
+          journey_selected_at?: string | null
+          onboarding_step?: string | null
           simplified_mode_completed?: boolean
           user_id: string
         }
         Update: {
+          build_assessment_completed?: boolean | null
+          build_assessment_completed_at?: string | null
           created_at?: string
           first_action_completed_at?: string | null
           first_action_type?: string | null
+          journey_controllable?: string | null
+          journey_selected_at?: string | null
+          onboarding_step?: string | null
           simplified_mode_completed?: boolean
           user_id?: string
         }

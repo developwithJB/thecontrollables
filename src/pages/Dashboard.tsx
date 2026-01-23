@@ -60,6 +60,7 @@ import { TimeCycleCard } from "@/components/experience/TimeCycleCard";
 import { OfflineTriggers } from "@/components/experience/OfflineTriggers";
 import { LockedOverlay } from "@/components/experience/LockedOverlay";
 import { PullToRefreshIndicator } from "@/components/pwa/PullToRefreshIndicator";
+import { OnboardingFlow } from "@/components/onboarding";
 
 type TabType = "dashboard" | "experience" | "guide";
 
@@ -143,6 +144,9 @@ export default function Dashboard() {
     isLoading: onboardingLoading,
     completeOnboarding,
     ensureOnboardingRecord,
+    needsOnboarding,
+    currentOnboardingStep,
+    updateOnboardingProgress,
   } = useOnboarding(user?.id || null);
 
   // Entitlements (free vs paid)
@@ -384,6 +388,22 @@ export default function Dashboard() {
   // Only block on critical auth loading - let other data load in background
   if (isAuthLoading) {
     return <SplashScreen />;
+  }
+
+  // Show onboarding flow for new users
+  if (user?.id && needsOnboarding && currentOnboardingStep) {
+    return (
+      <OnboardingFlow
+        userId={user.id}
+        initialStep={currentOnboardingStep}
+        onComplete={() => {
+          queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
+        }}
+        onUpdateOnboarding={async (data) => {
+          await updateOnboardingProgress(data);
+        }}
+      />
+    );
   }
 
   const greeting = () => {
