@@ -397,6 +397,7 @@ export default function Dashboard() {
       <OnboardingFlow
         userId={user.id}
         initialStep={currentOnboardingStep}
+        isPaid={isPaid}
         onComplete={() => {
           queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
         }}

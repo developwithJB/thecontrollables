@@ -28,6 +28,7 @@ interface OnboardingFlowProps {
     journeyControllable?: string;
   }) => Promise<void>;
   initialStep?: OnboardingStep;
+  isPaid?: boolean;
 }
 
 // Timeout for stuck states (10 seconds)
@@ -72,7 +73,8 @@ export function OnboardingFlow({
   userId, 
   onComplete, 
   onUpdateOnboarding,
-  initialStep = "build_assessment" 
+  initialStep = "build_assessment",
+  isPaid = false,
 }: OnboardingFlowProps) {
   const [currentStep, setCurrentStep] = useState<InternalOnboardingStep>(initialStep);
   const [buildResult, setBuildResult] = useState<BuildScore | null>(null);
@@ -144,7 +146,7 @@ export function OnboardingFlow({
     
     const startReset = async () => {
       try {
-        await acceptCovenant({ isPaid: false });
+        await acceptCovenant({ isPaid });
         await onUpdateOnboarding({ 
           step: "completed", 
           journeyControllable: journeyToControllable(defaultJourney.id)
@@ -181,7 +183,7 @@ export function OnboardingFlow({
     
     const startReset = async () => {
       try {
-        await acceptCovenant({ isPaid: false });
+        await acceptCovenant({ isPaid });
         await onUpdateOnboarding({ 
           step: "completed", 
           journeyControllable: journeyToControllable(journey.id)
