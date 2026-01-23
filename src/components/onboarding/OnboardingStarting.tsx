@@ -2,29 +2,11 @@ import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 
 interface OnboardingStartingProps {
-  journeyControllable: string | null;
+  journeyTitle: string;
+  journeyEmoji: string;
 }
 
-const CONTROLLABLE_NAMES: Record<string, string> = {
-  awareness: "Awareness",
-  perspective: "Perspective",
-  habit: "Habit",
-  wellness: "Wellness",
-  environment: "Environment",
-};
-
-const CONTROLLABLE_EMOJIS: Record<string, string> = {
-  awareness: "🦉",
-  perspective: "🐢",
-  habit: "🦈",
-  wellness: "🛰️",
-  environment: "🚀",
-};
-
-export function OnboardingStarting({ journeyControllable }: OnboardingStartingProps) {
-  const name = journeyControllable ? CONTROLLABLE_NAMES[journeyControllable] : "your journey";
-  const emoji = journeyControllable ? CONTROLLABLE_EMOJIS[journeyControllable] : "✨";
-
+export function OnboardingStarting({ journeyTitle, journeyEmoji }: OnboardingStartingProps) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -50,14 +32,14 @@ export function OnboardingStarting({ journeyControllable }: OnboardingStartingPr
           }}
           className="text-6xl"
         >
-          {emoji}
+          {journeyEmoji}
         </motion.div>
 
         {/* Loading indicator */}
         <div className="flex items-center justify-center gap-3">
           <Loader2 className="w-5 h-5 animate-spin text-primary" />
           <span className="text-muted-foreground">
-            Preparing your {name} journey...
+            Preparing {journeyTitle}...
           </span>
         </div>
 

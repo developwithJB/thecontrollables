@@ -9,6 +9,7 @@ interface OnboardingAssessmentProps {
   questions: BuildQuestion[];
   questionsLoading: boolean;
   onComplete: (answers: Record<string, number>) => void;
+  onSkip: () => void;
   isSubmitting: boolean;
 }
 
@@ -31,6 +32,7 @@ export function OnboardingAssessment({
   questions,
   questionsLoading,
   onComplete,
+  onSkip,
   isSubmitting,
 }: OnboardingAssessmentProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -97,7 +99,7 @@ export function OnboardingAssessment({
           className="text-center mb-6"
         >
           <p className="text-sm text-muted-foreground mb-2">
-            Let's understand where you are
+            This helps us guide you without judgment
           </p>
           <h1 className="font-display text-2xl font-semibold text-foreground">
             Build Assessment
@@ -182,7 +184,7 @@ export function OnboardingAssessment({
       </div>
 
       {/* Navigation */}
-      <div className="max-w-md mx-auto w-full pt-8">
+      <div className="max-w-md mx-auto w-full pt-8 space-y-3">
         <div className="flex gap-3">
           {canGoBack && (
             <Button
@@ -215,6 +217,15 @@ export function OnboardingAssessment({
             )}
           </Button>
         </div>
+        
+        {/* Soft skip option */}
+        <button
+          onClick={onSkip}
+          disabled={isSubmitting}
+          className="w-full py-3 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+        >
+          I'll explore on my own
+        </button>
       </div>
     </motion.div>
   );

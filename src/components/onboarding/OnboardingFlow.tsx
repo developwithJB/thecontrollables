@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { useReset } from "@/hooks/useReset";
@@ -6,11 +6,17 @@ import { OnboardingAssessment } from "./OnboardingAssessment";
 import { OnboardingArchetypeResult } from "./OnboardingArchetypeResult";
 import { OnboardingJourneySelection } from "./OnboardingJourneySelection";
 import { OnboardingStarting } from "./OnboardingStarting";
+import { OnboardingSkipConfirmation } from "./OnboardingSkipConfirmation";
+import { 
+  getDefaultJourney, 
+  journeyToControllable, 
+  type GuidedJourney 
+} from "@/lib/guidedJourneys";
 import type { BuildScore } from "@/lib/build";
 import type { OnboardingStep } from "@/hooks/useOnboarding";
 
-// Internal step type that includes the transitional "starting" state
-type InternalOnboardingStep = OnboardingStep | "starting";
+// Internal step type that includes transitional states
+type InternalOnboardingStep = OnboardingStep | "starting" | "skip_confirmation";
 
 interface OnboardingFlowProps {
   userId: string;
@@ -23,6 +29,41 @@ interface OnboardingFlowProps {
   initialStep?: OnboardingStep;
 }
 
+// Map build scores to recommended journey
+function getRecommendedJourneyId(buildResult: BuildScore | null): string {
+  if (!buildResult) return "reenter-the-game";
+  
+  const scores = {
+    awareness: Number(buildResult.awareness),
+    perspective: Number(buildResult.perspective),
+    habit: Number(buildResult.habit),
+    wellness: Number(buildResult.wellness),
+    environment: Number(buildResult.environment),
+  };
+  
+  // Find lowest controllable
+  let lowest = "habit";
+  let lowestScore = scores.habit;
+  
+  for (const [key, value] of Object.entries(scores)) {
+    if (value < lowestScore) {
+      lowestScore = value;
+      lowest = key;
+    }
+  }
+  
+  // Map controllable to journey
+  const controllableToJourney: Record<string, string> = {
+    awareness: "reduce-mental-noise",
+    perspective: "refocus-on-what-matters",
+    habit: "rebuild-momentum",
+    wellness: "ground-yourself",
+    environment: "refocus-on-what-matters",
+  };
+  
+  return controllableToJourney[lowest] || "reenter-the-game";
+}
+
 export function OnboardingFlow({ 
   userId, 
   onComplete, 
@@ -31,10 +72,10 @@ export function OnboardingFlow({
 }: OnboardingFlowProps) {
   const [currentStep, setCurrentStep] = useState<InternalOnboardingStep>(initialStep);
   const [buildResult, setBuildResult] = useState<BuildScore | null>(null);
-  const [selectedJourney, setSelectedJourney] = useState<string | null>(null);
+  const [selectedJourney, setSelectedJourney] = useState<GuidedJourney | null>(null);
   
   const { questions, questionsLoading, submitAssessment, isSubmitting } = useBuildAssessment();
-  const { acceptCovenant, isAcceptingCovenant } = useReset();
+  const { acceptCovenant } = useReset();
 
   const handleAssessmentComplete = async (answers: Record<string, number>) => {
     try {
@@ -50,31 +91,55 @@ export function OnboardingFlow({
     }
   };
 
+  const handleSkipAssessment = () => {
+    // Show skip confirmation, then auto-start with default journey
+    setCurrentStep("skip_confirmation");
+  };
+
+  const handleSkipConfirmationComplete = async () => {
+    const defaultJourney = getDefaultJourney();
+    setSelectedJourney(defaultJourney);
+    setCurrentStep("starting");
+    
+    try {
+      await acceptCovenant({ isPaid: false });
+      await onUpdateOnboarding({ 
+        step: "completed", 
+        journeyControllable: journeyToControllable(defaultJourney.id)
+      });
+      // Small delay to show the starting animation
+      setTimeout(() => {
+        onComplete();
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to start reset:", error);
+      onComplete();
+    }
+  };
+
   const handleArchetypeAcknowledged = async () => {
     await onUpdateOnboarding({ step: "journey_selection" });
     setCurrentStep("journey_selection");
   };
 
-  const handleJourneySelected = async (controllable: string) => {
-    setSelectedJourney(controllable);
-    // Set the internal UI state to "starting"
+  const handleJourneySelected = async (journey: GuidedJourney) => {
+    setSelectedJourney(journey);
     setCurrentStep("starting");
     
-    // Auto-start the reset after a brief moment
-    setTimeout(async () => {
-      try {
-        await acceptCovenant({ isPaid: false });
-        // Mark onboarding as completed in the database
-        await onUpdateOnboarding({ 
-          step: "completed", 
-          journeyControllable: controllable 
-        });
+    try {
+      await acceptCovenant({ isPaid: false });
+      await onUpdateOnboarding({ 
+        step: "completed", 
+        journeyControllable: journeyToControllable(journey.id)
+      });
+      // Small delay to show the starting animation
+      setTimeout(() => {
         onComplete();
-      } catch (error) {
-        console.error("Failed to start reset:", error);
-        onComplete(); // Still complete onboarding, user can start reset manually
-      }
-    }, 2000);
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to start reset:", error);
+      onComplete();
+    }
   };
 
   return (
@@ -86,6 +151,7 @@ export function OnboardingFlow({
             questions={questions}
             questionsLoading={questionsLoading}
             onComplete={handleAssessmentComplete}
+            onSkip={handleSkipAssessment}
             isSubmitting={isSubmitting}
           />
         )}
@@ -101,7 +167,7 @@ export function OnboardingFlow({
         {currentStep === "journey_selection" && (
           <OnboardingJourneySelection
             key="journey"
-            lowestControllable={buildResult ? getLowestControllable(buildResult) : null}
+            recommendedJourneyId={getRecommendedJourneyId(buildResult)}
             onSelect={handleJourneySelected}
           />
         )}
@@ -109,33 +175,18 @@ export function OnboardingFlow({
         {currentStep === "starting" && (
           <OnboardingStarting
             key="starting"
-            journeyControllable={selectedJourney}
+            journeyTitle={selectedJourney?.title || "your journey"}
+            journeyEmoji={selectedJourney?.emoji || "✨"}
+          />
+        )}
+        
+        {currentStep === "skip_confirmation" && (
+          <OnboardingSkipConfirmation
+            key="skip"
+            onComplete={handleSkipConfirmationComplete}
           />
         )}
       </AnimatePresence>
     </div>
   );
-}
-
-// Helper to determine lowest controllable from build result
-function getLowestControllable(build: BuildScore): string {
-  const scores = {
-    awareness: Number(build.awareness),
-    perspective: Number(build.perspective),
-    habit: Number(build.habit),
-    wellness: Number(build.wellness),
-    environment: Number(build.environment),
-  };
-  
-  let lowest = "awareness";
-  let lowestScore = scores.awareness;
-  
-  for (const [key, value] of Object.entries(scores)) {
-    if (value < lowestScore) {
-      lowestScore = value;
-      lowest = key;
-    }
-  }
-  
-  return lowest;
 }
