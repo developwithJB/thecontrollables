@@ -2,10 +2,10 @@ import { useEffect, useCallback, useMemo, lazy, Suspense, useState, useRef } fro
 import { useNavigate } from "react-router-dom";
 import { SplashScreen } from "@/components/SplashScreen";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, Book, BookOpen, Sparkles, RefreshCw } from "lucide-react";
+import { Book, BookOpen, Sparkles, RefreshCw, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { ProfileSettingsModal } from "@/components/ProfileSettingsModal";
 import { useToast } from "@/hooks/use-toast";
 import { useReset } from "@/hooks/useReset";
 import { useDashboardSummary } from "@/hooks/useDashboardSummary";
@@ -80,7 +80,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [prevTab, setPrevTab] = useState<TabType | null>(null);
   const [showJourneySwitcher, setShowJourneySwitcher] = useState(false);
-  
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
   // Refs for imperative dialog triggers
   const timeCurrencyRef = useRef<TimeCurrencyModuleHandle>(null);
   const integrityRef = useRef<IntegrityMeterModuleHandle>(null);
@@ -454,7 +454,6 @@ export default function Dashboard() {
             >
               <RefreshCw className={`w-4 h-4 ${isPullRefreshing ? 'animate-spin' : ''}`} />
             </Button>
-            <ThemeToggle />
             <a href="https://a.co/d/1DGPGEV" target="_blank" rel="noopener noreferrer">
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                 <Book className="w-4 h-4" />
@@ -463,10 +462,11 @@ export default function Dashboard() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={handleSignOut}
+              onClick={() => setShowProfileSettings(true)}
               className="text-muted-foreground hover:text-foreground"
+              title="Profile Settings"
             >
-              <LogOut className="w-4 h-4" />
+              <UserIcon className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -1111,6 +1111,15 @@ export default function Dashboard() {
 
       {/* App Update Prompt for PWA users */}
       <UpdatePrompt />
+
+      {/* Profile Settings Modal */}
+      <ProfileSettingsModal
+        open={showProfileSettings}
+        onOpenChange={setShowProfileSettings}
+        userId={user?.id ?? ""}
+        userEmail={user?.email ?? ""}
+        onSignOut={handleSignOut}
+      />
     </div>
   );
 }
