@@ -32,7 +32,7 @@ import { MainQuestModule } from "@/components/dashboard/MainQuestModule";
 import { XpMomentumModule } from "@/components/dashboard/XpMomentumModule";
 import { IntegrityMeterModule, IntegrityMeterModuleHandle } from "@/components/dashboard/IntegrityMeterModule";
 import { TimeCurrencyModule, TimeCurrencyModuleHandle } from "@/components/dashboard/TimeCurrencyModule";
-import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule";
+import { BuildOverviewModule, BuildOverviewModuleHandle } from "@/components/dashboard/BuildOverviewModule";
 import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
 import { BuildEntryPoint } from "@/components/dashboard/BuildEntryPoint";
 import { JourneySwitcher } from "@/components/dashboard/JourneySwitcher";
@@ -84,6 +84,7 @@ export default function Dashboard() {
   // Refs for imperative dialog triggers
   const timeCurrencyRef = useRef<TimeCurrencyModuleHandle>(null);
   const integrityRef = useRef<IntegrityMeterModuleHandle>(null);
+  const buildRef = useRef<BuildOverviewModuleHandle>(null);
   
   // Track dashboard visits for conditional microcopy placement
   const dashboardVisitCount = useDashboardVisitCount();
@@ -560,7 +561,7 @@ export default function Dashboard() {
                     trackTabChange("guide");
                     setActiveTab("guide");
                   }}
-                  onOpenBuild={() => navigate("/dashboard?tab=experience")}
+                  onOpenBuild={() => buildRef.current?.openDetailDialog()}
                 />
               )}
 
@@ -645,7 +646,7 @@ export default function Dashboard() {
                       <SmallModuleSkeleton />
                     ) : (
                       <div data-testid="build-overview-module">
-                        <BuildOverviewModule compact />
+                        <BuildOverviewModule compact ref={buildRef} />
                       </div>
                     )}
 
