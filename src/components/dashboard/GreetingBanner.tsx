@@ -1,19 +1,42 @@
 import { motion } from "framer-motion";
 import { Flame, Zap } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GreetingBannerProps {
+  userId?: string;
   totalXp: number;
   streakDays?: number;
   visitCount: number;
 }
 
-export function GreetingBanner({ totalXp, streakDays = 0, visitCount }: GreetingBannerProps) {
+export function GreetingBanner({ userId, totalXp, streakDays = 0, visitCount }: GreetingBannerProps) {
+  // Fetch user's display name from profiles
+  const { data: profile } = useQuery({
+    queryKey: ["user-profile", userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", userId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
     if (hour < 18) return "Good afternoon";
     return "Good evening";
   };
+
+  // Get first name or fallback
+  const displayName = profile?.display_name?.split(" ")[0] || "";
 
   // Calculate level from XP
   const level = Math.floor(totalXp / 500) + 1;
@@ -24,9 +47,9 @@ export function GreetingBanner({ totalXp, streakDays = 0, visitCount }: Greeting
       animate={{ opacity: 1, y: 0 }}
       className="mb-6"
     >
-      {/* Main greeting */}
+      {/* Main greeting with name */}
       <h1 className="font-display text-2xl font-bold text-foreground mb-2">
-        {getGreeting()}
+        {getGreeting()}{displayName ? `, ${displayName}` : ""}
       </h1>
 
       {/* Stats row */}
