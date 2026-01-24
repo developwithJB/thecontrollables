@@ -23,17 +23,31 @@ export function StreakDisplay({ currentStreak, longestStreak, className }: Strea
         <motion.div
           className={cn(
             "w-14 h-14 rounded-full flex items-center justify-center",
-            currentStreak > 0 ? "bg-accent/10" : "bg-muted"
+            currentStreak > 0 ? "bg-orange-500/10" : "bg-muted"
           )}
-          animate={currentStreak > 0 ? { boxShadow: ["0 0 20px hsl(var(--accent) / 0.3)", "0 0 40px hsl(var(--accent) / 0.5)", "0 0 20px hsl(var(--accent) / 0.3)"] } : {}}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          animate={currentStreak > 0 ? { 
+            boxShadow: [
+              "0 0 20px rgba(249, 115, 22, 0.3)", 
+              "0 0 40px rgba(249, 115, 22, 0.5)", 
+              "0 0 20px rgba(249, 115, 22, 0.3)"
+            ] 
+          } : {}}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
         >
-          <Flame 
-            className={cn(
-              "w-7 h-7",
-              currentStreak > 0 ? "text-accent" : "text-muted-foreground"
-            )} 
-          />
+          <motion.div
+            animate={currentStreak > 0 ? {
+              scale: [1, 1.15, 1],
+              rotate: [-5, 5, -5],
+            } : {}}
+            transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <Flame 
+              className={cn(
+                "w-7 h-7",
+                currentStreak > 0 ? "text-orange-500" : "text-muted-foreground"
+              )} 
+            />
+          </motion.div>
         </motion.div>
       </div>
       

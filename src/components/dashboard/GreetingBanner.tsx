@@ -57,9 +57,27 @@ export function GreetingBanner({ userId, totalXp, streakDays = 0, visitCount }: 
         {/* Streak indicator */}
         {streakDays > 0 && (
           <div className="flex items-center gap-1.5">
-            <div className="p-1 rounded-lg bg-orange-500/10">
-              <Flame className="w-4 h-4 text-orange-500" />
-            </div>
+            <motion.div 
+              className="p-1 rounded-lg bg-orange-500/10 relative"
+              animate={{
+                boxShadow: [
+                  "0 0 8px rgba(249, 115, 22, 0.3)",
+                  "0 0 16px rgba(249, 115, 22, 0.5)",
+                  "0 0 8px rgba(249, 115, 22, 0.3)",
+                ],
+              }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <motion.div
+                animate={{
+                  scale: [1, 1.1, 1],
+                  rotate: [-3, 3, -3],
+                }}
+                transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Flame className="w-4 h-4 text-orange-500" />
+              </motion.div>
+            </motion.div>
             <span className="text-sm font-medium text-foreground">{streakDays}</span>
             <span className="text-sm text-muted-foreground">day streak</span>
           </div>
