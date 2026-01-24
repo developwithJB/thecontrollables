@@ -41,7 +41,7 @@ export default function Landing() {
           </h1>
 
           <p className="text-muted-foreground mb-8 text-balance">
-            A calm, daily reset that takes under 2 minutes. Control what you can. Give the rest to God.
+            A calm, daily reset that takes about 5 minutes. Control what you can. Give the rest to God.
           </p>
 
           {/* Controllables */}
