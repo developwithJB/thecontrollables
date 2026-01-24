@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, forwardRef, useImperativeHandle } from "react";
 import { motion } from "framer-motion";
 import { Dna, RefreshCw, Info, Share2, History, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
@@ -26,6 +26,10 @@ interface BuildOverviewModuleProps {
   compact?: boolean;
 }
 
+export interface BuildOverviewModuleHandle {
+  openDetailDialog: () => void;
+}
+
 // Mini trend indicator component
 function TrendIndicator({ current, previous }: { current: number; previous: number }) {
   const diff = current - previous;
@@ -38,11 +42,17 @@ function TrendIndicator({ current, previous }: { current: number; previous: numb
   return <TrendingDown className="w-3 h-3 text-red-500" />;
 }
 
-export function BuildOverviewModule({ compact = false }: BuildOverviewModuleProps) {
+export const BuildOverviewModule = forwardRef<BuildOverviewModuleHandle, BuildOverviewModuleProps>(
+  function BuildOverviewModule({ compact = false }, ref) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  
+  // Expose method to open detail dialog from parent
+  useImperativeHandle(ref, () => ({
+    openDetailDialog: () => setIsDetailOpen(true),
+  }));
   
   const {
     questions,
@@ -568,4 +578,4 @@ export function BuildOverviewModule({ compact = false }: BuildOverviewModuleProp
       {renderModals()}
     </>
   );
-}
+});
