@@ -98,21 +98,25 @@ function JourneyDisplay({
       animate={{ opacity: 1, height: "auto" }}
       className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/20"
     >
-      <button
-        onClick={onSwitchJourney}
-        className="w-full flex items-center gap-3 text-left"
-      >
+      <div className="flex items-center gap-3">
         <div className="p-1.5 rounded bg-primary/20">
           <Compass className="w-4 h-4 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <span className="text-xs text-muted-foreground">Focus:</span>
+          <span className="text-xs text-muted-foreground">Focus</span>
           <p className="text-sm font-medium text-foreground truncate">
             {journey.emoji} {journey.title}
           </p>
         </div>
-        <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-      </button>
+        {onSwitchJourney && (
+          <button
+            onClick={onSwitchJourney}
+            className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+          >
+            Change
+          </button>
+        )}
+      </div>
     </motion.div>
   );
 }
