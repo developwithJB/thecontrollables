@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, Lock, Check, Play, RefreshCw, Eye, Sparkles, Target, Compass } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronRight, Lock, Check, Play, RefreshCw, Eye, Sparkles, Target, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -92,6 +92,34 @@ function JourneyDisplay({
     );
   }
 
+  // Make the entire container clickable with clear hover states
+  if (onSwitchJourney) {
+    return (
+      <motion.button
+        initial={{ opacity: 0, height: 0 }}
+        animate={{ opacity: 1, height: "auto" }}
+        onClick={onSwitchJourney}
+        className="mt-4 w-full p-3 rounded-lg bg-primary/5 border border-primary/20 
+                   hover:bg-primary/10 hover:border-primary/40 transition-all 
+                   group cursor-pointer text-left"
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 rounded bg-primary/20 group-hover:bg-primary/30 transition-colors">
+            <Compass className="w-4 h-4 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-xs text-muted-foreground">Focus</span>
+            <p className="text-sm font-medium text-foreground truncate">
+              {journey.emoji} {journey.title}
+            </p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+        </div>
+      </motion.button>
+    );
+  }
+
+  // Non-interactive version (no onSwitchJourney)
   return (
     <motion.div
       initial={{ opacity: 0, height: 0 }}
@@ -108,14 +136,6 @@ function JourneyDisplay({
             {journey.emoji} {journey.title}
           </p>
         </div>
-        {onSwitchJourney && (
-          <button
-            onClick={onSwitchJourney}
-            className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
-          >
-            Change
-          </button>
-        )}
       </div>
     </motion.div>
   );
