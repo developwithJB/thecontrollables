@@ -57,7 +57,7 @@ export const RESET_DAYS: DayContent[] = [
     reflection: "How does gratitude change your view of problems?",
     reading: {
       source: "The Controllables",
-      chapter: "Chapter 3 – The Spark of Gratitude: Igniting the First Love Circuit (Pages 15–22)",
+      chapter: "Chapter 2 – The Spark of Gratitude: Igniting the First Love Circuit (Pages 15–22)",
       text: "Gratitude is not pretending everything is good. It is remembering what still works.\n\nWhen stress takes over, your world shrinks. Gratitude gently widens it. Not to erase pain, but to include what hasn't been lost.\n\nPerspective restores balance. It reminds you why this matters.",
     },
   },
@@ -76,7 +76,7 @@ export const RESET_DAYS: DayContent[] = [
     reflection: "What if setbacks were teachers, not verdicts?",
     reading: {
       source: "The Controllables",
-      chapter: "Chapter 2 – A Resilient Bloom: Turning Setbacks Into Strengths (Pages 21–27)",
+      chapter: "Chapter 3 – A Resilient Bloom: Turning Setbacks Into Strengths (Pages 21–27)",
       text: "A setback is not failure. It's feedback.\n\nMost people stop here, not because they can't continue, but because they misread friction as a sign to quit.\n\nResilience is staying curious instead of critical. Learning instead of leaving.",
     },
   },
