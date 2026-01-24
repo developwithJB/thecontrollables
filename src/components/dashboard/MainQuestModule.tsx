@@ -224,20 +224,22 @@ export function MainQuestModule({
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <h3 className="font-display font-semibold text-foreground text-lg truncate">
-                  {activeQuest.title}
-                </h3>
-                {onUpdateQuest && (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6 shrink-0"
-                    onClick={handleStartEdit}
-                  >
-                    <Pencil className="w-3 h-3 text-muted-foreground hover:text-foreground" />
-                  </Button>
-                )}
+              <div className="space-y-1">
+                <div className="flex items-start gap-2">
+                  <h3 className="font-display font-semibold text-foreground text-base md:text-lg line-clamp-2 leading-snug">
+                    {activeQuest.title}
+                  </h3>
+                  {onUpdateQuest && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 shrink-0 mt-0.5"
+                      onClick={handleStartEdit}
+                    >
+                      <Pencil className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </div>
