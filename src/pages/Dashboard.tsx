@@ -534,6 +534,7 @@ export default function Dashboard() {
                 <ResetProgressSkeleton />
               ) : (
                 <TodayActions
+                  userId={user?.id}
                   hasActiveSession={!!activeSession}
                   isResetCompleted={isCompleted}
                   isResetExpired={isExpired}
@@ -552,6 +553,7 @@ export default function Dashboard() {
                   todayXpEarned={xpLogs
                     .filter((log) => log.created_at.startsWith(new Date().toISOString().split("T")[0]))
                     .reduce((sum, log) => sum + log.amount, 0)}
+                  buildLastUpdatedAt={currentBuild?.updated_at ?? null}
                   journeyTitle={activeSession?.journey_id ? 
                     getJourneyById(activeSession.journey_id)?.title : undefined}
                   onChangeJourney={() => setShowJourneySwitcher(true)}
