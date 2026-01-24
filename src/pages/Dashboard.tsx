@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo, lazy, Suspense, useState } from "react";
+import { useEffect, useCallback, useMemo, lazy, Suspense, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { SplashScreen } from "@/components/SplashScreen";
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,8 +30,8 @@ import type { User } from "@supabase/supabase-js";
 // Dashboard modules
 import { MainQuestModule } from "@/components/dashboard/MainQuestModule";
 import { XpMomentumModule } from "@/components/dashboard/XpMomentumModule";
-import { IntegrityMeterModule } from "@/components/dashboard/IntegrityMeterModule";
-import { TimeCurrencyModule } from "@/components/dashboard/TimeCurrencyModule";
+import { IntegrityMeterModule, IntegrityMeterModuleHandle } from "@/components/dashboard/IntegrityMeterModule";
+import { TimeCurrencyModule, TimeCurrencyModuleHandle } from "@/components/dashboard/TimeCurrencyModule";
 import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule";
 import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
 import { BuildEntryPoint } from "@/components/dashboard/BuildEntryPoint";
@@ -80,6 +80,10 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [prevTab, setPrevTab] = useState<TabType | null>(null);
   const [showJourneySwitcher, setShowJourneySwitcher] = useState(false);
+  
+  // Refs for imperative dialog triggers
+  const timeCurrencyRef = useRef<TimeCurrencyModuleHandle>(null);
+  const integrityRef = useRef<IntegrityMeterModuleHandle>(null);
   
   // Track dashboard visits for conditional microcopy placement
   const dashboardVisitCount = useDashboardVisitCount();
@@ -550,6 +554,13 @@ export default function Dashboard() {
                   journeyTitle={activeSession?.journey_id ? 
                     getJourneyById(activeSession.journey_id)?.title : undefined}
                   onChangeJourney={() => setShowJourneySwitcher(true)}
+                  onOpenTimeLog={() => timeCurrencyRef.current?.openLogDialog()}
+                  onOpenPromises={() => integrityRef.current?.openDetailDialog()}
+                  onOpenAIGuide={() => {
+                    trackTabChange("guide");
+                    setActiveTab("guide");
+                  }}
+                  onOpenBuild={() => navigate("/dashboard?tab=experience")}
                 />
               )}
 
@@ -653,6 +664,7 @@ export default function Dashboard() {
                     ) : (
                       <div data-testid="time-currency-module">
                         <TimeCurrencyModule
+                          ref={timeCurrencyRef}
                           todayTimeLog={todayTimeLog}
                           onLogTime={handleLogTime}
                           isLogging={isLoggingTime}
@@ -668,6 +680,7 @@ export default function Dashboard() {
                     ) : (
                       <div data-testid="integrity-meter-module">
                         <IntegrityMeterModule
+                          ref={integrityRef}
                           integrityScore={integrityScore}
                           pendingPromises={pendingPromises}
                           onCreatePromise={createPromise}

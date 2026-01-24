@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useImperativeHandle, forwardRef } from "react";
 import { motion } from "framer-motion";
 import { Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,13 +26,25 @@ interface TimeCurrencyModuleProps {
   disabled?: boolean;
 }
 
-export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging, compact = false, disabled = false }: TimeCurrencyModuleProps) {
+export interface TimeCurrencyModuleHandle {
+  openLogDialog: () => void;
+}
+
+export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurrencyModuleProps>(
+  function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging, compact = false, disabled = false }, ref) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [invested, setInvested] = useState("");
   const [wasted, setWasted] = useState("");
 
   const { trackButtonClick, trackModalAction } = useActionTracking();
+
+  // Expose imperative handle to open dialog from parent
+  useImperativeHandle(ref, () => ({
+    openLogDialog: () => {
+      handleOpenDialog();
+    },
+  }));
 
   const handleOpenDialog = () => {
     trackModalAction("time_log", "open");
@@ -358,4 +370,4 @@ export function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging, compact
       </Dialog>
     </motion.div>
   );
-}
+});

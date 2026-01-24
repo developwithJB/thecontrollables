@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useImperativeHandle, forwardRef } from "react";
 import { motion } from "framer-motion";
 import { Shield, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,19 +28,37 @@ interface IntegrityMeterModuleProps {
   disabled?: boolean;
 }
 
-export function IntegrityMeterModule({
-  integrityScore,
-  pendingPromises,
-  onCreatePromise,
-  onResolvePromise,
-  compact = false,
-  disabled = false,
-}: IntegrityMeterModuleProps) {
+export interface IntegrityMeterModuleHandle {
+  openDetailDialog: () => void;
+  openPromiseDialog: () => void;
+}
+
+export const IntegrityMeterModule = forwardRef<IntegrityMeterModuleHandle, IntegrityMeterModuleProps>(
+  function IntegrityMeterModule({
+    integrityScore,
+    pendingPromises,
+    onCreatePromise,
+    onResolvePromise,
+    compact = false,
+    disabled = false,
+  }, ref) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [promiseText, setPromiseText] = useState("");
 
   const { trackButtonClick, trackModalAction } = useActionTracking();
+
+  // Expose imperative handle to open dialogs from parent
+  useImperativeHandle(ref, () => ({
+    openDetailDialog: () => {
+      setIsDetailOpen(true);
+      trackModalAction("integrity_detail", "open");
+    },
+    openPromiseDialog: () => {
+      setIsOpen(true);
+      trackModalAction("promise_create", "open");
+    },
+  }));
 
   const handleSubmit = () => {
     if (!promiseText.trim()) return;
@@ -357,4 +375,4 @@ export function IntegrityMeterModule({
       </Dialog>
     </motion.div>
   );
-}
+});
