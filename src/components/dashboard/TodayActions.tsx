@@ -32,6 +32,8 @@ interface DailyReading {
 }
 
 interface TodayActionsProps {
+  userId?: string;
+
   // Reset state
   hasActiveSession: boolean;
   isResetCompleted: boolean;
@@ -51,6 +53,9 @@ interface TodayActionsProps {
   todayTimeLogged: boolean;
   pendingPromisesCount: number;
   todayXpEarned: number;
+
+  // Build completion signal (used for Day 3 checklist)
+  buildLastUpdatedAt?: string | null;
   
   // Journey info for display
   journeyTitle?: string;
@@ -76,6 +81,7 @@ interface ActionItem {
 }
 
 export function TodayActions({
+  userId,
   hasActiveSession,
   isResetCompleted,
   isResetExpired,
@@ -92,6 +98,7 @@ export function TodayActions({
   todayTimeLogged,
   pendingPromisesCount,
   todayXpEarned,
+  buildLastUpdatedAt,
   journeyTitle,
   onChangeJourney,
   onOpenTimeLog,
@@ -109,6 +116,39 @@ export function TodayActions({
   );
   const [isListCollapsed, setIsListCollapsed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // Day 3 "Review your Build" completion: treat as complete if the user opened it today
+  // OR if their build was updated today (e.g., via a re-scan).
+  const todayLocal = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD in local time
+  const reviewBuildStorageKey = userId
+    ? `today_actions_review_build_${userId}_${todayLocal}`
+    : null;
+  const [reviewBuildDoneToday, setReviewBuildDoneToday] = useState(false);
+
+  const buildUpdatedToday = !!buildLastUpdatedAt &&
+    new Date(buildLastUpdatedAt).toLocaleDateString("sv-SE") === todayLocal;
+  const reviewBuildCompleted = reviewBuildDoneToday || buildUpdatedToday;
+
+  useEffect(() => {
+    if (!reviewBuildStorageKey) return;
+    try {
+      setReviewBuildDoneToday(localStorage.getItem(reviewBuildStorageKey) === "1");
+    } catch {
+      // ignore storage errors (private mode, blocked storage)
+    }
+  }, [reviewBuildStorageKey]);
+
+  useEffect(() => {
+    if (!reviewBuildStorageKey) return;
+    if (!buildUpdatedToday) return;
+    // If a rescan happened today, auto-mark this checklist item done.
+    try {
+      localStorage.setItem(reviewBuildStorageKey, "1");
+    } catch {
+      // ignore
+    }
+    setReviewBuildDoneToday(true);
+  }, [buildUpdatedToday, reviewBuildStorageKey]);
 
   // Get today's content for display
   const getTodayInfo = () => {
@@ -147,6 +187,18 @@ export function TodayActions({
   const handleStartReset = () => {
     onStartReset();
     setTimeout(() => navigate("/reset"), 500);
+  };
+
+  const handleReviewBuild = () => {
+    if (reviewBuildStorageKey) {
+      try {
+        localStorage.setItem(reviewBuildStorageKey, "1");
+      } catch {
+        // ignore
+      }
+    }
+    setReviewBuildDoneToday(true);
+    onOpenBuild?.();
   };
 
   const toggleExpand = (actionId: string) => {
@@ -220,9 +272,9 @@ export function TodayActions({
         label: "Review your Build",
         sublabel: "Check your strengths and growth areas",
         icon: <Sparkles className="w-4 h-4" />,
-        completed: false,
+        completed: reviewBuildCompleted,
         timeEstimate: "2 min",
-        action: onOpenBuild,
+        action: handleReviewBuild,
       });
     }
     
