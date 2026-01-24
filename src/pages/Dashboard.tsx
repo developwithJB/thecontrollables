@@ -35,6 +35,9 @@ import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule"
 import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
 import { BuildEntryPoint } from "@/components/dashboard/BuildEntryPoint";
 import { JourneySwitcher } from "@/components/dashboard/JourneySwitcher";
+import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
+import { DailyCheckinCard } from "@/components/dashboard/DailyCheckinCard";
+import { TodayActions } from "@/components/dashboard/TodayActions";
 // JourneyChangesLog removed - consolidated into Activity History
 import { ReadingCard } from "@/components/ReadingCard";
 import { GameRulesSection } from "@/components/GameRulesSection";
@@ -512,16 +515,45 @@ export default function Dashboard() {
               transition={{ duration: 0.3 }}
               className="space-y-4"
             >
-              {/* Greeting with intentional usage microcopy - shown at top only for first 5 visits */}
-              <div className="mb-2">
-                <h1 className="font-display text-2xl font-semibold text-foreground">{greeting()}</h1>
-                <p className="text-sm text-muted-foreground">Your life dashboard</p>
-                {dashboardVisitCount <= 5 && (
-                  <p className="text-xs text-muted-foreground/70 mt-1">
-                    Designed for intentional check-ins. Desktop or mobile.
-                  </p>
-                )}
-              </div>
+              {/* Greeting Banner with streak/XP */}
+              <GreetingBanner
+                totalXp={totalXp}
+                streakDays={completedDays.length}
+                visitCount={dashboardVisitCount}
+              />
+
+              {/* Featured Daily Check-in Card - Most prominent element */}
+              {resetLoading ? (
+                <ResetProgressSkeleton />
+              ) : (
+                <DailyCheckinCard
+                  hasActiveSession={!!activeSession}
+                  isCompleted={isCompleted}
+                  isExpired={isExpired}
+                  currentDay={currentDay}
+                  todayAlreadyCompleted={todayAlreadyCompleted}
+                  readings={readings}
+                  completedDaysCount={completedDays.length}
+                  onStartReset={() => acceptCovenant({ isPaid })}
+                  isPaid={isPaid}
+                  hasUsedFreeReset={!isPaid && allSessions.length >= 1}
+                  onUpgrade={initiateCheckout}
+                />
+              )}
+
+              {/* Today's Actions - Clear checklist with time estimates */}
+              {!dashboardLoading && (
+                <TodayActions
+                  hasActiveQuest={!!activeQuest}
+                  hasActiveReset={!!activeSession && !isCompleted}
+                  todayResetCompleted={todayAlreadyCompleted}
+                  todayTimeLogged={!!todayTimeLog}
+                  pendingPromisesCount={pendingPromises.length}
+                  todayXpEarned={xpLogs
+                    .filter((log) => log.created_at.startsWith(new Date().toISOString().split("T")[0]))
+                    .reduce((sum, log) => sum + log.amount, 0)}
+                />
+              )}
 
               {/* Build Entry Point - shows if user hasn't done assessment */}
               <BuildEntryPoint />
@@ -544,32 +576,27 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Reset Progress Module with nested Journey */}
-              {resetLoading ? (
-                <ResetProgressSkeleton />
-              ) : (
-                <div data-testid="reset-progress-module">
-                  <ResetProgressModule
-                    hasActiveSession={!!activeSession}
-                    isCompleted={isCompleted}
-                    isExpired={isExpired}
-                    currentDay={currentDay}
-                    completedDays={completedDays}
-                    todayAlreadyCompleted={todayAlreadyCompleted}
-                    readings={readings}
-                    onStartReset={(isPaidArg) => acceptCovenant({ isPaid: isPaidArg })}
-                    isStartingReset={isAcceptingCovenant}
-                    isPaid={isPaid}
-                    totalSessionCount={allSessions.length}
-                    onUpgrade={initiateCheckout}
-                    currentJourneyId={activeSession?.journey_id}
-                    onSwitchJourney={() => setShowJourneySwitcher(true)}
-                    lastCompletedAt={
-                      // Find the most recent completed session
-                      allSessions.find((s) => s.status === "completed")?.completed_at
-                    }
-                  />
-                </div>
+              {/* Journey Focus Display - only show when active session */}
+              {activeSession && !isCompleted && !isExpired && (
+                <ResetProgressModule
+                  hasActiveSession={!!activeSession}
+                  isCompleted={isCompleted}
+                  isExpired={isExpired}
+                  currentDay={currentDay}
+                  completedDays={completedDays}
+                  todayAlreadyCompleted={todayAlreadyCompleted}
+                  readings={readings}
+                  onStartReset={(isPaidArg) => acceptCovenant({ isPaid: isPaidArg })}
+                  isStartingReset={isAcceptingCovenant}
+                  isPaid={isPaid}
+                  totalSessionCount={allSessions.length}
+                  onUpgrade={initiateCheckout}
+                  currentJourneyId={activeSession?.journey_id}
+                  onSwitchJourney={() => setShowJourneySwitcher(true)}
+                  lastCompletedAt={
+                    allSessions.find((s) => s.status === "completed")?.completed_at
+                  }
+                />
               )}
 
               {/* Journey Switcher Dialog - triggered from within Reset module */}
