@@ -10,6 +10,7 @@ import {
   Scale,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Sparkles,
   Lock,
   PartyPopper,
@@ -471,10 +472,10 @@ export function TodayActions({
             {journeyTitle && (
               <button
                 onClick={onChangeJourney}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors group"
               >
-                • {journeyTitle}
-                <span className="ml-1 text-primary">Change</span>
+                <span>• {journeyTitle}</span>
+                <ChevronRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
               </button>
             )}
           </div>
