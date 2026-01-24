@@ -196,8 +196,23 @@ export default function Dashboard() {
 
   // Pull-to-refresh for mobile
   const handlePullRefresh = useCallback(async () => {
-    // Invalidate all queries to refresh data
-    await queryClient.invalidateQueries();
+    // Use a timeout to ensure refresh never hangs on iOS PWA
+    const refreshPromise = queryClient.refetchQueries({ type: 'active' });
+    
+    // Race between actual refresh and a safety timeout (8 seconds max)
+    const timeoutPromise = new Promise<void>((resolve) => {
+      setTimeout(() => {
+        console.warn("Refresh timeout - forcing completion");
+        resolve();
+      }, 8000);
+    });
+
+    try {
+      await Promise.race([refreshPromise, timeoutPromise]);
+    } catch (error) {
+      console.error("Refresh error:", error);
+    }
+    
     toast({
       title: "Refreshed",
       description: "Data updated successfully.",
