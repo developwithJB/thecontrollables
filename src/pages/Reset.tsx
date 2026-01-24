@@ -1,16 +1,20 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { SplashScreen } from "@/components/SplashScreen";
 import { useReset } from "@/hooks/useReset";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { CovenantScreen } from "@/components/CovenantScreen";
 import { ResetDay } from "@/components/ResetDay";
+import { ReadingReview } from "@/components/ReadingReview";
 import { WelcomeBack } from "@/components/WelcomeBack";
 import { Day7Complete } from "@/components/Day7Complete";
 import { ResetComplete } from "@/components/ResetComplete";
 
 const Reset = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isReviewMode = searchParams.get("mode") === "review";
+  
   const {
     userId,
     displayName,
@@ -112,8 +116,19 @@ const Reset = () => {
     );
   }
 
-  // Today already done
+  // Today already done - check if in review mode
   if (isTodayCompleted) {
+    // If in review mode, show the reading content
+    if (isReviewMode) {
+      return (
+        <ReadingReview
+          dayNumber={currentDay}
+          completedDays={completedDays.length}
+          logDate={currentLogDate}
+        />
+      );
+    }
+    // Otherwise show the completion screen
     return <ResetComplete isFullReset={false} />;
   }
 

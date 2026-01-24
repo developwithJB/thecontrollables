@@ -22,6 +22,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useDashboardVisitCount } from "@/hooks/useDashboardVisitCount";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayContent, RESET_DAYS } from "@/lib/resetContent";
+import { getJourneyById } from "@/lib/guidedJourneys";
 import { APP_VERSION } from "@/lib/version";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@supabase/supabase-js";
@@ -36,7 +37,7 @@ import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule"
 import { BuildEntryPoint } from "@/components/dashboard/BuildEntryPoint";
 import { JourneySwitcher } from "@/components/dashboard/JourneySwitcher";
 import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
-import { DailyCheckinCard } from "@/components/dashboard/DailyCheckinCard";
+// DailyCheckinCard removed - functionality merged into TodayActions
 import { TodayActions } from "@/components/dashboard/TodayActions";
 // JourneyChangesLog removed - consolidated into Activity History
 import { ReadingCard } from "@/components/ReadingCard";
@@ -515,43 +516,40 @@ export default function Dashboard() {
               transition={{ duration: 0.3 }}
               className="space-y-4"
             >
-              {/* Greeting Banner with streak/XP */}
+              {/* Greeting Banner with streak/XP and user name */}
               <GreetingBanner
+                userId={user?.id}
                 totalXp={totalXp}
                 streakDays={completedDays.length}
                 visitCount={dashboardVisitCount}
               />
 
-              {/* Featured Daily Check-in Card - Most prominent element */}
-              {resetLoading ? (
+              {/* Today's Actions - Unified interactive checklist with 7-day reset */}
+              {(resetLoading || dashboardLoading) ? (
                 <ResetProgressSkeleton />
               ) : (
-                <DailyCheckinCard
+                <TodayActions
                   hasActiveSession={!!activeSession}
-                  isCompleted={isCompleted}
-                  isExpired={isExpired}
+                  isResetCompleted={isCompleted}
+                  isResetExpired={isExpired}
                   currentDay={currentDay}
-                  todayAlreadyCompleted={todayAlreadyCompleted}
+                  todayResetCompleted={todayAlreadyCompleted}
                   readings={readings}
                   completedDaysCount={completedDays.length}
                   onStartReset={() => acceptCovenant({ isPaid })}
+                  isStartingReset={isAcceptingCovenant}
                   isPaid={isPaid}
                   hasUsedFreeReset={!isPaid && allSessions.length >= 1}
                   onUpgrade={initiateCheckout}
-                />
-              )}
-
-              {/* Today's Actions - Clear checklist with time estimates */}
-              {!dashboardLoading && (
-                <TodayActions
                   hasActiveQuest={!!activeQuest}
-                  hasActiveReset={!!activeSession && !isCompleted}
-                  todayResetCompleted={todayAlreadyCompleted}
                   todayTimeLogged={!!todayTimeLog}
                   pendingPromisesCount={pendingPromises.length}
                   todayXpEarned={xpLogs
                     .filter((log) => log.created_at.startsWith(new Date().toISOString().split("T")[0]))
                     .reduce((sum, log) => sum + log.amount, 0)}
+                  journeyTitle={activeSession?.journey_id ? 
+                    getJourneyById(activeSession.journey_id)?.title : undefined}
+                  onChangeJourney={() => setShowJourneySwitcher(true)}
                 />
               )}
 
