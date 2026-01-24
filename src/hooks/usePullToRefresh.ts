@@ -21,9 +21,20 @@ export function usePullToRefresh({
     if (isRefreshing || disabled) return;
     
     setIsRefreshing(true);
+    
+    // Safety timeout to prevent infinite spinning (max 10 seconds)
+    const safetyTimeout = setTimeout(() => {
+      console.warn("Pull-to-refresh safety timeout triggered");
+      setIsRefreshing(false);
+      setPullDistance(0);
+    }, 10000);
+    
     try {
       await onRefresh();
+    } catch (error) {
+      console.error("Refresh error:", error);
     } finally {
+      clearTimeout(safetyTimeout);
       // Small delay for visual feedback
       setTimeout(() => {
         setIsRefreshing(false);
