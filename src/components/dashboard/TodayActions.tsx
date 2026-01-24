@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -12,6 +12,7 @@ import {
   ChevronUp,
   Sparkles,
   Lock,
+  PartyPopper,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -94,6 +95,8 @@ export function TodayActions({
     // Auto-expand check-in if not completed
     hasActiveSession && !todayResetCompleted && !isResetCompleted ? "checkin" : null
   );
+  const [isListCollapsed, setIsListCollapsed] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   // Get today's content for display
   const getTodayInfo = () => {
@@ -183,11 +186,24 @@ export function TodayActions({
   const completedCount = actions.filter((a) => a.completed).length;
   const totalActions = actions.length;
   const allCompleted = completedCount === totalActions && totalActions > 0;
+  const prevAllCompletedRef = useRef(allCompleted);
 
   // Calculate total time remaining
   const timeRemaining = actions
     .filter((a) => !a.completed)
     .reduce((sum, a) => sum + parseInt(a.timeEstimate), 0);
+
+  // Auto-collapse when all completed and show confetti
+  useEffect(() => {
+    if (allCompleted && !prevAllCompletedRef.current) {
+      // Just became all completed - show celebration
+      setShowConfetti(true);
+      setIsListCollapsed(true);
+      const timer = setTimeout(() => setShowConfetti(false), 2000);
+      return () => clearTimeout(timer);
+    }
+    prevAllCompletedRef.current = allCompleted;
+  }, [allCompleted]);
 
   // Covenant Dialog component
   const CovenantDialog = () => (
@@ -325,8 +341,54 @@ export function TodayActions({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="rounded-xl bg-card border border-border overflow-hidden"
+      className="rounded-xl bg-card border border-border overflow-hidden relative"
     >
+      {/* Confetti celebration */}
+      <AnimatePresence>
+        {showConfetti && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 pointer-events-none z-10 overflow-hidden"
+          >
+            {[...Array(12)].map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ 
+                  x: "50%", 
+                  y: "50%", 
+                  scale: 0,
+                  opacity: 1 
+                }}
+                animate={{ 
+                  x: `${20 + Math.random() * 60}%`, 
+                  y: `${Math.random() * 100}%`,
+                  scale: [0, 1, 0.5],
+                  opacity: [1, 1, 0],
+                  rotate: Math.random() * 360
+                }}
+                transition={{ 
+                  duration: 1.5 + Math.random() * 0.5,
+                  ease: "easeOut"
+                }}
+                className={`absolute w-2 h-2 rounded-full ${
+                  i % 3 === 0 ? "bg-primary" : i % 3 === 1 ? "bg-accent" : "bg-primary/60"
+                }`}
+              />
+            ))}
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: [0, 1.2, 1], opacity: [0, 1, 0] }}
+              transition={{ duration: 1 }}
+              className="absolute inset-0 flex items-center justify-center"
+            >
+              <PartyPopper className="w-8 h-8 text-primary" />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="p-4 border-b border-border/50">
         <div className="flex items-center justify-between">
@@ -349,10 +411,18 @@ export function TodayActions({
             </div>
           )}
           {allCompleted && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+            <button
+              onClick={() => setIsListCollapsed(!isListCollapsed)}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
+            >
               <Check className="w-3 h-3" />
               All done
-            </span>
+              {isListCollapsed ? (
+                <ChevronDown className="w-3 h-3 ml-0.5" />
+              ) : (
+                <ChevronUp className="w-3 h-3 ml-0.5" />
+              )}
+            </button>
           )}
         </div>
       </div>
@@ -367,174 +437,186 @@ export function TodayActions({
         />
       </div>
 
-      {/* Action list */}
-      <div className="divide-y divide-border/50">
-        {actions.map((action, index) => (
-          <div key={action.id}>
-            {action.expandable ? (
-              <Collapsible
-                open={expandedAction === action.id}
-                onOpenChange={() => toggleExpand(action.id)}
-              >
-                <CollapsibleTrigger asChild>
-                  <button
-                    className={`w-full flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted/50 ${
-                      action.completed ? "opacity-70" : ""
-                    }`}
-                  >
-                    {/* Status icon */}
-                    <div
-                      className={`flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0 ${
-                        action.completed
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-accent/20 text-accent"
-                      }`}
+      {/* Collapsible action list */}
+      <AnimatePresence initial={false}>
+        {!isListCollapsed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+          >
+            {/* Action list */}
+            <div className="divide-y divide-border/50">
+              {actions.map((action, index) => (
+                <div key={action.id}>
+                  {action.expandable ? (
+                    <Collapsible
+                      open={expandedAction === action.id}
+                      onOpenChange={() => toggleExpand(action.id)}
                     >
-                      {action.completed ? <Check className="w-3.5 h-3.5" /> : action.icon}
-                    </div>
+                      <CollapsibleTrigger asChild>
+                        <button
+                          className={`w-full flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted/50 ${
+                            action.completed ? "opacity-70" : ""
+                          }`}
+                        >
+                          {/* Status icon */}
+                          <div
+                            className={`flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0 ${
+                              action.completed
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-accent/20 text-accent"
+                            }`}
+                          >
+                            {action.completed ? <Check className="w-3.5 h-3.5" /> : action.icon}
+                          </div>
 
-                    {/* Label */}
-                    <div className="flex-1 min-w-0">
+                          {/* Label */}
+                          <div className="flex-1 min-w-0">
+                            <span
+                              className={`block text-sm ${
+                                action.completed
+                                  ? "text-muted-foreground line-through"
+                                  : "text-foreground font-medium"
+                              }`}
+                            >
+                              {action.label}
+                            </span>
+                            {action.sublabel && (
+                              <span className="block text-xs text-muted-foreground truncate">
+                                {action.sublabel}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Time estimate & expand icon */}
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {!action.completed && (
+                              <span className="text-xs text-muted-foreground">{action.timeEstimate}</span>
+                            )}
+                            {expandedAction === action.id ? (
+                              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                            )}
+                          </div>
+                        </button>
+                      </CollapsibleTrigger>
+
+                      <CollapsibleContent>
+                        <AnimatePresence>
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="px-4 pb-4"
+                          >
+                            {/* Progress dots */}
+                            <div className="flex items-center gap-2 mb-3 pl-9">
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+                                  <div
+                                    key={day}
+                                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-medium transition-colors ${
+                                      day < currentDay || (day === currentDay && todayResetCompleted)
+                                        ? "bg-primary text-primary-foreground"
+                                        : day === currentDay
+                                        ? "bg-accent text-accent-foreground ring-1 ring-accent ring-offset-1 ring-offset-background"
+                                        : "bg-muted text-muted-foreground"
+                                    }`}
+                                  >
+                                    {day < currentDay || (day === currentDay && todayResetCompleted) ? (
+                                      <Check className="w-2.5 h-2.5" />
+                                    ) : (
+                                      day
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {completedDaysCount}/7
+                              </span>
+                            </div>
+
+                            {/* Action button */}
+                            <div className="pl-9">
+                              <Button
+                                size="sm"
+                                variant={action.completed ? "outline" : "default"}
+                                onClick={action.action}
+                                className="w-full"
+                              >
+                                {action.completed ? (
+                                  <>
+                                    <BookOpen className="w-3.5 h-3.5 mr-1.5" />
+                                    Review Reading
+                                  </>
+                                ) : (
+                                  <>
+                                    <Play className="w-3.5 h-3.5 mr-1.5" />
+                                    Continue Check-in
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </motion.div>
+                        </AnimatePresence>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ) : (
+                    <div
+                      className={`flex items-center gap-3 p-4 ${action.completed ? "opacity-70" : ""}`}
+                    >
+                      {/* Status icon */}
+                      <div
+                        className={`flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0 ${
+                          action.completed
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {action.completed ? (
+                          <Check className="w-3.5 h-3.5" />
+                        ) : (
+                          <span className="text-[10px] font-medium">{index + 1}</span>
+                        )}
+                      </div>
+
+                      {/* Label */}
                       <span
-                        className={`block text-sm ${
+                        className={`flex-1 text-sm ${
                           action.completed
                             ? "text-muted-foreground line-through"
-                            : "text-foreground font-medium"
+                            : "text-foreground"
                         }`}
                       >
                         {action.label}
                       </span>
-                      {action.sublabel && (
-                        <span className="block text-xs text-muted-foreground truncate">
-                          {action.sublabel}
-                        </span>
-                      )}
-                    </div>
 
-                    {/* Time estimate & expand icon */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {/* Time estimate */}
                       {!action.completed && (
-                        <span className="text-xs text-muted-foreground">{action.timeEstimate}</span>
-                      )}
-                      {expandedAction === action.id ? (
-                        <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground flex-shrink-0">
+                          {action.timeEstimate}
+                        </span>
                       )}
                     </div>
-                  </button>
-                </CollapsibleTrigger>
-
-                <CollapsibleContent>
-                  <AnimatePresence>
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="px-4 pb-4"
-                    >
-                      {/* Progress dots */}
-                      <div className="flex items-center gap-2 mb-3 pl-9">
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-                            <div
-                              key={day}
-                              className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-medium transition-colors ${
-                                day < currentDay || (day === currentDay && todayResetCompleted)
-                                  ? "bg-primary text-primary-foreground"
-                                  : day === currentDay
-                                  ? "bg-accent text-accent-foreground ring-1 ring-accent ring-offset-1 ring-offset-background"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              {day < currentDay || (day === currentDay && todayResetCompleted) ? (
-                                <Check className="w-2.5 h-2.5" />
-                              ) : (
-                                day
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {completedDaysCount}/7
-                        </span>
-                      </div>
-
-                      {/* Action button */}
-                      <div className="pl-9">
-                        <Button
-                          size="sm"
-                          variant={action.completed ? "outline" : "default"}
-                          onClick={action.action}
-                          className="w-full"
-                        >
-                          {action.completed ? (
-                            <>
-                              <BookOpen className="w-3.5 h-3.5 mr-1.5" />
-                              Review Reading
-                            </>
-                          ) : (
-                            <>
-                              <Play className="w-3.5 h-3.5 mr-1.5" />
-                              Continue Check-in
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </motion.div>
-                  </AnimatePresence>
-                </CollapsibleContent>
-              </Collapsible>
-            ) : (
-              <div
-                className={`flex items-center gap-3 p-4 ${action.completed ? "opacity-70" : ""}`}
-              >
-                {/* Status icon */}
-                <div
-                  className={`flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0 ${
-                    action.completed
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {action.completed ? (
-                    <Check className="w-3.5 h-3.5" />
-                  ) : (
-                    <span className="text-[10px] font-medium">{index + 1}</span>
                   )}
                 </div>
+              ))}
+            </div>
 
-                {/* Label */}
-                <span
-                  className={`flex-1 text-sm ${
-                    action.completed
-                      ? "text-muted-foreground line-through"
-                      : "text-foreground"
-                  }`}
-                >
-                  {action.label}
-                </span>
-
-                {/* Time estimate */}
-                {!action.completed && (
-                  <span className="text-xs text-muted-foreground flex-shrink-0">
-                    {action.timeEstimate}
-                  </span>
-                )}
+            {/* XP earned today */}
+            {todayXpEarned > 0 && (
+              <div className="px-4 py-3 border-t border-border/50 bg-muted/30">
+                <p className="text-xs text-muted-foreground">
+                  <span className="text-primary font-medium">+{todayXpEarned} XP</span> earned today
+                </p>
               </div>
             )}
-          </div>
-        ))}
-      </div>
-
-      {/* XP earned today */}
-      {todayXpEarned > 0 && (
-        <div className="px-4 py-3 border-t border-border/50 bg-muted/30">
-          <p className="text-xs text-muted-foreground">
-            <span className="text-primary font-medium">+{todayXpEarned} XP</span> earned today
-          </p>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
