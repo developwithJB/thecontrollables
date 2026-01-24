@@ -54,6 +54,12 @@ interface TodayActionsProps {
   // Journey info for display
   journeyTitle?: string;
   onChangeJourney?: () => void;
+  
+  // Action callbacks for clickable items
+  onOpenTimeLog?: () => void;
+  onOpenPromises?: () => void;
+  onOpenAIGuide?: () => void;
+  onOpenBuild?: () => void;
 }
 
 interface ActionItem {
@@ -65,6 +71,7 @@ interface ActionItem {
   timeEstimate: string;
   expandable?: boolean;
   action?: () => void;
+  locked?: boolean;
 }
 
 export function TodayActions({
@@ -86,6 +93,10 @@ export function TodayActions({
   todayXpEarned,
   journeyTitle,
   onChangeJourney,
+  onOpenTimeLog,
+  onOpenPromises,
+  onOpenAIGuide,
+  onOpenBuild,
 }: TodayActionsProps) {
   const navigate = useNavigate();
   const { trackButtonClick, trackModalAction } = useActionTracking();
@@ -163,16 +174,17 @@ export function TodayActions({
     });
   }
 
-  // Time tracking
+  // Time tracking - always show
   actions.push({
     id: "time",
-    label: "Log your time",
+    label: todayTimeLogged ? "Update your time" : "Log your time",
     icon: <Timer className="w-4 h-4" />,
     completed: todayTimeLogged,
     timeEstimate: "2 min",
+    action: onOpenTimeLog,
   });
 
-  // Pending promises
+  // Pending promises - show if any pending
   if (pendingPromisesCount > 0) {
     actions.push({
       id: "promises",
@@ -180,7 +192,69 @@ export function TodayActions({
       icon: <Scale className="w-4 h-4" />,
       completed: false,
       timeEstimate: "3 min",
+      action: onOpenPromises,
     });
+  }
+
+  // Day-based bonus actions (vary by day to encourage different features)
+  // Only add bonus actions if we have an active session
+  if (hasActiveSession && !isResetCompleted && !isResetExpired) {
+    // Day 1: Encourage making a promise if none pending
+    if (currentDay === 1 && pendingPromisesCount === 0) {
+      actions.push({
+        id: "make-promise",
+        label: "Make your first promise",
+        sublabel: "Build integrity through kept commitments",
+        icon: <Scale className="w-4 h-4" />,
+        completed: false,
+        timeEstimate: "1 min",
+        action: onOpenPromises,
+      });
+    }
+    
+    // Day 3: Encourage reviewing your Build (free feature)
+    if (currentDay === 3) {
+      actions.push({
+        id: "review-build",
+        label: "Review your Build",
+        sublabel: "Check your strengths and growth areas",
+        icon: <Sparkles className="w-4 h-4" />,
+        completed: false,
+        timeEstimate: "2 min",
+        action: onOpenBuild,
+      });
+    }
+    
+    // Day 5: Encourage AI Guide (paid only) or make another promise (free)
+    if (currentDay === 5) {
+      if (isPaid) {
+        actions.push({
+          id: "ask-guide",
+          label: "Ask the AI Guide",
+          sublabel: "Get personalized guidance",
+          icon: <Sparkles className="w-4 h-4" />,
+          completed: false,
+          timeEstimate: "3 min",
+          action: onOpenAIGuide,
+        });
+      } else if (pendingPromisesCount === 0) {
+        // Free users: suggest making a promise instead
+        actions.push({
+          id: "make-promise",
+          label: "Make a promise to yourself",
+          sublabel: "Build integrity through kept commitments",
+          icon: <Scale className="w-4 h-4" />,
+          completed: false,
+          timeEstimate: "1 min",
+          action: onOpenPromises,
+        });
+      }
+    }
+    
+    // Day 7: Celebrate completion day
+    if (currentDay === 7 && !todayResetCompleted) {
+      // Final day encouragement is already in the check-in item
+    }
   }
 
   const completedCount = actions.filter((a) => a.completed).length;
@@ -565,42 +639,67 @@ export function TodayActions({
                       </CollapsibleContent>
                     </Collapsible>
                   ) : (
-                    <div
-                      className={`flex items-center gap-3 p-4 ${action.completed ? "opacity-70" : ""}`}
+                    <button
+                      onClick={() => {
+                        if (action.action) {
+                          trackButtonClick(`today_action_${action.id}`, { completed: action.completed });
+                          action.action();
+                        }
+                      }}
+                      disabled={!action.action}
+                      className={`w-full flex items-center gap-3 p-4 text-left transition-colors ${
+                        action.action ? "hover:bg-muted/50 cursor-pointer" : ""
+                      } ${action.completed ? "opacity-70" : ""}`}
                     >
                       {/* Status icon */}
                       <div
                         className={`flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0 ${
                           action.completed
                             ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground"
+                            : action.action 
+                              ? "bg-accent/20 text-accent"
+                              : "bg-muted text-muted-foreground"
                         }`}
                       >
                         {action.completed ? (
                           <Check className="w-3.5 h-3.5" />
                         ) : (
-                          <span className="text-[10px] font-medium">{index + 1}</span>
+                          action.icon
                         )}
                       </div>
 
-                      {/* Label */}
-                      <span
-                        className={`flex-1 text-sm ${
-                          action.completed
-                            ? "text-muted-foreground line-through"
-                            : "text-foreground"
-                        }`}
-                      >
-                        {action.label}
-                      </span>
-
-                      {/* Time estimate */}
-                      {!action.completed && (
-                        <span className="text-xs text-muted-foreground flex-shrink-0">
-                          {action.timeEstimate}
+                      {/* Label and sublabel */}
+                      <div className="flex-1 min-w-0">
+                        <span
+                          className={`block text-sm ${
+                            action.completed
+                              ? "text-muted-foreground line-through"
+                              : action.action
+                                ? "text-foreground font-medium"
+                                : "text-foreground"
+                          }`}
+                        >
+                          {action.label}
                         </span>
-                      )}
-                    </div>
+                        {action.sublabel && (
+                          <span className="block text-xs text-muted-foreground truncate">
+                            {action.sublabel}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Time estimate and chevron for clickable items */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {!action.completed && (
+                          <span className="text-xs text-muted-foreground">
+                            {action.timeEstimate}
+                          </span>
+                        )}
+                        {action.action && !action.completed && (
+                          <ChevronDown className="w-4 h-4 text-muted-foreground -rotate-90" />
+                        )}
+                      </div>
+                    </button>
                   )}
                 </div>
               ))}
