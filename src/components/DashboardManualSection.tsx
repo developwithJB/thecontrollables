@@ -13,7 +13,11 @@ import {
   RotateCcw,
   Sparkles,
   Download,
-  Share
+  Share,
+  ListChecks,
+  Calendar,
+  Compass,
+  Flame
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isStandalone, isIOS, hasDeferredPrompt, triggerInstallPrompt } from "@/lib/pwa";
@@ -28,22 +32,40 @@ interface ManualSection {
 
 const MANUAL_SECTIONS: ManualSection[] = [
   {
+    title: "Today's Actions",
+    icon: ListChecks,
+    description: "Your daily checklist. A unified hub showing exactly what to do today—readings, time logs, and promises.",
+    howToUse: "Tap any item to open its tool directly. Complete each action to earn XP. The list evolves based on your Reset day."
+  },
+  {
+    title: "Daily Check-In",
+    icon: Calendar,
+    description: "Your morning ritual. One question: what's your singular focus for today?",
+    howToUse: "Check in each day to maintain your streak. Your focus anchors daily decisions."
+  },
+  {
     title: "Main Quest",
     icon: Target,
     description: "Your primary focus for 7, 30, or 90 days. One clear objective that anchors your daily decisions.",
-    howToUse: "Tap to set your quest. Choose your duration. Keep it specific and achievable. Update it anytime your focus shifts."
+    howToUse: "Tap the Quest card to set or edit. Choose your duration. Title wraps across two lines for readability."
   },
   {
     title: "7-Day Reset",
     icon: RotateCcw,
     description: "A structured 7-day journey through the 5 Controllables. Daily readings, reflections, and reps.",
-    howToUse: "Start a Reset when you need to recalibrate. Complete each day's reading and reflection to progress."
+    howToUse: "Start a Reset to recalibrate. Tap your Focus to switch directions. Complete all 7 days to earn a certificate."
+  },
+  {
+    title: "Focus",
+    icon: Compass,
+    description: "Your guiding direction for the 7-Day Reset. Based on the 5 Controllables.",
+    howToUse: "Tap the Focus area to change direction. Changes are logged for reflection. Custom focus unlocks with a Build scan."
   },
   {
     title: "Your Build",
     icon: Dumbbell,
     description: "Your current state across 5 dimensions: Awareness, Perspective, Habit, Wellness, and Environment.",
-    howToUse: "Take the Build Assessment to discover your archetype. Use Focus Mode to strengthen weak areas."
+    howToUse: "Tap to view your Build scores. Take the assessment to discover your archetype. Re-scan as you grow."
   },
   {
     title: "Momentum (XP)",
@@ -55,18 +77,24 @@ const MANUAL_SECTIONS: ManualSection[] = [
     title: "Time Currency",
     icon: Clock,
     description: "A daily log of time invested vs. time wasted. Your most valuable resource tracked simply.",
-    howToUse: "Log your time at end of day. Be honest. Look for patterns in where your hours actually go."
+    howToUse: "Tap to log your time. Be honest. Look for patterns in where your hours actually go."
   },
   {
     title: "Integrity Meter",
     icon: Shield,
     description: "Your ratio of promises kept to promises made. Self-trust built through small commitments.",
-    howToUse: "Make small promises you can keep. Mark them complete when done. Your score reflects your word."
+    howToUse: "Tap to make promises. Mark them complete when done. Your score reflects your word."
+  },
+  {
+    title: "Streak & Level",
+    icon: Flame,
+    description: "Consecutive check-in days and your total XP level. Consistency builds momentum.",
+    howToUse: "Check in daily to grow your streak. Watch the flame animate when you're on a roll."
   },
   {
     title: "The Controllables",
     icon: MessageCircle,
-    description: "Five guides—Awareness, Perspective, Habit, Wellness, and Environment—each specialized in one Controllable.",
+    description: "Five AI guides—one for each Controllable. Available with Full Access.",
     howToUse: "Ask questions when stuck. Each guide gives action-focused advice, not therapy. Use them as tools."
   },
   {
