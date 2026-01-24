@@ -166,7 +166,7 @@ export function TodayActions({
     label: "Log your time",
     icon: <Timer className="w-4 h-4" />,
     completed: todayTimeLogged,
-    timeEstimate: "1 min",
+    timeEstimate: "2 min",
   });
 
   // Pending promises
@@ -176,7 +176,7 @@ export function TodayActions({
       label: `Review ${pendingPromisesCount} promise${pendingPromisesCount > 1 ? "s" : ""}`,
       icon: <Scale className="w-4 h-4" />,
       completed: false,
-      timeEstimate: "2 min",
+      timeEstimate: "3 min",
     });
   }
 
