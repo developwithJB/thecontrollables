@@ -138,10 +138,14 @@ export const useDashboardSummary = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
+      // Pass client's local date to ensure timezone consistency
+      const localDate = getLocalDateString();
+
       const response = await supabase.functions.invoke("dashboard-summary", {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
+        body: { localDate },
       });
 
       if (response.error) throw response.error;
