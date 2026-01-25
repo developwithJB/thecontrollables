@@ -22,7 +22,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { getDayContent, COVENANT_TEXT, COVENANT_CHECKBOX_TEXT } from "@/lib/resetContent";
 import { useActionTracking } from "@/hooks/useActionTracking";
-import { getJourneyDailyAction } from "@/lib/guidedJourneys";
+import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { getJourneyDailyAction, getJourneyById, type DailyAction } from "@/lib/guidedJourneys";
 
 interface DailyReading {
   id: string;
@@ -121,6 +122,8 @@ export function TodayActions({
   const [isListCollapsed, setIsListCollapsed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [journeyActionCompleted, setJourneyActionCompleted] = useState(false);
+  const [showJourneyActionModal, setShowJourneyActionModal] = useState(false);
+  const [currentJourneyAction, setCurrentJourneyAction] = useState<DailyAction | null>(null);
 
   // Day 3 "Review your Build" completion: treat as complete if the user opened it today
   // OR if their build was updated today (e.g., via a re-scan).
@@ -276,20 +279,14 @@ export function TodayActions({
       actions.push({
         id: "journey-action",
         label: dailyAction.task,
-        sublabel: dailyAction.description,
+        sublabel: journeyActionCompleted ? "Completed" : "Tap to view challenge",
         icon: <Zap className="w-4 h-4" />,
         completed: journeyActionCompleted,
         timeEstimate: "5 min",
         action: () => {
-          // Mark as completed when clicked
-          if (journeyActionKey) {
-            try {
-              localStorage.setItem(journeyActionKey, "1");
-              setJourneyActionCompleted(true);
-            } catch {
-              // ignore
-            }
-          }
+          // Open the modal to show full prompt
+          setCurrentJourneyAction(dailyAction);
+          setShowJourneyActionModal(true);
         },
       });
     }
@@ -419,7 +416,72 @@ export function TodayActions({
     </Dialog>
   );
 
-  // No active session - show start reset prompt
+  // Journey Action Modal - shows full prompt before marking complete
+  const JourneyActionModal = () => {
+    const journey = journeyId ? getJourneyById(journeyId) : null;
+    
+    const handleMarkComplete = () => {
+      if (journeyActionKey) {
+        try {
+          localStorage.setItem(journeyActionKey, "1");
+          setJourneyActionCompleted(true);
+        } catch {
+          // ignore
+        }
+      }
+      setShowJourneyActionModal(false);
+    };
+    
+    return (
+      <Dialog open={showJourneyActionModal} onOpenChange={setShowJourneyActionModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-2xl">{journey?.emoji || "⚡"}</span>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Day {currentDay} Challenge
+              </span>
+            </div>
+            <DialogTitle className="text-xl">
+              {currentJourneyAction?.task}
+            </DialogTitle>
+            <DialogDescription className="text-base pt-2">
+              {currentJourneyAction?.description}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {journey && (
+            <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{journey.title}</span>
+              <span className="mx-1.5">·</span>
+              {journey.tagline}
+            </div>
+          )}
+          
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button 
+              onClick={handleMarkComplete}
+              className="w-full"
+              size="lg"
+              disabled={journeyActionCompleted}
+            >
+              {journeyActionCompleted ? (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Completed
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Mark Complete
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  };
   if (!hasActiveSession || isResetCompleted || isResetExpired) {
     // Free user who used their reset
     if (hasUsedFreeReset && !isPaid) {
@@ -510,311 +572,224 @@ export function TodayActions({
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.1 }}
-      className="rounded-xl bg-card border border-border overflow-hidden relative"
-    >
-      {/* Confetti celebration */}
-      <AnimatePresence>
-        {showConfetti && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 pointer-events-none z-10 overflow-hidden"
-          >
-            {[...Array(12)].map((_, i) => (
-              <motion.div
-                key={i}
-                initial={{ 
-                  x: "50%", 
-                  y: "50%", 
-                  scale: 0,
-                  opacity: 1 
-                }}
-                animate={{ 
-                  x: `${20 + Math.random() * 60}%`, 
-                  y: `${Math.random() * 100}%`,
-                  scale: [0, 1, 0.5],
-                  opacity: [1, 1, 0],
-                  rotate: Math.random() * 360
-                }}
-                transition={{ 
-                  duration: 1.5 + Math.random() * 0.5,
-                  ease: "easeOut"
-                }}
-                className={`absolute w-2 h-2 rounded-full ${
-                  i % 3 === 0 ? "bg-primary" : i % 3 === 1 ? "bg-accent" : "bg-primary/60"
-                }`}
-              />
-            ))}
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="rounded-xl bg-card border border-border overflow-hidden relative"
+      >
+        {/* Confetti overlay */}
+        <AnimatePresence>
+          {showConfetti && (
             <motion.div
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: [0, 1.2, 1], opacity: [0, 1, 0] }}
-              transition={{ duration: 1 }}
-              className="absolute inset-0 flex items-center justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center"
             >
-              <PartyPopper className="w-8 h-8 text-primary" />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Header */}
-      <div className="p-4 border-b border-border/50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-medium text-foreground">Today's Actions</h3>
-            {journeyTitle && (
-              <button
-                onClick={onChangeJourney}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors group"
+              <motion.div
+                initial={{ scale: 0, rotate: -10 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0 }}
+                className="text-4xl"
               >
-                <span>• {journeyTitle}</span>
-                <ChevronRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
-              </button>
-            )}
-          </div>
-          {!allCompleted && timeRemaining > 0 && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="w-3 h-3" />
-              <span>~{timeRemaining} min</span>
-            </div>
+                🎉
+              </motion.div>
+            </motion.div>
           )}
-          {allCompleted && (
-            <button
-              onClick={() => setIsListCollapsed(!isListCollapsed)}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
-            >
-              <Check className="w-3 h-3" />
-              All done
-              {isListCollapsed ? (
-                <ChevronDown className="w-3 h-3 ml-0.5" />
+        </AnimatePresence>
+
+        {/* Header */}
+        <div className="p-4 border-b border-border/50">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-foreground">Today's Actions</h3>
+            <div className="flex items-center gap-2">
+              {allCompleted ? (
+                <motion.span
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
+                >
+                  <PartyPopper className="w-3 h-3" />
+                  All done!
+                </motion.span>
               ) : (
-                <ChevronUp className="w-3 h-3 ml-0.5" />
+                <span className="text-xs text-muted-foreground">
+                  ~{timeRemaining} min
+                </span>
               )}
-            </button>
-          )}
+              <button
+                onClick={() => setIsListCollapsed(!isListCollapsed)}
+                className="p-1 rounded hover:bg-muted/50 transition-colors"
+              >
+                {isListCollapsed ? (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                )}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Progress bar */}
-      <div className="h-1 bg-muted">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${(completedCount / totalActions) * 100}%` }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="h-full bg-primary"
-        />
-      </div>
-
-      {/* Collapsible action list */}
-      <AnimatePresence initial={false}>
-        {!isListCollapsed && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
+        {/* Focus indicator - shows current journey */}
+        {journeyId && journeyTitle && (
+          <div
+            className="px-4 py-2 border-b border-border/50 bg-muted/30 flex items-center justify-between group cursor-pointer hover:bg-muted/50 transition-colors"
+            onClick={onChangeJourney}
+            role="button"
+            tabIndex={0}
           >
-            {/* Action list */}
-            <div className="divide-y divide-border/50">
-              {actions.map((action, index) => (
-                <div key={action.id}>
-                  {action.expandable ? (
-                    <Collapsible
-                      open={expandedAction === action.id}
-                      onOpenChange={() => toggleExpand(action.id)}
-                    >
-                      <CollapsibleTrigger asChild>
-                        <button
-                          className={`w-full flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted/50 ${
-                            action.completed ? "opacity-70" : ""
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">Focus:</span>
+              <span className="font-medium text-foreground">{journeyTitle}</span>
+            </div>
+            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        )}
+
+        {/* Collapsible action list */}
+        <AnimatePresence initial={false}>
+          {!isListCollapsed && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="divide-y divide-border/50">
+                {actions.map((action) => (
+                  <div key={action.id}>
+                    {action.expandable ? (
+                      <Collapsible
+                        open={expandedAction === action.id}
+                        onOpenChange={() => toggleExpand(action.id)}
+                      >
+                        <CollapsibleTrigger asChild>
+                          <button className="w-full p-4 flex items-center gap-3 hover:bg-muted/30 transition-colors text-left">
+                            <div
+                              className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                action.completed
+                                  ? "bg-primary border-primary text-primary-foreground"
+                                  : "border-muted-foreground/40"
+                              }`}
+                            >
+                              {action.completed && <Check className="w-3 h-3" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`text-sm font-medium ${action.completed ? "line-through text-muted-foreground" : "text-foreground"}`}
+                                >
+                                  {action.label}
+                                </span>
+                              </div>
+                              {action.sublabel && (
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {action.sublabel}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                {action.timeEstimate}
+                              </span>
+                              {action.icon}
+                            </div>
+                          </button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <div className="px-4 pb-4 pl-12">
+                            <Button
+                              size="sm"
+                              variant={action.completed ? "outline" : "default"}
+                              onClick={action.action}
+                              className="w-full sm:w-auto"
+                            >
+                              {action.completed ? (
+                                <>
+                                  <BookOpen className="w-3.5 h-3.5 mr-1.5" />
+                                  Review Reading
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="w-3.5 h-3.5 mr-1.5" />
+                                  Continue Check-in
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    ) : (
+                      <button
+                        className={`w-full p-4 flex items-center gap-3 transition-colors text-left ${
+                          action.locked
+                            ? "opacity-50 cursor-not-allowed"
+                            : "hover:bg-muted/30 cursor-pointer"
+                        }`}
+                        onClick={action.locked ? undefined : action.action}
+                        disabled={action.locked}
+                      >
+                        <div
+                          className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                            action.completed
+                              ? "bg-primary border-primary text-primary-foreground"
+                              : action.locked
+                                ? "border-muted-foreground/20"
+                                : "border-muted-foreground/40"
                           }`}
                         >
-                          {/* Status icon */}
-                          <div
-                            className={`flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0 ${
-                              action.completed
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-accent/20 text-accent"
-                            }`}
-                          >
-                            {action.completed ? <Check className="w-3.5 h-3.5" /> : action.icon}
-                          </div>
-
-                          {/* Label */}
-                          <div className="flex-1 min-w-0">
+                          {action.completed && <Check className="w-3 h-3" />}
+                          {action.locked && <Lock className="w-2.5 h-2.5" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
                             <span
-                              className={`block text-sm ${
+                              className={`text-sm font-medium ${
                                 action.completed
-                                  ? "text-muted-foreground line-through"
-                                  : "text-foreground font-medium"
+                                  ? "line-through text-muted-foreground"
+                                  : action.locked
+                                    ? "text-muted-foreground"
+                                    : "text-foreground"
                               }`}
                             >
                               {action.label}
                             </span>
-                            {action.sublabel && (
-                              <span className="block text-xs text-muted-foreground truncate">
-                                {action.sublabel}
-                              </span>
-                            )}
                           </div>
-
-                          {/* Time estimate & expand icon */}
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {!action.completed && (
-                              <span className="text-xs text-muted-foreground">{action.timeEstimate}</span>
-                            )}
-                            {expandedAction === action.id ? (
-                              <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                            )}
-                          </div>
-                        </button>
-                      </CollapsibleTrigger>
-
-                      <CollapsibleContent>
-                        <AnimatePresence>
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="px-4 pb-4"
-                          >
-                            {/* Progress dots */}
-                            <div className="flex items-center gap-2 mb-3 pl-9">
-                              <div className="flex items-center gap-1">
-                                {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-                                  <div
-                                    key={day}
-                                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-medium transition-colors ${
-                                      day < currentDay || (day === currentDay && todayResetCompleted)
-                                        ? "bg-primary text-primary-foreground"
-                                        : day === currentDay
-                                        ? "bg-accent text-accent-foreground ring-1 ring-accent ring-offset-1 ring-offset-background"
-                                        : "bg-muted text-muted-foreground"
-                                    }`}
-                                  >
-                                    {day < currentDay || (day === currentDay && todayResetCompleted) ? (
-                                      <Check className="w-2.5 h-2.5" />
-                                    ) : (
-                                      day
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {completedDaysCount}/7
-                              </span>
-                            </div>
-
-                            {/* Action button */}
-                            <div className="pl-9">
-                              <Button
-                                size="sm"
-                                variant={action.completed ? "outline" : "default"}
-                                onClick={action.action}
-                                className="w-full"
-                              >
-                                {action.completed ? (
-                                  <>
-                                    <BookOpen className="w-3.5 h-3.5 mr-1.5" />
-                                    Review Reading
-                                  </>
-                                ) : (
-                                  <>
-                                    <Play className="w-3.5 h-3.5 mr-1.5" />
-                                    Continue Check-in
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          </motion.div>
-                        </AnimatePresence>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        if (action.action) {
-                          trackButtonClick(`today_action_${action.id}`, { completed: action.completed });
-                          action.action();
-                        }
-                      }}
-                      disabled={!action.action}
-                      className={`w-full flex items-center gap-3 p-4 text-left transition-colors ${
-                        action.action ? "hover:bg-muted/50 cursor-pointer" : ""
-                      } ${action.completed ? "opacity-70" : ""}`}
-                    >
-                      {/* Status icon */}
-                      <div
-                        className={`flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0 ${
-                          action.completed
-                            ? "bg-primary text-primary-foreground"
-                            : action.action 
-                              ? "bg-accent/20 text-accent"
-                              : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {action.completed ? (
-                          <Check className="w-3.5 h-3.5" />
-                        ) : (
-                          action.icon
-                        )}
-                      </div>
-
-                      {/* Label and sublabel */}
-                      <div className="flex-1 min-w-0">
-                        <span
-                          className={`block text-sm ${
-                            action.completed
-                              ? "text-muted-foreground line-through"
-                              : action.action
-                                ? "text-foreground font-medium"
-                                : "text-foreground"
-                          }`}
-                        >
-                          {action.label}
-                        </span>
-                        {action.sublabel && (
-                          <span className="block text-xs text-muted-foreground truncate">
-                            {action.sublabel}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Time estimate and chevron for clickable items */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {!action.completed && (
+                          {action.sublabel && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {action.sublabel}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">
                             {action.timeEstimate}
                           </span>
-                        )}
-                        {action.action && !action.completed && (
-                          <ChevronDown className="w-4 h-4 text-muted-foreground -rotate-90" />
-                        )}
-                      </div>
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* XP earned today */}
-            {todayXpEarned > 0 && (
-              <div className="px-4 py-3 border-t border-border/50 bg-muted/30">
-                <p className="text-xs text-muted-foreground">
-                  <span className="text-primary font-medium">+{todayXpEarned} XP</span> earned today
-                </p>
+                          {action.icon}
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+
+              {/* XP earned today */}
+              {todayXpEarned > 0 && (
+                <div className="px-4 py-3 border-t border-border/50 bg-muted/30">
+                  <p className="text-xs text-muted-foreground">
+                    <span className="text-primary font-medium">+{todayXpEarned} XP</span> earned today
+                  </p>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+      <JourneyActionModal />
+    </>
   );
 }
