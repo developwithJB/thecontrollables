@@ -111,7 +111,13 @@ Deno.serve(async (req) => {
     const integrityScore = resolvedPromises.length > 0 
       ? Math.round((keptPromises.length / resolvedPromises.length) * 100) 
       : null;
-    const pendingPromises = integrityLogs.filter((log: { kept: boolean | null }) => log.kept === null);
+    // Filter pending promises: exclude promises made TODAY (save for tomorrow's review)
+    const pendingPromises = integrityLogs.filter((log: { kept: boolean | null; promised_at: string }) => {
+      if (log.kept !== null) return false; // Already resolved
+      // Exclude promises made today - they should be reviewed tomorrow
+      const promisedDate = log.promised_at.split('T')[0];
+      return promisedDate !== today;
+    });
 
     return new Response(
       JSON.stringify({
