@@ -51,8 +51,8 @@ const MANUAL_SECTIONS: ManualSection[] = [
   {
     title: "7-Day Foundation",
     icon: RotateCcw,
-    description: "Your starter block of action. A time-bound mini program that builds momentum under your Main Mission.",
-    howToUse: "Start a Foundation to build structured habits. Complete all 7 days to earn a certificate. Each Foundation has daily tasks."
+    description: "Your starter block of action. A time-bound mini program that builds momentum under your Main Mission. The 'Foundation Focus' shows your current program.",
+    howToUse: "Start a Foundation to build structured habits. Complete all 7 days to earn a certificate. Each day has a specific habit task from your chosen program."
   },
   {
     title: "Your Build",
