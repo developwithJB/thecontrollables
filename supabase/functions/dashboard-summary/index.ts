@@ -5,15 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Helper to get user's local date as YYYY-MM-DD
-const getLocalDateString = (): string => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -26,6 +17,15 @@ Deno.serve(async (req) => {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Get client's local date from request body if provided
+    let clientDate: string | null = null;
+    try {
+      const body = await req.json();
+      clientDate = body?.localDate || null;
+    } catch {
+      // No body or invalid JSON, use server date as fallback
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -44,7 +44,10 @@ Deno.serve(async (req) => {
     }
 
     const userId = user.id;
-    const today = getLocalDateString();
+    
+    // Use client's local date if provided, otherwise fall back to UTC
+    const today = clientDate || new Date().toISOString().split('T')[0];
+    
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -82,7 +85,7 @@ Deno.serve(async (req) => {
         .gte("promised_at", thirtyDaysAgo.toISOString())
         .order("promised_at", { ascending: false }),
       
-      // Today's time log
+      // Today's time log - use the client's date
       supabase
         .from("time_logs")
         .select("*")
