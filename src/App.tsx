@@ -35,6 +35,17 @@ const PageLoader = () => <SplashScreen />;
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
 
+  // Initialize theme from localStorage on app load
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else if (savedTheme === "light") {
+      document.documentElement.classList.remove("dark");
+    }
+    // If no saved theme, respect system preference (handled by CSS)
+  }, []);
+
   useEffect(() => {
     // Quick splash for branding (800ms), then fade immediately
     // Reduced from 1500ms for faster perceived load

@@ -54,16 +54,21 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
     setIsOpen(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     trackButtonClick("time_log_submit", { 
       invested: parseInt(invested) || 0, 
       wasted: parseInt(wasted) || 0 
     });
-    onLogTime({
-      invested: parseInt(invested) || 0,
-      wasted: parseInt(wasted) || 0,
-    });
-    setIsOpen(false);
+    try {
+      await onLogTime({
+        invested: parseInt(invested) || 0,
+        wasted: parseInt(wasted) || 0,
+      });
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Time log error:", error);
+      // Dialog stays open on error so user can retry
+    }
   };
 
   const handleDetailOpen = (open: boolean) => {
