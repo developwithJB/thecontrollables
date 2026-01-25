@@ -172,7 +172,7 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
               </div>
             </>
           ) : (
-            <p className="text-xs text-muted-foreground">Reflect on today</p>
+            <p className="text-xs text-muted-foreground">Reflect on yesterday</p>
           )}
         </motion.button>
 
@@ -185,7 +185,7 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
                 Time Reflection
               </DialogTitle>
               <DialogDescription>
-                How intentionally did you spend your time today?
+                How intentionally did you spend your time yesterday?
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 pt-2">
@@ -198,7 +198,7 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
                   </p>
                   {todayTimeLog.notes && (
                     <div className="mt-4 p-3 rounded-lg bg-muted/50 text-left">
-                      <p className="text-xs text-muted-foreground mb-1">Today's note:</p>
+                      <p className="text-xs text-muted-foreground mb-1">Yesterday's note:</p>
                       <p className="text-sm text-foreground">{todayTimeLog.notes}</p>
                     </div>
                   )}
@@ -221,7 +221,7 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
                 className="w-full"
                 disabled={disabled}
               >
-                {disabled ? "Loading..." : todayTimeLog ? "Update Reflection" : "Reflect on Today"}
+                {disabled ? "Loading..." : todayTimeLog ? "Update Reflection" : "Reflect on Yesterday"}
               </Button>
             </div>
           </DialogContent>
@@ -236,7 +236,7 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
                 Daily Reflection
               </DialogTitle>
               <DialogDescription>
-                A moment of honest awareness
+                A moment of honest awareness about yesterday
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-6 pt-4">
@@ -260,7 +260,7 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
               </div>
 
               <p className="text-xs text-center text-muted-foreground">
-                No judgment—just awareness. How much of today felt aligned with your intentions?
+                No judgment—just awareness. How much of yesterday felt aligned with your intentions?
               </p>
 
               {/* Optional notes section */}
@@ -273,7 +273,7 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pt-2">
                   <Textarea
-                    placeholder="Any thoughts, wins, or lessons from today..."
+                    placeholder="Any thoughts, wins, or lessons from yesterday..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="min-h-[80px] text-sm resize-none"
@@ -317,7 +317,7 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
           <p className="text-4xl mb-2">{getReflectionEmoji(investedPercent)}</p>
           <p className="text-lg font-medium text-foreground">{getReflectionLabel(investedPercent)}</p>
           <p className="text-sm text-muted-foreground mt-1">
-            {Math.round(investedPercent)}% intentional today
+            {Math.round(investedPercent)}% intentional
           </p>
         </div>
       )}
@@ -329,7 +329,7 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
       )}
 
       <Button variant="outline" size="sm" onClick={handleOpenDialog} className="w-full" disabled={disabled}>
-        {disabled ? "Loading..." : todayTimeLog ? "Update Reflection" : "Reflect on Today"}
+        {disabled ? "Loading..." : todayTimeLog ? "Update Reflection" : "Reflect on Yesterday"}
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -340,7 +340,7 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
               Daily Reflection
             </DialogTitle>
             <DialogDescription>
-              A moment of honest awareness
+              A moment of honest awareness about yesterday
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 pt-4">
@@ -364,7 +364,7 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
             </div>
 
             <p className="text-xs text-center text-muted-foreground">
-              No judgment—just awareness. How much of today felt aligned with your intentions?
+              No judgment—just awareness. How much of yesterday felt aligned with your intentions?
             </p>
 
             {/* Optional notes section */}
@@ -377,7 +377,7 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-2">
                 <Textarea
-                  placeholder="Any thoughts, wins, or lessons from today..."
+                  placeholder="Any thoughts, wins, or lessons from yesterday..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   className="min-h-[80px] text-sm resize-none"

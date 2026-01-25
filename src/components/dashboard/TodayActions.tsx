@@ -227,10 +227,10 @@ export function TodayActions({
     });
   }
 
-  // Time tracking - always show
+  // Time reflection - always show
   actions.push({
     id: "time",
-    label: todayTimeLogged ? "Update your time" : "Log your time",
+    label: todayTimeLogged ? "Yesterday reflected" : "Reflect on yesterday",
     icon: <Timer className="w-4 h-4" />,
     completed: todayTimeLogged,
     timeEstimate: "2 min",
