@@ -373,12 +373,14 @@ export default function Dashboard() {
   );
 
   // Handle time logging - check badge
+  // Handle time logging - async to support UI feedback
   const handleLogTime = useCallback(
-    (data: { invested: number; wasted: number; notes?: string }) => {
-      logTime(data);
+    async (data: { invested: number; wasted: number; notes?: string }) => {
+      const result = await logTime(data);
       trackTimeLog(data.invested, data.wasted);
       // Check if protected_time badge should be awarded
       checkProtectedTimeBadge();
+      return result;
     },
     [logTime, checkProtectedTimeBadge, trackTimeLog],
   );
