@@ -571,6 +571,7 @@ export default function Dashboard() {
                     .filter((log) => log.created_at.startsWith(new Date().toISOString().split("T")[0]))
                     .reduce((sum, log) => sum + log.amount, 0)}
                   buildLastUpdatedAt={currentBuild?.updated_at ?? null}
+                  journeyId={activeSession?.journey_id ?? undefined}
                   journeyTitle={activeSession?.journey_id ? 
                     getJourneyById(activeSession.journey_id)?.title : undefined}
                   onChangeJourney={() => setShowJourneySwitcher(true)}

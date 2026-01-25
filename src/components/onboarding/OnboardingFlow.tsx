@@ -62,14 +62,14 @@ function getRecommendedJourneyId(buildResult: BuildScore | null): string {
   
   // Map controllable to journey
   const controllableToJourney: Record<string, string> = {
-    awareness: "reduce-mental-noise",
-    perspective: "refocus-on-what-matters",
-    habit: "rebuild-momentum",
-    wellness: "ground-yourself",
-    environment: "refocus-on-what-matters",
+    awareness: "breathe-easy",
+    perspective: "tiny-wins",
+    habit: "tiny-wins",
+    wellness: "happy-moves",
+    environment: "pocket-change",
   };
   
-  return controllableToJourney[lowest] || "reenter-the-game";
+  return controllableToJourney[lowest] || "happy-moves";
 }
 
 export function OnboardingFlow({ 
