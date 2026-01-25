@@ -496,28 +496,28 @@ export function ResetProgressModule({
                 <Check className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">7-Day Reset</p>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">7-Day Foundation</p>
                 <h3 className="font-display font-semibold text-foreground text-lg">Complete</h3>
               </div>
             </div>
           </div>
 
-          {/* Days since last reset - prominent display */}
+          {/* Days since last foundation - prominent display */}
           <div className="mb-4">
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-display font-bold text-foreground">
                 {daysSinceLastReset ?? 0}
               </span>
-              <span className="text-sm text-muted-foreground">days since reset</span>
+              <span className="text-sm text-muted-foreground">days since foundation</span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Your Quest continues. Start a new reset when ready.
+              Your Mission continues. Start a new foundation when ready.
             </p>
           </div>
 
           <Button variant="outline" className="w-full border-primary/30 text-primary hover:bg-primary/10" onClick={handleOpenCovenantDialog}>
             <RefreshCw className="w-4 h-4 mr-2" />
-            Start New Reset
+            Start New Foundation
           </Button>
         </motion.div>
 
@@ -580,7 +580,7 @@ export function ResetProgressModule({
               <RefreshCw className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">7-Day Reset</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">7-Day Foundation</p>
               {todayAlreadyCompleted ? (
                 <h3 className="font-display font-semibold text-foreground text-lg flex items-center gap-2">
                   Day {currentDay} Complete
