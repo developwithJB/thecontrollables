@@ -635,7 +635,7 @@ export function ResetProgressModule({
         {/* Foundation name display - simplified, no Focus selector */}
         {currentJourneyId && (
           <div className="mt-3 text-xs text-muted-foreground">
-            Current Foundation: {getJourneyById(currentJourneyId)?.emoji} {getJourneyById(currentJourneyId)?.title}
+            Foundation Focus: {getJourneyById(currentJourneyId)?.emoji} {getJourneyById(currentJourneyId)?.title}
           </div>
         )}
       </div>
