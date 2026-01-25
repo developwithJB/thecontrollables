@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Clock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +11,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 import { useActionTracking } from "@/hooks/useActionTracking";
 
 interface TimeLog {
@@ -39,6 +46,8 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
   // Reflection sliders (0-100 scale for smoother UX)
   const [intentionalPercent, setIntentionalPercent] = useState(50);
   const [energyLevel, setEnergyLevel] = useState(50);
+  const [notes, setNotes] = useState("");
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
 
   const { trackButtonClick, trackModalAction } = useActionTracking();
 
@@ -57,9 +66,13 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
       if (total > 0) {
         setIntentionalPercent(Math.round((todayTimeLog.time_invested_minutes / total) * 100));
       }
+      setNotes(todayTimeLog.notes || "");
+      setIsNotesOpen(!!todayTimeLog.notes);
     } else {
       setIntentionalPercent(50);
       setEnergyLevel(50);
+      setNotes("");
+      setIsNotesOpen(false);
     }
     setIsOpen(true);
   };
@@ -82,6 +95,7 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
       await onLogTime({
         invested,
         wasted,
+        notes: notes.trim() || undefined,
       });
       setIsOpen(false);
     } catch (error) {
@@ -176,12 +190,18 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
             </DialogHeader>
             <div className="space-y-4 pt-2">
               {todayTimeLog && (
-                <div className="text-center py-6">
+                <div className="text-center py-4">
                   <p className="text-4xl mb-2">{getReflectionEmoji(investedPercent)}</p>
                   <p className="text-lg font-medium text-foreground">{getReflectionLabel(investedPercent)}</p>
                   <p className="text-sm text-muted-foreground mt-1">
                     {Math.round(investedPercent)}% intentional
                   </p>
+                  {todayTimeLog.notes && (
+                    <div className="mt-4 p-3 rounded-lg bg-muted/50 text-left">
+                      <p className="text-xs text-muted-foreground mb-1">Today's note:</p>
+                      <p className="text-sm text-foreground">{todayTimeLog.notes}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -242,6 +262,26 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
               <p className="text-xs text-center text-muted-foreground">
                 No judgment—just awareness. How much of today felt aligned with your intentions?
               </p>
+
+              {/* Optional notes section */}
+              <Collapsible open={isNotesOpen} onOpenChange={setIsNotesOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="w-full text-muted-foreground hover:text-foreground">
+                    <ChevronDown className={`w-4 h-4 mr-1 transition-transform ${isNotesOpen ? "rotate-180" : ""}`} />
+                    {isNotesOpen ? "Hide journal note" : "Add a journal note (optional)"}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2">
+                  <Textarea
+                    placeholder="Any thoughts, wins, or lessons from today..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="min-h-[80px] text-sm resize-none"
+                    maxLength={500}
+                  />
+                  <p className="text-xs text-muted-foreground text-right mt-1">{notes.length}/500</p>
+                </CollapsibleContent>
+              </Collapsible>
 
               <Button 
                 onClick={handleSubmit} 
@@ -326,6 +366,26 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
             <p className="text-xs text-center text-muted-foreground">
               No judgment—just awareness. How much of today felt aligned with your intentions?
             </p>
+
+            {/* Optional notes section */}
+            <Collapsible open={isNotesOpen} onOpenChange={setIsNotesOpen}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-full text-muted-foreground hover:text-foreground">
+                  <ChevronDown className={`w-4 h-4 mr-1 transition-transform ${isNotesOpen ? "rotate-180" : ""}`} />
+                  {isNotesOpen ? "Hide journal note" : "Add a journal note (optional)"}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2">
+                <Textarea
+                  placeholder="Any thoughts, wins, or lessons from today..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="min-h-[80px] text-sm resize-none"
+                  maxLength={500}
+                />
+                <p className="text-xs text-muted-foreground text-right mt-1">{notes.length}/500</p>
+              </CollapsibleContent>
+            </Collapsible>
 
             <Button 
               onClick={handleSubmit} 
