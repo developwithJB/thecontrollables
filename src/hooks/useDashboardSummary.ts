@@ -266,21 +266,21 @@ export const useDashboardSummary = () => {
       return data;
     },
     onSuccess: async () => {
-      // Award XP for completing quest
+      // Award XP for completing mission
       await awardXpMutation.mutateAsync({
         amount: XP_VALUES.QUEST_COMPLETE,
         source: "quest_complete",
-        description: "Completed main quest",
+        description: "Completed main mission",
       });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
       toast({
-        title: "Quest completed!",
+        title: "Mission completed!",
         description: "+500 XP earned. Choose your next adventure.",
       });
     },
     onError: (error) => {
       toast({
-        title: "Failed to complete quest",
+        title: "Failed to complete mission",
         description: error.message,
         variant: "destructive",
       });

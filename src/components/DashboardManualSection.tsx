@@ -16,7 +16,6 @@ import {
   Share,
   ListChecks,
   Calendar,
-  Compass,
   Flame
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,7 +34,7 @@ const MANUAL_SECTIONS: ManualSection[] = [
     title: "Today's Actions",
     icon: ListChecks,
     description: "Your daily checklist. A unified hub showing exactly what to do today—readings, time logs, and promises.",
-    howToUse: "Tap any item to open its tool directly. Complete each action to earn XP. The list evolves based on your Reset day."
+    howToUse: "Tap any item to open its tool directly. Complete each action to earn XP. The list evolves based on your Foundation day."
   },
   {
     title: "Daily Check-In",
@@ -44,22 +43,16 @@ const MANUAL_SECTIONS: ManualSection[] = [
     howToUse: "Check in each day to maintain your streak. Your focus anchors daily decisions."
   },
   {
-    title: "Main Quest",
+    title: "Main Mission",
     icon: Target,
-    description: "Your primary focus for 7, 30, or 90 days. One clear objective that anchors your daily decisions.",
-    howToUse: "Tap the Quest card to set or edit. Choose your duration. Title wraps across two lines for readability."
+    description: "Your overarching intention—big-picture, meaningful, and user-defined. Like a personal quest category.",
+    howToUse: "Tap the Mission card to set or edit. Choose your duration. Examples: Reclaim Energy, Build Discipline, Strengthen Focus."
   },
   {
-    title: "7-Day Reset",
+    title: "7-Day Foundation",
     icon: RotateCcw,
-    description: "A structured 7-day journey through the 5 Controllables. Daily readings, reflections, and reps.",
-    howToUse: "Start a Reset to recalibrate. Tap your Focus to switch directions. Complete all 7 days to earn a certificate."
-  },
-  {
-    title: "Focus",
-    icon: Compass,
-    description: "Your guiding direction for the 7-Day Reset. Based on the 5 Controllables.",
-    howToUse: "Tap the Focus area to change direction. Changes are logged for reflection. Custom focus unlocks with a Build scan."
+    description: "Your starter block of action. A time-bound mini program that builds momentum under your Main Mission.",
+    howToUse: "Start a Foundation to build structured habits. Complete all 7 days to earn a certificate. Each Foundation has daily tasks."
   },
   {
     title: "Your Build",
@@ -100,8 +93,8 @@ const MANUAL_SECTIONS: ManualSection[] = [
   {
     title: "Experience Tab",
     icon: Sparkles,
-    description: "Your full history: badges earned, progress over time, past Resets, and momentum trends.",
-    howToUse: "Check weekly to see patterns. Review past Resets to remember what you've learned."
+    description: "Your full history: badges earned, progress over time, past Foundations, and momentum trends.",
+    howToUse: "Check weekly to see patterns. Review past Foundations to remember what you've learned."
   },
   {
     title: "Install the App",

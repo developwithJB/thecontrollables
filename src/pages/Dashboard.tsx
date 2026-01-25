@@ -546,7 +546,7 @@ export default function Dashboard() {
                 visitCount={dashboardVisitCount}
               />
 
-              {/* Today's Actions - Unified interactive checklist with 7-day reset */}
+              {/* Today's Actions - Unified interactive checklist with 7-day foundation */}
               {(resetLoading || dashboardLoading) ? (
                 <ResetProgressSkeleton />
               ) : (
@@ -588,7 +588,7 @@ export default function Dashboard() {
               {/* Build Entry Point - shows if user hasn't done assessment */}
               <BuildEntryPoint />
 
-              {/* Main Quest Module */}
+              {/* Main Mission Module */}
               {dashboardLoading ? (
                 <MainQuestSkeleton />
               ) : (
@@ -606,7 +606,7 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Journey Focus Display - only show when active session */}
+              {/* 7-Day Foundation Progress - only show when active session */}
               {activeSession && !isCompleted && !isExpired && (
                 <ResetProgressModule
                   hasActiveSession={!!activeSession}
