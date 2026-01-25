@@ -1,14 +1,14 @@
 import { useState, useImperativeHandle, forwardRef } from "react";
 import { motion } from "framer-motion";
-import { Clock } from "lucide-react";
+import { Clock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { useActionTracking } from "@/hooks/useActionTracking";
 
@@ -20,7 +20,7 @@ interface TimeLog {
 
 interface TimeCurrencyModuleProps {
   todayTimeLog: TimeLog | null;
-  onLogTime: (data: { invested: number; wasted: number; notes?: string }) => void;
+  onLogTime: (data: { invested: number; wasted: number; notes?: string }) => Promise<unknown>;
   isLogging: boolean;
   compact?: boolean;
   disabled?: boolean;
@@ -34,8 +34,11 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
   function TimeCurrencyModule({ todayTimeLog, onLogTime, isLogging, compact = false, disabled = false }, ref) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [invested, setInvested] = useState("");
-  const [wasted, setWasted] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Reflection sliders (0-100 scale for smoother UX)
+  const [intentionalPercent, setIntentionalPercent] = useState(50);
+  const [energyLevel, setEnergyLevel] = useState(50);
 
   const { trackButtonClick, trackModalAction } = useActionTracking();
 
@@ -47,27 +50,45 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
   }));
 
   const handleOpenDialog = () => {
-    trackModalAction("time_log", "open");
-    // Pre-fill with existing values when opening
-    setInvested(todayTimeLog?.time_invested_minutes?.toString() || "");
-    setWasted(todayTimeLog?.time_wasted_minutes?.toString() || "");
+    trackModalAction("time_reflection", "open");
+    // Pre-fill based on existing values or defaults
+    if (todayTimeLog) {
+      const total = todayTimeLog.time_invested_minutes + todayTimeLog.time_wasted_minutes;
+      if (total > 0) {
+        setIntentionalPercent(Math.round((todayTimeLog.time_invested_minutes / total) * 100));
+      }
+    } else {
+      setIntentionalPercent(50);
+      setEnergyLevel(50);
+    }
     setIsOpen(true);
   };
 
   const handleSubmit = async () => {
-    trackButtonClick("time_log_submit", { 
-      invested: parseInt(invested) || 0, 
-      wasted: parseInt(wasted) || 0 
+    if (isSaving) return;
+    
+    setIsSaving(true);
+    trackButtonClick("time_reflection_submit", { 
+      intentionalPercent,
+      energyLevel
     });
+    
+    // Convert percentages to minutes (using a 10-hour day = 600 mins as reference)
+    const totalMins = 600;
+    const invested = Math.round((intentionalPercent / 100) * totalMins);
+    const wasted = totalMins - invested;
+    
     try {
       await onLogTime({
-        invested: parseInt(invested) || 0,
-        wasted: parseInt(wasted) || 0,
+        invested,
+        wasted,
       });
       setIsOpen(false);
     } catch (error) {
-      console.error("Time log error:", error);
+      console.error("Time reflection error:", error);
       // Dialog stays open on error so user can retry
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -78,11 +99,20 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
     }
   };
 
-  const formatMinutes = (minutes: number): string => {
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  const getReflectionLabel = (percent: number): string => {
+    if (percent >= 80) return "Highly intentional";
+    if (percent >= 60) return "Mostly focused";
+    if (percent >= 40) return "Mixed day";
+    if (percent >= 20) return "Scattered";
+    return "Off track";
+  };
+
+  const getReflectionEmoji = (percent: number): string => {
+    if (percent >= 80) return "🎯";
+    if (percent >= 60) return "✨";
+    if (percent >= 40) return "🌤️";
+    if (percent >= 20) return "🌫️";
+    return "🌧️";
   };
 
   const investedMins = todayTimeLog?.time_invested_minutes || 0;
@@ -106,34 +136,29 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
             <div className="p-1 rounded-md bg-blue-500/10">
               <Clock className="w-3.5 h-3.5 text-blue-500" />
             </div>
-            <h3 className="text-sm font-medium text-foreground">Time Currency</h3>
+            <h3 className="text-sm font-medium text-foreground">Time Reflection</h3>
           </div>
 
           {todayTimeLog ? (
             <>
-              {/* Mini time bar */}
+              {/* Reflection bar */}
               <div className="mb-2">
-                <div className="h-1.5 rounded-full bg-muted overflow-hidden flex">
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                   <div
-                    className="h-full bg-green-500"
+                    className="h-full bg-gradient-to-r from-blue-400 to-green-400"
                     style={{ width: `${investedPercent}%` }}
-                  />
-                  <div
-                    className="h-full bg-red-400"
-                    style={{ width: `${100 - investedPercent}%` }}
                   />
                 </div>
               </div>
 
-              {/* Compact stats */}
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-green-600 dark:text-green-400 font-medium">{formatMinutes(investedMins)}</span>
-                <span className="text-muted-foreground">/</span>
-                <span className="text-red-500 font-medium">{formatMinutes(wastedMins)}</span>
+              {/* Compact label */}
+              <div className="flex items-center gap-1.5 text-xs">
+                <span>{getReflectionEmoji(investedPercent)}</span>
+                <span className="text-muted-foreground">{getReflectionLabel(investedPercent)}</span>
               </div>
             </>
           ) : (
-            <p className="text-xs text-muted-foreground">Not logged today</p>
+            <p className="text-xs text-muted-foreground">Reflect on today</p>
           )}
         </motion.button>
 
@@ -142,51 +167,28 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
           <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-blue-500" />
-                Time Currency
+                <Sparkles className="w-4 h-4 text-blue-500" />
+                Time Reflection
               </DialogTitle>
+              <DialogDescription>
+                How intentionally did you spend your time today?
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 pt-2">
               {todayTimeLog && (
-                <>
-                  {/* Time bar */}
-                  <div>
-                    <div className="h-3 rounded-full bg-muted overflow-hidden flex">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${investedPercent}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="h-full bg-green-500"
-                      />
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${100 - investedPercent}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-                        className="h-full bg-red-400"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div>
-                      <p className="text-2xl font-display font-bold text-green-600 dark:text-green-400">
-                        {formatMinutes(investedMins)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Invested</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-display font-bold text-red-500">
-                        {formatMinutes(wastedMins)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Lost</p>
-                    </div>
-                  </div>
-                </>
+                <div className="text-center py-6">
+                  <p className="text-4xl mb-2">{getReflectionEmoji(investedPercent)}</p>
+                  <p className="text-lg font-medium text-foreground">{getReflectionLabel(investedPercent)}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {Math.round(investedPercent)}% intentional
+                  </p>
+                </div>
               )}
 
               {!todayTimeLog && (
-                <p className="text-sm text-muted-foreground text-center py-4">No time logged today</p>
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Take a moment to reflect on your day
+                </p>
               )}
 
               <Button
@@ -199,60 +201,54 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
                 className="w-full"
                 disabled={disabled}
               >
-                {disabled ? "Loading..." : todayTimeLog ? "Update Time" : "Log Today's Time"}
+                {disabled ? "Loading..." : todayTimeLog ? "Update Reflection" : "Reflect on Today"}
               </Button>
             </div>
           </DialogContent>
         </Dialog>
 
-        {/* Log Time Dialog */}
+        {/* Reflection Dialog */}
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <span className="hidden" />
-          </DialogTrigger>
           <DialogContent className="max-w-sm">
             <DialogHeader>
-              <DialogTitle className="font-display">
-                {todayTimeLog ? "Update Your Time" : "Log Your Time"}
+              <DialogTitle className="font-display flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-blue-500" />
+                Daily Reflection
               </DialogTitle>
+              <DialogDescription>
+                A moment of honest awareness
+              </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <p className="text-sm text-muted-foreground">
-                Awareness, not judgment. How did you spend today?
+            <div className="space-y-6 pt-4">
+              {/* Intentionality slider */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Scattered</span>
+                  <span className="text-sm text-muted-foreground">Intentional</span>
+                </div>
+                <Slider
+                  value={[intentionalPercent]}
+                  onValueChange={(v) => setIntentionalPercent(v[0])}
+                  max={100}
+                  step={5}
+                  className="w-full"
+                />
+                <div className="text-center">
+                  <p className="text-3xl mb-1">{getReflectionEmoji(intentionalPercent)}</p>
+                  <p className="font-medium text-foreground">{getReflectionLabel(intentionalPercent)}</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-center text-muted-foreground">
+                No judgment—just awareness. How much of today felt aligned with your intentions?
               </p>
-              
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">
-                  Time invested (minutes)
-                </label>
-                <Input
-                  type="number"
-                  placeholder="e.g., 120"
-                  value={invested}
-                  onChange={(e) => setInvested(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Work, learning, meaningful activity
-                </p>
-              </div>
 
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">
-                  Time wasted (minutes)
-                </label>
-                <Input
-                  type="number"
-                  placeholder="e.g., 45"
-                  value={wasted}
-                  onChange={(e) => setWasted(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Scrolling, distractions, regrets
-                </p>
-              </div>
-
-              <Button onClick={handleSubmit} className="w-full" disabled={isLogging || disabled}>
-                {isLogging ? "Saving..." : disabled ? "Loading..." : todayTimeLog ? "Update Time" : "Log Time"}
+              <Button 
+                onClick={handleSubmit} 
+                className="w-full" 
+                disabled={isSaving || disabled}
+              >
+                {isSaving ? "Saving..." : disabled ? "Loading..." : todayTimeLog ? "Update" : "Save Reflection"}
               </Button>
             </div>
           </DialogContent>
@@ -271,104 +267,72 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
     >
       <div className="flex items-center gap-2 mb-4">
         <div className="p-1.5 rounded-lg bg-blue-500/10">
-          <Clock className="w-4 h-4 text-blue-500" />
+          <Sparkles className="w-4 h-4 text-blue-500" />
         </div>
-        <h3 className="font-display font-semibold text-foreground">Time Currency</h3>
+        <h3 className="font-display font-semibold text-foreground">Time Reflection</h3>
       </div>
 
       {todayTimeLog && (
-        <>
-          {/* Time bar */}
-          <div className="mb-4">
-            <div className="h-3 rounded-full bg-muted overflow-hidden flex">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${investedPercent}%` }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="h-full bg-green-500"
-              />
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${100 - investedPercent}%` }}
-                transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-                className="h-full bg-red-400"
-              />
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 text-center mb-4">
-            <div>
-              <p className="text-2xl font-display font-bold text-green-600 dark:text-green-400">
-                {formatMinutes(investedMins)}
-              </p>
-              <p className="text-xs text-muted-foreground">Invested</p>
-            </div>
-            <div>
-              <p className="text-2xl font-display font-bold text-red-500">
-                {formatMinutes(wastedMins)}
-              </p>
-              <p className="text-xs text-muted-foreground">Lost</p>
-            </div>
-          </div>
-        </>
+        <div className="text-center py-4 mb-4">
+          <p className="text-4xl mb-2">{getReflectionEmoji(investedPercent)}</p>
+          <p className="text-lg font-medium text-foreground">{getReflectionLabel(investedPercent)}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {Math.round(investedPercent)}% intentional today
+          </p>
+        </div>
       )}
 
       {!todayTimeLog && (
-        <p className="text-sm text-muted-foreground text-center mb-3">No time logged today</p>
+        <p className="text-sm text-muted-foreground text-center mb-3">
+          Take a moment to reflect
+        </p>
       )}
 
       <Button variant="outline" size="sm" onClick={handleOpenDialog} className="w-full" disabled={disabled}>
-        {disabled ? "Loading..." : todayTimeLog ? "Update Time" : "Log Today's Time"}
+        {disabled ? "Loading..." : todayTimeLog ? "Update Reflection" : "Reflect on Today"}
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>
-          <span className="hidden" />
-        </DialogTrigger>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="font-display">
-              {todayTimeLog ? "Update Your Time" : "Log Your Time"}
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-blue-500" />
+              Daily Reflection
             </DialogTitle>
+            <DialogDescription>
+              A moment of honest awareness
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <p className="text-sm text-muted-foreground">
-              Awareness, not judgment. How did you spend today?
+          <div className="space-y-6 pt-4">
+            {/* Intentionality slider */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Scattered</span>
+                <span className="text-sm text-muted-foreground">Intentional</span>
+              </div>
+              <Slider
+                value={[intentionalPercent]}
+                onValueChange={(v) => setIntentionalPercent(v[0])}
+                max={100}
+                step={5}
+                className="w-full"
+              />
+              <div className="text-center">
+                <p className="text-3xl mb-1">{getReflectionEmoji(intentionalPercent)}</p>
+                <p className="font-medium text-foreground">{getReflectionLabel(intentionalPercent)}</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-center text-muted-foreground">
+              No judgment—just awareness. How much of today felt aligned with your intentions?
             </p>
-            
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">
-                Time invested (minutes)
-              </label>
-              <Input
-                type="number"
-                placeholder="e.g., 120"
-                value={invested}
-                onChange={(e) => setInvested(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Work, learning, meaningful activity
-              </p>
-            </div>
 
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">
-                Time wasted (minutes)
-              </label>
-              <Input
-                type="number"
-                placeholder="e.g., 45"
-                value={wasted}
-                onChange={(e) => setWasted(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Scrolling, distractions, regrets
-              </p>
-            </div>
-
-            <Button onClick={handleSubmit} className="w-full" disabled={isLogging || disabled}>
-              {isLogging ? "Saving..." : disabled ? "Loading..." : todayTimeLog ? "Update Time" : "Log Time"}
+            <Button 
+              onClick={handleSubmit} 
+              className="w-full" 
+              disabled={isSaving || disabled}
+            >
+              {isSaving ? "Saving..." : disabled ? "Loading..." : todayTimeLog ? "Update" : "Save Reflection"}
             </Button>
           </div>
         </DialogContent>

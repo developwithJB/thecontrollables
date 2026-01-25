@@ -375,17 +375,21 @@ export const useDashboardSummary = () => {
     },
   });
 
-  // Log time
+  // Log time reflection
   const logTimeMutation = useMutation({
     mutationFn: async ({ invested, wasted, notes }: { invested: number; wasted: number; notes?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.id) throw new Error("Not authenticated");
 
+      // Use current local date for accurate logging
+      const today = getLocalDateString();
+      console.log("Logging time for date:", today, { invested, wasted });
+
       const { data, error } = await supabase
         .from("time_logs")
         .upsert({
           user_id: user.id,
-          log_date: getLocalDateString(),
+          log_date: today,
           time_invested_minutes: invested,
           time_wasted_minutes: wasted,
           notes,
@@ -395,22 +399,39 @@ export const useDashboardSummary = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Time log error:", error);
+        throw error;
+      }
 
-      // Award XP for logging time
-      await awardXpMutation.mutateAsync({
-        amount: XP_VALUES.TIME_LOG,
-        source: "time_log",
-        description: "Daily time awareness",
-      });
+      console.log("Time log saved:", data);
+
+      // Award XP for logging time (only for first log of the day)
+      try {
+        await awardXpMutation.mutateAsync({
+          amount: XP_VALUES.TIME_LOG,
+          source: "time_log",
+          description: "Daily reflection",
+        });
+      } catch (xpError) {
+        console.log("XP award skipped (may already be awarded):", xpError);
+      }
 
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
       toast({
-        title: "Time logged",
-        description: "Awareness is the first step.",
+        title: "Reflection saved",
+        description: "Awareness is power.",
+      });
+    },
+    onError: (error) => {
+      console.error("Time log mutation error:", error);
+      toast({
+        title: "Couldn't save reflection",
+        description: "Please try again.",
+        variant: "destructive",
       });
     },
   });
