@@ -45,10 +45,11 @@ interface JourneySwitcherProps {
 function controllableToJourneyId(controllable: string | null): string | null {
   if (!controllable) return null;
   const mapping: Record<string, string> = {
-    habit: "reenter-the-game", // or rebuild-momentum
-    awareness: "reduce-mental-noise",
-    wellness: "ground-yourself",
-    perspective: "refocus-on-what-matters",
+    habit: "tiny-wins",
+    awareness: "breathe-easy",
+    wellness: "happy-moves",
+    perspective: "tiny-wins",
+    environment: "pocket-change",
   };
   return mapping[controllable] || null;
 }

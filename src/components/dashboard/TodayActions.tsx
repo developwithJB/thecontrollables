@@ -14,6 +14,7 @@ import {
   Sparkles,
   Lock,
   PartyPopper,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,6 +22,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { getDayContent, COVENANT_TEXT, COVENANT_CHECKBOX_TEXT } from "@/lib/resetContent";
 import { useActionTracking } from "@/hooks/useActionTracking";
+import { getJourneyDailyAction } from "@/lib/guidedJourneys";
 
 interface DailyReading {
   id: string;
@@ -58,6 +60,7 @@ interface TodayActionsProps {
   buildLastUpdatedAt?: string | null;
   
   // Journey info for display
+  journeyId?: string;
   journeyTitle?: string;
   onChangeJourney?: () => void;
   
@@ -99,6 +102,7 @@ export function TodayActions({
   pendingPromisesCount,
   todayXpEarned,
   buildLastUpdatedAt,
+  journeyId,
   journeyTitle,
   onChangeJourney,
   onOpenTimeLog,
@@ -116,6 +120,7 @@ export function TodayActions({
   );
   const [isListCollapsed, setIsListCollapsed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [journeyActionCompleted, setJourneyActionCompleted] = useState(false);
 
   // Day 3 "Review your Build" completion: treat as complete if the user opened it today
   // OR if their build was updated today (e.g., via a re-scan).
@@ -128,6 +133,20 @@ export function TodayActions({
   const buildUpdatedToday = !!buildLastUpdatedAt &&
     new Date(buildLastUpdatedAt).toLocaleDateString("sv-SE") === todayLocal;
   const reviewBuildCompleted = reviewBuildDoneToday || buildUpdatedToday;
+
+  // Journey action completion tracking
+  const journeyActionKey = userId && journeyId
+    ? `journey_action_${userId}_${journeyId}_day${currentDay}`
+    : null;
+
+  useEffect(() => {
+    if (!journeyActionKey) return;
+    try {
+      setJourneyActionCompleted(localStorage.getItem(journeyActionKey) === "1");
+    } catch {
+      // ignore
+    }
+  }, [journeyActionKey, currentDay]);
 
   useEffect(() => {
     if (!reviewBuildStorageKey) return;
@@ -247,6 +266,33 @@ export function TodayActions({
       timeEstimate: "3 min",
       action: onOpenPromises,
     });
+  }
+
+  // Journey-specific daily action - the core habit task for today
+  // This is the primary value-add that guides users through the 7 days
+  if (hasActiveSession && !isResetCompleted && !isResetExpired && journeyId) {
+    const dailyAction = getJourneyDailyAction(journeyId, currentDay);
+    if (dailyAction) {
+      actions.push({
+        id: "journey-action",
+        label: dailyAction.task,
+        sublabel: dailyAction.description,
+        icon: <Zap className="w-4 h-4" />,
+        completed: journeyActionCompleted,
+        timeEstimate: "5 min",
+        action: () => {
+          // Mark as completed when clicked
+          if (journeyActionKey) {
+            try {
+              localStorage.setItem(journeyActionKey, "1");
+              setJourneyActionCompleted(true);
+            } catch {
+              // ignore
+            }
+          }
+        },
+      });
+    }
   }
 
   // Day-based bonus actions (vary by day to encourage different features)
