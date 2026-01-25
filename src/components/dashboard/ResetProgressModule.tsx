@@ -256,8 +256,8 @@ export function ResetProgressModule({
               <RefreshCw className="w-5 h-5 text-muted-foreground" />
             </div>
             <div>
-              <h3 className="font-display font-semibold text-foreground">7-Day Reset</h3>
-              <p className="text-sm text-muted-foreground">Re-enter the game</p>
+              <h3 className="font-display font-semibold text-foreground">7-Day Foundation</h3>
+              <p className="text-sm text-muted-foreground">Build your starter block</p>
             </div>
           </div>
 
@@ -271,13 +271,13 @@ export function ResetProgressModule({
           )}
           
           <p className="text-sm text-muted-foreground mb-4">
-            The Reset helps you recalibrate.{" "}
-            <span className="text-foreground/70">Your Quest gives you direction.</span>
+            Your Foundation builds momentum.{" "}
+            <span className="text-foreground/70">Your Mission gives you direction.</span>
           </p>
           
           <Button className="w-full" onClick={handleOpenCovenantDialog}>
             <RefreshCw className="w-4 h-4 mr-2" />
-            Begin Your Reset
+            Begin Your Foundation
           </Button>
         </motion.div>
 
@@ -337,7 +337,7 @@ export function ResetProgressModule({
               <RefreshCw className="w-5 h-5 text-amber-500" />
             </div>
             <div>
-              <h3 className="font-display font-semibold text-foreground">7-Day Reset</h3>
+              <h3 className="font-display font-semibold text-foreground">7-Day Foundation</h3>
               <p className="text-sm text-amber-600 dark:text-amber-400">
                 Incomplete • {completedDays.length} of 7 days
               </p>
@@ -348,7 +348,7 @@ export function ResetProgressModule({
             <div className="flex items-start gap-2">
               <Lock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-foreground">Free reset used</p>
+                <p className="text-sm font-medium text-foreground">Free foundation used</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Upgrade to try again and unlock certificate downloads.
                 </p>
@@ -376,7 +376,7 @@ export function ResetProgressModule({
               <RefreshCw className="w-5 h-5 text-amber-500" />
             </div>
             <div className="flex-1">
-              <h3 className="font-display font-semibold text-foreground">7-Day Reset</h3>
+              <h3 className="font-display font-semibold text-foreground">7-Day Foundation</h3>
               <p className="text-sm text-amber-600 dark:text-amber-400">
                 Incomplete • {completedDays.length} of 7 days
               </p>
@@ -449,16 +449,16 @@ export function ResetProgressModule({
               <Check className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-display font-semibold text-foreground">7-Day Reset</h3>
+              <h3 className="font-display font-semibold text-foreground">7-Day Foundation</h3>
               <p className="text-sm text-primary">Complete • Well played</p>
             </div>
           </div>
 
-          {/* Days since last reset */}
+          {/* Days since last foundation */}
           {daysSinceLastReset !== null && (
             <div className="mb-4 p-3 rounded-lg bg-background/50 border border-primary/10">
               <p className="text-sm text-muted-foreground">
-                <span className="text-foreground font-medium">{daysSinceLastReset} days</span> since you completed your reset
+                <span className="text-foreground font-medium">{daysSinceLastReset} days</span> since you completed your foundation
               </p>
             </div>
           )}
@@ -467,9 +467,9 @@ export function ResetProgressModule({
             <div className="flex items-start gap-2">
               <Lock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-foreground">Free reset complete</p>
+                <p className="text-sm font-medium text-foreground">Free foundation complete</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Upgrade to download your certificate and start new resets.
+                  Upgrade to download your certificate and start new foundations.
                 </p>
               </div>
             </div>
@@ -632,13 +632,12 @@ export function ResetProgressModule({
           </span>
         </div>
 
-{/* Journey nested inside - shows the Reset's focus */}
-        <div onClick={(e) => e.stopPropagation()}>
-          <JourneyDisplay
-            journeyId={currentJourneyId}
-            onSwitchJourney={onSwitchJourney}
-          />
-        </div>
+        {/* Foundation name display - simplified, no Focus selector */}
+        {currentJourneyId && (
+          <div className="mt-3 text-xs text-muted-foreground">
+            Current Foundation: {getJourneyById(currentJourneyId)?.emoji} {getJourneyById(currentJourneyId)?.title}
+          </div>
+        )}
       </div>
 
       {/* Expandable day list */}

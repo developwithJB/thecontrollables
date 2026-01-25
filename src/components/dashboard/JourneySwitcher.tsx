@@ -234,8 +234,8 @@ export function JourneySwitcher({
     if (pendingJourney && onUpdateQuestTitle) {
       const newQuestTitle = getQuestTitleFromJourney(pendingJourney);
       onUpdateQuestTitle(newQuestTitle);
-      toast.success(`Quest updated to "${newQuestTitle}"`, {
-        description: "Your focus and quest are now aligned.",
+      toast.success(`Mission updated to "${newQuestTitle}"`, {
+        description: "Your foundation and mission are now aligned.",
       });
     }
     setShowQuestUpdatePrompt(false);
@@ -244,7 +244,7 @@ export function JourneySwitcher({
 
   const handleSkipQuestUpdate = () => {
     toast.success(`Switched to "${pendingJourney?.title}"`, {
-      description: "Your quest title was kept as-is.",
+      description: "Your mission title was kept as-is.",
     });
     setShowQuestUpdatePrompt(false);
     setPendingJourney(null);
@@ -267,7 +267,7 @@ export function JourneySwitcher({
               <Compass className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground mb-0.5">Current Focus</p>
+              <p className="text-xs text-muted-foreground mb-0.5">Current Foundation</p>
               <p className="font-medium text-foreground truncate">
                 {currentJourney ? (
                   <>
@@ -287,19 +287,19 @@ export function JourneySwitcher({
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display">Choose Your Focus</DialogTitle>
+            <DialogTitle className="font-display">Choose Your 7-Day Foundation</DialogTitle>
             <DialogDescription className="space-y-2">
               <span className="block">
-                Changing direction is part of the process. Your previous path will be logged for reflection.
+                Pick a starter program that resonates. Each Foundation guides you through 7 days of focused action.
               </span>
             </DialogDescription>
           </DialogHeader>
           
-          {/* Importance of Focus callout */}
+          {/* Importance of Foundation callout */}
           <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 mb-2">
             <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">A clear focus guides your energy.</span>{" "}
-              Without one, progress scatters. Choose what resonates—you can always adjust.
+              <span className="font-medium text-foreground">A Foundation builds momentum.</span>{" "}
+              It's your structured starter block—something tight, focused, and easy to build on.
             </p>
           </div>
 
@@ -361,7 +361,7 @@ export function JourneySwitcher({
                 {lowestControllable && (
                   <>Your lowest area is highlighted • </>
                 )}
-                Choose a focus that addresses it
+                Choose a foundation that addresses it
               </p>
             </div>
           ) : (
@@ -371,7 +371,7 @@ export function JourneySwitcher({
                 <div className="flex-1">
                   <p className="text-xs font-medium text-foreground">No Build data found</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Scan your Build to unlock a personalized focus recommendation.
+                    Scan your Build to unlock a personalized foundation recommendation.
                   </p>
                 </div>
                 <Button
@@ -483,10 +483,10 @@ export function JourneySwitcher({
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-primary" />
-              Update Your Quest?
+              Update Your Mission?
             </DialogTitle>
             <DialogDescription>
-              You've switched to a new focus. Would you like to update your Main Quest to match?
+              You've switched to a new foundation. Would you like to update your Main Mission to match?
             </DialogDescription>
           </DialogHeader>
 

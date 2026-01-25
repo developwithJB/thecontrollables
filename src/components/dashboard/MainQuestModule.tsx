@@ -111,33 +111,33 @@ export function MainQuestModule({
             <AlertTriangle className="w-5 h-5 text-muted-foreground" />
           </div>
           <div>
-            <h3 className="font-display font-semibold text-foreground">No Active Quest</h3>
+            <h3 className="font-display font-semibold text-foreground">No Active Mission</h3>
             <p className="text-sm text-muted-foreground">Default path detected.</p>
           </div>
         </div>
         
         <p className="text-sm text-muted-foreground mb-4">
-          Without a quest, life plays you instead of you playing it.
+          Without a mission, life plays you instead of you playing it.
         </p>
 
         <Dialog open={isOpen} onOpenChange={handleOpenDialog}>
           <DialogTrigger asChild>
             <Button className="w-full" disabled={disabled}>
               <Target className="w-4 h-4 mr-2" />
-              {disabled ? "Loading..." : "Choose Your Quest"}
+              {disabled ? "Loading..." : "Set Your Mission"}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-sm">
             <DialogHeader>
-              <DialogTitle className="font-display">Define Your Main Quest</DialogTitle>
+              <DialogTitle className="font-display">Define Your Main Mission</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">
-                  What's the one thing that matters most?
+                  What area of life are you investing in?
                 </label>
                 <Input
-                  placeholder="e.g., Launch my business"
+                  placeholder="e.g., Reclaim Energy, Build Discipline"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="text-base"
@@ -146,7 +146,7 @@ export function MainQuestModule({
               
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">
-                  Quest duration
+                  Mission duration
                 </label>
                 <div className="flex gap-2">
                   {[7, 30, 90].map((days) => (
@@ -170,7 +170,7 @@ export function MainQuestModule({
                 className="w-full" 
                 disabled={!title.trim() || isCreating || disabled}
               >
-                {isCreating ? "Activating..." : "Activate Quest"}
+                {isCreating ? "Activating..." : "Activate Mission"}
               </Button>
             </div>
           </DialogContent>
@@ -191,7 +191,7 @@ export function MainQuestModule({
             <Target className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Main Quest</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Main Mission</p>
             
             {isEditing ? (
               <div className="flex items-center gap-2">
@@ -281,7 +281,7 @@ export function MainQuestModule({
           disabled={isCompleting || disabled}
         >
           <CheckCircle className="w-4 h-4 mr-2" />
-          {isCompleting ? "Completing..." : "Complete Quest"}
+          {isCompleting ? "Completing..." : "Complete Mission"}
         </Button>
       )}
     </motion.div>

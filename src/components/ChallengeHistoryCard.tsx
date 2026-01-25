@@ -49,7 +49,7 @@ export function ChallengeHistoryCard({ session, completedDays, index }: Challeng
 
           {/* Title */}
           <h3 className="font-display font-semibold text-foreground mb-1">
-            7-Day Reset
+            7-Day Foundation
           </h3>
 
           {/* Date range */}
