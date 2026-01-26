@@ -225,17 +225,7 @@ function WeekCard({
         )}
       </div>
 
-      {/* CTA for active */}
-      {isActive && onContinue && (
-        <Button 
-          onClick={onContinue}
-          size="sm" 
-          className="w-full mt-3"
-        >
-          <Play className="w-3 h-3 mr-1" />
-          Finish this Snapshot
-        </Button>
-      )}
+      {/* No CTA in history view - this is for viewing only */}
     </motion.div>
   );
 }
