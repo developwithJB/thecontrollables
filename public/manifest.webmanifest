@@ -1,7 +1,7 @@
 {
-  "name": "The Dashboard",
+  "name": "The Dashboard - A quiet, private place to restart",
   "short_name": "Dashboard",
-  "description": "Your personal command center for intentional living",
+  "description": "A quiet, private place to restart — and build proof you can trust yourself again.",
   "start_url": "https://thedashboard.agbcoaching.com/",
   "scope": "https://thedashboard.agbcoaching.com/",
   "id": "https://thedashboard.agbcoaching.com/",
