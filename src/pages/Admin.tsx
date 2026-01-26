@@ -127,6 +127,29 @@ interface AnalyticsSummary {
   eventBreakdown: { type: string; count: number }[];
   errorBreakdown: { type: string; count: number }[];
   actionBreakdown: { action: string; count: number }[];
+  // Growth metrics
+  totalUsers: number;
+  usersThisWeek: number;
+  signupGrowth: number;
+  activeUsersThisWeek: number;
+  activeGrowth: number;
+  returningUsers: number;
+  retentionRate: number;
+  featureAdoption: {
+    quest: number;
+    aiChat: number;
+    checkin: number;
+    build: number;
+    time: number;
+    integrity: number;
+  };
+  conversionFunnel: {
+    landing: number;
+    signup: number;
+    dashboard: number;
+    completedAction: number;
+  };
+  dropOffPoints: { path: string; count: number; percentage: number }[];
 }
 
 export default function Admin() {
@@ -542,6 +565,184 @@ export default function Admin() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4">
+            {/* Growth Metrics - Most Important */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="border-l-4 border-l-primary">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Total Users
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{summary?.totalUsers || 0}</div>
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-xs text-muted-foreground">+{summary?.usersThisWeek || 0} this week</span>
+                    {summary?.signupGrowth !== undefined && (
+                      <Badge variant={summary.signupGrowth >= 0 ? "default" : "destructive"} className="text-xs">
+                        {summary.signupGrowth >= 0 ? "↑" : "↓"}{Math.abs(summary.signupGrowth)}%
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-l-4 border-l-green-500">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Active Users (7d)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">{summary?.activeUsersThisWeek || 0}</div>
+                  <div className="flex items-center gap-1 mt-1">
+                    {summary?.activeGrowth !== undefined && (
+                      <Badge variant={summary.activeGrowth >= 0 ? "secondary" : "destructive"} className="text-xs">
+                        {summary.activeGrowth >= 0 ? "↑" : "↓"}{Math.abs(summary.activeGrowth)}% vs prev week
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-l-4 border-l-blue-500">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Returning Users (7d)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">{summary?.returningUsers || 0}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {summary?.retentionRate || 0}% retention rate
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-l-4 border-l-destructive">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Unresolved Errors
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-destructive">
+                    {summary?.unresolvedErrors || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {summary?.errors24h || 0} in last 24h
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Conversion Funnel */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  📊 Conversion Funnel (7d)
+                </CardTitle>
+                <CardDescription>Track user progression through key milestones</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between gap-2 overflow-x-auto">
+                  {[
+                    { label: "Landing", value: summary?.conversionFunnel?.landing || 0, color: "bg-muted" },
+                    { label: "Signed Up", value: summary?.conversionFunnel?.signup || 0, color: "bg-blue-100 dark:bg-blue-900/30" },
+                    { label: "Reached Dashboard", value: summary?.conversionFunnel?.dashboard || 0, color: "bg-green-100 dark:bg-green-900/30" },
+                    { label: "Completed Action", value: summary?.conversionFunnel?.completedAction || 0, color: "bg-primary/20" },
+                  ].map((step, i, arr) => (
+                    <div key={step.label} className="flex items-center gap-2 min-w-0">
+                      <div className={`flex-shrink-0 p-4 rounded-lg ${step.color} text-center min-w-[100px]`}>
+                        <div className="text-xl font-bold">{step.value}</div>
+                        <div className="text-xs text-muted-foreground whitespace-nowrap">{step.label}</div>
+                        {i > 0 && arr[i-1].value > 0 && (
+                          <div className="text-xs text-primary font-medium mt-1">
+                            {Math.round((step.value / arr[i-1].value) * 100)}%
+                          </div>
+                        )}
+                      </div>
+                      {i < arr.length - 1 && (
+                        <span className="text-muted-foreground text-lg flex-shrink-0">→</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Feature Adoption */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    🎯 Feature Adoption (7d)
+                  </CardTitle>
+                  <CardDescription>Users who used each feature this week</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {[
+                      { label: "Daily Check-in", value: summary?.featureAdoption?.checkin || 0, icon: "✅", color: "bg-green-500" },
+                      { label: "AI Chat", value: summary?.featureAdoption?.aiChat || 0, icon: "💬", color: "bg-blue-500" },
+                      { label: "Quest System", value: summary?.featureAdoption?.quest || 0, icon: "🎯", color: "bg-purple-500" },
+                      { label: "Time Reflection", value: summary?.featureAdoption?.time || 0, icon: "⏰", color: "bg-orange-500" },
+                      { label: "Integrity Promises", value: summary?.featureAdoption?.integrity || 0, icon: "🤝", color: "bg-cyan-500" },
+                      { label: "Build Assessment", value: summary?.featureAdoption?.build || 0, icon: "🏗️", color: "bg-pink-500" },
+                    ].map((feature) => {
+                      const maxUsers = summary?.activeUsersThisWeek || 1;
+                      const percentage = Math.round((feature.value / maxUsers) * 100);
+                      return (
+                        <div key={feature.label} className="space-y-1">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="flex items-center gap-2">
+                              <span>{feature.icon}</span>
+                              <span>{feature.label}</span>
+                            </span>
+                            <span className="font-medium">{feature.value} <span className="text-muted-foreground text-xs">({percentage}%)</span></span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full ${feature.color} transition-all`}
+                              style={{ width: `${Math.min(percentage, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    🚪 Drop-off Points (7d)
+                  </CardTitle>
+                  <CardDescription>Where users leave the app most often</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {summary?.dropOffPoints?.length ? (
+                      summary.dropOffPoints.map((point, i) => (
+                        <div key={i} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded">
+                          <span className="truncate font-mono text-xs">{point.path}</span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="destructive">{point.count}</Badge>
+                            <span className="text-muted-foreground text-xs">{point.percentage}%</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-sm text-center py-4">
+                        Not enough data yet
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Quick Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
                 <CardHeader className="pb-2">
@@ -576,22 +777,21 @@ export default function Admin() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Errors (24h)
+                    Paid Users
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-destructive">
-                    {summary?.errors24h || 0}
+                  <div className="text-2xl font-bold text-green-500">
+                    {users.filter(u => u.isPaid).length}
                   </div>
-                  {summary && summary.unresolvedErrors > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      {summary.unresolvedErrors} unresolved
-                    </p>
-                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {users.length > 0 ? Math.round((users.filter(u => u.isPaid).length / users.length) * 100) : 0}% conversion
+                  </p>
                 </CardContent>
               </Card>
             </div>
 
+            {/* Detailed Breakdowns */}
             <div className="grid md:grid-cols-3 gap-4">
               <Card>
                 <CardHeader>
@@ -637,55 +837,6 @@ export default function Admin() {
                         <Badge variant="destructive">{error.count}</Badge>
                       </div>
                     )) || <p className="text-muted-foreground text-sm">No errors</p>}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <MousePointerClick className="h-4 w-4" />
-                    Top Actions (7d)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {summary?.actionBreakdown?.slice(0, 8).map((action, i) => (
-                      <div key={i} className="flex justify-between items-center text-sm">
-                        <span className="truncate text-muted-foreground font-mono text-xs">
-                          {action.action}
-                        </span>
-                        <Badge variant="outline">{action.count}</Badge>
-                      </div>
-                    )) || <p className="text-muted-foreground text-sm">No actions tracked yet</p>}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">User Stats</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-8">
-                    <div>
-                      <div className="text-2xl font-bold">{users.length}</div>
-                      <p className="text-xs text-muted-foreground">Total Users</p>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-green-500">
-                        {users.filter(u => u.isPaid).length}
-                      </div>
-                      <p className="text-xs text-muted-foreground">Paid Users</p>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-muted-foreground">
-                        {users.filter(u => !u.isPaid).length}
-                      </div>
-                      <p className="text-xs text-muted-foreground">Free Users</p>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -1072,9 +1223,9 @@ export default function Admin() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 <ScrollArea className="h-[500px]">
-                  <div className="space-y-3">
+                  <div className="space-y-3 p-6">
                     {errors.length === 0 ? (
                       <p className="text-center text-muted-foreground py-8">
                         No errors recorded yet 🎉
@@ -1089,48 +1240,56 @@ export default function Admin() {
                         .map((error) => (
                         <Card key={error.id} className={error.resolved ? "opacity-50" : ""}>
                           <CardContent className="p-4">
-                            <div className="flex justify-between items-start gap-2">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
+                            <div className="flex flex-col gap-3">
+                              {/* Header row */}
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   {error.resolved ? (
-                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                    <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
                                   ) : (
-                                    <XCircle className="h-4 w-4 text-destructive" />
+                                    <XCircle className="h-4 w-4 text-destructive flex-shrink-0" />
                                   )}
-                                  <Badge variant="outline">{error.error_type}</Badge>
+                                  <Badge variant="outline" className="flex-shrink-0">{error.error_type}</Badge>
                                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                                     <Clock className="h-3 w-3" />
                                     {formatTime(error.created_at)}
                                   </span>
                                 </div>
-                                <p className="font-medium text-sm break-words">
-                                  {error.error_message}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {error.page_path}
-                                  {error.component_name && ` • ${error.component_name}`}
-                                  {error.user_email && (
-                                    <span className="ml-2 text-primary">• {error.user_email}</span>
-                                  )}
-                                  {!error.user_email && error.user_id && (
-                                    <span className="ml-2 text-muted-foreground/60">• User ID: {truncate(error.user_id, 8)}</span>
-                                  )}
-                                </p>
-                                {error.error_stack && (
-                                  <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-x-auto max-h-24">
-                                    {truncate(error.error_stack, 300)}
-                                  </pre>
+                                {!error.resolved && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleResolveError(error.id)}
+                                    disabled={actionLoading === error.id}
+                                    className="flex-shrink-0"
+                                  >
+                                    {actionLoading === error.id ? "..." : "Mark Resolved"}
+                                  </Button>
                                 )}
                               </div>
-                              {!error.resolved && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleResolveError(error.id)}
-                                  disabled={actionLoading === error.id}
-                                >
-                                  {actionLoading === error.id ? "..." : "Resolve"}
-                                </Button>
+                              
+                              {/* Error message */}
+                              <p className="font-medium text-sm break-words">
+                                {error.error_message}
+                              </p>
+                              
+                              {/* Metadata */}
+                              <p className="text-xs text-muted-foreground">
+                                {error.page_path}
+                                {error.component_name && ` • ${error.component_name}`}
+                                {error.user_email && (
+                                  <span className="ml-2 text-primary">• {error.user_email}</span>
+                                )}
+                                {!error.user_email && error.user_id && (
+                                  <span className="ml-2 text-muted-foreground/60">• User ID: {truncate(error.user_id, 8)}</span>
+                                )}
+                              </p>
+                              
+                              {/* Stack trace */}
+                              {error.error_stack && (
+                                <pre className="p-2 bg-muted rounded text-xs overflow-x-auto max-h-24">
+                                  {truncate(error.error_stack, 300)}
+                                </pre>
                               )}
                             </div>
                           </CardContent>
