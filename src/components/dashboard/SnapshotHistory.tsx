@@ -20,6 +20,7 @@ import {
 import { format, addDays } from "date-fns";
 import { BUCKETS, getSnapshotById, type BucketId } from "@/lib/snapshots";
 import { useNavigate } from "react-router-dom";
+import { SnapshotDetailView } from "@/components/experience/SnapshotDetailView";
 
 interface SnapshotRecord {
   id: string;
@@ -162,9 +163,11 @@ function getHistoricalSnapshotVisual(startDate: Date, index: number): { emoji: s
 function WeekCard({
   record,
   index = 0,
+  onClick,
 }: {
   record: SnapshotRecord;
   index?: number;
+  onClick?: () => void;
 }) {
   const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
   const bucket = snapshot ? BUCKETS[snapshot.bucketId] : null;
@@ -182,7 +185,8 @@ function WeekCard({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`p-4 rounded-xl border transition-all ${
+      onClick={onClick}
+      className={`p-4 rounded-xl border transition-all cursor-pointer hover:border-primary/50 hover:bg-primary/5 active:scale-[0.98] ${
         isActive 
           ? "bg-primary/5 border-primary/30" 
           : "bg-card border-border"
@@ -201,9 +205,12 @@ function WeekCard({
           </p>
           <p className="text-xs text-muted-foreground">{dateRange}</p>
         </div>
-        <Badge variant="secondary" className={`text-xs shrink-0 ${statusInfo.colorClass}`}>
-          {statusInfo.label}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className={`text-xs shrink-0 ${statusInfo.colorClass}`}>
+            {statusInfo.label}
+          </Badge>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </div>
       </div>
 
       {/* Bucket & Focus - only show if we have actual snapshot data */}
@@ -235,20 +242,21 @@ function WeekCard({
         ))}
       </div>
 
-      {/* Footer: Days + XP */}
+      {/* Footer: Days + XP + Tap hint */}
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">
           {record.daysCompleted}/7 days
         </span>
-        {record.xpEarned > 0 && (
-          <span className="text-xs text-muted-foreground flex items-center gap-1">
-            <Zap className="w-3 h-3" />
-            +{record.xpEarned}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {record.xpEarned > 0 && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Zap className="w-3 h-3" />
+              +{record.xpEarned}
+            </span>
+          )}
+          <span className="text-xs text-primary/70">View details →</span>
+        </div>
       </div>
-
-      {/* No CTA in history view - this is for viewing only */}
     </motion.div>
   );
 }
@@ -406,6 +414,7 @@ function LockedView({ viewType, requiredCount }: { viewType: string; requiredCou
 export function SnapshotHistory({ sessions, className, isPaid = false, onStartNew }: SnapshotHistoryProps) {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [selectedRecord, setSelectedRecord] = useState<SnapshotRecord | null>(null);
 
   // Filter to only show sessions with meaningful data
   const validSessions = useMemo(() => 
@@ -529,6 +538,7 @@ export function SnapshotHistory({ sessions, className, isPaid = false, onStartNe
                   key={record.id}
                   record={record}
                   index={index}
+                  onClick={() => setSelectedRecord(record)}
                 />
               ))}
             </motion.div>
@@ -571,6 +581,16 @@ export function SnapshotHistory({ sessions, className, isPaid = false, onStartNe
           )}
         </AnimatePresence>
       </CardContent>
+
+      {/* Detail View Modal */}
+      <AnimatePresence>
+        {selectedRecord && (
+          <SnapshotDetailView
+            record={selectedRecord}
+            onClose={() => setSelectedRecord(null)}
+          />
+        )}
+      </AnimatePresence>
     </Card>
   );
 }
