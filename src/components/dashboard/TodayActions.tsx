@@ -186,22 +186,29 @@ export function TodayActions({
     setReviewBuildDoneToday(true);
   }, [buildUpdatedToday, reviewBuildStorageKey]);
 
-  // Read ask guide completion from localStorage on mount, or sync from prop
+  // Read ask guide completion from localStorage on mount
   useEffect(() => {
     if (!askGuideStorageKey) return;
     try {
-      setAskGuideDoneToday(localStorage.getItem(askGuideStorageKey) === "1");
+      const stored = localStorage.getItem(askGuideStorageKey) === "1";
+      setAskGuideDoneToday(stored);
     } catch {
       // ignore
     }
   }, [askGuideStorageKey]);
   
   // Sync from external prop when parent notifies a message was sent
+  // Also persist to localStorage so it survives re-renders
   useEffect(() => {
-    if (askGuideCompleted) {
+    if (askGuideCompleted && askGuideStorageKey) {
       setAskGuideDoneToday(true);
+      try {
+        localStorage.setItem(askGuideStorageKey, "1");
+      } catch {
+        // ignore
+      }
     }
-  }, [askGuideCompleted]);
+  }, [askGuideCompleted, askGuideStorageKey]);
 
   // Get today's content for display
   const getTodayInfo = () => {
