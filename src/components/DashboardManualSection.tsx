@@ -87,7 +87,7 @@ const MANUAL_SECTIONS: ManualSection[] = [
   {
     title: "The Controllables",
     icon: MessageCircle,
-    description: "Five AI guides—one for each Controllable. Available with Full Access.",
+    description: "Five guides—one for each Controllable. Available with Full Access.",
     howToUse: "Ask questions when stuck. Each guide gives action-focused advice, not therapy. Use them as tools."
   },
   {

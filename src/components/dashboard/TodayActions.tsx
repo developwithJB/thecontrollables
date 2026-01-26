@@ -335,7 +335,7 @@ export function TodayActions({
       if (isPaid) {
         actions.push({
           id: "ask-guide",
-          label: "Ask the AI Guide",
+          label: "Ask The Controllables",
           sublabel: "Get personalized guidance",
           icon: <Sparkles className="w-4 h-4" />,
           completed: false,

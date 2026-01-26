@@ -152,7 +152,7 @@ export default function Dashboard() {
   // Daily readings from database
   const { readings, isLoading: readingsLoading } = useDailyReadings();
 
-  // Build data for AI Guide
+  // Build data for The Controllables
   const { currentBuild, buildLoading } = useBuildAssessment();
 
   // Badges system
@@ -773,7 +773,7 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* AI Guide - Lazy loaded, Locked for free users */}
+              {/* The Controllables - Lazy loaded, Locked for free users */}
               {entitlementsLoading ? (
                 <AIGuideSkeleton />
               ) : (

@@ -306,7 +306,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
     // For free users: allow 1 message per day if they have an active snapshot
     if (!isPaid) {
       if (!hasActiveSnapshot) {
-        toast.error("Start your 7-Day Snapshot to unlock daily AI Guide messages!");
+        toast.error("Start your 7-Day Snapshot to unlock daily messages from The Controllables!");
         return;
       }
       if (freePreviewUsed) {
