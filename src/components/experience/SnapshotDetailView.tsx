@@ -289,20 +289,19 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
         await navigator.share({
           title: `My Snapshot: ${snapshot?.name || "Week Record"}`,
           text: shareText,
-          url: "https://thedashboard.agbcoaching.com",
         });
         toast.success("Shared! Thanks for spreading the word 🙏");
       } catch (error) {
         // User cancelled or error
         if ((error as Error).name !== "AbortError") {
           // Fallback to clipboard
-          await navigator.clipboard.writeText(shareText + "\nhttps://thedashboard.agbcoaching.com");
+          await navigator.clipboard.writeText(shareText);
           toast.success("Copied to clipboard — ready to share!");
         }
       }
     } else {
       // Fallback for browsers without Web Share API
-      await navigator.clipboard.writeText(shareText + "\nhttps://thedashboard.agbcoaching.com");
+      await navigator.clipboard.writeText(shareText);
       toast.success("Copied to clipboard — ready to share!");
     }
   };
