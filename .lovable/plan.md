@@ -1,153 +1,223 @@
 
-
-# Remove Daily Readings + Launch Readiness Cleanup
+# Subscription Pricing Migration: $9.99/month or $79.99/year
 
 ## Overview
-Removing the "Daily Readings" feature from the Guide tab and simplifying the dashboard experience. This also includes product owner recommendations for other items to clean up or improve before launch.
+Migrating from one-time payment ($29/$49) to a subscription model with two tiers:
+- **Monthly**: $9.99/month
+- **Yearly**: $79.99/year (saves ~33%)
+
+This requires changes to Stripe configuration, backend edge functions, frontend pricing logic, and all UI components displaying pricing.
 
 ---
 
-## Part 1: Remove Daily Readings
+## Step 1: Create Stripe Products and Prices
 
-### Why Remove?
-The Daily Readings feature duplicates functionality now handled by:
-- **The Controllables AI guides** (philosophy-grounded advice)
-- **RESET_DAYS content** in `resetContent.ts` (7-day journey structure)
-- **Snapshot system** (weekly themed content)
+New Stripe prices need to be created:
 
-Having a separate "Daily Readings" section adds cognitive load without unique value.
+| Plan | Price | Interval | Savings |
+|------|-------|----------|---------|
+| Monthly | $9.99 | month | - |
+| Yearly | $79.99 | year | ~$40/year (33% off) |
 
-### Files to Delete (4 files)
-
-| File | Reason |
-|------|--------|
-| `src/hooks/useDailyReadings.ts` | Primary data fetcher for the readings |
-| `src/components/ReadingCard.tsx` | UI for displaying reading cards |
-| `src/components/ReadingReview.tsx` | Reading review page component |
-
-### Files to Update (6 files)
-
-| File | Change |
-|------|--------|
-| `src/pages/Dashboard.tsx` | Remove `useDailyReadings` import and all ReadingCard rendering (lines 20, 50, 847-917, 934-997) |
-| `src/components/dashboard/TodayActions.tsx` | Remove `DailyReading` interface and reading-based `getTodayInfo()` logic (lines 28-35, 216-231) |
-| `src/components/dashboard/ResetProgressModule.tsx` | Remove `DailyReading` interface and reading-based logic (lines 22-29, 38, 182-195) |
-| `src/lib/entitlements.ts` | Remove `dailyReadings: true` from FREE_FEATURES (line 33) |
-| `src/components/DashboardManualSection.tsx` | Update "Today's Actions" description to remove "readings" mention (line 36) |
-| `docs/QA_REGRESSION_CHECKLIST.md` | Remove "Daily Readings list shows" checklist items (lines 106-108) |
-
-### Database
-The `daily_readings` table will remain in the database for historical integrity but won't be queried by the frontend.
+I'll use the Stripe tools to create a new product "The Dashboard - Full Access Subscription" with both pricing tiers.
 
 ---
 
-## Part 2: Product Owner Recommendations
+## Step 2: Update Pricing Configuration
 
-### 🟢 ADD These Before Launch
+**File: `src/lib/pricing.ts`**
 
-#### 1. Onboarding Completion Rate Tracking
-**Why:** No way to know if users finish onboarding or drop off
-**What:** Add analytics events at each onboarding step (Account Created → Assessment Done → Archetype Shown → Snapshot Selected → Day 1 Started)
+Replace the one-time pricing model with subscription tiers:
 
-#### 2. "What's New" Feature Announcement
-**Why:** Users returning after updates won't know about new features
-**What:** Simple changelog modal that shows once per version upgrade
+```text
+Before:
+- PRICE_IDS: { launch, regular }
+- getPricing(): returns one-time amounts ($29/$49)
+- isLaunchPeriod logic
 
-#### 3. Error Boundary Component
-**Why:** If the app crashes, users see a broken white screen
-**What:** Add a friendly error boundary that suggests refreshing or contacting support
-
-### 🔴 REMOVE These Before Launch
-
-#### 1. Main Mission Feature (Outdated)
-**Current state:** The "Main Mission" card in the dashboard duplicates the Snapshot focus system
-**Memory conflict:** DashboardManualSection still calls it "Main Mission" while other areas use "Quest" or "Focus"
-**Recommendation:** Either remove entirely OR rename to "Current Quest" and make it read-only (derived from active Snapshot)
-
-Files affected:
-- `src/pages/Dashboard.tsx` (mission edit dialog, lines 92-93)
-- `src/components/DashboardManualSection.tsx` (line 46-49)
-- `src/components/dashboard/MainQuestModule.tsx`
-
-#### 2. "Offline Triggers" Entitlement
-**Why:** The feature was removed per memory but entitlement reference remains
-**File:** `src/lib/entitlements.ts` line 32 - remove `offlineTriggers: true`
-
-#### 3. CompletedDayView Legacy Component
-**File:** `src/components/CompletedDayView.tsx`
-**Why:** Only used by ReadingCard.tsx which we're deleting
-
-### 🟡 SIMPLIFY These
-
-#### 1. Dashboard Manual Section
-**Current:** 11 sections with detailed explanations
-**Problem:** Overwhelming for new users, rarely read
-**Suggestion:** Collapse to 5 core items: Today's Actions, Snapshot, The Controllables, Your Build, Experience
-
-#### 2. Game Rules Section
-**Current:** 10 philosophy rules shown in the Guide tab
-**Problem:** Dense, competes with The Controllables for attention
-**Suggestion:** Move to Settings/About or reduce to 3 "Core Principles"
+After:
+- PRICE_IDS: { monthly, yearly }
+- getPricing(): returns subscription amounts
+- getYearlySavings(): calculate discount %
+- Remove launch period logic (no longer needed)
+```
 
 ---
 
-## Implementation Summary
+## Step 3: Update Edge Functions
 
-| Category | Files Deleted | Files Updated |
-|----------|---------------|---------------|
-| Daily Readings Removal | 3 | 6 |
-| Main Mission Cleanup | 0-1 | 2-3 |
-| Offline Triggers | 0 | 1 |
-| CompletedDayView | 1 | 0 |
-| **Total** | **4-5** | **9-10** |
+### `supabase/functions/create-checkout/index.ts`
+- Change `mode: "payment"` to `mode: "subscription"`
+- Accept `plan` parameter (monthly/yearly) from frontend
+- Remove launch/regular price logic
+- Use the new subscription price IDs
+
+### `supabase/functions/check-payment/index.ts`
+- Add `stripe.subscriptions.list()` check for active subscriptions
+- Return subscription status, plan type, and renewal date
+- Keep backward compatibility for existing one-time purchasers
+
+---
+
+## Step 4: Update Frontend Hook
+
+**File: `src/hooks/useEntitlements.ts`**
+
+```text
+Changes:
+- Remove isLaunchPeriod() and getPricing() duplicate logic
+- Add plan selection state to initiateCheckout(plan: 'monthly' | 'yearly')
+- Update response handling to include subscription info
+```
+
+---
+
+## Step 5: Update All Pricing UI Components
+
+### Components to Update
+
+| Component | Current Display | New Display |
+|-----------|-----------------|-------------|
+| `LockedOverlay.tsx` | "$29 one-time. $49 after March 1." | "$9.99/mo or $79.99/yr (save 33%)" |
+| `Day7Complete.tsx` | "Unlock Full Access - $29" | Plan selector + pricing |
+| `ResetProgressModule.tsx` | "Unlock for $29" | "Unlock Full Access" |
+| `AIGuidePanel.tsx` | LaunchCountdownBadge | Subscription pricing |
+| `LaunchCountdownBadge.tsx` | DELETE or repurpose | No longer needed |
+
+---
+
+## Step 6: Create Plan Selector Component
+
+**New File: `src/components/PlanSelector.tsx`**
+
+A reusable component for selecting monthly vs yearly:
+
+```text
+- Two plan cards side-by-side
+- Monthly: "$9.99/mo" 
+- Yearly: "$79.99/yr" with "Save 33%" badge
+- Visual highlight on yearly (recommended)
+- onSelect callback triggers checkout with plan type
+```
+
+---
+
+## Step 7: Update Tests
+
+### Unit Tests (`tests/unit/pricing.test.ts`)
+- Update to test new subscription pricing values
+- Remove launch period tests
+- Add yearly savings calculation tests
+
+### E2E Tests (`tests/e2e/pricing-rule.spec.ts`)
+- Update price expectations ($29/$49 → $9.99/$79.99)
+- Update text matching patterns
+- Test plan selection flow
+
+---
+
+## Implementation Files Summary
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/lib/pricing.ts` | REWRITE | New subscription pricing model |
+| `supabase/functions/create-checkout/index.ts` | REWRITE | Subscription mode + plan parameter |
+| `supabase/functions/check-payment/index.ts` | UPDATE | Add subscription status check |
+| `src/hooks/useEntitlements.ts` | UPDATE | Plan selection, remove duplicate logic |
+| `src/components/PlanSelector.tsx` | CREATE | New plan selection UI |
+| `src/components/experience/LockedOverlay.tsx` | UPDATE | New pricing display + plan selector |
+| `src/components/Day7Complete.tsx` | UPDATE | New pricing CTAs |
+| `src/components/dashboard/ResetProgressModule.tsx` | UPDATE | New pricing CTA |
+| `src/components/dashboard/AIGuidePanel.tsx` | UPDATE | New pricing display |
+| `src/components/LaunchCountdownBadge.tsx` | DELETE | No longer needed |
+| `tests/unit/pricing.test.ts` | UPDATE | New pricing expectations |
+| `tests/e2e/pricing-rule.spec.ts` | UPDATE | New pricing patterns |
 
 ---
 
 ## Technical Details
 
-### Dashboard.tsx Changes
+### New Pricing Configuration
 ```typescript
-// REMOVE these imports
-import { useDailyReadings } from "@/hooks/useDailyReadings";
-import { ReadingCard } from "@/components/ReadingCard";
+export const PRICE_IDS = {
+  monthly: "price_xxx", // Will be created via Stripe tool
+  yearly: "price_yyy",  // Will be created via Stripe tool
+} as const;
 
-// REMOVE the hook call
-const { readings } = useDailyReadings();
+export const PRICING = {
+  monthly: 9.99,
+  yearly: 79.99,
+  yearlyMonthlyEquivalent: 6.67, // $79.99/12
+  yearlySavingsPercent: 33,
+} as const;
 
-// REMOVE the entire "Daily Readings" sections (both active and inactive reset states)
+export const getPricing = () => ({
+  monthly: PRICING.monthly,
+  yearly: PRICING.yearly,
+  yearlySavingsPercent: PRICING.yearlySavingsPercent,
+});
 ```
 
-### TodayActions.tsx Changes
+### Create Checkout Request (Frontend)
 ```typescript
-// REMOVE DailyReading interface (lines 28-35)
-
-// SIMPLIFY getTodayInfo() to only use static content:
-const getTodayInfo = () => {
-  const staticContent = getDayContent(currentDay);
-  return {
-    emoji: staticContent.emoji,
-    controllable: staticContent.controllable,
-    chapter: staticContent.reading.chapter,
-  };
+const initiateCheckout = async (plan: 'monthly' | 'yearly') => {
+  const { data, error } = await supabase.functions.invoke("create-checkout", {
+    body: { plan }
+  });
+  // ...
 };
 ```
 
-### entitlements.ts Changes
+### Create Checkout Response (Backend)
 ```typescript
-export const FREE_FEATURES = {
-  sevenDayReset: true,
-  buildAssessment: true,
-  xpTracking: true,
-  timeCurrency: true,
-  integrityMeter: true,
-  // REMOVE: offlineTriggers: true,
-  // REMOVE: dailyReadings: true,
-} as const;
+// create-checkout will now:
+const priceId = plan === 'yearly' ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID;
+const session = await stripe.checkout.sessions.create({
+  mode: "subscription", // Changed from "payment"
+  line_items: [{ price: priceId, quantity: 1 }],
+  // ...
+});
+```
+
+### Check Payment Response (Backend)
+```typescript
+// check-payment will now return:
+{
+  isPaid: true,
+  subscriptionStatus: "active", // or "canceled", "past_due"
+  plan: "yearly", // or "monthly"
+  currentPeriodEnd: "2027-01-26T00:00:00Z",
+  source: "stripe"
+}
 ```
 
 ---
 
-## Post-Launch Consideration
+## Existing Purchaser Handling
 
-The `daily_readings` database table can be dropped in a future migration once you're confident the feature won't return. For now, leaving it preserves data and simplifies rollback if needed.
+Users who already purchased the one-time $29 or $49 will continue to have full access. The `check-payment` function will:
 
+1. First check `user_entitlements` table (existing behavior)
+2. Then check for active Stripe subscriptions (new)
+3. Finally check for completed one-time payments (existing behavior)
+
+This ensures no disruption for existing paid users.
+
+---
+
+## UI Messaging Examples
+
+### LockedOverlay
+> **Unlock Full Access**  
+> $9.99/mo or $79.99/yr  
+> ✨ Save 33% with yearly
+
+### Day7Complete  
+> **Ready for More?**  
+> Continue your journey with unlimited Snapshots and The Controllables.  
+> [Monthly $9.99/mo] [Yearly $79.99/yr - Save 33%]
+
+### AIGuidePanel Upgrade CTA
+> Come back tomorrow for another free message, or unlock unlimited access.  
+> [Unlock Full Access]  
+> Starting at $9.99/mo
