@@ -15,10 +15,14 @@ export function TrustDisclosure() {
           <div className="p-1.5 rounded-lg bg-accent/10 shrink-0 mt-0.5">
             <Bot className="w-4 h-4 text-accent" />
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            <span className="font-medium text-foreground">Not a chatbot.</span>{" "}
-            These guides are AI-powered, trained on The Controllables philosophy and behavior change best practices. They guide, not diagnose. They learn, not lecture.
-          </p>
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-foreground">
+              Not a chatbot. Not therapy.
+            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              These are focused guides trained on The Controllables philosophy and behavior change principles. They don't diagnose. They don't lecture. They help you choose the next right rep.
+            </p>
+          </div>
         </div>
       </div>
     </motion.section>

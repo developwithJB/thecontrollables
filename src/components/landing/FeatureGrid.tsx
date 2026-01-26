@@ -1,21 +1,21 @@
 import { motion } from "framer-motion";
-import { BarChart3, Sparkles, TrendingUp } from "lucide-react";
+import { BarChart3, Camera, History } from "lucide-react";
 
 const features = [
   {
     icon: BarChart3,
     title: "Your Build",
-    description: "We assess 5 life dimensions to map your current state and unlock specific recommendations.",
+    description: "Shows where you're depleted so you know what needs attention first.",
   },
   {
-    icon: Sparkles,
-    title: "Pattern Detection",
-    description: "The more you use it, the more it learns your triggers and what works for you.",
-  },
-  {
-    icon: TrendingUp,
+    icon: Camera,
     title: "Adaptive Snapshots",
-    description: "Weekly Snapshots evolve based on your lowest controllable and what changed.",
+    description: "Your Snapshots adjust to what you need most each week.",
+  },
+  {
+    icon: History,
+    title: "Quiet Proof",
+    description: "Your history becomes proof you can trust yourself again.",
   },
 ];
 
@@ -30,10 +30,10 @@ export function FeatureGrid() {
         className="max-w-md mx-auto"
       >
         <h2 className="font-display text-xl font-semibold text-center mb-2 text-foreground">
-          Adaptive Intelligence
+          This dashboard adapts to you.
         </h2>
         <p className="text-sm text-muted-foreground text-center mb-8">
-          This dashboard learns. It doesn't just track.
+          Not through notifications or noise — but through repetition.
         </p>
         
         <div className="grid gap-4">

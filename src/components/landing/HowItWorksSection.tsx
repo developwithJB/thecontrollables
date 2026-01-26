@@ -1,25 +1,32 @@
 import { motion } from "framer-motion";
-import { Calendar, Brain, Layers } from "lucide-react";
+import { Calendar, Brain, Camera, Layers } from "lucide-react";
 
 const steps = [
   {
     icon: Calendar,
     title: "Check In",
-    description: "A 5-minute daily ritual. Log how you're doing — The Dashboard is listening.",
+    description: "A 5-minute daily ritual. Log how the day went. No essays. No pressure.",
     color: "text-accent",
     bgColor: "bg-accent/10",
   },
   {
     icon: Brain,
     title: "Get Guided",
-    description: "Based on your Build, patterns, and history, The Controllables suggest what to focus on.",
+    description: "Based on your Build and patterns, The Dashboard suggests what to focus on this week.",
     color: "text-perspective",
     bgColor: "bg-perspective/10",
   },
   {
+    icon: Camera,
+    title: "Take a Snapshot",
+    description: "Each week is a Snapshot. Seven days. One theme. No perfection required.",
+    color: "text-wellness",
+    bgColor: "bg-wellness/10",
+  },
+  {
     icon: Layers,
-    title: "Stack Progress",
-    description: "Watch your weeks stack into a visual record of growth. The Dashboard remembers everything.",
+    title: "Stack Proof",
+    description: "Your weeks stack into a quiet record of effort. The Dashboard remembers — even when you don't.",
     color: "text-habit",
     bgColor: "bg-habit/10",
   },
@@ -36,7 +43,7 @@ export function HowItWorksSection() {
         className="max-w-md mx-auto"
       >
         <h2 className="font-display text-xl font-semibold text-center mb-8 text-foreground">
-          How It Learns You
+          How It Works
         </h2>
         
         <div className="space-y-4">
@@ -63,9 +70,6 @@ export function HowItWorksSection() {
             </motion.div>
           ))}
         </div>
-        
-        {/* Connection lines between steps */}
-        <div className="hidden sm:block absolute left-[2.75rem] top-[4.5rem] w-px h-[calc(100%-6rem)] bg-gradient-to-b from-accent via-perspective to-habit opacity-20" />
       </motion.div>
     </section>
   );
