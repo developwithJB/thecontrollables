@@ -45,6 +45,22 @@ export const getPricing = (launchEndDate: Date = DEFAULT_LAUNCH_END_DATE) => ({
 });
 
 /**
+ * Check if launch price is currently active
+ */
+export const isLaunchPriceActive = (): boolean => {
+  return isLaunchPeriod();
+};
+
+/**
+ * Get the number of days until launch price ends
+ */
+export const getDaysUntilLaunchEnd = (launchEndDate: Date = DEFAULT_LAUNCH_END_DATE): number => {
+  const now = getCurrentDate();
+  const diff = launchEndDate.getTime() - now.getTime();
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+};
+
+/**
  * Stripe price IDs (Production)
  */
 export const PRICE_IDS = {

@@ -158,6 +158,7 @@ const detectGuideFromMessage = (message: string): GuideType => {
 };
 
 const DAILY_MESSAGE_LIMIT = 25;
+const FREE_PREVIEW_LIMIT = 1; // Free users get 1 message to try
 
 export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild, onXpEarned, isPaid = true, onUpgrade, isCheckingOut = false }: AIGuidePanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -169,6 +170,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
   const [completedActionTexts, setCompletedActionTexts] = useState<Set<string>>(new Set());
   const [remainingMessages, setRemainingMessages] = useState<number>(DAILY_MESSAGE_LIMIT);
   const [limitReached, setLimitReached] = useState(false);
+  const [freePreviewUsed, setFreePreviewUsed] = useState(false);
   
   // One-time intro for AI operators
   const { hasSeenIntro, markAsSeen } = useAIOperatorIntro();
@@ -187,8 +189,24 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
   useEffect(() => {
     if (!isSessionLoading && sessionMessages.length > 0 && messages.length === 0) {
       setMessages(sessionMessages);
+      // If free user and they have existing messages, they've used their preview
+      if (!isPaid && sessionMessages.length > 0) {
+        setFreePreviewUsed(true);
+      }
     }
-  }, [isSessionLoading, sessionMessages, messages.length]);
+  }, [isSessionLoading, sessionMessages, messages.length, isPaid]);
+  
+  // Check localStorage for free user's daily preview usage
+  useEffect(() => {
+    if (!isPaid) {
+      const today = new Date().toISOString().split('T')[0];
+      const previewKey = `ai_guide_preview_${today}`;
+      const usedPreview = localStorage.getItem(previewKey);
+      if (usedPreview) {
+        setFreePreviewUsed(true);
+      }
+    }
+  }, [isPaid]);
 
   // Load completed actions (both count and action texts for deduplication)
   useEffect(() => {
@@ -280,6 +298,12 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
   const sendMessage = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
 
+    // For free users, check if they've used their preview
+    if (!isPaid && freePreviewUsed) {
+      toast.error("Preview limit reached. Upgrade for unlimited access!");
+      return;
+    }
+
     // Determine which guide should respond
     let respondingGuide: Guide;
     if (selectedGuide) {
@@ -357,6 +381,14 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
       setMessages(updatedMessages);
       
       saveSession(updatedMessages, respondingGuide.id);
+      
+      // For free users, mark preview as used after successful message
+      if (!isPaid) {
+        const today = new Date().toISOString().split('T')[0];
+        const previewKey = `ai_guide_preview_${today}`;
+        localStorage.setItem(previewKey, 'true');
+        setFreePreviewUsed(true);
+      }
     } catch (error) {
       console.error("AI chat error:", error);
       const fallbackGuide = respondingGuide || GUIDES[0];
@@ -519,24 +551,48 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
             transition={{ duration: 0.3 }}
           >
             <div className="px-5 pb-5 relative">
-              {/* Locked state for free users */}
-                  {!isPaid && (
-                <div className="flex flex-col items-center justify-center py-8 text-center" data-testid="ai-operators-locked">
+              {/* Preview mode for free users - show after they've used their free message */}
+              {!isPaid && freePreviewUsed && (
+                <div className="flex flex-col items-center justify-center py-6 text-center" data-testid="ai-operators-locked">
+                  {/* Show their conversation history first */}
+                  {messages.length > 0 && (
+                    <div className="w-full space-y-3 max-h-40 overflow-y-auto mb-4 pr-2 opacity-60">
+                      {messages.map((msg, idx) => {
+                        const messageGuide = msg.role === "assistant" ? getGuideById(msg.controllable) : null;
+                        return (
+                          <div
+                            key={idx}
+                            className={`p-3 rounded-xl text-sm ${
+                              msg.role === "user"
+                                ? "bg-primary/50 text-primary-foreground ml-8"
+                                : "bg-muted/50 text-foreground mr-8"
+                            }`}
+                          >
+                            {msg.role === "assistant" && messageGuide && (
+                              <span className="mr-2">{messageGuide.emoji}</span>
+                            )}
+                            {msg.content.split('→ ACTION:')[0].trim().substring(0, 100)}...
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  
                   <motion.div
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200, damping: 15 }}
                     className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center"
                   >
-                    <Lock className="w-5 h-5 text-primary/70" />
+                    <Sparkles className="w-5 h-5 text-primary" />
                   </motion.div>
                   
                   <h3 className="font-display font-semibold text-foreground mb-2">
-                    AI Companions
+                    You've tried the AI Companions!
                   </h3>
                   
-                  <p className="text-sm text-muted-foreground mb-4 max-w-xs whitespace-pre-line">
-                    {"Free includes the full 7-Day Reset.\n\nAI Companions unlock with Full Access."}
+                  <p className="text-sm text-muted-foreground mb-4 max-w-xs">
+                    Unlock unlimited conversations with all 5 Controllables to continue getting personalized guidance.
                   </p>
                   
                   <Button 
@@ -553,9 +609,55 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                     {isCheckingOut ? "Opening checkout..." : "Unlock Full Access"}
                   </Button>
                   
-                  {/* Launch countdown badge */}
                   <LaunchCountdownBadge variant="compact" className="mt-3" />
                 </div>
+              )}
+
+              {/* Preview mode for free users who haven't used their message yet */}
+              {!isPaid && !freePreviewUsed && (
+                <>
+                  <div className="bg-accent/10 border border-accent/20 rounded-lg p-3 mb-4">
+                    <p className="text-xs text-accent font-medium flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" /> Free Preview
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Try one message free today. Upgrade for unlimited access.
+                    </p>
+                  </div>
+                  
+                  {/* Input row for free preview */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder={selectedGuide ? `Ask ${selectedGuide.name}...` : "Try asking something..."}
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
+                      className="flex-1"
+                      disabled={isLoading}
+                    />
+                    <Button
+                      size="icon"
+                      onClick={() => sendMessage(input)}
+                      disabled={!input.trim() || isLoading}
+                      className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                    >
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  {/* Quick prompts */}
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {(selectedGuide ? selectedGuide.prompts.slice(0, 2) : GUIDES.slice(0, 3).map(g => g.prompts[0])).map((prompt) => (
+                      <button
+                        key={prompt}
+                        onClick={() => sendMessage(prompt)}
+                        className="text-xs px-2.5 py-1 rounded-full bg-muted hover:bg-muted/80 text-foreground transition-colors"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+                </>
               )}
 
               {/* Full functionality for paid users */}

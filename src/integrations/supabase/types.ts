@@ -920,8 +920,10 @@ export type Database = {
           covenant_accepted_at: string | null
           created_at: string
           current_day: number
+          foundation_level: number | null
           id: string
           invite_code: string | null
+          is_maintenance_mode: boolean | null
           journey_changed_at: string | null
           journey_id: string | null
           start_date: string
@@ -935,8 +937,10 @@ export type Database = {
           covenant_accepted_at?: string | null
           created_at?: string
           current_day?: number
+          foundation_level?: number | null
           id?: string
           invite_code?: string | null
+          is_maintenance_mode?: boolean | null
           journey_changed_at?: string | null
           journey_id?: string | null
           start_date?: string
@@ -950,8 +954,10 @@ export type Database = {
           covenant_accepted_at?: string | null
           created_at?: string
           current_day?: number
+          foundation_level?: number | null
           id?: string
           invite_code?: string | null
+          is_maintenance_mode?: boolean | null
           journey_changed_at?: string | null
           journey_id?: string | null
           start_date?: string
@@ -1146,6 +1152,7 @@ export type Database = {
           build_assessment_completed: boolean | null
           build_assessment_completed_at: string | null
           created_at: string
+          features_unlocked: Json | null
           first_action_completed_at: string | null
           first_action_type: string | null
           journey_controllable: string | null
@@ -1153,11 +1160,13 @@ export type Database = {
           onboarding_step: string | null
           simplified_mode_completed: boolean
           user_id: string
+          welcome_foundation_progress: Json | null
         }
         Insert: {
           build_assessment_completed?: boolean | null
           build_assessment_completed_at?: string | null
           created_at?: string
+          features_unlocked?: Json | null
           first_action_completed_at?: string | null
           first_action_type?: string | null
           journey_controllable?: string | null
@@ -1165,11 +1174,13 @@ export type Database = {
           onboarding_step?: string | null
           simplified_mode_completed?: boolean
           user_id: string
+          welcome_foundation_progress?: Json | null
         }
         Update: {
           build_assessment_completed?: boolean | null
           build_assessment_completed_at?: string | null
           created_at?: string
+          features_unlocked?: Json | null
           first_action_completed_at?: string | null
           first_action_type?: string | null
           journey_controllable?: string | null
@@ -1177,6 +1188,7 @@ export type Database = {
           onboarding_step?: string | null
           simplified_mode_completed?: boolean
           user_id?: string
+          welcome_foundation_progress?: Json | null
         }
         Relationships: []
       }

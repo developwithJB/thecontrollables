@@ -349,6 +349,73 @@ export function generateCustomFocus(
   };
 }
 
+// Get a recommended next Foundation based on user's build and what they just completed
+export function getRecommendedNextFoundation(
+  build: UserBuildCurrent | BuildScore | null,
+  assessmentHistory: BuildScore[] | undefined,
+  justCompletedJourneyId?: string
+): GuidedJourney {
+  // First, try to generate a personalized recommendation based on build scores
+  const customFocus = generateCustomFocus(build, assessmentHistory);
+  
+  // Get all available journeys
+  const allJourneys = [...GUIDED_JOURNEYS];
+  if (customFocus) {
+    allJourneys.push(customFocus);
+  }
+  
+  // Filter out the one they just completed (if any)
+  const availableJourneys = allJourneys.filter((j) => j.id !== justCompletedJourneyId);
+  
+  // If we have a custom focus and it's not the one they just did, recommend it
+  if (customFocus && customFocus.id !== justCompletedJourneyId) {
+    return customFocus;
+  }
+  
+  // Otherwise, pick a random one from the remaining journeys (excluding custom)
+  const standardJourneys = availableJourneys.filter((j) => !j.isCustom);
+  return standardJourneys[Math.floor(Math.random() * standardJourneys.length)] || getDefaultJourney();
+}
+
+// Get the maintenance mode daily action pool
+export function getMaintenanceModeTasks(): DailyAction[] {
+  // Collect all daily actions from all journeys
+  const allTasks: DailyAction[] = [];
+  
+  GUIDED_JOURNEYS.forEach((journey) => {
+    journey.dailyActions.forEach((action) => {
+      allTasks.push({
+        day: action.day,
+        task: action.task,
+        description: `${journey.emoji} ${action.description}`,
+      });
+    });
+  });
+  
+  // Also add tasks from custom focus options
+  Object.values(CUSTOM_FOCUS_CONFIG).forEach((config) => {
+    config.dailyActions.forEach((action) => {
+      allTasks.push({
+        day: action.day,
+        task: action.task,
+        description: `${config.emoji} ${action.description}`,
+      });
+    });
+  });
+  
+  return allTasks;
+}
+
+// Get a random maintenance mode task for today
+export function getMaintenanceTaskForToday(): DailyAction {
+  const allTasks = getMaintenanceModeTasks();
+  // Use date-based seeding for consistent task per day
+  const today = new Date();
+  const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+  const index = seed % allTasks.length;
+  return allTasks[index];
+}
+
 // Get journey ID for a custom focus (maps back to the standard journey for storage)
 export function getStandardJourneyForCustom(customJourneyId: string): string {
   const controllable = customJourneyId.replace("custom-", "");

@@ -81,6 +81,7 @@ const Reset = () => {
         startDate={activeSession.start_date}
         endDate={endDate}
         resetSessionId={activeSession.id}
+        completedJourneyId={activeSession.journey_id || undefined}
       />
     );
   }
@@ -112,6 +113,7 @@ const Reset = () => {
         startDate={activeSession.start_date}
         endDate={endDate}
         resetSessionId={activeSession.id}
+        completedJourneyId={activeSession.journey_id || undefined}
       />
     );
   }

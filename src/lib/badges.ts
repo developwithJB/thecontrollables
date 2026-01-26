@@ -9,7 +9,11 @@ export type BadgeKey =
   | "paused_reacting"
   | "completed_reset"
   | "protected_time"
-  | "asked_guidance";
+  | "asked_guidance"
+  | "foundation_explorer"
+  | "foundation_streak_2"
+  | "foundation_streak_3"
+  | "foundation_streak_5";
 
 export interface Badge {
   key: BadgeKey;
@@ -75,6 +79,34 @@ export const BADGES: Record<BadgeKey, Badge> = {
     name: "Asked for Guidance",
     meaning: "You didn't carry this alone.",
     trigger: "Engaged with 3+ different Controllables",
+  },
+  foundation_explorer: {
+    key: "foundation_explorer",
+    emoji: "🎓",
+    name: "Foundation Explorer",
+    meaning: "You learned the tools to build your life.",
+    trigger: "Completed the Welcome 7-Day Foundation",
+  },
+  foundation_streak_2: {
+    key: "foundation_streak_2",
+    emoji: "🔥",
+    name: "Double Down",
+    meaning: "Two foundations. Real momentum.",
+    trigger: "Completed 2 consecutive Foundations",
+  },
+  foundation_streak_3: {
+    key: "foundation_streak_3",
+    emoji: "⚡",
+    name: "Triple Threat",
+    meaning: "Three foundations. You're building something.",
+    trigger: "Completed 3 consecutive Foundations",
+  },
+  foundation_streak_5: {
+    key: "foundation_streak_5",
+    emoji: "🏆",
+    name: "Foundation Master",
+    meaning: "Five foundations. You've proven consistency.",
+    trigger: "Completed 5 consecutive Foundations",
   },
 };
 
