@@ -33,7 +33,7 @@ const MANUAL_SECTIONS: ManualSection[] = [
   {
     title: "Today's Actions",
     icon: ListChecks,
-    description: "Your daily checklist. A unified hub showing exactly what to do today—readings, time logs, and promises.",
+    description: "Your daily checklist. A unified hub showing exactly what to do today—time logs, promises, and Snapshot tasks.",
     howToUse: "Tap any item to open its tool directly. Complete each action to earn XP. The list evolves based on your Snapshot day."
   },
   {

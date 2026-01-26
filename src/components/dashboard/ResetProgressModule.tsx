@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { getDayContent, RESET_DAYS, COVENANT_TEXT, COVENANT_CHECKBOX_TEXT } from "@/lib/resetContent";
-import { CompletedDayView } from "@/components/CompletedDayView";
+
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { getPricing } from "@/hooks/useEntitlements";
 import { getJourneyById, getQuestTitleFromJourney } from "@/lib/guidedJourneys";
@@ -19,14 +19,6 @@ interface CompletedDay {
   release?: string | null;
 }
 
-interface DailyReading {
-  id: string;
-  day_number: number;
-  emoji: string;
-  controllable: string;
-  reading_chapter: string;
-  reading_text: string;
-}
 
 interface ResetProgressModuleProps {
   hasActiveSession: boolean;
@@ -35,7 +27,7 @@ interface ResetProgressModuleProps {
   currentDay: number;
   completedDays: CompletedDay[];
   todayAlreadyCompleted: boolean;
-  readings?: DailyReading[];
+  
   onStartReset?: (isPaid: boolean) => void;
   isStartingReset?: boolean;
   isPaid?: boolean;
@@ -148,7 +140,7 @@ export function ResetProgressModule({
   currentDay,
   completedDays,
   todayAlreadyCompleted,
-  readings = [],
+  
   onStartReset,
   isStartingReset = false,
   isPaid = false,
@@ -179,17 +171,8 @@ export function ResetProgressModule({
     setIsViewOpen(true);
   };
 
-  // Get day content - prefer database readings if available
+  // Get day content from static RESET_DAYS
   const getDayInfo = (dayNum: number) => {
-    const dbReading = readings.find((r) => r.day_number === dayNum);
-    if (dbReading) {
-      return {
-        emoji: dbReading.emoji,
-        controllable: dbReading.controllable,
-        chapter: dbReading.reading_chapter,
-        text: dbReading.reading_text,
-      };
-    }
     const staticContent = getDayContent(dayNum);
     return {
       emoji: staticContent.emoji,
@@ -778,13 +761,6 @@ export function ResetProgressModule({
         )}
       </AnimatePresence>
 
-      {/* Completed Day View Modal */}
-      <CompletedDayView
-        open={isViewOpen}
-        onOpenChange={setIsViewOpen}
-        dayData={selectedDay}
-        totalCompletedDays={completedDays.length}
-      />
     </motion.div>
   );
 }

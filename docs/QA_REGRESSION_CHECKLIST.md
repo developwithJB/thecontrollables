@@ -103,9 +103,7 @@
 
 - [ ] Game Rules section visible
 - [ ] Collapsible sections work
-- [ ] Daily Readings list shows
-- [ ] Completed days marked
-- [ ] Locked days show preview text
+- [ ] Dashboard Manual section visible
 - [ ] Book promo link works
 
 ---
