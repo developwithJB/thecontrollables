@@ -1,19 +1,39 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, Check } from "lucide-react";
+import { ChevronLeft, Check, Smartphone, Download } from "lucide-react";
 import { getDayContent } from "@/lib/resetContent";
 import { ProgressDots } from "./ProgressDots";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
+import { QuestCard } from "@/components/experience/QuestCard";
 
 interface ReadingReviewProps {
   dayNumber: number;
   completedDays: number;
   logDate: string;
+  activeQuest?: {
+    title: string;
+    duration_days: number;
+  } | null;
 }
 
-export const ReadingReview = ({ dayNumber, completedDays, logDate }: ReadingReviewProps) => {
+export const ReadingReview = ({ dayNumber, completedDays, logDate, activeQuest }: ReadingReviewProps) => {
   const content = getDayContent(dayNumber);
   const navigate = useNavigate();
+  const [showQuestCard, setShowQuestCard] = useState(false);
+
+  // Prepare today's reading for the QuestCard
+  const todayReading = {
+    controllable: content.controllable,
+    emoji: content.emoji,
+    quest_action: content.framingLine,
+  };
 
   // Format the log date nicely
   const formattedDate = new Date(logDate + "T00:00:00").toLocaleDateString("en-US", {
@@ -142,8 +162,33 @@ export const ReadingReview = ({ dayNumber, completedDays, logDate }: ReadingRevi
           </Button>
 
           <ProgressDots totalDays={7} currentDay={dayNumber} completedDays={completedDays} />
+
+          {/* Lock Screen / Print Card Button */}
+          <button
+            onClick={() => setShowQuestCard(true)}
+            className="w-full flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Smartphone className="w-4 h-4" />
+            <span>Download Focus Card</span>
+            <Download className="w-3.5 h-3.5" />
+          </button>
         </motion.div>
       </main>
+
+      {/* Quest Card Modal */}
+      <Dialog open={showQuestCard} onOpenChange={setShowQuestCard}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center font-display">Your Focus Card</DialogTitle>
+          </DialogHeader>
+          <QuestCard
+            activeQuest={activeQuest}
+            currentResetDay={dayNumber}
+            todayReading={todayReading}
+            onClose={() => setShowQuestCard(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };
