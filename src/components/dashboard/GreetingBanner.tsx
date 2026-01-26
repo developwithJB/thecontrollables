@@ -1,27 +1,13 @@
 import { motion } from "framer-motion";
-import { Flame, Zap, Target, Compass, ChevronRight, Pencil } from "lucide-react";
+import { Flame, Zap } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
-interface MainQuest {
-  id: string;
-  title: string;
-  duration_days: number;
-  ends_at: string | null;
-}
 
 interface GreetingBannerProps {
   userId?: string;
   totalXp: number;
   streakDays?: number;
   visitCount: number;
-  // Mission integration
-  activeQuest?: MainQuest | null;
-  onEditQuest?: () => void;
-  // Snapshot Focus integration
-  snapshotFocus?: string | null;
-  snapshotEmoji?: string | null;
-  onChangeSnapshot?: () => void;
 }
 
 export function GreetingBanner({ 
@@ -29,11 +15,6 @@ export function GreetingBanner({
   totalXp, 
   streakDays = 0, 
   visitCount,
-  activeQuest,
-  onEditQuest,
-  snapshotFocus,
-  snapshotEmoji,
-  onChangeSnapshot,
 }: GreetingBannerProps) {
   // Fetch user's display name from profiles
   const { data: profile } = useQuery({
@@ -64,11 +45,6 @@ export function GreetingBanner({
 
   // Calculate level from XP
   const level = Math.floor(totalXp / 500) + 1;
-
-  // Days remaining for quest
-  const questDaysRemaining = activeQuest?.ends_at 
-    ? Math.max(0, Math.ceil((new Date(activeQuest.ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-    : null;
 
   return (
     <motion.div
@@ -123,49 +99,6 @@ export function GreetingBanner({
           </div>
         </div>
       </div>
-
-      {/* Integrated Mission + Snapshot Focus row */}
-      {(activeQuest || snapshotFocus) && (
-        <div className="flex flex-col sm:flex-row gap-2">
-          {/* Mission pill */}
-          {activeQuest && (
-            <button
-              onClick={onEditQuest}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 
-                         hover:bg-primary/15 hover:border-primary/30 transition-all group text-left flex-1"
-            >
-              <Target className="w-4 h-4 text-primary shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Mission</p>
-                <p className="text-sm font-medium text-foreground truncate">{activeQuest.title}</p>
-              </div>
-              {questDaysRemaining !== null && (
-                <span className="text-xs text-muted-foreground shrink-0">{questDaysRemaining}d</span>
-              )}
-              <Pencil className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-            </button>
-          )}
-
-          {/* Snapshot Focus pill */}
-          {snapshotFocus && (
-            <button
-              onClick={onChangeSnapshot}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-border 
-                         hover:bg-muted hover:border-border/80 transition-all group text-left flex-1"
-            >
-              <Compass className="w-4 h-4 text-muted-foreground shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Snapshot Focus</p>
-                <p className="text-sm font-medium text-foreground truncate">
-                  {snapshotEmoji && <span className="mr-1">{snapshotEmoji}</span>}
-                  {snapshotFocus}
-                </p>
-              </div>
-              <ChevronRight className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-            </button>
-          )}
-        </div>
-      )}
 
       {/* Intentional check-in message for new users */}
       {visitCount <= 5 && (

@@ -539,26 +539,48 @@ export default function Dashboard() {
               transition={{ duration: 0.3 }}
               className="space-y-4"
             >
-              {/* Greeting Banner with streak/XP, user name, Mission & Snapshot Focus integrated */}
+              {/* Greeting Banner with streak/XP and user name */}
               <GreetingBanner
                 userId={user?.id}
                 totalXp={totalXp}
                 streakDays={completedDays.length}
                 visitCount={dashboardVisitCount}
-                activeQuest={activeQuest}
-                onEditQuest={() => {
-                  // Scroll to main quest module if exists or open edit mode
-                  const questModule = document.querySelector('[data-testid="main-quest-module"]');
-                  if (questModule) {
-                    questModule.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  }
-                }}
-                snapshotFocus={activeSession?.journey_id ? 
-                  getJourneyById(activeSession.journey_id)?.title : undefined}
-                snapshotEmoji={activeSession?.journey_id ? 
-                  getJourneyById(activeSession.journey_id)?.emoji : undefined}
-                onChangeSnapshot={() => setShowJourneySwitcher(true)}
               />
+
+              {/* Active Mission - moved above Today's Actions */}
+              {dashboardLoading ? (
+                <MainQuestSkeleton />
+              ) : !activeQuest ? (
+                <div data-testid="main-quest-module">
+                  <MainQuestModule
+                    activeQuest={activeQuest}
+                    onCreateQuest={handleCreateQuest}
+                    onUpdateQuest={handleUpdateQuest}
+                    onCompleteQuest={completeQuest}
+                    isCreating={isCreatingQuest}
+                    isUpdating={isUpdatingQuest}
+                    isCompleting={isCompletingQuest}
+                    disabled={!isAuthReady}
+                  />
+                </div>
+              ) : (
+                /* When quest exists, show minimal complete button */
+                <div data-testid="main-quest-module" className="p-4 rounded-xl bg-card border border-border">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>Active Mission:</span>
+                      <span className="font-medium text-foreground">{activeQuest.title}</span>
+                    </div>
+                    <button
+                      onClick={() => completeQuest(activeQuest.id)}
+                      disabled={isCompletingQuest}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      {isCompletingQuest ? "Completing..." : "Complete"}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Today's Actions - Unified interactive checklist with 7-day foundation */}
               {(resetLoading || dashboardLoading) ? (
@@ -601,42 +623,6 @@ export default function Dashboard() {
 
               {/* Build Entry Point - shows if user hasn't done assessment */}
               <BuildEntryPoint />
-
-              {/* Main Mission Module - only show when NO active quest (to create one) 
-                  or when user needs to edit/complete (shows condensed in greeting when active) */}
-              {dashboardLoading ? (
-                <MainQuestSkeleton />
-              ) : !activeQuest ? (
-                <div data-testid="main-quest-module">
-                  <MainQuestModule
-                    activeQuest={activeQuest}
-                    onCreateQuest={handleCreateQuest}
-                    onUpdateQuest={handleUpdateQuest}
-                    onCompleteQuest={completeQuest}
-                    isCreating={isCreatingQuest}
-                    isUpdating={isUpdatingQuest}
-                    isCompleting={isCompletingQuest}
-                    disabled={!isAuthReady}
-                  />
-                </div>
-              ) : (
-                /* When quest exists, show minimal complete button */
-                <div data-testid="main-quest-module" className="p-4 rounded-xl bg-card border border-border">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>Active Mission:</span>
-                      <span className="font-medium text-foreground">{activeQuest.title}</span>
-                    </div>
-                    <button
-                      onClick={() => completeQuest(activeQuest.id)}
-                      disabled={isCompletingQuest}
-                      className="text-xs text-primary hover:underline"
-                    >
-                      {isCompletingQuest ? "Completing..." : "Complete"}
-                    </button>
-                  </div>
-                </div>
-              )}
 
               {/* 7-Day Foundation Progress - only show when active session */}
               {activeSession && !isCompleted && !isExpired && (
