@@ -61,6 +61,7 @@ import {
 
 // Lazy load heavy components
 import { LazyAIGuidePanelWrapper } from "@/components/dashboard/LazyAIGuidePanel";
+import type { AIGuidePanelHandle } from "@/components/dashboard/AIGuidePanel";
 import {
   LazyActivityHistory,
   LazyMomentumDecay,
@@ -95,6 +96,7 @@ export default function Dashboard() {
   const timeCurrencyRef = useRef<TimeCurrencyModuleHandle>(null);
   const integrityRef = useRef<IntegrityMeterModuleHandle>(null);
   const buildRef = useRef<BuildOverviewModuleHandle>(null);
+  const aiGuidePanelRef = useRef<AIGuidePanelHandle>(null);
   
   // Track dashboard visits for conditional microcopy placement
   const dashboardVisitCount = useDashboardVisitCount();
@@ -630,8 +632,9 @@ export default function Dashboard() {
                   onOpenTimeLog={() => timeCurrencyRef.current?.openLogDialog()}
                   onOpenPromises={() => integrityRef.current?.openDetailDialog()}
                   onOpenAIGuide={() => {
-                    trackTabChange("guide");
-                    setActiveTab("guide");
+                    trackGuideInteraction("open");
+                    // Stay on dashboard tab and open The Controllables messenger
+                    aiGuidePanelRef.current?.open();
                   }}
                   onOpenBuild={() => buildRef.current?.openDetailDialog()}
                 />
@@ -779,6 +782,7 @@ export default function Dashboard() {
               ) : (
                 <div data-testid="ai-guide-panel">
                   <LazyAIGuidePanelWrapper
+                    ref={aiGuidePanelRef}
                     activeQuest={activeQuest}
                     totalXp={totalXp}
                     integrityScore={integrityScore}
