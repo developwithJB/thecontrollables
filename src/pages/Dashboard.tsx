@@ -169,6 +169,7 @@ export default function Dashboard() {
     totalXp,
     xpLogs,
     integrityScore,
+    integrityLogs,
     pendingPromises,
     createPromise,
     resolvePromise,
@@ -646,6 +647,9 @@ export default function Dashboard() {
                   hasActiveQuest={!!activeQuest}
                   todayTimeLogged={!!todayTimeLog}
                   pendingPromisesCount={pendingPromises.length}
+                  todayPromiseMade={integrityLogs.some((log) => 
+                    log.promised_at.startsWith(new Date().toISOString().split("T")[0])
+                  )}
                   todayXpEarned={xpLogs
                     .filter((log) => log.created_at.startsWith(new Date().toISOString().split("T")[0]))
                     .reduce((sum, log) => sum + log.amount, 0)}
