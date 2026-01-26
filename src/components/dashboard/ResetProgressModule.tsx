@@ -83,8 +83,8 @@ function JourneyDisplay({
             <Compass className="w-4 h-4 text-muted-foreground" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Select a Focus</p>
-            <p className="text-xs text-muted-foreground">Choose a direction for this reset</p>
+            <p className="text-sm font-medium text-foreground">Select a Snapshot</p>
+            <p className="text-xs text-muted-foreground">Choose your weekly focus</p>
           </div>
           <ChevronDown className="w-4 h-4 text-muted-foreground" />
         </button>
@@ -108,7 +108,7 @@ function JourneyDisplay({
             <Compass className="w-4 h-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <span className="text-xs text-muted-foreground">Focus</span>
+            <span className="text-xs text-muted-foreground">Snapshot Focus</span>
             <p className="text-sm font-medium text-foreground truncate">
               {journey.emoji} {journey.title}
             </p>
@@ -131,7 +131,7 @@ function JourneyDisplay({
           <Compass className="w-4 h-4 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <span className="text-xs text-muted-foreground">Focus</span>
+          <span className="text-xs text-muted-foreground">Snapshot Focus</span>
           <p className="text-sm font-medium text-foreground truncate">
             {journey.emoji} {journey.title}
           </p>
@@ -632,12 +632,11 @@ export function ResetProgressModule({
           </span>
         </div>
 
-        {/* Snapshot name display - simplified, no Focus selector */}
-        {currentJourneyId && (
-          <div className="mt-3 text-xs text-muted-foreground">
-            Snapshot Focus: {getJourneyById(currentJourneyId)?.emoji} {getJourneyById(currentJourneyId)?.title}
-          </div>
-        )}
+        {/* Snapshot Focus - clickable to open selector */}
+        <JourneyDisplay 
+          journeyId={currentJourneyId} 
+          onSwitchJourney={onSwitchJourney}
+        />
       </div>
 
       {/* Expandable day list */}
