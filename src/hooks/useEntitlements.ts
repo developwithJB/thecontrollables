@@ -175,6 +175,15 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
         throw new Error(error.message || "Failed to open customer portal");
       }
       
+      // Handle case where user has manual entitlement (no Stripe customer)
+      if (result?.error === "no_stripe_customer") {
+        toast.info("Manual Access Granted", {
+          description: result.message || "Your access was granted manually—no subscription to manage.",
+        });
+        setIsOpeningPortal(false);
+        return;
+      }
+      
       if (result?.error) {
         toast.error(result.error);
         setIsOpeningPortal(false);
