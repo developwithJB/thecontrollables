@@ -1,201 +1,153 @@
 
 
-# Making The Controllables Feel Distinct & Trained
+# Remove Daily Readings + Launch Readiness Cleanup
 
-## Problem
-While the AI prompts define personalities and core principles, the guides still feel like "ChatGPT with different instructions" rather than distinct characters trained on The Controllables philosophy. Users should feel like they're talking to 5 different entities with unique voices, memories, and specializations.
-
----
-
-## Solution: Three-Layer Enhancement
-
-### Layer 1: Deep Character Prompts
-Expand each guide's system prompt with:
-
-| Component | What It Does |
-|-----------|--------------|
-| **Signature phrases** | Recurring language only this guide uses |
-| **Speech patterns** | Sentence structure, rhythm, word choices |
-| **Philosophy excerpts** | Actual quotes/concepts from the book |
-| **What they notice** | What this guide picks up on that others miss |
-| **What they never do** | Boundaries that define the character |
-
-**Example enhancement for 🦉 Awareness:**
-```
-VOICE & STYLE:
-- Use short, observational sentences. "Notice that." "That's the thought." "What else is there?"
-- Never use motivational language like "You've got this!" or "I believe in you"
-- Refer to thoughts as "it" not "you" — "It's telling you X. But what's actually true?"
-- Signature phrase: "The gap between stimulus and response is yours."
-
-FROM THE CONTROLLABLES PHILOSOPHY:
-- "Awareness is the first controllable because you cannot change what you cannot see."
-- The practice of "Naming the weather" — labeling emotional states without judgment
-- The 2-second pause: the space where choice lives
-
-WHAT I NOTICE THAT OTHERS MISS:
-- When users are fused with their thoughts (saying "I am anxious" vs "I notice anxiety")
-- Reactive patterns they keep repeating without awareness
-- The gap between what they say and what they do
-```
-
-### Layer 2: Persistent Memory & Callbacks
-Enhance the existing `patternData` system to:
-
-| Feature | Implementation |
-|---------|----------------|
-| **Callback references** | "Last time, you said your mornings were the problem. Still true?" |
-| **Pattern recognition** | "This is the 3rd time you've mentioned sleep. Let's address that." |
-| **Progress acknowledgment** | "You kept your promise from Wednesday. That's the rep." |
-| **Favorite guide tracking** | Know which guide they return to most |
-
-**Database enhancement:**
-- Add `user_patterns` table with structured insights:
-  - `recurring_themes` (array of topics)
-  - `completed_actions` summary
-  - `breakthrough_moments` (when they reported success)
-  - `preferred_controllable`
-
-### Layer 3: Controllable-Specific Response Templates
-Create structured response patterns that each guide follows:
-
-**🦉 Awareness pattern:**
-```
-1. Mirror back what they said (1 line)
-2. Name the weather — what emotion/thought is active
-3. Separate observation from interpretation
-4. → ACTION: A pause-and-notice exercise
-```
-
-**🦈 Habit pattern:**
-```
-1. Acknowledge briefly (no dwelling)
-2. Identify the broken/missing rep
-3. Shrink the ask to something absurdly small
-4. → ACTION: The smallest possible next rep
-```
+## Overview
+Removing the "Daily Readings" feature from the Guide tab and simplifying the dashboard experience. This also includes product owner recommendations for other items to clean up or improve before launch.
 
 ---
 
-## Implementation Plan
+## Part 1: Remove Daily Readings
 
-### Phase 1: Enhance System Prompts
-**File:** `supabase/functions/ai-chat/index.ts`
+### Why Remove?
+The Daily Readings feature duplicates functionality now handled by:
+- **The Controllables AI guides** (philosophy-grounded advice)
+- **RESET_DAYS content** in `resetContent.ts` (7-day journey structure)
+- **Snapshot system** (weekly themed content)
 
-Update each `CONTROLLABLE_PROMPTS` entry with:
-- Expanded voice & style guidelines (3x current detail)
-- Signature phrases and forbidden phrases
-- Philosophy excerpts from The Controllables
-- Specific response structure
+Having a separate "Daily Readings" section adds cognitive load without unique value.
 
-**Size:** ~150 additional lines per guide
+### Files to Delete (4 files)
 
-### Phase 2: Add Book Content Library
-**New file:** `supabase/functions/ai-chat/controllables-knowledge.ts`
+| File | Reason |
+|------|--------|
+| `src/hooks/useDailyReadings.ts` | Primary data fetcher for the readings |
+| `src/components/ReadingCard.tsx` | UI for displaying reading cards |
+| `src/components/ReadingReview.tsx` | Reading review page component |
 
-Create a knowledge base of:
-- Key quotes from The Controllables book
-- Core frameworks (The 5 Controllables model, the rep system, etc.)
-- Example scenarios and how each guide would handle them
-- Common user patterns and recommended responses
+### Files to Update (6 files)
 
-This gets injected into prompts dynamically based on detected themes.
+| File | Change |
+|------|--------|
+| `src/pages/Dashboard.tsx` | Remove `useDailyReadings` import and all ReadingCard rendering (lines 20, 50, 847-917, 934-997) |
+| `src/components/dashboard/TodayActions.tsx` | Remove `DailyReading` interface and reading-based `getTodayInfo()` logic (lines 28-35, 216-231) |
+| `src/components/dashboard/ResetProgressModule.tsx` | Remove `DailyReading` interface and reading-based logic (lines 22-29, 38, 182-195) |
+| `src/lib/entitlements.ts` | Remove `dailyReadings: true` from FREE_FEATURES (line 33) |
+| `src/components/DashboardManualSection.tsx` | Update "Today's Actions" description to remove "readings" mention (line 36) |
+| `docs/QA_REGRESSION_CHECKLIST.md` | Remove "Daily Readings list shows" checklist items (lines 106-108) |
 
-### Phase 3: Enhance Pattern Memory
-**Update:** `src/hooks/useGuideSession.ts`
+### Database
+The `daily_readings` table will remain in the database for historical integrity but won't be queried by the frontend.
 
-Improve the pattern analysis to track:
-- Frequency of themes (not just presence)
-- Successful action completions (from `completed_actions` table)
-- Time patterns (when they usually reach out)
-- Emotional arc across sessions
+---
 
-### Phase 4: Add Callback References
-**Update:** `supabase/functions/ai-chat/index.ts`
+## Part 2: Product Owner Recommendations
 
-Expand the `patternData` section of the prompt to include:
-- Specific past action items they completed
-- Themes they've made progress on
-- Direct references to previous conversations
+### 🟢 ADD These Before Launch
+
+#### 1. Onboarding Completion Rate Tracking
+**Why:** No way to know if users finish onboarding or drop off
+**What:** Add analytics events at each onboarding step (Account Created → Assessment Done → Archetype Shown → Snapshot Selected → Day 1 Started)
+
+#### 2. "What's New" Feature Announcement
+**Why:** Users returning after updates won't know about new features
+**What:** Simple changelog modal that shows once per version upgrade
+
+#### 3. Error Boundary Component
+**Why:** If the app crashes, users see a broken white screen
+**What:** Add a friendly error boundary that suggests refreshing or contacting support
+
+### 🔴 REMOVE These Before Launch
+
+#### 1. Main Mission Feature (Outdated)
+**Current state:** The "Main Mission" card in the dashboard duplicates the Snapshot focus system
+**Memory conflict:** DashboardManualSection still calls it "Main Mission" while other areas use "Quest" or "Focus"
+**Recommendation:** Either remove entirely OR rename to "Current Quest" and make it read-only (derived from active Snapshot)
+
+Files affected:
+- `src/pages/Dashboard.tsx` (mission edit dialog, lines 92-93)
+- `src/components/DashboardManualSection.tsx` (line 46-49)
+- `src/components/dashboard/MainQuestModule.tsx`
+
+#### 2. "Offline Triggers" Entitlement
+**Why:** The feature was removed per memory but entitlement reference remains
+**File:** `src/lib/entitlements.ts` line 32 - remove `offlineTriggers: true`
+
+#### 3. CompletedDayView Legacy Component
+**File:** `src/components/CompletedDayView.tsx`
+**Why:** Only used by ReadingCard.tsx which we're deleting
+
+### 🟡 SIMPLIFY These
+
+#### 1. Dashboard Manual Section
+**Current:** 11 sections with detailed explanations
+**Problem:** Overwhelming for new users, rarely read
+**Suggestion:** Collapse to 5 core items: Today's Actions, Snapshot, The Controllables, Your Build, Experience
+
+#### 2. Game Rules Section
+**Current:** 10 philosophy rules shown in the Guide tab
+**Problem:** Dense, competes with The Controllables for attention
+**Suggestion:** Move to Settings/About or reduce to 3 "Core Principles"
+
+---
+
+## Implementation Summary
+
+| Category | Files Deleted | Files Updated |
+|----------|---------------|---------------|
+| Daily Readings Removal | 3 | 6 |
+| Main Mission Cleanup | 0-1 | 2-3 |
+| Offline Triggers | 0 | 1 |
+| CompletedDayView | 1 | 0 |
+| **Total** | **4-5** | **9-10** |
 
 ---
 
 ## Technical Details
 
-### Updated Prompt Structure
+### Dashboard.tsx Changes
 ```typescript
-const CONTROLLABLE_PROMPTS = {
-  awareness: `
-    [IDENTITY]
-    You are the Owl 🦉 — the Awareness Operator.
-    
-    [VOICE]
-    - Short sentences. Observational.
-    - "Notice that." "What else?" "That's one story."
-    - Never: motivation, cheerleading, platitudes
-    
-    [PHILOSOPHY]
-    From The Controllables:
-    "${AWARENESS_QUOTES[random]}"
-    
-    [RESPONSE PATTERN]
-    1. Mirror (1 line)
-    2. Name the weather
-    3. Separate fact from story
-    4. → ACTION: A pause exercise
-    
-    [BOUNDARIES]
-    - Don't diagnose
-    - Don't dwell on problems
-    - Always end with action
-  `
-}
+// REMOVE these imports
+import { useDailyReadings } from "@/hooks/useDailyReadings";
+import { ReadingCard } from "@/components/ReadingCard";
+
+// REMOVE the hook call
+const { readings } = useDailyReadings();
+
+// REMOVE the entire "Daily Readings" sections (both active and inactive reset states)
 ```
 
-### Pattern Memory Enhancement
+### TodayActions.tsx Changes
 ```typescript
-// Enhanced patternData in prompt
-[MEMORY - Reference naturally, don't force]
-- Sessions with you: ${count}
-- Their recurring themes: ${themes.join(', ')}
-- Actions they completed: ${completedActions.slice(0, 3)}
-- Last session: "They mentioned ${lastTopics}. Follow up if relevant."
-- Build weak spot: ${lowestControllable} — consider suggesting related actions
+// REMOVE DailyReading interface (lines 28-35)
+
+// SIMPLIFY getTodayInfo() to only use static content:
+const getTodayInfo = () => {
+  const staticContent = getDayContent(currentDay);
+  return {
+    emoji: staticContent.emoji,
+    controllable: staticContent.controllable,
+    chapter: staticContent.reading.chapter,
+  };
+};
+```
+
+### entitlements.ts Changes
+```typescript
+export const FREE_FEATURES = {
+  sevenDayReset: true,
+  buildAssessment: true,
+  xpTracking: true,
+  timeCurrency: true,
+  integrityMeter: true,
+  // REMOVE: offlineTriggers: true,
+  // REMOVE: dailyReadings: true,
+} as const;
 ```
 
 ---
 
-## Example: Before & After
+## Post-Launch Consideration
 
-### Before (Generic)
-> User: "I keep procrastinating on my work project"
-> 
-> Owl: "Procrastination often stems from deeper concerns. What specifically about this project makes you hesitate? Let's identify what's true versus what's fear.
-> 
-> → ACTION: Write down one task you've been avoiding."
-
-### After (Distinctive)
-> User: "I keep procrastinating on my work project"
-> 
-> Owl 🦉: "Notice that. You said 'keep.' This isn't new.
-> 
-> What's the thought when you sit down to work? Name it. Not the whole story — just the first thought.
-> 
-> The gap between 'I should work' and 'I open Twitter' — that's where the pattern lives. You can't change what you don't see.
-> 
-> → ACTION: Next time the avoidance hits, pause for 2 seconds. Just name the thought: 'Ah, that's the avoidance.' Don't fight it. Just see it."
-
----
-
-## Summary
-
-| Change | Impact |
-|--------|--------|
-| Deeper character prompts | Each guide sounds distinctly different |
-| Book content integration | Responses feel rooted in actual philosophy |
-| Pattern callbacks | Users feel "remembered" and understood |
-| Response templates | Consistent character behavior across sessions |
-| Forbidden phrases | Prevents generic AI-speak |
-
-This transforms "5 AI chatbots with different names" into "5 distinct guides with their own voices, trained on The Controllables philosophy, who remember your journey."
+The `daily_readings` database table can be dropped in a future migration once you're confident the feature won't return. For now, leaving it preserves data and simplifies rollback if needed.
 
