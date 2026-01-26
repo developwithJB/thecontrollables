@@ -252,7 +252,7 @@ export function TodayActions({
         <BookOpen className="w-4 h-4" />
       ),
       completed: todayResetCompleted,
-      timeEstimate: "5 min",
+      timeEstimate: "2 min",
       expandable: true,
       action: todayResetCompleted ? handleReviewReading : handleContinueCheckin,
     });
