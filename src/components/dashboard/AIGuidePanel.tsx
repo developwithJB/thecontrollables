@@ -25,6 +25,7 @@ interface AIGuidePanelProps {
   isPaid?: boolean;
   onUpgrade?: () => void;
   isCheckingOut?: boolean;
+  hasActiveSnapshot?: boolean; // Whether user has an active 7-day snapshot
 }
 
 interface Message {
@@ -160,7 +161,7 @@ const detectGuideFromMessage = (message: string): GuideType => {
 const DAILY_MESSAGE_LIMIT = 25;
 const FREE_PREVIEW_LIMIT = 1; // Free users get 1 message to try
 
-export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild, onXpEarned, isPaid = true, onUpgrade, isCheckingOut = false }: AIGuidePanelProps) {
+export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild, onXpEarned, isPaid = true, onUpgrade, isCheckingOut = false, hasActiveSnapshot = false }: AIGuidePanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedGuide, setSelectedGuide] = useState<Guide | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -197,13 +198,17 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
   }, [isSessionLoading, sessionMessages, messages.length, isPaid]);
   
   // Check localStorage for free user's daily preview usage
+  // Free users with active snapshot get 1 free message per day
   useEffect(() => {
     if (!isPaid) {
       const today = new Date().toISOString().split('T')[0];
-      const previewKey = `ai_guide_preview_${today}`;
-      const usedPreview = localStorage.getItem(previewKey);
-      if (usedPreview) {
+      const previewKey = `ai_guide_daily_${today}`;
+      const usedDailyMessage = localStorage.getItem(previewKey);
+      if (usedDailyMessage) {
         setFreePreviewUsed(true);
+      } else {
+        // Reset for new day - allow new message
+        setFreePreviewUsed(false);
       }
     }
   }, [isPaid]);
@@ -298,10 +303,16 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
   const sendMessage = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
 
-    // For free users, check if they've used their preview
-    if (!isPaid && freePreviewUsed) {
-      toast.error("Preview limit reached. Upgrade for unlimited access!");
-      return;
+    // For free users: allow 1 message per day if they have an active snapshot
+    if (!isPaid) {
+      if (!hasActiveSnapshot) {
+        toast.error("Start your 7-Day Snapshot to unlock daily AI Guide messages!");
+        return;
+      }
+      if (freePreviewUsed) {
+        toast.error("Daily message used. Come back tomorrow or upgrade for unlimited!");
+        return;
+      }
     }
 
     // Determine which guide should respond
@@ -382,10 +393,10 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
       
       saveSession(updatedMessages, respondingGuide.id);
       
-      // For free users, mark preview as used after successful message
-      if (!isPaid) {
+      // For free users, mark daily message as used after successful message
+      if (!isPaid && hasActiveSnapshot) {
         const today = new Date().toISOString().split('T')[0];
-        const previewKey = `ai_guide_preview_${today}`;
+        const previewKey = `ai_guide_daily_${today}`;
         localStorage.setItem(previewKey, 'true');
         setFreePreviewUsed(true);
       }

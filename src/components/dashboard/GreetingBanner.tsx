@@ -108,32 +108,38 @@ export function GreetingBanner({
             <span className="text-sm font-medium text-foreground">Lv {level}</span>
           </div>
 
-          {/* Mission indicator - clickable */}
+          {/* Mission indicator - clickable with tooltip */}
           {missionTitle && (
             <button
               onClick={onMissionClick}
-              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+              className="flex items-center gap-1.5 hover:bg-primary/10 px-2 py-1 -mx-1 rounded-lg transition-colors group"
+              title={`Mission: ${missionTitle}`}
             >
               <div className="p-1 rounded-lg bg-primary/10">
                 <Target className="w-4 h-4 text-primary" />
               </div>
-              <span className="text-sm font-medium text-foreground truncate max-w-[120px]">
-                {missionTitle}
+              <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                Mission
               </span>
             </button>
           )}
 
-          {/* Snapshot Focus indicator - clickable */}
+          {/* Snapshot Focus indicator - clickable with tooltip */}
           {snapshotFocus && (
             <button
               onClick={onSnapshotClick}
-              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+              className="flex items-center gap-1.5 hover:bg-muted px-2 py-1 -mx-1 rounded-lg transition-colors group"
+              title={`Focus: ${snapshotEmoji} ${snapshotFocus}`}
             >
               <div className="p-1 rounded-lg bg-muted">
-                <Compass className="w-4 h-4 text-muted-foreground" />
+                {snapshotEmoji ? (
+                  <span className="text-sm">{snapshotEmoji}</span>
+                ) : (
+                  <Compass className="w-4 h-4 text-muted-foreground" />
+                )}
               </div>
-              <span className="text-sm font-medium text-foreground truncate max-w-[120px]">
-                {snapshotEmoji} {snapshotFocus}
+              <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                Focus
               </span>
             </button>
           )}
