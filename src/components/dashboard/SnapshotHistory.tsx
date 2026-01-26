@@ -140,13 +140,31 @@ function getPrimaryBucket(records: SnapshotRecord[]): { id: BucketId; count: num
   return top ? { id: top[0] as BucketId, count: top[1] } : null;
 }
 
+// Generate a unique visual based on week number for historical snapshots without journey data
+function getHistoricalSnapshotVisual(startDate: Date, index: number): { emoji: string; name: string } {
+  const weekOfYear = Math.ceil((startDate.getTime() - new Date(startDate.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000));
+  const month = startDate.getMonth();
+  
+  // Cycle through visual variety based on week
+  const visuals = [
+    { emoji: "📝", name: "Week Record" },
+    { emoji: "✨", name: "Progress Week" },
+    { emoji: "🎯", name: "Focus Week" },
+    { emoji: "💪", name: "Commitment Week" },
+    { emoji: "🌟", name: "Growth Week" },
+    { emoji: "🔥", name: "Momentum Week" },
+  ];
+  
+  return visuals[(weekOfYear + index) % visuals.length];
+}
+
 // Week View: Snapshot Card (the unit of work)
 function WeekCard({
   record,
-  onContinue,
+  index = 0,
 }: {
   record: SnapshotRecord;
-  onContinue?: () => void;
+  index?: number;
 }) {
   const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
   const bucket = snapshot ? BUCKETS[snapshot.bucketId] : null;
@@ -154,6 +172,11 @@ function WeekCard({
   const startDate = new Date(record.startDate);
   const dateRange = `${format(startDate, "MMM d")} - ${format(addDays(startDate, 6), "d")}`;
   const isActive = record.status === "active";
+  
+  // For historical snapshots without journey data, generate unique visuals
+  const historicalVisual = !snapshot ? getHistoricalSnapshotVisual(startDate, index) : null;
+  const displayEmoji = snapshot?.emoji || historicalVisual?.emoji || "📅";
+  const displayName = snapshot?.name || historicalVisual?.name || "Week Record";
 
   return (
     <motion.div
@@ -170,11 +193,11 @@ function WeekCard({
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
           isActive ? "bg-primary/20" : "bg-muted"
         }`}>
-          <span className="text-xl">{snapshot?.emoji || "📅"}</span>
+          <span className="text-xl">{displayEmoji}</span>
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-medium text-foreground truncate">
-            {snapshot?.name || "7-Day Snapshot"}
+            {displayName}
           </p>
           <p className="text-xs text-muted-foreground">{dateRange}</p>
         </div>
@@ -183,7 +206,7 @@ function WeekCard({
         </Badge>
       </div>
 
-      {/* Bucket & Focus */}
+      {/* Bucket & Focus - only show if we have actual snapshot data */}
       {bucket && (
         <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
           <span>{bucket.emoji} {bucket.name}</span>
@@ -501,11 +524,11 @@ export function SnapshotHistory({ sessions, className, isPaid = false, onStartNe
               exit={{ opacity: 0 }}
               className="space-y-3"
             >
-              {sortedWeeks.map((record) => (
+              {sortedWeeks.map((record, index) => (
                 <WeekCard
                   key={record.id}
                   record={record}
-                  onContinue={record.status === "active" ? handleContinue : undefined}
+                  index={index}
                 />
               ))}
             </motion.div>
