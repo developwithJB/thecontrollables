@@ -382,6 +382,52 @@ Deno.serve(async (req) => {
           completedAction: usersWithCompletedAction,
         };
 
+        // Onboarding funnel: Account Created → Assessment → Archetype → Snapshot → Day 1
+        const { data: onboardingEvents } = await adminClient
+          .from("app_events")
+          .select("event_name, user_id")
+          .eq("event_type", "onboarding")
+          .gte("created_at", last7d)
+          .not("user_id", "is", null);
+
+        const onboardingUserSets = {
+          accountCreated: new Set<string>(),
+          assessmentCompleted: new Set<string>(),
+          archetypeViewed: new Set<string>(),
+          snapshotSelected: new Set<string>(),
+          day1Started: new Set<string>(),
+        };
+
+        onboardingEvents?.forEach(e => {
+          if (!e.user_id) return;
+          switch (e.event_name) {
+            case "account_created":
+              onboardingUserSets.accountCreated.add(e.user_id);
+              break;
+            case "assessment_completed":
+            case "assessment_skipped":
+              onboardingUserSets.assessmentCompleted.add(e.user_id);
+              break;
+            case "archetype_viewed":
+              onboardingUserSets.archetypeViewed.add(e.user_id);
+              break;
+            case "snapshot_selected":
+              onboardingUserSets.snapshotSelected.add(e.user_id);
+              break;
+            case "day1_started":
+              onboardingUserSets.day1Started.add(e.user_id);
+              break;
+          }
+        });
+
+        const onboardingFunnel = {
+          accountCreated: onboardingUserSets.accountCreated.size,
+          assessment: onboardingUserSets.assessmentCompleted.size,
+          archetype: onboardingUserSets.archetypeViewed.size,
+          snapshot: onboardingUserSets.snapshotSelected.size,
+          day1: onboardingUserSets.day1Started.size,
+        };
+
         // Drop-off points (pages with high exits)
         const { data: allPageViews } = await adminClient
           .from("page_views")
@@ -431,6 +477,7 @@ Deno.serve(async (req) => {
             retentionRate,
             featureAdoption,
             conversionFunnel,
+            onboardingFunnel,
             dropOffPoints,
           }
         }), {

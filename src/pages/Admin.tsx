@@ -149,6 +149,13 @@ interface AnalyticsSummary {
     dashboard: number;
     completedAction: number;
   };
+  onboardingFunnel: {
+    accountCreated: number;
+    assessment: number;
+    archetype: number;
+    snapshot: number;
+    day1: number;
+  };
   dropOffPoints: { path: string; count: number; percentage: number }[];
 }
 
@@ -667,6 +674,53 @@ export default function Admin() {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Onboarding Funnel */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  🚀 Onboarding Funnel (7d)
+                </CardTitle>
+                <CardDescription>Track new user progression through onboarding steps</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between gap-2 overflow-x-auto">
+                  {[
+                    { label: "Account Created", value: summary?.onboardingFunnel?.accountCreated || 0, color: "bg-blue-100 dark:bg-blue-900/30" },
+                    { label: "Assessment", value: summary?.onboardingFunnel?.assessment || 0, color: "bg-purple-100 dark:bg-purple-900/30" },
+                    { label: "Archetype", value: summary?.onboardingFunnel?.archetype || 0, color: "bg-pink-100 dark:bg-pink-900/30" },
+                    { label: "Snapshot", value: summary?.onboardingFunnel?.snapshot || 0, color: "bg-orange-100 dark:bg-orange-900/30" },
+                    { label: "Day 1 Started", value: summary?.onboardingFunnel?.day1 || 0, color: "bg-green-100 dark:bg-green-900/30" },
+                  ].map((step, i, arr) => (
+                    <div key={step.label} className="flex items-center gap-2 min-w-0">
+                      <div className={`flex-shrink-0 p-4 rounded-lg ${step.color} text-center min-w-[100px]`}>
+                        <div className="text-xl font-bold">{step.value}</div>
+                        <div className="text-xs text-muted-foreground whitespace-nowrap">{step.label}</div>
+                        {i > 0 && arr[i-1].value > 0 && (
+                          <div className="text-xs text-primary font-medium mt-1">
+                            {Math.round((step.value / arr[i-1].value) * 100)}%
+                          </div>
+                        )}
+                      </div>
+                      {i < arr.length - 1 && (
+                        <span className="text-muted-foreground text-lg flex-shrink-0">→</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {/* Overall conversion rate */}
+                {(summary?.onboardingFunnel?.accountCreated || 0) > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Overall Completion Rate</span>
+                      <span className="font-semibold text-primary">
+                        {Math.round(((summary?.onboardingFunnel?.day1 || 0) / (summary?.onboardingFunnel?.accountCreated || 1)) * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
