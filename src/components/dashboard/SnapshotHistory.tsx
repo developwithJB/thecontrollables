@@ -38,11 +38,11 @@ type ViewMode = "week" | "month" | "year";
 
 // Generate color based on completion percentage
 function getBrickColor(completionRate: number, bucketId?: BucketId): string {
-  if (completionRate === 0) return "bg-muted";
-  if (completionRate < 0.3) return "bg-red-400/60 dark:bg-red-500/40";
-  if (completionRate < 0.7) return "bg-amber-400/60 dark:bg-amber-500/40";
-  if (completionRate < 1) return "bg-emerald-400/60 dark:bg-emerald-500/40";
-  return "bg-primary dark:bg-primary";
+  if (completionRate === 0) return "bg-muted text-muted-foreground";
+  if (completionRate < 0.3) return "bg-red-500/80 dark:bg-red-400/70 text-white dark:text-red-50";
+  if (completionRate < 0.7) return "bg-amber-500/80 dark:bg-amber-400/70 text-white dark:text-amber-50";
+  if (completionRate < 1) return "bg-emerald-500/80 dark:bg-emerald-400/70 text-white dark:text-emerald-50";
+  return "bg-primary text-primary-foreground";
 }
 
 // Single brick component representing a 7-day snapshot
@@ -82,7 +82,7 @@ function SnapshotBrick({
         {!isExpanded ? (
           <div className="flex flex-col items-center justify-center min-h-[48px]">
             <span className="text-lg">{snapshot?.emoji || "📅"}</span>
-            <span className="text-[10px] text-foreground/80 font-medium mt-0.5">
+            <span className="text-[10px] font-semibold mt-0.5">
               {record.daysCompleted}/7
             </span>
           </div>
