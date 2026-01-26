@@ -52,6 +52,7 @@ import { GameRulesSection } from "@/components/GameRulesSection";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
 import { InstallNudge } from "@/components/pwa/InstallNudge";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
+import { WhatsNewModal, WhatsNewTrigger } from "@/components/WhatsNewModal";
 import {
   MainQuestSkeleton,
   ResetProgressSkeleton,
@@ -1035,6 +1036,11 @@ export default function Dashboard() {
             <span className="ml-2 text-muted-foreground/50">v{APP_VERSION}</span>
           )}
         </p>
+        {activeTab === "guide" && (
+          <div className="mt-2">
+            <WhatsNewTrigger />
+          </div>
+        )}
       </footer>
 
       {/* PWA Install Nudge */}
@@ -1047,6 +1053,9 @@ export default function Dashboard() {
 
       {/* App Update Prompt for PWA users */}
       <UpdatePrompt />
+
+      {/* What's New Modal - shows once per version upgrade */}
+      <WhatsNewModal />
 
       {/* Profile Settings Modal */}
       <ProfileSettingsModal

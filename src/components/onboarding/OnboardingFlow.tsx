@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { useReset } from "@/hooks/useReset";
+import { useOnboardingAnalytics } from "@/hooks/useOnboardingAnalytics";
 import { OnboardingAssessment } from "./OnboardingAssessment";
 import { OnboardingArchetypeResult } from "./OnboardingArchetypeResult";
 import { OnboardingJourneySelection } from "./OnboardingJourneySelection";
@@ -91,6 +92,15 @@ export function OnboardingFlow({
   
   const { questions, questionsLoading, submitAssessment, isSubmitting } = useBuildAssessment();
   const { acceptCovenant } = useReset();
+  const {
+    trackAssessmentCompleted,
+    trackAssessmentSkipped,
+    trackArchetypeViewed,
+    trackSnapshotSelected,
+    trackOnboardingComplete,
+    trackStepChange,
+    trackRecoveryAttempt,
+  } = useOnboardingAnalytics();
 
   // Clear timeout on unmount
   useEffect(() => {
@@ -125,6 +135,11 @@ export function OnboardingFlow({
     try {
       const result = await submitAssessment(answers);
       setBuildResult(result);
+      
+      // Track assessment completion
+      trackAssessmentCompleted(result?.build_archetype_key);
+      trackStepChange("build_assessment", "archetype_result");
+      
       // Save progress incrementally
       await onUpdateOnboarding({ 
         step: "archetype_result", 
@@ -139,6 +154,9 @@ export function OnboardingFlow({
   };
 
   const handleSkipAssessment = () => {
+    // Track that user skipped assessment
+    trackAssessmentSkipped();
+    trackStepChange("build_assessment", "skip_confirmation");
     // Show skip confirmation, then auto-start with default journey
     setCurrentStep("skip_confirmation");
   };
@@ -147,6 +165,10 @@ export function OnboardingFlow({
     const defaultJourney = getDefaultJourney();
     setSelectedJourney(defaultJourney);
     setCurrentStep("starting");
+    
+    // Track snapshot selection (default journey)
+    trackSnapshotSelected(defaultJourney.id, defaultJourney.title, true);
+    trackStepChange("skip_confirmation", "starting");
     
     const startReset = async () => {
       try {
@@ -163,6 +185,10 @@ export function OnboardingFlow({
           step: "completed", 
           journeyControllable: journeyToControllable(defaultJourney.id)
         });
+        
+        // Track onboarding complete
+        trackOnboardingComplete(defaultJourney.id, true);
+        
         // Small delay to show the starting animation
         setTimeout(() => {
           onComplete();
@@ -180,6 +206,12 @@ export function OnboardingFlow({
 
   const handleArchetypeAcknowledged = async () => {
     try {
+      // Track archetype viewed
+      if (buildResult) {
+        trackArchetypeViewed(buildResult.build_archetype_key);
+      }
+      trackStepChange("archetype_result", "journey_selection");
+      
       await onUpdateOnboarding({ step: "journey_selection" });
       setCurrentStep("journey_selection");
     } catch (error) {
@@ -199,6 +231,12 @@ export function OnboardingFlow({
       : null;
     const journeyIdToStore = standardJourney ? standardJourney.id : journey.id;
     
+    // Track journey selection
+    const recommendedId = getRecommendedJourneyId(buildResult);
+    const isRecommended = journey.id === recommendedId;
+    trackSnapshotSelected(journeyIdToStore, journey.title, isRecommended);
+    trackStepChange("journey_selection", "starting");
+    
     const startReset = async () => {
       try {
         // Start the reset with journey ID (use standard ID for storage)
@@ -214,6 +252,10 @@ export function OnboardingFlow({
           step: "completed", 
           journeyControllable: journeyToControllable(journeyIdToStore)
         });
+        
+        // Track onboarding complete
+        trackOnboardingComplete(journeyIdToStore, false);
+        
         // Small delay to show the starting animation
         setTimeout(() => {
           onComplete();
@@ -233,11 +275,14 @@ export function OnboardingFlow({
     setIsRetrying(true);
     try {
       if (lastActionRef.current) {
+        trackRecoveryAttempt(currentStep, true);
         await lastActionRef.current();
       } else {
         // Fallback: just complete onboarding
         onComplete();
       }
+    } catch {
+      trackRecoveryAttempt(currentStep, false);
     } finally {
       setIsRetrying(false);
     }
