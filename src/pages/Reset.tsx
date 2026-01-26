@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { SplashScreen } from "@/components/SplashScreen";
 import { useReset } from "@/hooks/useReset";
 import { useEntitlements } from "@/hooks/useEntitlements";
+import { useDashboardSummary } from "@/hooks/useDashboardSummary";
 import { CovenantScreen } from "@/components/CovenantScreen";
 import { ResetDay } from "@/components/ResetDay";
 import { ReadingReview } from "@/components/ReadingReview";
@@ -36,6 +37,7 @@ const Reset = () => {
   } = useReset();
 
   const { isPaid } = useEntitlements(userId || null);
+  const { activeQuest } = useDashboardSummary();
 
   const [showDayComplete, setShowDayComplete] = useState(false);
   const [showDay7Complete, setShowDay7Complete] = useState(false);
@@ -159,6 +161,7 @@ const Reset = () => {
       snapshotEmoji={journey?.emoji}
       snapshotTitle={journey?.title}
       onChangeFocus={handleChangeFocus}
+      activeQuest={activeQuest}
     />
   );
 };

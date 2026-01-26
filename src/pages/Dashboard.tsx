@@ -74,7 +74,6 @@ import {
 
 // Experience tab components (lighter ones loaded normally)
 import { TimeCycleCard } from "@/components/experience/TimeCycleCard";
-import { OfflineTriggers } from "@/components/experience/OfflineTriggers";
 import { LockedOverlay } from "@/components/experience/LockedOverlay";
 import { PullToRefreshIndicator } from "@/components/pwa/PullToRefreshIndicator";
 import { OnboardingFlow } from "@/components/onboarding";
@@ -1042,12 +1041,6 @@ export default function Dashboard() {
                 hasActiveReset={!!activeSession && !isCompleted}
               />
 
-              {/* Offline Triggers - FREE for all users */}
-              <OfflineTriggers
-                activeQuest={activeQuest}
-                currentResetDay={currentDay}
-                todayReading={readings.find((r) => r.day_number === currentDay) || null}
-              />
 
               {/* Snapshot History - Visual Brick Stacking View */}
               {!isSimplifiedMode && user?.id && (
