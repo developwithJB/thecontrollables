@@ -55,7 +55,7 @@ export const Day7Complete = ({
   // Get build data for recommendations
   const { currentBuild, assessmentHistory } = useBuildAssessment();
   
-  // Get recommended next Foundation
+  // Get recommended next Snapshot
   const recommendedJourney = getRecommendedNextFoundation(
     currentBuild,
     assessmentHistory,
@@ -84,9 +84,9 @@ export const Day7Complete = ({
     shareCertificate(displayName, startDate, endDate);
   };
 
-  const handleStartNextFoundation = (journeyId: string) => {
+  const handleStartNextSnapshot = (journeyId: string) => {
     // Navigate to dashboard with the journey selection
-    navigate(`/dashboard?startFoundation=${journeyId}`);
+    navigate(`/dashboard?startSnapshot=${journeyId}`);
   };
 
   const handleChooseDifferent = () => {
@@ -173,7 +173,7 @@ export const Day7Complete = ({
                 
                 {/* Recommended Journey */}
                 <button
-                  onClick={() => handleStartNextFoundation(recommendedJourney.id)}
+                  onClick={() => handleStartNextSnapshot(recommendedJourney.id)}
                   className="w-full bg-background hover:bg-muted/50 border border-border rounded-lg p-4 text-left transition-colors group mb-3"
                 >
                   <div className="flex items-center justify-between">
