@@ -26,6 +26,7 @@ interface AIGuidePanelProps {
   onUpgrade?: () => void;
   isCheckingOut?: boolean;
   hasActiveSnapshot?: boolean; // Whether user has an active 7-day snapshot
+  onMessageSent?: () => void; // Callback when user sends a message (for Today Actions tracking)
 }
 
 interface Message {
@@ -166,7 +167,7 @@ export interface AIGuidePanelHandle {
   open: () => void;
 }
 
-export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild, onXpEarned, isPaid = true, onUpgrade, isCheckingOut = false, hasActiveSnapshot = false }, ref) {
+export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild, onXpEarned, isPaid = true, onUpgrade, isCheckingOut = false, hasActiveSnapshot = false, onMessageSent }, ref) {
   const [isExpanded, setIsExpanded] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -419,6 +420,9 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
         localStorage.setItem(previewKey, 'true');
         setFreePreviewUsed(true);
       }
+      
+      // Notify parent that a message was sent (for Today Actions completion)
+      onMessageSent?.();
     } catch (error) {
       console.error("AI chat error:", error);
       const fallbackGuide = respondingGuide || GUIDES[0];
