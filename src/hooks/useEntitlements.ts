@@ -21,7 +21,9 @@ interface EntitlementStatus {
   currentPeriodEnd: string | null;
   checkPaymentStatus: () => void;
   initiateCheckout: (plan?: PlanType) => Promise<void>;
+  openCustomerPortal: () => Promise<void>;
   isCheckingOut: boolean;
+  isOpeningPortal: boolean;
 }
 
 /**
@@ -41,6 +43,7 @@ interface EntitlementStatus {
 export function useEntitlements(userId: string | null): EntitlementStatus {
   const queryClient = useQueryClient();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isOpeningPortal, setIsOpeningPortal] = useState(false);
 
   // Query to check payment status via Stripe
   const { data, isLoading, refetch } = useQuery({
@@ -157,6 +160,41 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
     }
   }, [userId]);
 
+  const openCustomerPortal = useCallback(async () => {
+    if (!userId) {
+      toast.error("Please sign in to manage your subscription");
+      return;
+    }
+
+    setIsOpeningPortal(true);
+    
+    try {
+      const { data: result, error } = await supabase.functions.invoke("customer-portal");
+      
+      if (error) {
+        throw new Error(error.message || "Failed to open customer portal");
+      }
+      
+      if (result?.error) {
+        toast.error(result.error);
+        setIsOpeningPortal(false);
+        return;
+      }
+      
+      if (result?.url) {
+        window.location.href = result.url;
+      } else {
+        throw new Error("No portal URL returned");
+      }
+    } catch (error) {
+      console.error("Customer portal error:", error);
+      toast.error("Failed to open subscription management", {
+        description: error instanceof Error ? error.message : "Please try again",
+      });
+      setIsOpeningPortal(false);
+    }
+  }, [userId]);
+
   return {
     isPaid: data?.isPaid ?? false,
     isLoading,
@@ -166,7 +204,9 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
     currentPeriodEnd: data?.currentPeriodEnd ?? null,
     checkPaymentStatus,
     initiateCheckout,
+    openCustomerPortal,
     isCheckingOut,
+    isOpeningPortal,
   };
 }
 
