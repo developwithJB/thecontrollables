@@ -10,6 +10,7 @@ import {
   CalendarCheck, 
   Zap,
   ChevronRight,
+  ChevronDown,
   Layers,
   CheckCircle2,
   Circle,
@@ -522,6 +523,7 @@ export function SnapshotHistory({ sessions, className, isPaid = false, onStartNe
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [selectedRecord, setSelectedRecord] = useState<SnapshotRecord | null>(null);
+  const [showOlderWeeks, setShowOlderWeeks] = useState(false);
 
   // Filter to only show sessions with meaningful data
   const validSessions = useMemo(() => 
@@ -646,7 +648,8 @@ export function SnapshotHistory({ sessions, className, isPaid = false, onStartNe
               exit={{ opacity: 0 }}
               className="space-y-3"
             >
-              {sortedWeeks.map((record, index) => (
+              {/* Show only the first (current/most recent) week */}
+              {sortedWeeks.slice(0, 1).map((record, index) => (
                 <WeekCard
                   key={record.id}
                   record={record}
@@ -654,6 +657,47 @@ export function SnapshotHistory({ sessions, className, isPaid = false, onStartNe
                   onClick={() => setSelectedRecord(record)}
                 />
               ))}
+
+              {/* Collapsible section for older weeks */}
+              {sortedWeeks.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setShowOlderWeeks(!showOlderWeeks)}
+                    className="w-full flex items-center justify-between p-3 rounded-xl border border-border bg-card/50 hover:bg-muted/30 transition-colors"
+                  >
+                    <span className="text-sm text-muted-foreground">
+                      {sortedWeeks.length - 1} previous {sortedWeeks.length === 2 ? 'week' : 'weeks'}
+                    </span>
+                    <motion.div
+                      animate={{ rotate: showOlderWeeks ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    </motion.div>
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {showOlderWeeks && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="space-y-3 overflow-hidden"
+                      >
+                        {sortedWeeks.slice(1).map((record, index) => (
+                          <WeekCard
+                            key={record.id}
+                            record={record}
+                            index={index + 1}
+                            onClick={() => setSelectedRecord(record)}
+                          />
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </>
+              )}
             </motion.div>
           )}
 
