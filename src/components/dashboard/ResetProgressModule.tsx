@@ -646,6 +646,43 @@ export function ResetProgressModule({
             className="border-t border-primary/10 overflow-hidden"
           >
             <div className="p-3 space-y-2 max-h-80 overflow-y-auto">
+              {/* Snapshot Focus row - clickable to edit */}
+              {currentJourneyId && (() => {
+                const journey = getJourneyById(currentJourneyId);
+                if (!journey) return null;
+                return (
+                  <motion.button
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSwitchJourney?.();
+                    }}
+                    className="w-full text-left p-3 rounded-lg border bg-primary/10 border-primary/30 hover:bg-primary/20 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-primary/20 text-primary">
+                        <Compass className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">{journey.emoji}</span>
+                            <h4 className="text-sm font-medium text-foreground">
+                              Your Focus: {journey.title}
+                            </h4>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Tap to change snapshot
+                        </p>
+                      </div>
+                    </div>
+                  </motion.button>
+                );
+              })()}
+
               {RESET_DAYS.map((_, idx) => {
                 const dayNum = idx + 1;
                 const status = getDayStatus(dayNum);
