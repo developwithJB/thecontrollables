@@ -59,6 +59,7 @@ import {
   LazyMomentumDecay,
   LazyBadgesEarned,
   LazyCertificates,
+  LazySnapshotHistory,
   SuspenseExperienceComponent,
   ExperienceLoadingSkeleton,
 } from "@/components/experience/LazyExperienceComponents";
@@ -980,6 +981,33 @@ export default function Dashboard() {
                 currentResetDay={currentDay}
                 todayReading={readings.find((r) => r.day_number === currentDay) || null}
               />
+
+              {/* Snapshot History - Visual Brick Stacking View */}
+              {!isSimplifiedMode && user?.id && (
+                <div className="relative">
+                  <SuspenseExperienceComponent>
+                    <LazySnapshotHistory
+                      sessions={allSessions.map((s) => ({
+                        id: s.id,
+                        snapshotId: s.journey_id,
+                        startDate: s.start_date,
+                        completedAt: s.completed_at,
+                        status: s.status as "active" | "completed" | "expired" | "paused",
+                        daysCompleted: allCompletedDays.filter((d) => d.session_id === s.id).length,
+                        xpEarned: allCompletedDays.filter((d) => d.session_id === s.id).length * 25 + 
+                          (s.status === "completed" ? 25 : 0), // Day 7 bonus
+                      }))}
+                    />
+                  </SuspenseExperienceComponent>
+                  {!isPaid && (
+                    <LockedOverlay
+                      variant="experience-history"
+                      onUpgrade={initiateCheckout}
+                      isLoading={isCheckingOut}
+                    />
+                  )}
+                </div>
+              )}
 
               {/* ===== LOCKED CONTENT (Premium) ===== */}
 

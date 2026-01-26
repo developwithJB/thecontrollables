@@ -18,6 +18,10 @@ export const LazyCertificates = lazy(() =>
   import("./Certificates").then((m) => ({ default: m.Certificates }))
 );
 
+export const LazySnapshotHistory = lazy(() =>
+  import("../dashboard/SnapshotHistory").then((m) => ({ default: m.SnapshotHistory }))
+);
+
 // Loading skeleton for experience components
 export function ExperienceLoadingSkeleton() {
   return (
