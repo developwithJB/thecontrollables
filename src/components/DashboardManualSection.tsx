@@ -4,19 +4,15 @@ import {
   BookOpen, 
   ChevronDown, 
   ChevronUp, 
-  Target, 
-  Zap, 
-  Clock, 
-  Shield, 
-  Dumbbell, 
-  MessageCircle,
-  RotateCcw,
-  Sparkles,
-  Download,
-  Share,
   ListChecks,
-  Calendar,
-  Flame
+  RotateCcw,
+  MessageCircle,
+  Dumbbell,
+  Sparkles,
+  Clock,
+  Shield,
+  Download,
+  Share
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isStandalone, isIOS, hasDeferredPrompt, triggerInstallPrompt } from "@/lib/pwa";
@@ -26,89 +22,61 @@ interface ManualSection {
   title: string;
   icon: React.ElementType;
   description: string;
-  howToUse: string;
 }
 
-const MANUAL_SECTIONS: ManualSection[] = [
+// Simplified to 5 core items
+const CORE_SECTIONS: ManualSection[] = [
   {
     title: "Today's Actions",
     icon: ListChecks,
-    description: "Your daily checklist. A unified hub showing exactly what to do today—time logs, promises, and Snapshot tasks.",
-    howToUse: "Tap any item to open its tool directly. Complete each action to earn XP. The list evolves based on your Snapshot day."
-  },
-  {
-    title: "Daily Check-In",
-    icon: Calendar,
-    description: "Your morning ritual. One question: what's your singular focus for today?",
-    howToUse: "Check in each day to maintain your streak. Your focus anchors daily decisions."
-  },
-  {
-    title: "Main Mission",
-    icon: Target,
-    description: "Your overarching intention—big-picture, meaningful, and user-defined. Like a personal quest category.",
-    howToUse: "Tap the Mission card to set or edit. Choose your duration. Examples: Reclaim Energy, Build Discipline, Strengthen Focus."
+    description: "Your daily checklist—complete each task to earn XP and stay on track.",
   },
   {
     title: "7-Day Snapshot",
     icon: RotateCcw,
-    description: "A single week viewed through one lens. Each Snapshot has a Bucket (season of life), a theme, and a Focus (one Controllable). Weeks add up over time.",
-    howToUse: "Start a Snapshot to capture your current week. Complete all 7 days to earn a certificate. Each day has a specific task aligned with your chosen theme."
-  },
-  {
-    title: "Your Build",
-    icon: Dumbbell,
-    description: "Your current state across 5 dimensions: Awareness, Perspective, Habit, Wellness, and Environment.",
-    howToUse: "Tap to view your Build scores. Take the assessment to discover your archetype. Re-scan as you grow."
-  },
-  {
-    title: "Momentum (XP)",
-    icon: Zap,
-    description: "Points earned from completed actions. Tracks your consistency and engagement over time.",
-    howToUse: "Complete AI-suggested actions and daily reps to earn XP. Watch your momentum build across the week."
-  },
-  {
-    title: "Time Currency",
-    icon: Clock,
-    description: "A daily log of time invested vs. time wasted. Your most valuable resource tracked simply.",
-    howToUse: "Tap to log your time. Be honest. Look for patterns in where your hours actually go."
-  },
-  {
-    title: "Integrity Meter",
-    icon: Shield,
-    description: "Your ratio of promises kept to promises made. Self-trust built through small commitments.",
-    howToUse: "Tap to make promises. Mark them complete when done. Your score reflects your word."
-  },
-  {
-    title: "Streak & Level",
-    icon: Flame,
-    description: "Consecutive check-in days and your total XP level. Consistency builds momentum.",
-    howToUse: "Check in daily to grow your streak. Watch the flame animate when you're on a roll."
+    description: "A weekly focus with themed daily tasks. Complete all 7 days to earn a certificate.",
   },
   {
     title: "The Controllables",
     icon: MessageCircle,
-    description: "Five guides—one for each Controllable. Available with Full Access.",
-    howToUse: "Ask questions when stuck. Each guide gives action-focused advice, not therapy. Use them as tools."
+    description: "Five AI guides for action-focused advice. Ask when you're stuck.",
   },
   {
-    title: "Experience Tab",
+    title: "Your Build",
+    icon: Dumbbell,
+    description: "Your scores across 5 dimensions. Take the assessment to discover your archetype.",
+  },
+  {
+    title: "Experience",
     icon: Sparkles,
-    description: "Your full history: badges earned, progress over time, past Snapshots, and momentum trends.",
-    howToUse: "Check weekly to see patterns. Review past Snapshots to remember what you've learned."
+    description: "Your full history: badges, past Snapshots, and momentum trends.",
+  },
+];
+
+// Extended sections for those who want more detail
+const EXTENDED_SECTIONS: ManualSection[] = [
+  {
+    title: "Time Currency",
+    icon: Clock,
+    description: "Log time invested vs. wasted. Look for patterns in where your hours go.",
+  },
+  {
+    title: "Integrity Meter",
+    icon: Shield,
+    description: "Track promises kept vs. made. Build self-trust through small commitments.",
   },
   {
     title: "Install the App",
     icon: Download,
-    description: "Add The Dashboard to your home screen for quick access. Works offline and launches like a native app.",
-    howToUse: "On iPhone: tap Share → 'Add to Home Screen'. On Android/Desktop: tap the install prompt when it appears."
-  }
+    description: "Add to your home screen for quick access. Works offline like a native app.",
+  },
 ];
 
 export function DashboardManualSection() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
   
-  const visibleSections = isExpanded ? MANUAL_SECTIONS : MANUAL_SECTIONS.slice(0, 1);
+  const visibleSections = isExpanded ? [...CORE_SECTIONS, ...EXTENDED_SECTIONS] : CORE_SECTIONS;
   
   const alreadyInstalled = isStandalone();
   const isiOSDevice = isIOS();
@@ -146,11 +114,10 @@ export function DashboardManualSection() {
     }
   };
 
-  // Render install button for the Install section
   const renderInstallButton = () => {
     if (alreadyInstalled) {
       return (
-        <div className="flex items-center gap-2 mt-3 text-xs text-green-600 dark:text-green-400">
+        <div className="flex items-center gap-2 mt-2 text-xs text-green-600 dark:text-green-400">
           <Download className="w-3 h-3" />
           <span>Already installed</span>
         </div>
@@ -163,7 +130,7 @@ export function DashboardManualSection() {
           size="sm"
           variant="outline"
           onClick={handleInstallClick}
-          className="mt-3 text-xs h-8"
+          className="mt-2 text-xs h-7"
         >
           <Share className="w-3 h-3 mr-1.5" />
           How to Install
@@ -176,7 +143,7 @@ export function DashboardManualSection() {
         size="sm"
         onClick={handleInstallClick}
         disabled={isInstalling}
-        className="mt-3 text-xs h-8"
+        className="mt-2 text-xs h-7"
       >
         <Download className="w-3 h-3 mr-1.5" />
         {isInstalling ? "Installing..." : "Install Now"}
@@ -195,12 +162,12 @@ export function DashboardManualSection() {
       <div className="flex items-center gap-2 mb-4">
         <BookOpen className="w-4 h-4 text-primary" />
         <h2 className="font-display text-lg font-semibold text-foreground">
-          The Manual for The Dashboard
+          Quick Reference
         </h2>
       </div>
       
       <p className="text-sm text-muted-foreground mb-6">
-        How to use each part of your life dashboard.
+        The five core tools of your dashboard.
       </p>
 
       {/* Manual Sections */}
@@ -212,39 +179,25 @@ export function DashboardManualSection() {
             
             return (
               <motion.div
-                key={index}
+                key={section.title}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3, delay: index * 0.03 }}
-                className="p-4 rounded-xl bg-card border transition-colors hover:border-primary/30"
+                className="p-3 rounded-xl bg-card border transition-colors hover:border-primary/30"
               >
-                {/* Section Header */}
                 <div className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                    <IconComponent className="w-4 h-4" />
+                  <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                    <IconComponent className="w-3.5 h-3.5" />
                   </span>
                   
                   <div className="flex-1 min-w-0">
-                    {/* Title */}
-                    <p className="font-display font-medium text-foreground text-sm leading-snug mb-2">
+                    <p className="font-display font-medium text-foreground text-sm leading-snug">
                       {section.title}
                     </p>
-                    
-                    {/* Description */}
-                    <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                    <p className="text-xs text-muted-foreground leading-relaxed mt-1">
                       {section.description}
                     </p>
-                    
-                    {/* How to Use */}
-                    <div className="flex items-start gap-2 pt-2 border-t border-border/50">
-                      <span className="text-primary text-xs">→</span>
-                      <p className="text-xs text-foreground/80 italic">
-                        {section.howToUse}
-                      </p>
-                    </div>
-
-                    {/* Install Button - only for Install section */}
                     {isInstallSection && renderInstallButton()}
                   </div>
                 </div>
@@ -264,36 +217,15 @@ export function DashboardManualSection() {
         {isExpanded ? (
           <>
             <ChevronUp className="w-4 h-4 mr-2" />
-            Show Less
+            Show Core 5
           </>
         ) : (
           <>
             <ChevronDown className="w-4 h-4 mr-2" />
-            See All {MANUAL_SECTIONS.length} Sections
+            See All Tools
           </>
         )}
       </Button>
-
-      {/* Footer - only show when expanded */}
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="overflow-hidden"
-          >
-            <div className="mt-6 p-4 rounded-xl bg-muted/30 border-l-2 border-primary/50">
-              <p className="text-xs text-muted-foreground italic leading-relaxed">
-                The Dashboard is a companion, not a replacement for action. 
-                Use these tools to track, reflect, and adjust—but the real work happens offline.
-                Keep it simple. Do the reps.
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }
