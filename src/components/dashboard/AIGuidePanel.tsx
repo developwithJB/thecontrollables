@@ -171,6 +171,8 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
   const [isExpanded, setIsExpanded] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   
   // Expose open method to parent
   useImperativeHandle(ref, () => ({
@@ -205,6 +207,26 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
   } = useGuideSession();
 
   const { trackButtonClick, trackModalAction, trackGuideInteraction, trackFeatureUse } = useActionTracking();
+
+  // Auto-scroll to bottom when messages change or panel expands
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
+  
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading, scrollToBottom]);
+  
+  // Scroll to bottom when panel expands
+  useEffect(() => {
+    if (isExpanded && messages.length > 0) {
+      // Small delay to ensure the panel has expanded
+      setTimeout(scrollToBottom, 100);
+    }
+  }, [isExpanded, messages.length, scrollToBottom]);
 
   // Load session messages when session is ready
   useEffect(() => {
@@ -591,7 +613,7 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
                 <div className="flex flex-col" data-testid="ai-operators-locked">
                   {/* Show their full conversation including actions */}
                   {messages.length > 0 && (
-                    <div className="w-full space-y-3 max-h-72 overflow-y-auto mb-4 pr-2">
+                    <div ref={messagesContainerRef} className="w-full space-y-3 max-h-72 overflow-y-auto mb-4 pr-2">
                       {messages.map((msg, idx) => {
                         const messageGuide = msg.role === "assistant" ? getGuideById(msg.controllable) : null;
                         const action = msg.role === 'assistant' ? getActionFromMessage(msg.content) : null;
@@ -661,6 +683,8 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
                           </div>
                         );
                       })}
+                      {/* Scroll anchor for free users */}
+                      <div ref={messagesEndRef} />
                     </div>
                   )}
                   
@@ -748,7 +772,7 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
                     <>
                       {/* Messages Area - Always show if there are messages */}
                       {messages.length > 0 && (
-                        <div className="space-y-3 max-h-80 overflow-y-auto mb-4 pr-2">
+                        <div ref={messagesContainerRef} className="space-y-3 max-h-80 overflow-y-auto mb-4 pr-2">
                       {messages.map((msg, idx) => {
                         // Get the guide that sent this message (for assistant messages)
                         const messageGuide = msg.role === "assistant" 
@@ -827,6 +851,8 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
                           <span className="text-sm">Thinking...</span>
                         </div>
                       )}
+                      {/* Scroll anchor */}
+                      <div ref={messagesEndRef} />
                     </div>
                   )}
 
