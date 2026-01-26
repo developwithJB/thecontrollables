@@ -267,9 +267,11 @@ function WeekCard({
 function MonthView({
   records,
   label,
+  onSelectRecord,
 }: {
   records: SnapshotRecord[];
   label: string;
+  onSelectRecord?: (record: SnapshotRecord) => void;
 }) {
   const narrative = getMonthNarrative(records);
   const completed = records.filter(r => r.status === "completed").length;
@@ -322,11 +324,47 @@ function MonthView({
 
       {/* XP - subdued */}
       {totalXP > 0 && (
-        <p className="text-xs text-muted-foreground flex items-center gap-1">
+        <p className="text-xs text-muted-foreground flex items-center gap-1 mb-4">
           <Zap className="w-3 h-3" />
           +{totalXP} XP earned
         </p>
       )}
+
+      {/* Week breakdown - clickable list */}
+      <div className="border-t border-border pt-3 mt-3">
+        <p className="text-xs text-muted-foreground mb-2">Weekly breakdown</p>
+        <div className="space-y-2">
+          {records.slice(0, 4).map((record) => {
+            const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
+            const statusInfo = getStatusInfo(record.status, record.daysCompleted);
+            const startDate = new Date(record.startDate);
+            
+            return (
+              <motion.button
+                key={record.id}
+                onClick={() => onSelectRecord?.(record)}
+                className="w-full flex items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left"
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="text-base">{snapshot?.emoji || "📅"}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{snapshot?.name || "Week Record"}</p>
+                  <p className="text-xs text-muted-foreground">{format(startDate, "MMM d")}</p>
+                </div>
+                <Badge variant="secondary" className={`text-xs shrink-0 ${statusInfo.colorClass}`}>
+                  {record.daysCompleted}/7
+                </Badge>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </motion.button>
+            );
+          })}
+          {records.length > 4 && (
+            <p className="text-xs text-muted-foreground text-center pt-1">
+              +{records.length - 4} more weeks
+            </p>
+          )}
+        </div>
+      </div>
     </motion.div>
   );
 }
@@ -335,15 +373,36 @@ function MonthView({
 function YearView({
   records,
   year,
+  onSelectRecord,
 }: {
   records: SnapshotRecord[];
   year: string;
+  onSelectRecord?: (record: SnapshotRecord) => void;
 }) {
   const narrative = getYearNarrative(records);
   const completed = records.filter(r => r.status === "completed").length;
   const primaryBucket = getPrimaryBucket(records);
   const focusAreas = getFocusAreas(records);
   const returns = records.length - 1; // Times they came back
+
+  // Group by month for the breakdown
+  const monthBreakdown = useMemo(() => {
+    const groups = new Map<string, SnapshotRecord[]>();
+    records.forEach((record) => {
+      const monthKey = format(new Date(record.startDate), "yyyy-MM");
+      if (!groups.has(monthKey)) {
+        groups.set(monthKey, []);
+      }
+      groups.get(monthKey)!.push(record);
+    });
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([key, recs]) => ({
+        key,
+        label: format(new Date(key + "-01"), "MMMM"),
+        records: recs,
+      }));
+  }, [records]);
 
   return (
     <motion.div
@@ -392,11 +451,57 @@ function YearView({
 
       {/* Returns - reinforces resilience */}
       {returns > 0 && (
-        <p className="text-xs text-muted-foreground flex items-center gap-1">
+        <p className="text-xs text-muted-foreground flex items-center gap-1 mb-4">
           <RefreshCw className="w-3 h-3" />
           You came back {returns} time{returns !== 1 ? "s" : ""}
         </p>
       )}
+
+      {/* Month breakdown - clickable */}
+      <div className="border-t border-border pt-3 mt-3">
+        <p className="text-xs text-muted-foreground mb-2">Monthly breakdown</p>
+        <div className="space-y-2">
+          {monthBreakdown.slice(0, 6).map(({ key, label, records: monthRecords }) => {
+            const monthCompleted = monthRecords.filter(r => r.status === "completed").length;
+            
+            return (
+              <div
+                key={key}
+                className="p-2 rounded-lg bg-background/50 border border-border"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium">{label}</p>
+                  <Badge variant="secondary" className="text-xs">
+                    {monthCompleted}/{monthRecords.length}
+                  </Badge>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {monthRecords.slice(0, 4).map((record) => {
+                    const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
+                    
+                    return (
+                      <motion.button
+                        key={record.id}
+                        onClick={() => onSelectRecord?.(record)}
+                        className="flex items-center gap-1 px-2 py-1 rounded bg-muted hover:bg-muted/80 transition-colors text-xs"
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <span>{snapshot?.emoji || "📅"}</span>
+                        <span className="text-muted-foreground">{record.daysCompleted}/7</span>
+                      </motion.button>
+                    );
+                  })}
+                  {monthRecords.length > 4 && (
+                    <span className="px-2 py-1 text-xs text-muted-foreground">
+                      +{monthRecords.length - 4}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </motion.div>
   );
 }
@@ -573,7 +678,12 @@ export function SnapshotHistory({ sessions, className, isPaid = false, onStartNe
             >
               {canViewMonth ? (
                 monthGroups.map(({ key, label, records }) => (
-                  <MonthView key={key} records={records} label={label} />
+                  <MonthView 
+                    key={key} 
+                    records={records} 
+                    label={label} 
+                    onSelectRecord={setSelectedRecord}
+                  />
                 ))
               ) : (
                 <LockedView viewType="Month" requiredCount={3} />
@@ -591,7 +701,12 @@ export function SnapshotHistory({ sessions, className, isPaid = false, onStartNe
             >
               {canViewYear ? (
                 yearGroups.map(({ year, records }) => (
-                  <YearView key={year} records={records} year={year} />
+                  <YearView 
+                    key={year} 
+                    records={records} 
+                    year={year} 
+                    onSelectRecord={setSelectedRecord}
+                  />
                 ))
               ) : (
                 <LockedView viewType="Year" requiredCount={6} />
