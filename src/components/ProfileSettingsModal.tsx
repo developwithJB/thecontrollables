@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { User, LogOut, Moon, Sun } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { User, LogOut, Moon, Sun, CreditCard } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +54,7 @@ export function ProfileSettingsModal({
   userEmail,
   onSignOut,
 }: ProfileSettingsModalProps) {
+  const navigate = useNavigate();
   const [displayName, setDisplayName] = useState("");
   const [timezone, setTimezone] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -249,6 +251,19 @@ export function ProfileSettingsModal({
 
             {/* Divider */}
             <div className="border-t border-border" />
+
+            {/* Billing */}
+            <Button
+              variant="outline"
+              onClick={() => {
+                onOpenChange(false);
+                navigate("/billing");
+              }}
+              className="w-full"
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Billing & Subscription
+            </Button>
 
             {/* Sign Out */}
             <Button
