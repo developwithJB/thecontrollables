@@ -12,6 +12,10 @@ interface PatternData {
   conversationCount: number;
   lastControllable: string | null;
   keyInsights: string[];
+  completedActions: string[];
+  sessionCount: number;
+  longestTheme: string | null;
+  themeFrequency: Record<string, number>;
 }
 
 interface GuideSession {
@@ -20,6 +24,20 @@ interface GuideSession {
   context: string | null;
   updated_at: string;
 }
+
+// Theme detection keywords - what users talk about
+const THEME_KEYWORDS: Record<string, string[]> = {
+  'motivation': ['motivated', 'motivation', 'lazy', 'unmotivated', 'stuck', 'procrastinating', 'procrastination', 'can\'t start'],
+  'anxiety': ['anxious', 'worried', 'stress', 'overwhelmed', 'nervous', 'panic', 'anxiety', 'scared', 'fear'],
+  'habits': ['habit', 'routine', 'consistency', 'discipline', 'rep', 'reps', 'daily', 'every day', 'streak'],
+  'energy': ['tired', 'exhausted', 'energy', 'burnout', 'drained', 'fatigue', 'sleep', 'rest'],
+  'focus': ['distracted', 'focus', 'attention', 'scattered', 'productive', 'productivity', 'concentrate'],
+  'relationships': ['relationship', 'friend', 'family', 'social', 'lonely', 'people', 'partner', 'parents'],
+  'work': ['work', 'job', 'career', 'boss', 'deadline', 'project', 'office', 'meeting'],
+  'self-doubt': ['doubt', 'imposter', 'not good enough', 'failure', 'failing', 'worthless', 'useless', 'stupid'],
+  'overthinking': ['overthink', 'ruminating', 'can\'t stop thinking', 'thoughts', 'mind racing', 'spiral'],
+  'time': ['time', 'too late', 'behind', 'rushing', 'hurry', 'deadline', 'not enough time'],
+};
 
 export function useGuideSession() {
   const [session, setSession] = useState<GuideSession | null>(null);
@@ -56,16 +74,25 @@ export function useGuideSession() {
           });
         }
 
-        // Calculate pattern data from all sessions
+        // Calculate pattern data from all sessions (get more for better patterns)
         const { data: allSessions } = await supabase
           .from('guide_sessions')
           .select('messages, context, updated_at')
           .eq('user_id', user.id)
           .order('updated_at', { ascending: false })
+          .limit(20);
+
+        // Get completed actions for callback references
+        const { data: completedActionsData } = await supabase
+          .from('completed_actions')
+          .select('action_text, completed_at')
+          .eq('user_id', user.id)
+          .order('completed_at', { ascending: false })
           .limit(10);
 
         if (allSessions && allSessions.length > 0) {
-          const patterns = analyzePatterns(allSessions);
+          const completedActions = completedActionsData?.map(a => a.action_text) || [];
+          const patterns = analyzePatterns(allSessions, completedActions);
           setPatternData(patterns);
         }
       } catch (error) {
@@ -78,16 +105,21 @@ export function useGuideSession() {
     loadSession();
   }, []);
 
-  // Analyze patterns from session history
-  const analyzePatterns = (sessions: Array<{ messages: unknown; context: string | null; updated_at: string }>): PatternData => {
-    const allMessages: string[] = [];
+  // Enhanced pattern analysis
+  const analyzePatterns = (
+    sessions: Array<{ messages: unknown; context: string | null; updated_at: string }>,
+    completedActions: string[]
+  ): PatternData => {
+    const allUserMessages: string[] = [];
     let lastControllable: string | null = null;
+    const themeFrequency: Record<string, number> = {};
 
+    // Extract all user messages
     sessions.forEach((s, index) => {
       const msgs = s.messages as Message[] || [];
       msgs.forEach(m => {
         if (m.role === 'user') {
-          allMessages.push(m.content.toLowerCase());
+          allUserMessages.push(m.content.toLowerCase());
         }
       });
       if (index === 0 && s.context) {
@@ -95,43 +127,54 @@ export function useGuideSession() {
       }
     });
 
-    // Extract common themes
-    const themeKeywords: Record<string, string[]> = {
-      'motivation': ['motivated', 'motivation', 'lazy', 'unmotivated', 'stuck'],
-      'anxiety': ['anxious', 'worried', 'stress', 'overwhelmed', 'nervous'],
-      'habits': ['habit', 'routine', 'consistency', 'discipline', 'rep'],
-      'energy': ['tired', 'exhausted', 'energy', 'burnout', 'drained'],
-      'focus': ['distracted', 'focus', 'attention', 'scattered', 'productive'],
-      'relationships': ['relationship', 'friend', 'family', 'social', 'lonely'],
-    };
-
-    const detectedThemes: string[] = [];
-    Object.entries(themeKeywords).forEach(([theme, keywords]) => {
-      const found = allMessages.some(msg => 
-        keywords.some(keyword => msg.includes(keyword))
-      );
-      if (found) detectedThemes.push(theme);
+    // Detect themes with frequency counting
+    Object.entries(THEME_KEYWORDS).forEach(([theme, keywords]) => {
+      let count = 0;
+      allUserMessages.forEach(msg => {
+        keywords.forEach(keyword => {
+          if (msg.includes(keyword)) count++;
+        });
+      });
+      if (count > 0) {
+        themeFrequency[theme] = count;
+      }
     });
 
-    // Extract key insights (last action items mentioned)
+    // Sort themes by frequency
+    const sortedThemes = Object.entries(themeFrequency)
+      .sort((a, b) => b[1] - a[1])
+      .map(([theme]) => theme);
+
+    // Find the longest-running theme (appears most across sessions)
+    const longestTheme = sortedThemes.length > 0 ? sortedThemes[0] : null;
+
+    // Extract key insights (action items from assistant messages)
     const insights: string[] = [];
-    sessions.slice(0, 3).forEach(s => {
+    sessions.slice(0, 5).forEach(s => {
       const msgs = s.messages as Message[] || [];
       msgs.forEach(m => {
         if (m.role === 'assistant' && m.content.includes('→ ACTION:')) {
           const actionPart = m.content.split('→ ACTION:')[1]?.trim();
-          if (actionPart && actionPart.length < 100) {
-            insights.push(actionPart.split('\n')[0]);
+          if (actionPart && actionPart.length < 150) {
+            // Clean up the action - take first sentence
+            const cleanAction = actionPart.split('\n')[0].split('.')[0];
+            if (cleanAction.length > 10 && !insights.includes(cleanAction)) {
+              insights.push(cleanAction);
+            }
           }
         }
       });
     });
 
     return {
-      recentThemes: detectedThemes.slice(0, 3),
+      recentThemes: sortedThemes.slice(0, 4),
       conversationCount: sessions.length,
       lastControllable,
-      keyInsights: insights.slice(0, 3),
+      keyInsights: insights.slice(0, 4),
+      completedActions: completedActions.slice(0, 5),
+      sessionCount: sessions.length,
+      longestTheme,
+      themeFrequency,
     };
   };
 
