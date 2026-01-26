@@ -2,8 +2,15 @@ import { useEffect, useCallback, useMemo, lazy, Suspense, useState, useRef } fro
 import { useNavigate } from "react-router-dom";
 import { SplashScreen } from "@/components/SplashScreen";
 import { motion, AnimatePresence } from "framer-motion";
-import { Book, BookOpen, Sparkles, RefreshCw, User as UserIcon } from "lucide-react";
+import { Book, BookOpen, Sparkles, RefreshCw, User as UserIcon, Target, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Logo } from "@/components/Logo";
 import { ProfileSettingsModal } from "@/components/ProfileSettingsModal";
 import { useToast } from "@/hooks/use-toast";
@@ -82,6 +89,8 @@ export default function Dashboard() {
   const [prevTab, setPrevTab] = useState<TabType | null>(null);
   const [showJourneySwitcher, setShowJourneySwitcher] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
+  const [showMissionEdit, setShowMissionEdit] = useState(false);
+  const [editingMissionTitle, setEditingMissionTitle] = useState("");
   // Refs for imperative dialog triggers
   const timeCurrencyRef = useRef<TimeCurrencyModuleHandle>(null);
   const integrityRef = useRef<IntegrityMeterModuleHandle>(null);
@@ -539,18 +548,30 @@ export default function Dashboard() {
               transition={{ duration: 0.3 }}
               className="space-y-4"
             >
-              {/* Greeting Banner with streak/XP and user name */}
+              {/* Greeting Banner with streak/XP, mission, and snapshot focus */}
               <GreetingBanner
                 userId={user?.id}
                 totalXp={totalXp}
                 streakDays={completedDays.length}
                 visitCount={dashboardVisitCount}
+                missionTitle={activeQuest?.title}
+                onMissionClick={() => {
+                  if (activeQuest) {
+                    setEditingMissionTitle(activeQuest.title);
+                    setShowMissionEdit(true);
+                  }
+                }}
+                snapshotFocus={activeSession?.journey_id ? 
+                  getJourneyById(activeSession.journey_id)?.title : undefined}
+                snapshotEmoji={activeSession?.journey_id ? 
+                  getJourneyById(activeSession.journey_id)?.emoji : undefined}
+                onSnapshotClick={() => setShowJourneySwitcher(true)}
               />
 
-              {/* Active Mission - moved above Today's Actions */}
+              {/* Main Mission Module - only show when NO active quest (to create one) */}
               {dashboardLoading ? (
                 <MainQuestSkeleton />
-              ) : !activeQuest ? (
+              ) : !activeQuest && (
                 <div data-testid="main-quest-module">
                   <MainQuestModule
                     activeQuest={activeQuest}
@@ -563,37 +584,6 @@ export default function Dashboard() {
                     disabled={!isAuthReady}
                   />
                 </div>
-              ) : (
-                /* When quest exists, show full module with edit capability */
-                <div data-testid="main-quest-module">
-                  <MainQuestModule
-                    activeQuest={activeQuest}
-                    onCreateQuest={handleCreateQuest}
-                    onUpdateQuest={handleUpdateQuest}
-                    onCompleteQuest={completeQuest}
-                    isCreating={isCreatingQuest}
-                    isUpdating={isUpdatingQuest}
-                    isCompleting={isCompletingQuest}
-                    disabled={!isAuthReady}
-                  />
-                </div>
-              )}
-
-              {/* Snapshot Focus indicator */}
-              {activeSession?.journey_id && (
-                <button
-                  onClick={() => setShowJourneySwitcher(true)}
-                  className="w-full p-3 rounded-xl bg-muted/50 border border-border hover:bg-muted hover:border-border/80 transition-all text-left flex items-center justify-between group"
-                >
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Snapshot Focus:</span>
-                    <span className="font-medium text-foreground">
-                      {getJourneyById(activeSession.journey_id)?.emoji}{" "}
-                      {getJourneyById(activeSession.journey_id)?.title}
-                    </span>
-                  </div>
-                  <RefreshCw className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
               )}
 
               {/* Today's Actions - Unified interactive checklist with 7-day foundation */}
@@ -1192,6 +1182,55 @@ export default function Dashboard() {
         userEmail={user?.email ?? ""}
         onSignOut={handleSignOut}
       />
+
+      {/* Mission Edit Modal */}
+      <Dialog open={showMissionEdit} onOpenChange={setShowMissionEdit}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Target className="w-5 h-5 text-primary" />
+              Edit Mission
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <Input
+              value={editingMissionTitle}
+              onChange={(e) => setEditingMissionTitle(e.target.value)}
+              placeholder="Mission title"
+              className="text-base"
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  if (activeQuest) {
+                    completeQuest(activeQuest.id);
+                    setShowMissionEdit(false);
+                  }
+                }}
+                disabled={isCompletingQuest}
+              >
+                <Check className="w-4 h-4 mr-1" />
+                {isCompletingQuest ? "Completing..." : "Complete"}
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  if (activeQuest && editingMissionTitle.trim()) {
+                    handleUpdateQuest({ questId: activeQuest.id, title: editingMissionTitle.trim() });
+                    setShowMissionEdit(false);
+                  }
+                }}
+                disabled={!editingMissionTitle.trim() || isUpdatingQuest}
+              >
+                <Pencil className="w-4 h-4 mr-1" />
+                {isUpdatingQuest ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

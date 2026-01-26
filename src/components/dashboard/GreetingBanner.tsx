@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Flame, Zap } from "lucide-react";
+import { Flame, Zap, Target, Compass } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -8,6 +8,13 @@ interface GreetingBannerProps {
   totalXp: number;
   streakDays?: number;
   visitCount: number;
+  // Mission indicator
+  missionTitle?: string | null;
+  onMissionClick?: () => void;
+  // Snapshot Focus indicator
+  snapshotFocus?: string | null;
+  snapshotEmoji?: string | null;
+  onSnapshotClick?: () => void;
 }
 
 export function GreetingBanner({ 
@@ -15,6 +22,11 @@ export function GreetingBanner({
   totalXp, 
   streakDays = 0, 
   visitCount,
+  missionTitle,
+  onMissionClick,
+  snapshotFocus,
+  snapshotEmoji,
+  onSnapshotClick,
 }: GreetingBannerProps) {
   // Fetch user's display name from profiles
   const { data: profile } = useQuery({
@@ -50,7 +62,7 @@ export function GreetingBanner({
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-6 space-y-4"
+      className="mb-6 space-y-3"
     >
       {/* Main greeting with name */}
       <div>
@@ -58,8 +70,8 @@ export function GreetingBanner({
           {getGreeting()}{displayName ? `, ${displayName}` : ""}
         </h1>
 
-        {/* Stats row */}
-        <div className="flex items-center gap-4">
+        {/* Stats row - wraps on mobile */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {/* Streak indicator */}
           {streakDays > 0 && (
             <div className="flex items-center gap-1.5">
@@ -84,8 +96,7 @@ export function GreetingBanner({
                   <Flame className="w-4 h-4 text-orange-500" />
                 </motion.div>
               </motion.div>
-              <span className="text-sm font-medium text-foreground">{streakDays}</span>
-              <span className="text-sm text-muted-foreground">day streak</span>
+              <span className="text-sm font-medium text-foreground">{streakDays}d</span>
             </div>
           )}
 
@@ -94,9 +105,38 @@ export function GreetingBanner({
             <div className="p-1 rounded-lg bg-accent/10">
               <Zap className="w-4 h-4 text-accent" />
             </div>
-            <span className="text-sm font-medium text-foreground">Level {level}</span>
-            <span className="text-sm text-muted-foreground">• {totalXp.toLocaleString()} XP</span>
+            <span className="text-sm font-medium text-foreground">Lv {level}</span>
           </div>
+
+          {/* Mission indicator - clickable */}
+          {missionTitle && (
+            <button
+              onClick={onMissionClick}
+              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+            >
+              <div className="p-1 rounded-lg bg-primary/10">
+                <Target className="w-4 h-4 text-primary" />
+              </div>
+              <span className="text-sm font-medium text-foreground truncate max-w-[120px]">
+                {missionTitle}
+              </span>
+            </button>
+          )}
+
+          {/* Snapshot Focus indicator - clickable */}
+          {snapshotFocus && (
+            <button
+              onClick={onSnapshotClick}
+              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+            >
+              <div className="p-1 rounded-lg bg-muted">
+                <Compass className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <span className="text-sm font-medium text-foreground truncate max-w-[120px]">
+                {snapshotEmoji} {snapshotFocus}
+              </span>
+            </button>
+          )}
         </div>
       </div>
 
