@@ -15,11 +15,11 @@ const controllables: Array<{
   name: string;
   tagline: string;
 }> = [
-  { type: "awareness", emoji: "🦉", name: "Awareness", tagline: "Pause. Observe. Choose." },
-  { type: "perspective", emoji: "🐢", name: "Perspective", tagline: "Zoom out. This is one chapter." },
-  { type: "habit", emoji: "🦈", name: "Habit", tagline: "Keep moving. One rep." },
-  { type: "wellness", emoji: "🛰️", name: "Wellness", tagline: "Check your systems." },
-  { type: "environment", emoji: "🚀", name: "Environment", tagline: "Design your surroundings." },
+  { type: "awareness", emoji: "🦉", name: "Awareness", tagline: "Pause before reacting. Notice what's actually happening." },
+  { type: "perspective", emoji: "🐢", name: "Perspective", tagline: "Zoom out. This is one chapter, not the whole story." },
+  { type: "habit", emoji: "🦈", name: "Habit", tagline: "One rep still counts. Show up imperfectly." },
+  { type: "wellness", emoji: "🛰️", name: "Wellness", tagline: "Sleep, movement, fuel. Fix the basics first." },
+  { type: "environment", emoji: "🚀", name: "Environment", tagline: "Remove friction. Make the right choice easier." },
 ];
 
 export default function Landing() {
@@ -47,14 +47,20 @@ export default function Landing() {
             className="text-center mb-8"
           >
             <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-3 text-balance">
-              Five guides. One dashboard.
+              Five guides. One calm place to reset.
               <br />
-              <span className="text-accent">Built around you.</span>
+              <span className="text-accent">Built for starting over.</span>
             </h1>
 
-            <p className="text-muted-foreground text-sm leading-relaxed text-balance max-w-xs mx-auto">
-              The Dashboard learns how you think, where you struggle, and what works — then adapts to guide you forward.
+            <p className="text-muted-foreground text-sm leading-relaxed text-balance max-w-xs mx-auto mb-4">
+              The Dashboard is a simple, private system for rebuilding momentum when life knocks you off track.
             </p>
+
+            <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground/80">
+              <span>No feeds.</span>
+              <span>No streak shame.</span>
+              <span>Just you, your week, and what matters most.</span>
+            </div>
           </motion.div>
 
           {/* The Controllables Grid */}
@@ -96,7 +102,7 @@ export default function Landing() {
                 size="lg"
                 className="w-full h-14 text-base font-medium group"
               >
-                Build Your Dashboard
+                Start with a 7-Day Snapshot
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
@@ -114,28 +120,43 @@ export default function Landing() {
 
         {/* Secondary CTA */}
         <section className="py-8 px-6">
-          <div className="max-w-md mx-auto space-y-3">
-            <Link to="/auth?mode=signup">
-              <Button
-                size="lg"
-                className="w-full h-12 text-base font-medium group"
-              >
-                Begin Your Journey
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
+          <div className="max-w-md mx-auto text-center space-y-4">
+            <div className="space-y-2">
+              <h3 className="font-display text-lg font-semibold text-foreground">
+                Try one Snapshot.
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                See what changes.
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <Link to="/auth?mode=signup">
+                <Button
+                  size="lg"
+                  className="w-full h-12 text-base font-medium group"
+                >
+                  Start free
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+              
+              <p className="text-xs text-muted-foreground">
+                Upgrade only if it helps.
+              </p>
 
-            <a
-              href="https://a.co/d/1DGPGEV"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block"
-            >
-              <Button variant="ghost" className="w-full text-muted-foreground">
-                <Book className="w-4 h-4 mr-2" />
-                Read the Book First
-              </Button>
-            </a>
+              <a
+                href="https://a.co/d/1DGPGEV"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                <Button variant="ghost" className="w-full text-muted-foreground">
+                  <Book className="w-4 h-4 mr-2" />
+                  Read the Book First
+                </Button>
+              </a>
+            </div>
           </div>
         </section>
       </main>
