@@ -1,151 +1,70 @@
 
-# Snapshot Review & Sharing - Production Ready Plan
+# Add Wellness Tooltip to Snapshot Detail View
 
-## Problem Summary
-The Snapshot detail view has several issues preventing it from being production-ready as a key sharing/growth feature:
+## Overview
+Add an informative tooltip to the "Avg Wellness" stat in the Snapshot detail view that explains what it measures and how to track it.
 
-1. **Avg Wellness blank**: Shows "—" because no wellness logs exist for the snapshot period (this is actually correct behavior - the data doesn't exist)
-2. **Wrong hashtag**: Uses `#TheControllables` instead of `#TheDashboard`
-3. **Missing app link**: Share text doesn't include the URL to encourage new signups
-4. **Missing branding on export**: Downloaded image lacks the app domain footer
+## Implementation Details
 
----
+### File to Modify
+`src/components/experience/SnapshotDetailView.tsx`
 
-## Implementation Plan
+### Changes Required
 
-### 1. Fix Share Text with Correct Hashtag and Link
-**File:** `src/components/experience/SnapshotDetailView.tsx`
+1. **Add Tooltip Import**
+   - Import `Tooltip`, `TooltipTrigger`, `TooltipContent`, `TooltipProvider` from `@/components/ui/tooltip`
 
-Update the `handleShare` function (lines 269-296) to:
-- Change `#TheControllables #WeeklySnapshot` to `#TheDashboard`
-- Add the production URL with a clear call-to-action
-- Include wellness in the share summary when available
+2. **Wrap Wellness Card with Tooltip**
+   - Wrap the third stat card (lines ~413-423) with tooltip components
+   - The tooltip should explain what Avg Wellness measures
 
-```text
-Before:
-📊 My Week: Restore Your Foundation
-Jan 22 - 28, 2026
+3. **Tooltip Content**
+   The tooltip will display:
+   - **When data exists**: "Average of Sleep, Movement & Nutrition ratings logged during this week (1-5 scale)"
+   - **When no data**: "Log your Battery Check on Day 4 to track Sleep, Movement & Nutrition"
 
-✅ 5/7 days completed
-⚡ 980 XP earned
-🛡️ 4/4 promises kept
-
-#TheControllables #WeeklySnapshot
-```
-
-```text
-After:
-📊 My Week: Restore Your Foundation
-Jan 22 - 28, 2026
-
-✅ 5/7 days completed
-⚡ 980 XP earned
-🛡️ 4/4 promises kept
-❤️ 3.8/5 avg wellness
-
-A quiet place to restart → thedashboard.agbcoaching.com
-
-#TheDashboard
-```
-
----
-
-### 2. Add Branding Footer to Exported Image
-**File:** `src/components/experience/SnapshotDetailView.tsx`
-
-Add a branded footer section inside the `contentRef` div that appears:
-- At the bottom of the exported image
-- Shows the domain: `thedashboard.agbcoaching.com`
-- Has a subtle tagline: "A quiet place to restart"
-- Matches the style used in QuestCard and Certificate
-
-This footer should be styled to only be visible/prominent in exports (using a subtle divider style).
-
----
-
-### 3. Improve Wellness Score Display and Calculation
-**File:** `src/components/experience/SnapshotDetailView.tsx`
-
-Current behavior: Shows "—" when no wellness logs exist (correct)
-
-Improvements:
-- Add a tooltip or note explaining what Avg Wellness measures (Sleep + Movement + Nutrition)
-- When no data exists, show "Not tracked" instead of just "—" for clarity
-- Only count ratings that actually exist (skip nulls entirely rather than treating as 0)
-
----
-
-### 4. Enhance Share/Export Button UX
-**File:** `src/components/experience/SnapshotDetailView.tsx`
-
-- Add success toast after sharing with encouragement
-- Add a brief loading state visual for export
-- Consider adding a "Share your win!" prompt for completed snapshots
-
----
-
-### 5. Add Export Branding Footer Component
-Create a reusable footer that shows in exports:
+### Code Structure
 
 ```tsx
-{/* Export Branding Footer - visible in exported image */}
-<div className="pt-6 mt-6 border-t border-border/30 text-center">
-  <p className="text-xs text-muted-foreground">
-    A quiet place to restart
-  </p>
-  <p className="text-sm font-medium text-foreground mt-1">
-    thedashboard.agbcoaching.com
-  </p>
-</div>
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Card className="cursor-help">
+        <CardContent className="py-3 text-center">
+          <Heart className="w-4 h-4 mx-auto text-rose-500 mb-1" />
+          <p className="text-lg font-bold text-foreground">
+            {avgWellness ? avgWellness.toFixed(1) : "—"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {avgWellness ? "Avg Wellness" : "Not tracked"}
+          </p>
+        </CardContent>
+      </Card>
+    </TooltipTrigger>
+    <TooltipContent side="bottom" className="max-w-[200px] text-center">
+      {avgWellness ? (
+        <p>Average of Sleep, Movement & Nutrition ratings (1-5 scale)</p>
+      ) : (
+        <p>Log your Battery Check on Day 4 to track Sleep, Movement & Nutrition</p>
+      )}
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>
 ```
 
----
+### Visual Indicator
+- Add `cursor-help` class to the Card to indicate it's interactive
+- Optionally add a small info icon (ℹ️) next to the label for discoverability
 
-## Technical Details
+## Technical Notes
 
-### Files to Modify
-1. `src/components/experience/SnapshotDetailView.tsx` - Main changes
+### Dependencies
+- Uses existing `@/components/ui/tooltip` component (already in project)
+- No new packages needed
 
-### Share Text Template (Final)
-```typescript
-const shareText = 
-  `📊 My Week: ${snapshot?.name || "Week Record"}\n` +
-  `${dateRange}\n\n` +
-  `✅ ${record.daysCompleted}/7 days completed\n` +
-  `⚡ ${totalXP} XP earned\n` +
-  `🛡️ ${promisesKept}/${promisesTotal} promises kept\n` +
-  (avgWellness ? `❤️ ${avgWellness.toFixed(1)}/5 avg wellness\n` : "") +
-  `\nA quiet place to restart → thedashboard.agbcoaching.com\n\n` +
-  `#TheDashboard`;
-```
+### Accessibility
+- Tooltip content provides context for screen readers
+- Works with keyboard navigation (focus-triggered)
 
-### Navigator.share Call (Updated)
-```typescript
-await navigator.share({
-  title: `My Snapshot: ${snapshot?.name || "Week Record"}`,
-  text: shareText,
-  url: "https://thedashboard.agbcoaching.com",
-});
-```
-
----
-
-## Why This Matters (Product Perspective)
-
-The Snapshot review is a **moment of reflection and potential pride**. When users complete a week (even partially), they have proof of their effort. Making this shareable:
-
-1. **Creates social proof** - Others see real people using the app
-2. **Drives organic signups** - Clear URL and invitation
-3. **Reinforces the user's progress** - Exporting/sharing is a celebration
-4. **Stays true to the philosophy** - "Unbiased record" language reminds users this is honest tracking, not gamification pressure
-
-The `#TheDashboard` hashtag creates a discoverable stream of user stories.
-
----
-
-## Expected Outcome
-After implementation:
-- Share text includes production URL and correct hashtag
-- Exported images include branded footer for attribution
-- Wellness shows "Not tracked" when empty (clearer than "—")
-- Both share and export become tools for user pride AND organic growth
+## Summary
+This small addition helps users understand what the wellness metric measures without needing to navigate elsewhere, reinforcing the "Battery Check" mental model and encouraging future logging.
