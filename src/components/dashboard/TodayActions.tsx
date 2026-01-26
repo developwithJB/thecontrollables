@@ -55,6 +55,7 @@ interface TodayActionsProps {
   hasActiveQuest: boolean;
   todayTimeLogged: boolean;
   pendingPromisesCount: number;
+  todayPromiseMade: boolean;
   todayXpEarned: number;
 
   // Build completion signal (used for Day 3 checklist)
@@ -107,6 +108,7 @@ export function TodayActions({
   hasActiveQuest,
   todayTimeLogged,
   pendingPromisesCount,
+  todayPromiseMade,
   todayXpEarned,
   buildLastUpdatedAt,
   journeyId,
@@ -338,14 +340,16 @@ export function TodayActions({
   // Day-based bonus actions (vary by day to encourage different features)
   // Only add bonus actions if we have an active session
   if (hasActiveSession && !isResetCompleted && !isResetExpired) {
-    // Day 1: Encourage making a promise if none pending
-    if (currentDay === 1 && pendingPromisesCount === 0) {
+    // Day 1: Encourage making a promise (show completed if they made one today)
+    if (currentDay === 1) {
+      // Show the task if they haven't made a promise today, OR show it as completed if they have
+      const promiseCompleted = todayPromiseMade || pendingPromisesCount > 0;
       actions.push({
         id: "make-promise",
         label: "Make your first promise",
-        sublabel: "Build integrity through kept commitments",
+        sublabel: promiseCompleted ? "Completed" : "Build integrity through kept commitments",
         icon: <Scale className="w-4 h-4" />,
-        completed: false,
+        completed: promiseCompleted,
         timeEstimate: "1 min",
         action: onOpenPromises,
       });
@@ -376,14 +380,15 @@ export function TodayActions({
           timeEstimate: "3 min",
           action: onOpenAIGuide,
         });
-      } else if (pendingPromisesCount === 0) {
+      } else {
         // Free users: suggest making a promise instead
+        const promiseCompleted = todayPromiseMade || pendingPromisesCount > 0;
         actions.push({
           id: "make-promise",
           label: "Make a promise to yourself",
-          sublabel: "Build integrity through kept commitments",
+          sublabel: promiseCompleted ? "Completed" : "Build integrity through kept commitments",
           icon: <Scale className="w-4 h-4" />,
-          completed: false,
+          completed: promiseCompleted,
           timeEstimate: "1 min",
           action: onOpenPromises,
         });
