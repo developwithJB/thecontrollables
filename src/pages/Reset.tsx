@@ -130,6 +130,7 @@ const Reset = () => {
           dayNumber={currentDay}
           completedDays={completedDays.length}
           logDate={currentLogDate}
+          activeQuest={activeQuest}
         />
       );
     }
