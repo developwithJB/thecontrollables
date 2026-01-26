@@ -22,8 +22,10 @@ interface IntegrityLog {
 interface IntegrityMeterModuleProps {
   integrityScore: number | null;
   pendingPromises: IntegrityLog[];
-  onCreatePromise: (data: { promiseText: string }) => void;
+  onCreatePromise: (data: { promiseText: string }) => Promise<unknown>;
   onResolvePromise: (data: { promiseId: string; kept: boolean }) => void;
+  hasAnyPromises?: boolean;
+  todayPromiseMade?: boolean;
   compact?: boolean;
   disabled?: boolean;
 }
@@ -39,12 +41,18 @@ export const IntegrityMeterModule = forwardRef<IntegrityMeterModuleHandle, Integ
     pendingPromises,
     onCreatePromise,
     onResolvePromise,
+    hasAnyPromises = false,
+    todayPromiseMade = false,
     compact = false,
     disabled = false,
   }, ref) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [promiseText, setPromiseText] = useState("");
+    const [isSubmittingPromise, setIsSubmittingPromise] = useState(false);
+    const [optimisticPromiseMadeToday, setOptimisticPromiseMadeToday] = useState(false);
+
+    const promiseMadeToday = todayPromiseMade || optimisticPromiseMadeToday;
 
   const { trackButtonClick, trackModalAction } = useActionTracking();
 
@@ -60,12 +68,22 @@ export const IntegrityMeterModule = forwardRef<IntegrityMeterModuleHandle, Integ
     },
   }));
 
-  const handleSubmit = () => {
-    if (!promiseText.trim()) return;
+  const handleSubmit = async () => {
+    if (!promiseText.trim() || disabled || isSubmittingPromise) return;
     trackButtonClick("promise_create_submit");
-    onCreatePromise({ promiseText: promiseText.trim() });
-    setIsOpen(false);
-    setPromiseText("");
+
+    setIsSubmittingPromise(true);
+    try {
+      await onCreatePromise({ promiseText: promiseText.trim() });
+      // Optimistically reflect success immediately (refetch will confirm)
+      setOptimisticPromiseMadeToday(true);
+      setIsOpen(false);
+      setPromiseText("");
+    } catch {
+      // Keep modal open on failure; toast is handled upstream if configured
+    } finally {
+      setIsSubmittingPromise(false);
+    }
   };
 
   const handleResolve = (promiseId: string, kept: boolean) => {
@@ -143,7 +161,15 @@ export const IntegrityMeterModule = forwardRef<IntegrityMeterModuleHandle, Integ
               </div>
             </>
           ) : (
-            <p className="text-xs text-muted-foreground">No promises yet</p>
+            <p className="text-xs text-muted-foreground">
+              {pendingPromises.length > 0
+                ? `${pendingPromises.length} open ${pendingPromises.length === 1 ? "promise" : "promises"}`
+                : promiseMadeToday
+                  ? "Saved today — review tomorrow"
+                  : hasAnyPromises
+                    ? "No open promises"
+                    : "No promises yet"}
+            </p>
           )}
         </motion.button>
 
@@ -168,8 +194,13 @@ export const IntegrityMeterModule = forwardRef<IntegrityMeterModuleHandle, Integ
                     <p className={`text-sm mt-1 ${status.color}`}>{status.label}</p>
                   </>
                 ) : (
-                  <div className="py-2">
-                    <p className="text-muted-foreground text-sm">No promises tracked yet</p>
+                  <div className="py-2 space-y-1">
+                    <p className="text-muted-foreground text-sm">
+                      {hasAnyPromises ? "Promises tracked" : "No promises tracked yet"}
+                    </p>
+                    {promiseMadeToday && (
+                      <p className="text-xs text-muted-foreground">Saved today — it will appear here tomorrow for review.</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -218,6 +249,14 @@ export const IntegrityMeterModule = forwardRef<IntegrityMeterModuleHandle, Integ
                 </div>
               )}
 
+              {pendingPromises.length === 0 && promiseMadeToday && (
+                <div className="pt-3 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    Today’s promise is saved. It will show up here tomorrow for review.
+                  </p>
+                </div>
+              )}
+
               {/* Make a Promise button */}
               <div className="pt-3 border-t">
                 <Button
@@ -256,8 +295,12 @@ export const IntegrityMeterModule = forwardRef<IntegrityMeterModuleHandle, Integ
                 onChange={(e) => setPromiseText(e.target.value)}
                 className="text-base"
               />
-              <Button onClick={handleSubmit} className="w-full" disabled={!promiseText.trim() || disabled}>
-                {disabled ? "Loading..." : "Make Promise"}
+              <Button
+                onClick={handleSubmit}
+                className="w-full"
+                disabled={!promiseText.trim() || disabled || isSubmittingPromise}
+              >
+                {isSubmittingPromise ? "Saving..." : disabled ? "Loading..." : "Make Promise"}
               </Button>
             </div>
           </DialogContent>
@@ -367,8 +410,12 @@ export const IntegrityMeterModule = forwardRef<IntegrityMeterModuleHandle, Integ
               onChange={(e) => setPromiseText(e.target.value)}
               className="text-base"
             />
-            <Button onClick={handleSubmit} className="w-full" disabled={!promiseText.trim() || disabled}>
-              {disabled ? "Loading..." : "Make Promise"}
+            <Button
+              onClick={handleSubmit}
+              className="w-full"
+              disabled={!promiseText.trim() || disabled || isSubmittingPromise}
+            >
+              {isSubmittingPromise ? "Saving..." : disabled ? "Loading..." : "Make Promise"}
             </Button>
           </div>
         </DialogContent>
