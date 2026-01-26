@@ -319,8 +319,8 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm overflow-hidden"
     >
-      <div className="h-full flex flex-col">
-        {/* Header */}
+      <div className="h-full flex flex-col pt-[env(safe-area-inset-top)]">
+        {/* Header - with safe area padding for iOS PWA */}
         <div className="shrink-0 border-b bg-card px-4 py-3">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={onClose}>
