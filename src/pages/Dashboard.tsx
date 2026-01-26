@@ -564,22 +564,36 @@ export default function Dashboard() {
                   />
                 </div>
               ) : (
-                /* When quest exists, show minimal complete button */
-                <div data-testid="main-quest-module" className="p-4 rounded-xl bg-card border border-border">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>Active Mission:</span>
-                      <span className="font-medium text-foreground">{activeQuest.title}</span>
-                    </div>
-                    <button
-                      onClick={() => completeQuest(activeQuest.id)}
-                      disabled={isCompletingQuest}
-                      className="text-xs text-primary hover:underline"
-                    >
-                      {isCompletingQuest ? "Completing..." : "Complete"}
-                    </button>
-                  </div>
+                /* When quest exists, show full module with edit capability */
+                <div data-testid="main-quest-module">
+                  <MainQuestModule
+                    activeQuest={activeQuest}
+                    onCreateQuest={handleCreateQuest}
+                    onUpdateQuest={handleUpdateQuest}
+                    onCompleteQuest={completeQuest}
+                    isCreating={isCreatingQuest}
+                    isUpdating={isUpdatingQuest}
+                    isCompleting={isCompletingQuest}
+                    disabled={!isAuthReady}
+                  />
                 </div>
+              )}
+
+              {/* Snapshot Focus indicator */}
+              {activeSession?.journey_id && (
+                <button
+                  onClick={() => setShowJourneySwitcher(true)}
+                  className="w-full p-3 rounded-xl bg-muted/50 border border-border hover:bg-muted hover:border-border/80 transition-all text-left flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Snapshot Focus:</span>
+                    <span className="font-medium text-foreground">
+                      {getJourneyById(activeSession.journey_id)?.emoji}{" "}
+                      {getJourneyById(activeSession.journey_id)?.title}
+                    </span>
+                  </div>
+                  <RefreshCw className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
               )}
 
               {/* Today's Actions - Unified interactive checklist with 7-day foundation */}
