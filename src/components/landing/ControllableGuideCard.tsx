@@ -36,10 +36,10 @@ export function ControllableGuideCard({
 }: ControllableGuideCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.2 + index * 0.08 }}
-      whileHover={{ scale: 1.03, y: -4 }}
+      whileHover={{ y: -2 }}
       className={cn(
         "relative rounded-xl border p-4 cursor-default transition-all duration-300",
         "flex flex-col items-center text-center gap-2",
