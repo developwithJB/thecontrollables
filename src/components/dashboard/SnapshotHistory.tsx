@@ -8,20 +8,18 @@ import {
   CalendarDays, 
   Calendar, 
   CalendarCheck, 
-  TrendingUp,
   Zap,
-  Trophy,
-  ChevronDown,
-  ChevronUp,
+  ChevronRight,
   Layers,
   CheckCircle2,
   Circle,
-  XCircle,
-  Info,
+  Play,
+  RefreshCw,
+  Lock,
 } from "lucide-react";
-import { format, startOfWeek, startOfMonth, startOfYear, isWithinInterval, subDays, eachWeekOfInterval, eachMonthOfInterval, addDays, endOfMonth, isSameMonth, isSameYear } from "date-fns";
-import { BUCKETS, SNAPSHOTS, getSnapshotById, type BucketId, type Snapshot } from "@/lib/snapshots";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { format, addDays } from "date-fns";
+import { BUCKETS, getSnapshotById, type BucketId } from "@/lib/snapshots";
+import { useNavigate } from "react-router-dom";
 
 interface SnapshotRecord {
   id: string;
@@ -31,206 +29,38 @@ interface SnapshotRecord {
   status: "active" | "completed" | "expired" | "paused";
   daysCompleted: number;
   xpEarned: number;
-  integrityDelta?: number; // Promises kept minus broken
+  integrityDelta?: number;
 }
 
 interface SnapshotHistoryProps {
   sessions: SnapshotRecord[];
   className?: string;
+  isPaid?: boolean;
+  onStartNew?: () => void;
 }
 
 type ViewMode = "week" | "month" | "year";
 
-// Get status icon and color
-function getStatusInfo(status: string, daysCompleted: number): { icon: React.ReactNode; label: string; colorClass: string } {
+// Get status info - no negative language
+function getStatusInfo(status: string, daysCompleted: number): { label: string; colorClass: string } {
   if (status === "completed") {
-    return {
-      icon: <CheckCircle2 className="w-3.5 h-3.5" />,
-      label: "Completed",
-      colorClass: "bg-emerald-500 dark:bg-emerald-400 text-white",
-    };
+    return { label: "Completed", colorClass: "bg-emerald-500/80 text-white" };
   }
   if (status === "active") {
-    return {
-      icon: <Circle className="w-3.5 h-3.5 animate-pulse" />,
-      label: "In Progress",
-      colorClass: "bg-primary text-primary-foreground",
-    };
+    return { label: "In Progress", colorClass: "bg-primary text-primary-foreground" };
   }
   if (daysCompleted >= 5) {
-    return {
-      icon: <Circle className="w-3.5 h-3.5" />,
-      label: "Almost",
-      colorClass: "bg-amber-500 dark:bg-amber-400 text-white",
-    };
+    return { label: "Almost", colorClass: "bg-amber-500/80 text-white" };
   }
-  if (daysCompleted >= 1) {
-    return {
-      icon: <XCircle className="w-3.5 h-3.5" />,
-      label: "Incomplete",
-      colorClass: "bg-orange-500 dark:bg-orange-400 text-white",
-    };
-  }
-  return {
-    icon: <XCircle className="w-3.5 h-3.5" />,
-    label: "Abandoned",
-    colorClass: "bg-muted text-muted-foreground",
-  };
+  // No "incomplete" or "abandoned" - just neutral
+  return { label: "Started", colorClass: "bg-muted text-muted-foreground" };
 }
 
-// Single brick component representing a 7-day snapshot
-function SnapshotBrick({
-  record,
-  isExpanded,
-  onClick,
-}: {
-  record: SnapshotRecord;
-  isExpanded: boolean;
-  onClick: () => void;
-}) {
-  const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
-  const bucket = snapshot ? BUCKETS[snapshot.bucketId] : null;
-  const statusInfo = getStatusInfo(record.status, record.daysCompleted);
-  const startDate = new Date(record.startDate);
-  const dateRange = `${format(startDate, "MMM d")} - ${format(addDays(startDate, 6), "MMM d")}`;
-
-  return (
-    <TooltipProvider delayDuration={300}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <motion.button
-            layout
-            onClick={onClick}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className={`relative group transition-all ${
-              isExpanded ? "col-span-full" : ""
-            }`}
-          >
-            <motion.div
-              layout
-              className={`rounded-lg border transition-all overflow-hidden ${statusInfo.colorClass} ${
-                isExpanded ? "p-4" : "p-2"
-              }`}
-            >
-              {/* Compact view */}
-              {!isExpanded ? (
-                <div className="flex flex-col items-center justify-center min-h-[56px] gap-0.5">
-                  {/* Date label */}
-                  <span className="text-[10px] font-medium opacity-90">
-                    {format(startDate, "MMM d")}
-                  </span>
-                  {/* Progress indicator */}
-                  <div className="flex items-center gap-0.5">
-                    {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-                      <div
-                        key={day}
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          day <= record.daysCompleted
-                            ? "bg-white/90"
-                            : "bg-white/30"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  {/* Status badge */}
-                  <div className="flex items-center gap-0.5 mt-0.5">
-                    {statusInfo.icon}
-                  </div>
-                </div>
-              ) : (
-                /* Expanded view */
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                        <span className="text-xl">{snapshot?.emoji || "📅"}</span>
-                      </div>
-                      <div className="text-left">
-                        <p className="font-semibold text-sm">
-                          {snapshot?.name || "7-Day Snapshot"}
-                        </p>
-                        <p className="text-xs opacity-80">
-                          {dateRange}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="secondary" className="text-xs bg-white/20 text-current border-0">
-                      {statusInfo.icon}
-                      <span className="ml-1">{statusInfo.label}</span>
-                    </Badge>
-                  </div>
-
-                  {bucket && (
-                    <div className="text-xs opacity-90 flex items-center gap-1">
-                      <span>{bucket.emoji}</span>
-                      <span>{bucket.name}</span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-4 text-xs">
-                    <span className="flex items-center gap-1">
-                      <Layers className="w-3 h-3" />
-                      {record.daysCompleted}/7 days
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Zap className="w-3 h-3" />
-                      +{record.xpEarned} XP
-                    </span>
-                  </div>
-
-                  {/* Day completion grid */}
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-                      <div
-                        key={day}
-                        className={`flex-1 h-2 rounded-sm ${
-                          day <= record.daysCompleted
-                            ? "bg-white/80"
-                            : "bg-white/20"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </motion.button>
-        </TooltipTrigger>
-        {!isExpanded && (
-          <TooltipContent side="top" className="text-xs">
-            <div className="space-y-1">
-              <p className="font-medium">{snapshot?.name || "7-Day Snapshot"}</p>
-              <p className="text-muted-foreground">{dateRange}</p>
-              <p>{record.daysCompleted}/7 days • {statusInfo.label}</p>
-            </div>
-          </TooltipContent>
-        )}
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
-
-// Stack of bricks representing aggregated time period
-function BrickStack({
-  records,
-  label,
-  sublabel,
-  isExpanded,
-  onClick,
-}: {
-  records: SnapshotRecord[];
-  label: string;
-  sublabel?: string;
-  isExpanded: boolean;
-  onClick: () => void;
-}) {
-  const totalDays = records.reduce((sum, r) => sum + r.daysCompleted, 0);
-  const totalXP = records.reduce((sum, r) => sum + r.xpEarned, 0);
-  const completedCount = records.filter((r) => r.status === "completed").length;
-  const avgCompletion = records.length > 0 ? totalDays / (records.length * 7) : 0;
-
-  // Get bucket distribution
+// Generate narrative for month
+function getMonthNarrative(records: SnapshotRecord[]): string {
+  if (records.length === 0) return "";
+  
+  // Find dominant bucket
   const bucketCounts = records.reduce((acc, r) => {
     const snapshot = r.snapshotId ? getSnapshotById(r.snapshotId) : null;
     if (snapshot) {
@@ -238,136 +68,331 @@ function BrickStack({
     }
     return acc;
   }, {} as Record<BucketId, number>);
+  
+  const topBucket = Object.entries(bucketCounts)
+    .sort(([, a], [, b]) => b - a)[0];
+  
+  if (topBucket) {
+    const bucket = BUCKETS[topBucket[0] as BucketId];
+    const narratives: Record<BucketId, string> = {
+      "reset-reentry": "This month was about starting fresh.",
+      "momentum-consistency": "This month was about building consistency.",
+      "clarity-perspective": "This month was about gaining clarity.",
+      "energy-care": "This month was about taking care of yourself.",
+      "integrity-trust": "This month was about keeping your word.",
+      "growth-expansion": "This month was about growing forward.",
+    };
+    return narratives[topBucket[0] as BucketId] || `This month was about ${bucket.name.toLowerCase()}.`;
+  }
+  
+  return "This month, you showed up.";
+}
 
-  const topBuckets = Object.entries(bucketCounts)
+// Generate narrative for year
+function getYearNarrative(records: SnapshotRecord[]): string {
+  if (records.length === 0) return "";
+  
+  const completed = records.filter(r => r.status === "completed").length;
+  const returns = records.length - 1; // How many times they came back
+  
+  if (completed >= 10) {
+    return "This year, you built something real.";
+  }
+  if (returns >= 5) {
+    return "This year, you kept coming back.";
+  }
+  if (completed >= 5) {
+    return "This year, you found your rhythm.";
+  }
+  if (records.length >= 3) {
+    return "This year, you stayed in the game.";
+  }
+  return "This year, you started.";
+}
+
+// Get focus areas from records
+function getFocusAreas(records: SnapshotRecord[]): { focus: string; count: number }[] {
+  const focusCounts = records.reduce((acc, r) => {
+    const snapshot = r.snapshotId ? getSnapshotById(r.snapshotId) : null;
+    if (snapshot) {
+      acc[snapshot.focus] = (acc[snapshot.focus] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+  
+  return Object.entries(focusCounts)
     .sort(([, a], [, b]) => b - a)
-    .slice(0, 3);
+    .slice(0, 4)
+    .map(([focus, count]) => ({ focus, count }));
+}
+
+// Get primary bucket from records
+function getPrimaryBucket(records: SnapshotRecord[]): { id: BucketId; count: number } | null {
+  const bucketCounts = records.reduce((acc, r) => {
+    const snapshot = r.snapshotId ? getSnapshotById(r.snapshotId) : null;
+    if (snapshot) {
+      acc[snapshot.bucketId] = (acc[snapshot.bucketId] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<BucketId, number>);
+  
+  const top = Object.entries(bucketCounts).sort(([, a], [, b]) => b - a)[0];
+  return top ? { id: top[0] as BucketId, count: top[1] } : null;
+}
+
+// Week View: Snapshot Card (the unit of work)
+function WeekCard({
+  record,
+  onContinue,
+}: {
+  record: SnapshotRecord;
+  onContinue?: () => void;
+}) {
+  const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
+  const bucket = snapshot ? BUCKETS[snapshot.bucketId] : null;
+  const statusInfo = getStatusInfo(record.status, record.daysCompleted);
+  const startDate = new Date(record.startDate);
+  const dateRange = `${format(startDate, "MMM d")} - ${format(addDays(startDate, 6), "d")}`;
+  const isActive = record.status === "active";
 
   return (
-    <motion.button
-      layout
-      onClick={onClick}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className={`relative group transition-all ${isExpanded ? "col-span-full" : ""}`}
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`p-4 rounded-xl border transition-all ${
+        isActive 
+          ? "bg-primary/5 border-primary/30" 
+          : "bg-card border-border"
+      }`}
     >
-      <motion.div
-        layout
-        className={`rounded-xl border border-border bg-card transition-all overflow-hidden ${
-          isExpanded ? "p-4" : "p-3"
-        }`}
-      >
-        {!isExpanded ? (
-          /* Compact stacked view */
-          <div className="flex flex-col items-center">
-            {/* Visual brick stack */}
-            <div className="relative w-12 mb-2">
-              {records.slice(0, 4).map((record, idx) => {
-                const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
-                const statusInfo = getStatusInfo(record.status, record.daysCompleted);
-                return (
-                  <motion.div
-                    key={record.id}
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: idx * 0.05 }}
-                    style={{ 
-                      zIndex: records.length - idx,
-                      marginTop: idx > 0 ? "-4px" : 0
-                    }}
-                    className={`w-full h-6 rounded-sm border border-background/50 flex items-center justify-center text-xs ${statusInfo.colorClass}`}
-                  >
-                    {snapshot?.emoji || "📅"}
-                  </motion.div>
-                );
-              })}
-              {records.length > 4 && (
-                <div className="text-[10px] text-muted-foreground text-center mt-1">
-                  +{records.length - 4}
-                </div>
-              )}
-            </div>
-            <p className="text-xs font-medium text-foreground">{label}</p>
-            {sublabel && (
-              <p className="text-[10px] text-muted-foreground">{sublabel}</p>
-            )}
-            <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
-              <span>{completedCount}</span>
-              <Trophy className="w-2.5 h-2.5" />
-            </div>
-          </div>
-        ) : (
-          /* Expanded view */
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground">{label}</p>
-                {sublabel && (
-                  <p className="text-xs text-muted-foreground">{sublabel}</p>
-                )}
-              </div>
-              <ChevronUp className="w-4 h-4 text-muted-foreground" />
-            </div>
+      {/* Header */}
+      <div className="flex items-start gap-3 mb-3">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+          isActive ? "bg-primary/20" : "bg-muted"
+        }`}>
+          <span className="text-xl">{snapshot?.emoji || "📅"}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-foreground truncate">
+            {snapshot?.name || "7-Day Snapshot"}
+          </p>
+          <p className="text-xs text-muted-foreground">{dateRange}</p>
+        </div>
+        <Badge variant="secondary" className={`text-xs shrink-0 ${statusInfo.colorClass}`}>
+          {statusInfo.label}
+        </Badge>
+      </div>
 
-            {/* Stats row */}
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-2 rounded-lg bg-muted/50">
-                <p className="text-lg font-bold text-foreground">{records.length}</p>
-                <p className="text-[10px] text-muted-foreground">Snapshots</p>
-              </div>
-              <div className="p-2 rounded-lg bg-muted/50">
-                <p className="text-lg font-bold text-foreground">{completedCount}</p>
-                <p className="text-[10px] text-muted-foreground">Completed</p>
-              </div>
-              <div className="p-2 rounded-lg bg-muted/50">
-                <p className="text-lg font-bold text-primary">+{totalXP}</p>
-                <p className="text-[10px] text-muted-foreground">XP</p>
-              </div>
-            </div>
+      {/* Bucket & Focus */}
+      {bucket && (
+        <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
+          <span>{bucket.emoji} {bucket.name}</span>
+          {snapshot && (
+            <>
+              <span className="text-muted-foreground/50">•</span>
+              <span className="capitalize">{snapshot.focus}</span>
+            </>
+          )}
+        </div>
+      )}
 
-            {/* Bucket breakdown */}
-            {topBuckets.length > 0 && (
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Focus Areas</p>
-                <div className="flex flex-wrap gap-1">
-                  {topBuckets.map(([bucketId, count]) => {
-                    const bucket = BUCKETS[bucketId as BucketId];
-                    return (
-                      <Badge key={bucketId} variant="secondary" className="text-xs">
-                        {bucket.emoji} {bucket.name} ({count})
-                      </Badge>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+      {/* Completion Dots - soft, neutral */}
+      <div className="flex gap-1.5 mb-3">
+        {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+          <div
+            key={day}
+            className={`flex-1 h-2 rounded-full transition-colors ${
+              day <= record.daysCompleted
+                ? record.status === "completed" 
+                  ? "bg-emerald-500/80" 
+                  : "bg-primary/80"
+                : "bg-muted"
+            }`}
+          />
+        ))}
+      </div>
 
-            {/* Individual bricks in expanded */}
-            <div className="grid grid-cols-4 sm:grid-cols-7 gap-1 pt-2 border-t border-border">
-              {records.map((record) => {
-                const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
-                const statusInfo = getStatusInfo(record.status, record.daysCompleted);
-                return (
-                  <div
-                    key={record.id}
-                    className={`h-8 rounded flex items-center justify-center text-sm ${statusInfo.colorClass}`}
-                    title={`${snapshot?.name || "7-Day Snapshot"}: ${record.daysCompleted}/7 days`}
-                  >
-                    {snapshot?.emoji || "📅"}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+      {/* Footer: Days + XP */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">
+          {record.daysCompleted}/7 days
+        </span>
+        {record.xpEarned > 0 && (
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <Zap className="w-3 h-3" />
+            +{record.xpEarned}
+          </span>
         )}
-      </motion.div>
-    </motion.button>
+      </div>
+
+      {/* CTA for active */}
+      {isActive && onContinue && (
+        <Button 
+          onClick={onContinue}
+          size="sm" 
+          className="w-full mt-3"
+        >
+          <Play className="w-3 h-3 mr-1" />
+          Finish this Snapshot
+        </Button>
+      )}
+    </motion.div>
   );
 }
 
-export function SnapshotHistory({ sessions, className }: SnapshotHistoryProps) {
+// Month View: Meaning + Pattern
+function MonthView({
+  records,
+  label,
+}: {
+  records: SnapshotRecord[];
+  label: string;
+}) {
+  const narrative = getMonthNarrative(records);
+  const completed = records.filter(r => r.status === "completed").length;
+  const primaryBucket = getPrimaryBucket(records);
+  const focusAreas = getFocusAreas(records);
+  const totalXP = records.reduce((sum, r) => sum + r.xpEarned, 0);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="p-5 rounded-xl bg-card border border-border"
+    >
+      {/* Month label */}
+      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">{label}</p>
+      
+      {/* Narrative - the emotional anchor */}
+      <p className="text-lg font-medium text-foreground mb-4 leading-snug">
+        {narrative}
+      </p>
+
+      {/* Snapshot count */}
+      <div className="flex items-center gap-4 mb-4 text-sm">
+        <span className="text-foreground">
+          <span className="font-semibold">{records.length}</span> Snapshot{records.length !== 1 ? "s" : ""}
+        </span>
+        <span className="text-muted-foreground">
+          <span className="font-medium text-emerald-600 dark:text-emerald-400">{completed}</span> completed
+        </span>
+      </div>
+
+      {/* Primary Bucket */}
+      {primaryBucket && (
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xl">{BUCKETS[primaryBucket.id].emoji}</span>
+          <span className="text-sm text-foreground">{BUCKETS[primaryBucket.id].name}</span>
+        </div>
+      )}
+
+      {/* Focus chips */}
+      {focusAreas.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {focusAreas.map(({ focus, count }) => (
+            <Badge key={focus} variant="secondary" className="text-xs capitalize">
+              {focus} ({count})
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      {/* XP - subdued */}
+      {totalXP > 0 && (
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <Zap className="w-3 h-3" />
+          +{totalXP} XP earned
+        </p>
+      )}
+    </motion.div>
+  );
+}
+
+// Year View: Identity + Story
+function YearView({
+  records,
+  year,
+}: {
+  records: SnapshotRecord[];
+  year: string;
+}) {
+  const narrative = getYearNarrative(records);
+  const completed = records.filter(r => r.status === "completed").length;
+  const primaryBucket = getPrimaryBucket(records);
+  const focusAreas = getFocusAreas(records);
+  const returns = records.length - 1; // Times they came back
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="p-6 rounded-xl bg-gradient-to-br from-primary/5 to-muted/30 border border-primary/20"
+    >
+      {/* Year label */}
+      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">{year}</p>
+      
+      {/* Year Narrative - the signature line */}
+      <p className="text-xl font-display font-semibold text-foreground mb-5 leading-snug">
+        {narrative}
+      </p>
+
+      {/* Stats grid - no percentages, no rankings */}
+      <div className="grid grid-cols-2 gap-4 mb-5">
+        <div>
+          <p className="text-2xl font-bold text-foreground">{records.length}</p>
+          <p className="text-xs text-muted-foreground">Snapshots taken</p>
+        </div>
+        <div>
+          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{completed}</p>
+          <p className="text-xs text-muted-foreground">Weeks completed</p>
+        </div>
+      </div>
+
+      {/* Most returned bucket */}
+      {primaryBucket && (
+        <div className="p-3 rounded-lg bg-background/50 border border-border mb-4">
+          <p className="text-xs text-muted-foreground mb-1">Most returned to</p>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{BUCKETS[primaryBucket.id].emoji}</span>
+            <span className="text-sm font-medium text-foreground">{BUCKETS[primaryBucket.id].name}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Primary focus */}
+      {focusAreas.length > 0 && (
+        <div className="mb-4">
+          <p className="text-xs text-muted-foreground mb-1">Primary focus</p>
+          <p className="text-sm font-medium text-foreground capitalize">{focusAreas[0].focus}</p>
+        </div>
+      )}
+
+      {/* Returns - reinforces resilience */}
+      {returns > 0 && (
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <RefreshCw className="w-3 h-3" />
+          You came back {returns} time{returns !== 1 ? "s" : ""}
+        </p>
+      )}
+    </motion.div>
+  );
+}
+
+// Locked view placeholder
+function LockedView({ viewType, requiredCount }: { viewType: string; requiredCount: number }) {
+  return (
+    <div className="p-6 rounded-xl bg-muted/30 border border-dashed border-muted-foreground/30 text-center">
+      <Lock className="w-6 h-6 mx-auto text-muted-foreground/50 mb-2" />
+      <p className="text-sm text-muted-foreground">
+        Complete {requiredCount}+ Snapshots to unlock {viewType} view
+      </p>
+    </div>
+  );
+}
+
+export function SnapshotHistory({ sessions, className, isPaid = false, onStartNew }: SnapshotHistoryProps) {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>("week");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Filter to only show sessions with meaningful data
   const validSessions = useMemo(() => 
@@ -375,83 +400,66 @@ export function SnapshotHistory({ sessions, className }: SnapshotHistoryProps) {
     [sessions]
   );
 
+  // Progressive unlock logic
+  const canViewMonth = validSessions.length >= 3;
+  const canViewYear = validSessions.length >= 6 || isPaid;
+
   // Group sessions by time period
-  const groupedData = useMemo(() => {
-    if (validSessions.length === 0) return [];
-
-    const now = new Date();
-
-    if (viewMode === "week") {
-      // Show individual weeks as bricks
-      return validSessions.map((session) => ({
-        type: "single" as const,
-        id: session.id,
-        record: session,
-        label: format(new Date(session.startDate), "MMM d"),
+  const monthGroups = useMemo(() => {
+    const groups = new Map<string, SnapshotRecord[]>();
+    validSessions.forEach((session) => {
+      const monthKey = format(new Date(session.startDate), "yyyy-MM");
+      if (!groups.has(monthKey)) {
+        groups.set(monthKey, []);
+      }
+      groups.get(monthKey)!.push(session);
+    });
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([key, records]) => ({
+        key,
+        label: format(new Date(key + "-01"), "MMMM yyyy"),
+        records,
       }));
-    }
+  }, [validSessions]);
 
-    if (viewMode === "month") {
-      // Group by month
-      const monthGroups = new Map<string, SnapshotRecord[]>();
-      validSessions.forEach((session) => {
-        const monthKey = format(new Date(session.startDate), "yyyy-MM");
-        if (!monthGroups.has(monthKey)) {
-          monthGroups.set(monthKey, []);
-        }
-        monthGroups.get(monthKey)!.push(session);
-      });
-
-      return Array.from(monthGroups.entries())
-        .sort(([a], [b]) => b.localeCompare(a))
-        .map(([monthKey, records]) => ({
-          type: "stack" as const,
-          id: monthKey,
-          records,
-          label: format(new Date(monthKey + "-01"), "MMMM"),
-          sublabel: format(new Date(monthKey + "-01"), "yyyy"),
-        }));
-    }
-
-    // Year view
-    const yearGroups = new Map<string, SnapshotRecord[]>();
+  const yearGroups = useMemo(() => {
+    const groups = new Map<string, SnapshotRecord[]>();
     validSessions.forEach((session) => {
       const yearKey = format(new Date(session.startDate), "yyyy");
-      if (!yearGroups.has(yearKey)) {
-        yearGroups.set(yearKey, []);
+      if (!groups.has(yearKey)) {
+        groups.set(yearKey, []);
       }
-      yearGroups.get(yearKey)!.push(session);
+      groups.get(yearKey)!.push(session);
     });
-
-    return Array.from(yearGroups.entries())
+    return Array.from(groups.entries())
       .sort(([a], [b]) => b.localeCompare(a))
-      .map(([yearKey, records]) => ({
-        type: "stack" as const,
-        id: yearKey,
-        records,
-        label: yearKey,
-        sublabel: `${records.length} snapshots`,
-      }));
-  }, [validSessions, viewMode]);
-
-  // Summary stats
-  const stats = useMemo(() => {
-    const completed = validSessions.filter((s) => s.status === "completed").length;
-    const totalXP = validSessions.reduce((sum, s) => sum + s.xpEarned, 0);
-    const avgDays = validSessions.length > 0
-      ? validSessions.reduce((sum, s) => sum + s.daysCompleted, 0) / validSessions.length
-      : 0;
-    return { total: validSessions.length, completed, totalXP, avgDays };
+      .map(([key, records]) => ({ year: key, records }));
   }, [validSessions]);
+
+  // Sort weeks most recent first
+  const sortedWeeks = useMemo(() => 
+    [...validSessions].sort((a, b) => 
+      new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+    ),
+    [validSessions]
+  );
+
+  const handleContinue = () => navigate("/reset");
 
   if (validSessions.length === 0) {
     return (
       <Card className={className}>
         <CardContent className="py-8 text-center">
           <Layers className="w-10 h-10 mx-auto text-muted-foreground/50 mb-3" />
-          <p className="text-sm text-muted-foreground">
-            No Snapshot history yet. Start your first 7-day Snapshot!
+          <p className="text-sm text-muted-foreground mb-4">
+            Your history starts here.
           </p>
+          {onStartNew && (
+            <Button variant="outline" onClick={onStartNew}>
+              Start your first Snapshot
+            </Button>
+          )}
         </CardContent>
       </Card>
     );
@@ -463,107 +471,92 @@ export function SnapshotHistory({ sessions, className }: SnapshotHistoryProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-display flex items-center gap-2">
             <Layers className="w-4 h-4" />
-            Snapshot History
+            Your Story
           </CardTitle>
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-            <TabsList className="h-8">
-              <TabsTrigger value="week" className="text-xs px-2 h-6">
-                <CalendarDays className="w-3 h-3 mr-1" />
-                Week
-              </TabsTrigger>
-              <TabsTrigger value="month" className="text-xs px-2 h-6">
-                <Calendar className="w-3 h-3 mr-1" />
-                Month
-              </TabsTrigger>
-              <TabsTrigger value="year" className="text-xs px-2 h-6">
-                <CalendarCheck className="w-3 h-3 mr-1" />
-                Year
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          
+          {/* Only show tabs if there's enough data */}
+          {validSessions.length >= 2 && (
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+              <TabsList className="h-8">
+                <TabsTrigger value="week" className="text-xs px-2 h-6">
+                  Week
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="month" 
+                  className="text-xs px-2 h-6"
+                  disabled={!canViewMonth}
+                >
+                  Month
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="year" 
+                  className="text-xs px-2 h-6"
+                  disabled={!canViewYear}
+                >
+                  Year
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        {/* Legend */}
-        <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground pb-2 border-b border-border">
-          <span className="flex items-center gap-1">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-            Completed
-          </span>
-          <span className="flex items-center gap-1">
-            <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-            In Progress
-          </span>
-          <span className="flex items-center gap-1">
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-            Almost (5-6 days)
-          </span>
-          <span className="flex items-center gap-1">
-            <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-            Incomplete
-          </span>
-        </div>
-
-        {/* Summary Stats */}
-        <div className="grid grid-cols-4 gap-2 text-center">
-          <div className="p-2 rounded-lg bg-muted/50">
-            <p className="text-lg font-bold text-foreground">{stats.total}</p>
-            <p className="text-[10px] text-muted-foreground">Weeks</p>
-          </div>
-          <div className="p-2 rounded-lg bg-muted/50">
-            <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{stats.completed}</p>
-            <p className="text-[10px] text-muted-foreground">Complete</p>
-          </div>
-          <div className="p-2 rounded-lg bg-muted/50">
-            <p className="text-lg font-bold text-foreground">+{stats.totalXP}</p>
-            <p className="text-[10px] text-muted-foreground">XP</p>
-          </div>
-          <div className="p-2 rounded-lg bg-muted/50">
-            <p className="text-lg font-bold text-foreground">{stats.avgDays.toFixed(1)}</p>
-            <p className="text-[10px] text-muted-foreground">Avg Days</p>
-          </div>
-        </div>
-
-        {/* Brick Grid */}
-        <motion.div
-          layout
-          className={`grid gap-2 ${
-            viewMode === "week"
-              ? "grid-cols-4 sm:grid-cols-7"
-              : viewMode === "month"
-              ? "grid-cols-3 sm:grid-cols-4"
-              : "grid-cols-2 sm:grid-cols-3"
-          }`}
-        >
-          <AnimatePresence mode="popLayout">
-            {groupedData.map((item) => {
-              const isExpanded = expandedId === item.id;
-
-              if (item.type === "single") {
-                return (
-                  <SnapshotBrick
-                    key={item.id}
-                    record={item.record}
-                    isExpanded={isExpanded}
-                    onClick={() => setExpandedId(isExpanded ? null : item.id)}
-                  />
-                );
-              }
-
-              return (
-                <BrickStack
-                  key={item.id}
-                  records={item.records}
-                  label={item.label}
-                  sublabel={item.sublabel}
-                  isExpanded={isExpanded}
-                  onClick={() => setExpandedId(isExpanded ? null : item.id)}
+      <CardContent className="space-y-3">
+        <AnimatePresence mode="wait">
+          {viewMode === "week" && (
+            <motion.div
+              key="week"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-3"
+            >
+              {sortedWeeks.map((record) => (
+                <WeekCard
+                  key={record.id}
+                  record={record}
+                  onContinue={record.status === "active" ? handleContinue : undefined}
                 />
-              );
-            })}
-          </AnimatePresence>
-        </motion.div>
+              ))}
+            </motion.div>
+          )}
+
+          {viewMode === "month" && (
+            <motion.div
+              key="month"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-3"
+            >
+              {canViewMonth ? (
+                monthGroups.map(({ key, label, records }) => (
+                  <MonthView key={key} records={records} label={label} />
+                ))
+              ) : (
+                <LockedView viewType="Month" requiredCount={3} />
+              )}
+            </motion.div>
+          )}
+
+          {viewMode === "year" && (
+            <motion.div
+              key="year"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-3"
+            >
+              {canViewYear ? (
+                yearGroups.map(({ year, records }) => (
+                  <YearView key={year} records={records} year={year} />
+                ))
+              ) : (
+                <LockedView viewType="Year" requiredCount={6} />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </CardContent>
     </Card>
   );
