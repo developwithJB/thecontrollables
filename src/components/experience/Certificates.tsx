@@ -179,7 +179,7 @@ export function Certificates({ resetSessions, userId, dailyResets = [] }: Certif
                     </div>
                     <div>
                       <p className="font-medium text-foreground">
-                        Reset #{fullyCompletedSessions.length - index}
+                        Snapshot #{fullyCompletedSessions.length - index}
                       </p>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Calendar className="w-3 h-3" />

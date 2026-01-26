@@ -1,4 +1,4 @@
-// The 7-Day Reset content structure
+// The 7-Day Snapshot content structure
 // New: Quest-based themes for re-entry experience
 
 export interface DayContent {

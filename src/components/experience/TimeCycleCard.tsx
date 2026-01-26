@@ -118,11 +118,11 @@ export function TimeCycleCard({ activeQuest, currentResetDay = 1, hasActiveReset
           </div>
         </div>
 
-        {/* Reset Cycle */}
+        {/* Snapshot Cycle */}
         {hasActiveReset && (
           <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-primary">7-Day Reset</span>
+              <span className="text-xs font-medium text-primary">7-Day Snapshot</span>
               <span className="text-xs text-primary">Day {currentResetDay}/7</span>
             </div>
             <div className="flex gap-1">
