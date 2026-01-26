@@ -1,5 +1,6 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, forwardRef } from "react";
 import { AIGuideSkeleton } from "./DashboardSkeletons";
+import type { AIGuidePanelHandle } from "./AIGuidePanel";
 
 // Lazy load AIGuidePanel - it's heavy with all the guide logic
 export const LazyAIGuidePanel = lazy(() =>
@@ -19,10 +20,12 @@ interface LazyAIGuidePanelWrapperProps {
   hasActiveSnapshot?: boolean;
 }
 
-export function LazyAIGuidePanelWrapper(props: LazyAIGuidePanelWrapperProps) {
-  return (
-    <Suspense fallback={<AIGuideSkeleton />}>
-      <LazyAIGuidePanel {...props} />
-    </Suspense>
-  );
-}
+export const LazyAIGuidePanelWrapper = forwardRef<AIGuidePanelHandle, LazyAIGuidePanelWrapperProps>(
+  function LazyAIGuidePanelWrapper(props, ref) {
+    return (
+      <Suspense fallback={<AIGuideSkeleton />}>
+        <LazyAIGuidePanel ref={ref} {...props} />
+      </Suspense>
+    );
+  }
+);

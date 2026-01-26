@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, forwardRef, useImperativeHandle, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Send, Loader2, RotateCcw, Zap, Check, Trophy, Lock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -161,8 +161,27 @@ const detectGuideFromMessage = (message: string): GuideType => {
 const DAILY_MESSAGE_LIMIT = 25;
 const FREE_PREVIEW_LIMIT = 1; // Free users get 1 message to try
 
-export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild, onXpEarned, isPaid = true, onUpgrade, isCheckingOut = false, hasActiveSnapshot = false }: AIGuidePanelProps) {
+// Export handle type for parent components to use
+export interface AIGuidePanelHandle {
+  open: () => void;
+}
+
+export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild, onXpEarned, isPaid = true, onUpgrade, isCheckingOut = false, hasActiveSnapshot = false }, ref) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Expose open method to parent
+  useImperativeHandle(ref, () => ({
+    open: () => {
+      setIsExpanded(true);
+      // Scroll into view and focus input after a short delay for animation
+      setTimeout(() => {
+        panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }));
   const [selectedGuide, setSelectedGuide] = useState<Guide | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -461,6 +480,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
 
   return (
     <motion.div
+      ref={panelRef}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
@@ -768,6 +788,7 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
                   {/* Input row */}
                   <div className="flex gap-2">
                     <Input
+                      ref={inputRef}
                       placeholder={limitReached ? "Daily limit reached" : (selectedGuide ? `Ask ${selectedGuide.name}...` : "Ask a Controllable...")}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
@@ -851,4 +872,4 @@ export function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuil
       </AnimatePresence>
     </motion.div>
   );
-}
+});
