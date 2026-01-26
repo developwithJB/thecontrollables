@@ -162,8 +162,8 @@ export const getDayContent = (dayNumber: number): DayContent => {
   return RESET_DAYS[dayNumber - 1] || RESET_DAYS[0];
 };
 
-// Missed day message - no shame, just facts
-export const MISSED_DAY_MESSAGE = "You didn't lose progress. You paused the foundation. Ready to resume?";
+// Missed day message - no shame, just encouragement
+export const MISSED_DAY_MESSAGE = "You're back. That's what matters. Pick up where you left off.";
 
 // Covenant text - updated for Snapshot-based framing
 export const COVENANT_TEXT = `Life is a game. You can play it on purpose, or let the default path play you.

@@ -234,8 +234,8 @@ export function JourneySwitcher({
     if (pendingJourney && onUpdateQuestTitle) {
       const newQuestTitle = getQuestTitleFromJourney(pendingJourney);
       onUpdateQuestTitle(newQuestTitle);
-      toast.success(`Mission updated to "${newQuestTitle}"`, {
-        description: "Your foundation and mission are now aligned.",
+      toast.success(`Quest updated to "${newQuestTitle}"`, {
+        description: "Your snapshot and quest are now aligned.",
       });
     }
     setShowQuestUpdatePrompt(false);
@@ -267,7 +267,7 @@ export function JourneySwitcher({
               <Compass className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground mb-0.5">Current Foundation</p>
+              <p className="text-xs text-muted-foreground mb-0.5">Current Snapshot</p>
               <p className="font-medium text-foreground truncate">
                 {currentJourney ? (
                   <>
@@ -361,7 +361,7 @@ export function JourneySwitcher({
                 {lowestControllable && (
                   <>Your lowest area is highlighted • </>
                 )}
-                Choose a foundation that addresses it
+                Choose a snapshot that addresses it
               </p>
             </div>
           ) : (
@@ -371,7 +371,7 @@ export function JourneySwitcher({
                 <div className="flex-1">
                   <p className="text-xs font-medium text-foreground">No Build data found</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Scan your Build to unlock a personalized foundation recommendation.
+                    Scan your Build to unlock a personalized snapshot recommendation.
                   </p>
                 </div>
                 <Button

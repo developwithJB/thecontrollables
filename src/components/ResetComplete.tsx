@@ -48,7 +48,7 @@ export const ResetComplete = ({ isFullReset = false }: ResetCompleteProps) => {
         transition={{ delay: 0.6 }}
         className="text-muted-foreground text-center"
       >
-        {isFullReset ? "Carry this forward." : "Come back tomorrow."}
+        {isFullReset ? "Carry this forward." : "See you tomorrow. Consistency beats perfection."}
       </motion.p>
     </motion.div>
   );

@@ -266,15 +266,15 @@ export const useDashboardSummary = () => {
       return data;
     },
     onSuccess: async () => {
-      // Award XP for completing mission
+      // Award XP for completing quest
       await awardXpMutation.mutateAsync({
         amount: XP_VALUES.QUEST_COMPLETE,
         source: "quest_complete",
-        description: "Completed main mission",
+        description: "Quest completed",
       });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
       toast({
-        title: "Mission completed!",
+        title: "Quest completed!",
         description: "+500 XP earned. Choose your next adventure.",
       });
     },

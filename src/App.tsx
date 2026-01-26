@@ -14,7 +14,6 @@ import Landing from "./pages/Landing";
 // Lazy load other routes to reduce initial bundle size
 const Auth = lazy(() => import("./pages/Auth"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Challenge = lazy(() => import("./pages/Challenge"));
 const Reset = lazy(() => import("./pages/Reset"));
 const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -71,7 +70,6 @@ const App = () => {
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/challenge" element={<Challenge />} />
               <Route path="/reset" element={<Reset />} />
               <Route path="/admin" element={<Admin />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

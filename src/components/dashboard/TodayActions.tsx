@@ -273,15 +273,15 @@ export function TodayActions({
   // Primary action: Daily check-in / 7-day reset
   if (hasActiveSession && !isResetCompleted && !isResetExpired) {
     const todayInfo = getTodayInfo();
-    // Build sublabel with mission context if available
+    // Build sublabel with focus context if available
     const baseSublabel = todayResetCompleted ? "Completed" : todayInfo.chapter;
-    const sublabelWithMission = missionTitle 
-      ? `${baseSublabel} · Mission: ${missionTitle.length > 25 ? missionTitle.slice(0, 25) + "..." : missionTitle}`
+    const sublabelWithFocus = missionTitle 
+      ? `${baseSublabel} · Focus: ${missionTitle.length > 25 ? missionTitle.slice(0, 25) + "..." : missionTitle}`
       : baseSublabel;
     actions.push({
       id: "checkin",
       label: `Day ${currentDay}: ${todayInfo.controllable}`,
-      sublabel: sublabelWithMission,
+      sublabel: sublabelWithFocus,
       icon: todayResetCompleted ? (
         <Check className="w-4 h-4" />
       ) : (

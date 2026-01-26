@@ -101,7 +101,7 @@ export function QuestCard({ activeQuest, currentResetDay, todayReading, onClose 
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 mb-4">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-lg">🎯</span>
-                <span className="text-xs text-slate-400 uppercase tracking-wide">Main Mission</span>
+                <span className="text-xs text-slate-400 uppercase tracking-wide">Current Focus</span>
               </div>
               <p className="text-sm font-medium text-white">
                 {activeQuest.title}
