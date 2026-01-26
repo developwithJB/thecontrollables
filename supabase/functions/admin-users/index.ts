@@ -285,7 +285,175 @@ Deno.serve(async (req) => {
         });
       }
 
-      // User journeys - group events by session to show flow
+      // User activity - group by user with privacy-preserving identifiers
+      if (resource === "user_activity") {
+        const now = new Date();
+        const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+        const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        
+        // Get all events and page views from last 24h
+        const [eventsResult, viewsResult] = await Promise.all([
+          adminClient
+            .from("app_events")
+            .select("user_id, session_id, event_type, event_name, created_at")
+            .gte("created_at", last24h)
+            .order("created_at", { ascending: false }),
+          adminClient
+            .from("page_views")
+            .select("user_id, session_id, page_path, created_at")
+            .gte("created_at", last24h)
+            .order("created_at", { ascending: false }),
+        ]);
+
+        // Build user activity map
+        const userActivityMap = new Map<string, {
+          userId: string;
+          anonymousId: string;
+          sessions: Set<string>;
+          firstSeen: string;
+          lastSeen: string;
+          activities: Array<{
+            type: string;
+            name: string;
+            timestamp: string;
+            category: string;
+          }>;
+        }>();
+
+        // Helper to get activity category for display
+        const getActivityCategory = (type: string, name: string): string => {
+          if (type === "page_view") return "navigation";
+          if (type === "guide" || name?.includes("guide") || name?.includes("controllable")) return "ai_chat";
+          if (type === "reset" || name?.includes("checkin") || name?.includes("check_in")) return "daily_checkin";
+          if (type === "quest") return "quest";
+          if (type === "upgrade") return "upgrade";
+          if (type === "build") return "build";
+          if (type === "integrity") return "promise";
+          if (type === "time") return "time_reflection";
+          return "other";
+        };
+
+        // Process events
+        eventsResult.data?.forEach(e => {
+          const key = e.user_id || e.session_id; // Use user_id if available, otherwise session
+          if (!userActivityMap.has(key)) {
+            // Create anonymized user ID (User 1, User 2, etc.)
+            const anonymousId = `User ${userActivityMap.size + 1}`;
+            userActivityMap.set(key, {
+              userId: key,
+              anonymousId,
+              sessions: new Set([e.session_id]),
+              firstSeen: e.created_at,
+              lastSeen: e.created_at,
+              activities: [],
+            });
+          }
+          
+          const user = userActivityMap.get(key)!;
+          user.sessions.add(e.session_id);
+          if (new Date(e.created_at) < new Date(user.firstSeen)) {
+            user.firstSeen = e.created_at;
+          }
+          if (new Date(e.created_at) > new Date(user.lastSeen)) {
+            user.lastSeen = e.created_at;
+          }
+          
+          user.activities.push({
+            type: e.event_type,
+            name: e.event_name,
+            timestamp: e.created_at,
+            category: getActivityCategory(e.event_type, e.event_name),
+          });
+        });
+
+        // Process page views
+        viewsResult.data?.forEach(v => {
+          const key = v.user_id || v.session_id;
+          if (!userActivityMap.has(key)) {
+            const anonymousId = `User ${userActivityMap.size + 1}`;
+            userActivityMap.set(key, {
+              userId: key,
+              anonymousId,
+              sessions: new Set([v.session_id]),
+              firstSeen: v.created_at,
+              lastSeen: v.created_at,
+              activities: [],
+            });
+          }
+          
+          const user = userActivityMap.get(key)!;
+          user.sessions.add(v.session_id);
+          if (new Date(v.created_at) < new Date(user.firstSeen)) {
+            user.firstSeen = v.created_at;
+          }
+          if (new Date(v.created_at) > new Date(user.lastSeen)) {
+            user.lastSeen = v.created_at;
+          }
+          
+          user.activities.push({
+            type: "page_view",
+            name: v.page_path,
+            timestamp: v.created_at,
+            category: "navigation",
+          });
+        });
+
+        // Convert to array and compute summary stats
+        const userActivities = Array.from(userActivityMap.values())
+          .map(user => {
+            // Sort activities by time
+            user.activities.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+            
+            // Count activity categories
+            const categoryCounts: Record<string, number> = {};
+            user.activities.forEach(a => {
+              categoryCounts[a.category] = (categoryCounts[a.category] || 0) + 1;
+            });
+
+            // Create activity summary (key actions)
+            const keyActions: string[] = [];
+            if (categoryCounts.daily_checkin) keyActions.push(`✅ Daily Check-in`);
+            if (categoryCounts.ai_chat) keyActions.push(`💬 AI Chat (${categoryCounts.ai_chat}x)`);
+            if (categoryCounts.quest) keyActions.push(`🎯 Quest Activity`);
+            if (categoryCounts.time_reflection) keyActions.push(`⏰ Time Reflection`);
+            if (categoryCounts.promise) keyActions.push(`🤝 Promise Made`);
+            if (categoryCounts.build) keyActions.push(`🏗️ Build Assessment`);
+            if (categoryCounts.upgrade) keyActions.push(`💎 Viewed Upgrade`);
+
+            return {
+              anonymousId: user.anonymousId,
+              sessionCount: user.sessions.size,
+              firstSeen: user.firstSeen,
+              lastSeen: user.lastSeen,
+              activityCount: user.activities.length,
+              keyActions,
+              categoryCounts,
+              recentActivities: user.activities.slice(-10), // Last 10 activities
+            };
+          })
+          .sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime())
+          .slice(0, 30); // Top 30 most recent users
+
+        // Calculate overall stats
+        const uniqueUsersToday = userActivities.length;
+        const totalActivitiesToday = userActivities.reduce((sum, u) => sum + u.activityCount, 0);
+        const usersWithCheckin = userActivities.filter(u => u.categoryCounts.daily_checkin).length;
+        const usersWithAIChat = userActivities.filter(u => u.categoryCounts.ai_chat).length;
+
+        return new Response(JSON.stringify({
+          stats: {
+            uniqueUsersToday,
+            totalActivitiesToday,
+            usersWithCheckin,
+            usersWithAIChat,
+          },
+          users: userActivities,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // User journeys - group events by session to show flow (legacy)
       if (resource === "user_journeys") {
         const limit = parseInt(url.searchParams.get("limit") || "20");
         

@@ -88,6 +88,29 @@ interface UserJourney {
   }>;
 }
 
+interface UserActivity {
+  anonymousId: string;
+  sessionCount: number;
+  firstSeen: string;
+  lastSeen: string;
+  activityCount: number;
+  keyActions: string[];
+  categoryCounts: Record<string, number>;
+  recentActivities: Array<{
+    type: string;
+    name: string;
+    timestamp: string;
+    category: string;
+  }>;
+}
+
+interface UserActivityStats {
+  uniqueUsersToday: number;
+  totalActivitiesToday: number;
+  usersWithCheckin: number;
+  usersWithAIChat: number;
+}
+
 interface ActionFlow {
   flow: string;
   count: number;
@@ -112,6 +135,8 @@ export default function Admin() {
   const [errors, setErrors] = useState<AppError[]>([]);
   const [pageViews, setPageViews] = useState<PageView[]>([]);
   const [journeys, setJourneys] = useState<UserJourney[]>([]);
+  const [userActivities, setUserActivities] = useState<UserActivity[]>([]);
+  const [userActivityStats, setUserActivityStats] = useState<UserActivityStats | null>(null);
   const [actionFlows, setActionFlows] = useState<ActionFlow[]>([]);
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -169,6 +194,7 @@ export default function Admin() {
         loadPageViews(),
         loadSummary(),
         loadJourneys(),
+        loadUserActivity(),
         loadActionFlows(),
       ]);
     } finally {
@@ -278,6 +304,24 @@ export default function Admin() {
       }
     } catch (error) {
       console.error("Error loading journeys:", error);
+    }
+  };
+
+  const loadUserActivity = async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users?resource=user_activity`,
+        { headers }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserActivities(data.users || []);
+        setUserActivityStats(data.stats || null);
+      }
+    } catch (error) {
+      console.error("Error loading user activity:", error);
     }
   };
 
@@ -467,7 +511,7 @@ export default function Admin() {
             </TabsTrigger>
             <TabsTrigger value="journeys" className="flex items-center gap-1">
               <Route className="h-4 w-4" />
-              <span className="hidden sm:inline">Journeys</span>
+              <span className="hidden sm:inline">Activity</span>
             </TabsTrigger>
             <TabsTrigger value="actions" className="flex items-center gap-1">
               <MousePointerClick className="h-4 w-4" />
@@ -648,88 +692,142 @@ export default function Admin() {
             </div>
           </TabsContent>
 
-          {/* User Journeys Tab */}
-          <TabsContent value="journeys">
+          {/* User Activity Tab */}
+          <TabsContent value="journeys" className="space-y-4">
+            {/* Stats Cards */}
+            {userActivityStats && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="text-2xl font-bold text-primary">
+                      {userActivityStats.uniqueUsersToday}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Active Users (24h)</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="text-2xl font-bold text-green-600">
+                      {userActivityStats.usersWithCheckin}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Completed Check-in</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {userActivityStats.usersWithAIChat}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Used AI Chat</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="text-2xl font-bold text-muted-foreground">
+                      {userActivityStats.totalActivitiesToday}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Total Actions</p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* User Activity List */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Route className="h-5 w-5 text-purple-500" />
-                  User Journeys
+                  User Activity (Last 24h)
                 </CardTitle>
                 <CardDescription>
-                  View session-by-session user flows through the app
+                  See who was active, when, and what they did — privacy-preserving view
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-[600px]">
+                <ScrollArea className="h-[500px]">
                   <div className="space-y-3">
-                    {journeys.length === 0 ? (
+                    {userActivities.length === 0 ? (
                       <p className="text-center text-muted-foreground py-8">
-                        No user journeys recorded yet
+                        No user activity recorded in the last 24 hours
                       </p>
                     ) : (
-                      journeys.map((journey) => (
+                      userActivities.map((user) => (
                         <Collapsible
-                          key={journey.session_id}
-                          open={expandedSessions.has(journey.session_id)}
-                          onOpenChange={() => toggleSession(journey.session_id)}
+                          key={user.anonymousId}
+                          open={expandedSessions.has(user.anonymousId)}
+                          onOpenChange={() => toggleSession(user.anonymousId)}
                         >
-                          <Card>
+                          <Card className="border-l-4 border-l-primary/30">
                             <CollapsibleTrigger asChild>
                               <CardContent className="p-4 cursor-pointer hover:bg-muted/50 transition-colors">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-3">
-                                    {expandedSessions.has(journey.session_id) ? (
+                                    {expandedSessions.has(user.anonymousId) ? (
                                       <ChevronDown className="h-4 w-4 text-muted-foreground" />
                                     ) : (
                                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                     )}
-                                    <div>
-                                      <p className="font-medium text-sm">
-                                        Session: {journey.session_id.slice(0, 8)}...
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {formatTime(journey.started_at)} • {journey.screen_size}
-                                      </p>
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                        <User className="h-4 w-4 text-primary" />
+                                      </div>
+                                      <div>
+                                        <p className="font-medium text-sm">
+                                          {user.anonymousId}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                          Active: {new Date(user.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                          {user.sessionCount > 1 && ` • ${user.sessionCount} sessions`}
+                                        </p>
+                                      </div>
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-3">
-                                    <Badge variant="outline">
-                                      {journey.activity_count} actions
-                                    </Badge>
-                                    <Badge variant="secondary">
-                                      {formatDuration(journey.duration_ms)}
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      {user.activityCount} actions
                                     </Badge>
                                   </div>
                                 </div>
+                                
+                                {/* Key Actions Summary */}
+                                {user.keyActions.length > 0 && (
+                                  <div className="mt-3 flex flex-wrap gap-1.5 ml-11">
+                                    {user.keyActions.map((action, i) => (
+                                      <Badge 
+                                        key={i} 
+                                        variant="secondary" 
+                                        className="text-xs font-normal"
+                                      >
+                                        {action}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
                               </CardContent>
                             </CollapsibleTrigger>
                             <CollapsibleContent>
                               <div className="px-4 pb-4 border-t">
-                                <div className="pt-4 space-y-2">
-                                  {journey.activities.map((activity, i) => (
+                                <p className="text-xs text-muted-foreground pt-3 mb-2">
+                                  Recent Activity Timeline
+                                </p>
+                                <div className="space-y-2">
+                                  {user.recentActivities.map((activity, i) => (
                                     <div
                                       key={i}
-                                      className="flex items-start gap-3 text-sm"
+                                      className="flex items-center gap-3 text-sm"
                                     >
-                                      <span className="text-lg">
+                                      <span className="text-base">
                                         {getActivityIcon(activity.type)}
                                       </span>
                                       <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                          <Badge variant="outline" className="text-xs">
-                                            {activity.type}
-                                          </Badge>
-                                          <span className="font-medium">{activity.name}</span>
-                                        </div>
-                                        {activity.data && Object.keys(activity.data).length > 0 && (
-                                          <pre className="mt-1 text-xs text-muted-foreground bg-muted p-1 rounded overflow-x-auto">
-                                            {JSON.stringify(activity.data, null, 0)}
-                                          </pre>
-                                        )}
+                                        <span className="text-muted-foreground">
+                                          {activity.type === "page_view" 
+                                            ? `Viewed ${activity.name}` 
+                                            : activity.name}
+                                        </span>
                                       </div>
                                       <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                        {new Date(activity.timestamp).toLocaleTimeString()}
+                                        {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                       </span>
                                     </div>
                                   ))}
