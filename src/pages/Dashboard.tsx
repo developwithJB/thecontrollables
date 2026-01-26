@@ -98,7 +98,7 @@ export default function Dashboard() {
   const aiGuidePanelRef = useRef<AIGuidePanelHandle>(null);
   
   // Track when user sends a message to The Controllables today (for Today Actions completion)
-  const todayLocal = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD
+  const todayLocal = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD (local)
   const askGuideStorageKey = user?.id ? `today_actions_ask_guide_${user.id}_${todayLocal}` : null;
   const [askGuideCompletedToday, setAskGuideCompletedToday] = useState(false);
   
@@ -647,11 +647,9 @@ export default function Dashboard() {
                   hasActiveQuest={!!activeQuest}
                   todayTimeLogged={!!todayTimeLog}
                   pendingPromisesCount={pendingPromises.length}
-                  todayPromiseMade={integrityLogs.some((log) => 
-                    log.promised_at.startsWith(new Date().toISOString().split("T")[0])
-                  )}
+                  todayPromiseMade={integrityLogs.some((log) => log.promised_at.startsWith(todayLocal))}
                   todayXpEarned={xpLogs
-                    .filter((log) => log.created_at.startsWith(new Date().toISOString().split("T")[0]))
+                    .filter((log) => log.created_at.startsWith(todayLocal))
                     .reduce((sum, log) => sum + log.amount, 0)}
                   buildLastUpdatedAt={currentBuild?.updated_at ?? null}
                   journeyId={activeSession?.journey_id ?? undefined}
@@ -767,6 +765,8 @@ export default function Dashboard() {
                           ref={integrityRef}
                           integrityScore={integrityScore}
                           pendingPromises={pendingPromises}
+                          hasAnyPromises={integrityLogs.length > 0}
+                          todayPromiseMade={integrityLogs.some((log) => log.promised_at.startsWith(todayLocal))}
                           onCreatePromise={createPromise}
                           onResolvePromise={handleResolvePromise}
                           compact
