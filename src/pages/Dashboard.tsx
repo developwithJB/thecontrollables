@@ -35,7 +35,7 @@ import { TimeCurrencyModule, TimeCurrencyModuleHandle } from "@/components/dashb
 import { BuildOverviewModule, BuildOverviewModuleHandle } from "@/components/dashboard/BuildOverviewModule";
 import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
 import { BuildEntryPoint } from "@/components/dashboard/BuildEntryPoint";
-import { JourneySwitcher } from "@/components/dashboard/JourneySwitcher";
+import { SnapshotSelector } from "@/components/dashboard/SnapshotSelector";
 import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
 // DailyCheckinCard removed - functionality merged into TodayActions
 import { TodayActions } from "@/components/dashboard/TodayActions";
@@ -629,22 +629,17 @@ export default function Dashboard() {
                 />
               )}
 
-              {/* Journey Switcher Dialog - triggered from within Reset module */}
+              {/* Snapshot Selector Dialog - triggered from within Reset module */}
               {activeSession && !isCompleted && user?.id && (
-                <JourneySwitcher
-                  currentJourneyControllable={journeyControllable}
+                <SnapshotSelector
+                  currentSnapshotId={activeSession.journey_id}
                   sessionId={activeSession.id}
                   currentDay={currentDay}
                   userId={user.id}
-                  currentQuestTitle={activeQuest?.title}
-                  onJourneyChanged={() => {
+                  onSnapshotChanged={() => {
                     queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
+                    queryClient.invalidateQueries({ queryKey: ["reset-session"], exact: false });
                     setShowJourneySwitcher(false);
-                  }}
-                  onUpdateQuestTitle={(title) => {
-                    if (activeQuest?.id) {
-                      updateQuest({ questId: activeQuest.id, title });
-                    }
                   }}
                   isOpen={showJourneySwitcher}
                   onOpenChange={setShowJourneySwitcher}
