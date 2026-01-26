@@ -337,7 +337,7 @@ export function ResetProgressModule({
               <RefreshCw className="w-5 h-5 text-amber-500" />
             </div>
             <div>
-              <h3 className="font-display font-semibold text-foreground">7-Day Foundation</h3>
+              <h3 className="font-display font-semibold text-foreground">7-Day Snapshot</h3>
               <p className="text-sm text-amber-600 dark:text-amber-400">
                 Incomplete • {completedDays.length} of 7 days
               </p>
@@ -348,7 +348,7 @@ export function ResetProgressModule({
             <div className="flex items-start gap-2">
               <Lock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-foreground">Free foundation used</p>
+                <p className="text-sm font-medium text-foreground">Free snapshot used</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Upgrade to try again and unlock certificate downloads.
                 </p>
@@ -376,7 +376,7 @@ export function ResetProgressModule({
               <RefreshCw className="w-5 h-5 text-amber-500" />
             </div>
             <div className="flex-1">
-              <h3 className="font-display font-semibold text-foreground">7-Day Foundation</h3>
+              <h3 className="font-display font-semibold text-foreground">7-Day Snapshot</h3>
               <p className="text-sm text-amber-600 dark:text-amber-400">
                 Incomplete • {completedDays.length} of 7 days
               </p>
@@ -580,7 +580,7 @@ export function ResetProgressModule({
               <RefreshCw className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">7-Day Foundation</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">7-Day Snapshot</p>
               {todayAlreadyCompleted ? (
                 <h3 className="font-display font-semibold text-foreground text-lg flex items-center gap-2">
                   Day {currentDay} Complete
@@ -632,10 +632,10 @@ export function ResetProgressModule({
           </span>
         </div>
 
-        {/* Foundation name display - simplified, no Focus selector */}
+        {/* Snapshot name display - simplified, no Focus selector */}
         {currentJourneyId && (
           <div className="mt-3 text-xs text-muted-foreground">
-            Foundation Focus: {getJourneyById(currentJourneyId)?.emoji} {getJourneyById(currentJourneyId)?.title}
+            Snapshot Focus: {getJourneyById(currentJourneyId)?.emoji} {getJourneyById(currentJourneyId)?.title}
           </div>
         )}
       </div>

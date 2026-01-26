@@ -231,7 +231,7 @@ export const Day7Complete = ({
                 </div>
                 
                 <p className="text-sm text-muted-foreground mb-4">
-                  You've completed your free 7-Day Foundation. Unlock unlimited Foundations and AI Guides to continue your journey.
+                  You've completed your free 7-Day Snapshot. Unlock unlimited Snapshots and AI Guides to continue your journey.
                 </p>
                 
                 <Button
