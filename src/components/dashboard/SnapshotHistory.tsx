@@ -16,11 +16,13 @@ import {
   Play,
   RefreshCw,
   Lock,
+  TrendingUp,
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { BUCKETS, getSnapshotById, type BucketId } from "@/lib/snapshots";
 import { useNavigate } from "react-router-dom";
 import { SnapshotDetailView } from "@/components/experience/SnapshotDetailView";
+import { WeeklyPatternView } from "@/components/experience/WeeklyPatternView";
 
 interface SnapshotRecord {
   id: string;
@@ -40,7 +42,7 @@ interface SnapshotHistoryProps {
   onStartNew?: () => void;
 }
 
-type ViewMode = "week" | "month" | "year";
+type ViewMode = "week" | "month" | "year" | "patterns";
 
 // Get status info - no negative language
 function getStatusInfo(status: string, daysCompleted: number): { label: string; colorClass: string } {
@@ -504,6 +506,12 @@ export function SnapshotHistory({ sessions, className, isPaid = false, onStartNe
                   Week
                 </TabsTrigger>
                 <TabsTrigger 
+                  value="patterns" 
+                  className="text-xs px-2 h-6"
+                >
+                  Patterns
+                </TabsTrigger>
+                <TabsTrigger 
                   value="month" 
                   className="text-xs px-2 h-6"
                   disabled={!canViewMonth}
@@ -541,6 +549,17 @@ export function SnapshotHistory({ sessions, className, isPaid = false, onStartNe
                   onClick={() => setSelectedRecord(record)}
                 />
               ))}
+            </motion.div>
+          )}
+
+          {viewMode === "patterns" && (
+            <motion.div
+              key="patterns"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <WeeklyPatternView snapshots={validSessions} />
             </motion.div>
           )}
 

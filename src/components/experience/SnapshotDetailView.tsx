@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,10 +20,14 @@ import {
   Target,
   Calendar,
   Sparkles,
+  Download,
+  Share2,
+  Loader2,
 } from "lucide-react";
 import { format, addDays, parseISO, isWithinInterval } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKETS, getSnapshotById } from "@/lib/snapshots";
+import { toast } from "sonner";
 
 interface SnapshotRecord {
   id: string;
@@ -118,6 +122,8 @@ function getIntentionalityLabel(invested: number | null): string {
 export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps) {
   const [data, setData] = useState<SnapshotDetailData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
   const bucket = snapshot ? BUCKETS[snapshot.bucketId] : null;
@@ -225,6 +231,70 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
       }, 0) / data.wellnessLogs.length
     : null;
 
+  // Export as image using html2canvas
+  const handleExport = async () => {
+    if (!contentRef.current) return;
+    
+    setExporting(true);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(contentRef.current, {
+        backgroundColor: null,
+        scale: 2,
+        logging: false,
+        useCORS: true,
+      });
+      
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `snapshot-${format(startDate, "yyyy-MM-dd")}.png`;
+          link.click();
+          URL.revokeObjectURL(url);
+          toast.success("Snapshot exported!");
+        }
+      }, "image/png");
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export snapshot");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Share functionality
+  const handleShare = async () => {
+    const shareText = `📊 My Week: ${snapshot?.name || "Week Record"}\n${dateRange}\n\n` +
+      `✅ ${record.daysCompleted}/7 days completed\n` +
+      `⚡ ${totalXP} XP earned\n` +
+      `🛡️ ${promisesKept}/${promisesTotal} promises kept\n\n` +
+      `#TheControllables #WeeklySnapshot`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `My Snapshot: ${snapshot?.name || "Week Record"}`,
+          text: shareText,
+          url: window.location.origin,
+        });
+      } catch (error) {
+        // User cancelled or error
+        if ((error as Error).name !== "AbortError") {
+          // Fallback to clipboard
+          await navigator.clipboard.writeText(shareText);
+          toast.success("Copied to clipboard!");
+        }
+      }
+    } else {
+      // Fallback for browsers without Web Share API
+      await navigator.clipboard.writeText(shareText);
+      toast.success("Copied to clipboard!");
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -248,6 +318,31 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
               </div>
               <p className="text-sm text-muted-foreground">{dateRange}</p>
             </div>
+            {/* Share/Export buttons */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleShare}
+                title="Share snapshot"
+                disabled={loading}
+              >
+                <Share2 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleExport}
+                title="Download as image"
+                disabled={loading || exporting}
+              >
+                {exporting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
             <Badge
               variant="secondary"
               className={`shrink-0 ${
@@ -263,7 +358,7 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
 
         {/* Content */}
         <ScrollArea className="flex-1">
-          <div className="p-4 space-y-6 pb-20">
+          <div ref={contentRef} className="p-4 space-y-6 pb-20 bg-background">
             {/* Snapshot Theme */}
             {bucket && (
               <Card>
