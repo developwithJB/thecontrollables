@@ -33,7 +33,7 @@ export const getPricing = () => ({
  * - XP Momentum (earning and viewing current XP/level)
  * - Time Currency (daily logging and today's view)
  * - Integrity Meter (making and resolving promises)
- * - 7-Day Reset (full functionality)
+ * - 7-Day Snapshot (full functionality)
  * 
  * Free users CANNOT fully access:
  * - Experience History (progress trends, reset history, badge history, momentum decay)

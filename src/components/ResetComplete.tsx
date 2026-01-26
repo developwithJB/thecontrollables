@@ -39,7 +39,7 @@ export const ResetComplete = ({ isFullReset = false }: ResetCompleteProps) => {
         transition={{ delay: 0.4 }}
         className="text-2xl font-semibold text-foreground text-center mb-2"
       >
-        {isFullReset ? "You've completed your reset." : "You've reset for today."}
+        {isFullReset ? "You've completed your snapshot." : "You've checked in for today."}
       </motion.h1>
 
       <motion.p

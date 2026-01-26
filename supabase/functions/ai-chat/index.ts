@@ -416,7 +416,7 @@ Use build data to tailor actions. Low scores = focus areas. High scores = levera
     // Add challenge context if provided
     if (challengeContext) {
       systemPrompt += `\n\n[CHALLENGE CONTEXT]
-User is on Day ${challengeContext.day} of the 7-Day Reset.
+User is on Day ${challengeContext.day} of the 7-Day Snapshot.
 Today's theme: "${challengeContext.theme}"
 Today's action: "${challengeContext.action}"
 Guide them through this specific task with action-first responses.`;

@@ -170,7 +170,7 @@ export function DailyCheckinCard({
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Start Your Journey</p>
-                <h3 className="font-display text-lg font-semibold text-foreground">7-Day Reset</h3>
+                <h3 className="font-display text-lg font-semibold text-foreground">7-Day Snapshot</h3>
               </div>
             </div>
             <p className="text-sm text-muted-foreground mb-2">
@@ -182,7 +182,7 @@ export function DailyCheckinCard({
             </div>
             <Button className="w-full" onClick={handleOpenCovenant}>
               <Play className="w-4 h-4 mr-2" />
-              Begin Your Reset
+              Begin Your Snapshot
             </Button>
           </div>
         </motion.div>
@@ -276,7 +276,7 @@ export function DailyCheckinCard({
             >
               <Check className="w-8 h-8 text-primary" />
             </motion.div>
-            <h3 className="font-display text-xl font-bold text-foreground">Reset Complete!</h3>
+            <h3 className="font-display text-xl font-bold text-foreground">Snapshot Complete!</h3>
             <p className="text-sm text-muted-foreground mt-1">Well played. You finished all 7 days.</p>
           </div>
           
