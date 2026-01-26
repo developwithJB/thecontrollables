@@ -588,63 +588,104 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
             <div className="px-5 pb-5 relative">
               {/* Preview mode for free users - show after they've used their free message */}
               {!isPaid && freePreviewUsed && (
-                <div className="flex flex-col items-center justify-center py-6 text-center" data-testid="ai-operators-locked">
-                  {/* Show their conversation history first */}
+                <div className="flex flex-col" data-testid="ai-operators-locked">
+                  {/* Show their full conversation including actions */}
                   {messages.length > 0 && (
-                    <div className="w-full space-y-3 max-h-40 overflow-y-auto mb-4 pr-2 opacity-60">
+                    <div className="w-full space-y-3 max-h-72 overflow-y-auto mb-4 pr-2">
                       {messages.map((msg, idx) => {
                         const messageGuide = msg.role === "assistant" ? getGuideById(msg.controllable) : null;
+                        const action = msg.role === 'assistant' ? getActionFromMessage(msg.content) : null;
+                        const contentWithoutAction = msg.role === 'assistant' && action
+                          ? msg.content.split('→ ACTION:')[0].trim()
+                          : msg.content;
+                        
+                        // Check if action is completed
+                        const isActionCompleted = action 
+                          ? (msg.actionCompleted || completedActionTexts.has(action))
+                          : false;
+                        
                         return (
-                          <div
-                            key={idx}
-                            className={`p-3 rounded-xl text-sm ${
-                              msg.role === "user"
-                                ? "bg-primary/50 text-primary-foreground ml-8"
-                                : "bg-muted/50 text-foreground mr-8"
-                            }`}
-                          >
-                            {msg.role === "assistant" && messageGuide && (
-                              <span className="mr-2">{messageGuide.emoji}</span>
+                          <div key={idx}>
+                            <div
+                              className={`p-3 rounded-xl text-sm ${
+                                msg.role === "user"
+                                  ? "bg-primary text-primary-foreground ml-8"
+                                  : "bg-muted text-foreground mr-8"
+                              }`}
+                            >
+                              {msg.role === "assistant" && messageGuide && (
+                                <span className="mr-2">{messageGuide.emoji}</span>
+                              )}
+                              {contentWithoutAction}
+                            </div>
+                            
+                            {/* Show action card for free users too */}
+                            {action && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={`mt-2 mr-8 p-3 rounded-xl border ${
+                                  isActionCompleted 
+                                    ? 'bg-accent/20 border-accent/50' 
+                                    : 'bg-accent/10 border-accent/30'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <p className="text-xs font-semibold text-accent flex items-center gap-1">
+                                    <Zap className="w-3 h-3" /> YOUR ACTION
+                                  </p>
+                                  {!isActionCompleted && (
+                                    <span className="text-xs text-accent/70">+{ACTION_XP} XP</span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-foreground mb-2">{action}</p>
+                                
+                                {isActionCompleted ? (
+                                  <div className="flex items-center gap-2 text-accent">
+                                    <Check className="w-4 h-4" />
+                                    <span className="text-xs font-medium">Completed</span>
+                                  </div>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => completeAction(action, idx, msg.controllable || null)}
+                                    className="h-7 text-xs border-accent/30 text-accent hover:bg-accent/10"
+                                  >
+                                    <Check className="w-3 h-3 mr-1" />
+                                    Mark Complete
+                                  </Button>
+                                )}
+                              </motion.div>
                             )}
-                            {msg.content.split('→ ACTION:')[0].trim().substring(0, 100)}...
                           </div>
                         );
                       })}
                     </div>
                   )}
                   
-                  <motion.div
-                    initial={{ scale: 0.8 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                    className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center"
-                  >
-                    <Sparkles className="w-5 h-5 text-primary" />
-                  </motion.div>
-                  
-                  <h3 className="font-display font-semibold text-foreground mb-2">
-                    You've tried the AI Companions!
-                  </h3>
-                  
-                  <p className="text-sm text-muted-foreground mb-4 max-w-xs">
-                    Unlock unlimited conversations with all 5 Controllables to continue getting personalized guidance.
-                  </p>
-                  
-                  <Button 
-                    onClick={onUpgrade}
-                    disabled={isCheckingOut}
-                    className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-                    data-testid="ai-operators-upgrade-cta"
-                  >
-                    {isCheckingOut ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4" />
-                    )}
-                    {isCheckingOut ? "Opening checkout..." : "Unlock Full Access"}
-                  </Button>
-                  
-                  <LaunchCountdownBadge variant="compact" className="mt-3" />
+                  {/* Upgrade prompt - positioned after the conversation */}
+                  <div className="text-center py-4 border-t border-border/50 mt-2">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Come back tomorrow for another free message, or unlock unlimited access.
+                    </p>
+                    
+                    <Button 
+                      onClick={onUpgrade}
+                      disabled={isCheckingOut}
+                      className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                      data-testid="ai-operators-upgrade-cta"
+                    >
+                      {isCheckingOut ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4" />
+                      )}
+                      {isCheckingOut ? "Opening checkout..." : "Unlock Full Access"}
+                    </Button>
+                    
+                    <LaunchCountdownBadge variant="compact" className="mt-3" />
+                  </div>
                 </div>
               )}
 
