@@ -165,10 +165,10 @@ export const getDayContent = (dayNumber: number): DayContent => {
 // Missed day message - no shame, just facts
 export const MISSED_DAY_MESSAGE = "You didn't lose progress. You paused the foundation. Ready to resume?";
 
-// Covenant text - updated for foundation-based framing
+// Covenant text - updated for Snapshot-based framing
 export const COVENANT_TEXT = `Life is a game. You can play it on purpose, or let the default path play you.
 
-This 7-Day Foundation will help you:
+This 7-Day Snapshot will help you:
 • Build momentum through reps, not motivation
 • Track integrity—promises made vs kept
 • Use time as currency, not background noise

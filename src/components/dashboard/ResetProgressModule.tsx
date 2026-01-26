@@ -256,8 +256,8 @@ export function ResetProgressModule({
               <RefreshCw className="w-5 h-5 text-muted-foreground" />
             </div>
             <div>
-              <h3 className="font-display font-semibold text-foreground">7-Day Foundation</h3>
-              <p className="text-sm text-muted-foreground">Build your starter block</p>
+              <h3 className="font-display font-semibold text-foreground">7-Day Snapshot</h3>
+              <p className="text-sm text-muted-foreground">Capture this week</p>
             </div>
           </div>
 

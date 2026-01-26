@@ -287,19 +287,19 @@ export function JourneySwitcher({
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display">Choose Your 7-Day Foundation</DialogTitle>
+            <DialogTitle className="font-display">What Kind of Week Is This?</DialogTitle>
             <DialogDescription className="space-y-2">
               <span className="block">
-                Pick a starter program that resonates. Each Foundation guides you through 7 days of focused action.
+                Pick a Snapshot that resonates. Each one guides you through 7 days with a focused lens.
               </span>
             </DialogDescription>
           </DialogHeader>
           
-          {/* Importance of Foundation callout */}
+          {/* Importance of Snapshot callout */}
           <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 mb-2">
             <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">A Foundation builds momentum.</span>{" "}
-              It's your structured starter block—something tight, focused, and easy to build on.
+              <span className="font-medium text-foreground">A Snapshot captures your week.</span>{" "}
+              It's a single lens—one theme, one Controllable, 7 days of honest reps.
             </p>
           </div>
 

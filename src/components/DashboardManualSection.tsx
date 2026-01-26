@@ -49,10 +49,10 @@ const MANUAL_SECTIONS: ManualSection[] = [
     howToUse: "Tap the Mission card to set or edit. Choose your duration. Examples: Reclaim Energy, Build Discipline, Strengthen Focus."
   },
   {
-    title: "7-Day Foundation",
+    title: "7-Day Snapshot",
     icon: RotateCcw,
-    description: "Your starter block of action. A time-bound mini program that builds momentum under your Main Mission. The 'Foundation Focus' shows your current program.",
-    howToUse: "Start a Foundation to build structured habits. Complete all 7 days to earn a certificate. Each day has a specific habit task from your chosen program."
+    description: "A single week viewed through one lens. Each Snapshot has a Bucket (season of life), a theme, and a Focus (one Controllable). Weeks add up over time.",
+    howToUse: "Start a Snapshot to capture your current week. Complete all 7 days to earn a certificate. Each day has a specific task aligned with your chosen theme."
   },
   {
     title: "Your Build",
