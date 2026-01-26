@@ -25,14 +25,6 @@ import { useActionTracking } from "@/hooks/useActionTracking";
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { getJourneyDailyAction, getJourneyById, type DailyAction } from "@/lib/guidedJourneys";
 
-interface DailyReading {
-  id: string;
-  day_number: number;
-  emoji: string;
-  controllable: string;
-  reading_chapter: string;
-  reading_text: string;
-}
 
 interface TodayActionsProps {
   userId?: string;
@@ -43,7 +35,7 @@ interface TodayActionsProps {
   isResetExpired: boolean;
   currentDay: number;
   todayResetCompleted: boolean;
-  readings?: DailyReading[];
+  
   completedDaysCount: number;
   onStartReset: () => void;
   isStartingReset?: boolean;
@@ -98,7 +90,7 @@ export function TodayActions({
   isResetExpired,
   currentDay,
   todayResetCompleted,
-  readings = [],
+  
   completedDaysCount,
   onStartReset,
   isStartingReset = false,
@@ -214,14 +206,6 @@ export function TodayActions({
 
   // Get today's content for display
   const getTodayInfo = () => {
-    const dbReading = readings.find((r) => r.day_number === currentDay);
-    if (dbReading) {
-      return {
-        emoji: dbReading.emoji,
-        controllable: dbReading.controllable,
-        chapter: dbReading.reading_chapter,
-      };
-    }
     const staticContent = getDayContent(currentDay);
     return {
       emoji: staticContent.emoji,

@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useReset } from "@/hooks/useReset";
 import { useDashboardSummary } from "@/hooks/useDashboardSummary";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
-import { useDailyReadings } from "@/hooks/useDailyReadings";
+
 import { useBadges } from "@/hooks/useBadges";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useEntitlements } from "@/hooks/useEntitlements";
@@ -47,7 +47,7 @@ import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
 // DailyCheckinCard removed - functionality merged into TodayActions
 import { TodayActions } from "@/components/dashboard/TodayActions";
 // JourneyChangesLog removed - consolidated into Activity History
-import { ReadingCard } from "@/components/ReadingCard";
+
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
 import { InstallNudge } from "@/components/pwa/InstallNudge";
@@ -178,8 +178,6 @@ export default function Dashboard() {
     isLoggingTime,
   } = useDashboardSummary();
 
-  // Daily readings from database
-  const { readings, isLoading: readingsLoading } = useDailyReadings();
 
   // Build data for The Controllables
   const { currentBuild, buildLoading } = useBuildAssessment();
@@ -637,7 +635,6 @@ export default function Dashboard() {
                   isResetExpired={isExpired}
                   currentDay={currentDay}
                   todayResetCompleted={todayAlreadyCompleted}
-                  readings={readings}
                   completedDaysCount={completedDays.length}
                   onStartReset={() => acceptCovenant({ isPaid })}
                   isStartingReset={isAcceptingCovenant}
@@ -681,7 +678,7 @@ export default function Dashboard() {
                   currentDay={currentDay}
                   completedDays={completedDays}
                   todayAlreadyCompleted={todayAlreadyCompleted}
-                  readings={readings}
+                  
                   onStartReset={(isPaidArg) => acceptCovenant({ isPaid: isPaidArg })}
                   isStartingReset={isAcceptingCovenant}
                   isPaid={isPaid}
@@ -843,160 +840,9 @@ export default function Dashboard() {
                 <p className="text-muted-foreground text-sm">Play your life on purpose.</p>
               </div>
 
-              {/* Conditional ordering based on active reset */}
-              {activeSession && !isCompleted ? (
-                <>
-                  {/* When reset IS ACTIVE: Daily Readings first */}
-                  {/* Current Focus label */}
-                  <p className="text-xs font-medium text-muted-foreground/70 tracking-wide uppercase mb-3">
-                    Current Focus
-                  </p>
-
-                  {/* Section Divider */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex-1 h-px bg-border" />
-                    <span className="text-xs text-muted-foreground font-medium">Daily Readings</span>
-                    <div className="flex-1 h-px bg-border" />
-                  </div>
-
-                  <div className="space-y-4 mb-8">
-                    {readings.length > 0
-                      ? readings.map((reading) => {
-                          const completedDay = completedDays.find((d) => d.day_number === reading.day_number);
-                          const isUnlocked = !!completedDay;
-                          return (
-                            <ReadingCard
-                              key={reading.id}
-                              day={reading.day_number}
-                              emoji={reading.emoji}
-                              controllable={reading.controllable}
-                              chapter={reading.reading_chapter}
-                              text={reading.reading_text}
-                              isCompleted={isUnlocked}
-                              completedAt={completedDay?.completed_at}
-                              isLocked={!isUnlocked}
-                              completedDayData={
-                                completedDay
-                                  ? {
-                                      day_number: completedDay.day_number,
-                                      reflection: completedDay.reflection,
-                                      completed_at: completedDay.completed_at,
-                                    }
-                                  : undefined
-                              }
-                              totalCompletedDays={completedDays.length}
-                            />
-                          );
-                        })
-                      : RESET_DAYS.map((day) => {
-                          const completedDay = completedDays.find((d) => d.day_number === day.day);
-                          const isUnlocked = !!completedDay;
-                          return (
-                            <ReadingCard
-                              key={day.day}
-                              day={day.day}
-                              emoji={day.emoji}
-                              controllable={day.controllable}
-                              chapter={day.reading.chapter}
-                              text={day.reading.text}
-                              isCompleted={isUnlocked}
-                              completedAt={completedDay?.completed_at}
-                              isLocked={!isUnlocked}
-                              completedDayData={
-                                completedDay
-                                  ? {
-                                      day_number: completedDay.day_number,
-                                      reflection: completedDay.reflection,
-                                      completed_at: completedDay.completed_at,
-                                    }
-                                  : undefined
-                              }
-                              totalCompletedDays={completedDays.length}
-                            />
-                          );
-                        })}
-                  </div>
-
-                  {/* Rules of the Game second when reset active */}
-                  <GameRulesSection />
-
-                  {/* Dashboard Manual */}
-                  <DashboardManualSection />
-                </>
-              ) : (
-                <>
-                  {/* When NO reset active: Rules of the Game first */}
-                  <GameRulesSection />
-
-                  {/* Dashboard Manual */}
-                  <DashboardManualSection />
-
-                  {/* Section Divider */}
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="flex-1 h-px bg-border" />
-                    <span className="text-xs text-muted-foreground font-medium">Daily Readings</span>
-                    <div className="flex-1 h-px bg-border" />
-                  </div>
-
-                  <div className="space-y-4">
-                    {readings.length > 0
-                      ? readings.map((reading) => {
-                          const completedDay = completedDays.find((d) => d.day_number === reading.day_number);
-                          const isUnlocked = !!completedDay;
-                          return (
-                            <ReadingCard
-                              key={reading.id}
-                              day={reading.day_number}
-                              emoji={reading.emoji}
-                              controllable={reading.controllable}
-                              chapter={reading.reading_chapter}
-                              text={reading.reading_text}
-                              isCompleted={isUnlocked}
-                              completedAt={completedDay?.completed_at}
-                              isLocked={!isUnlocked}
-                              completedDayData={
-                                completedDay
-                                  ? {
-                                      day_number: completedDay.day_number,
-                                      reflection: completedDay.reflection,
-                                      completed_at: completedDay.completed_at,
-                                    }
-                                  : undefined
-                              }
-                              totalCompletedDays={completedDays.length}
-                            />
-                          );
-                        })
-                      : RESET_DAYS.map((day) => {
-                          const completedDay = completedDays.find((d) => d.day_number === day.day);
-                          const isUnlocked = !!completedDay;
-                          return (
-                            <ReadingCard
-                              key={day.day}
-                              day={day.day}
-                              emoji={day.emoji}
-                              controllable={day.controllable}
-                              chapter={day.reading.chapter}
-                              text={day.reading.text}
-                              isCompleted={isUnlocked}
-                              completedAt={completedDay?.completed_at}
-                              isLocked={!isUnlocked}
-                              completedDayData={
-                                completedDay
-                                  ? {
-                                      day_number: completedDay.day_number,
-                                      reflection: completedDay.reflection,
-                                      completed_at: completedDay.completed_at,
-                                    }
-                                  : undefined
-                              }
-                              totalCompletedDays={completedDays.length}
-                            />
-                          );
-                        })}
-                  </div>
-                </>
-              )}
+              {/* Game Rules and Manual */}
+              <GameRulesSection />
+              <DashboardManualSection />
 
               {/* Book promo */}
               <motion.a

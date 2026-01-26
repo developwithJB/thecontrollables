@@ -29,8 +29,6 @@ export const FREE_FEATURES = {
   xpTracking: true,
   timeCurrency: true,
   integrityMeter: true,
-  offlineTriggers: true,
-  dailyReadings: true,
 } as const;
 
 export type FreeFeature = keyof typeof FREE_FEATURES;

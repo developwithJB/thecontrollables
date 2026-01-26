@@ -6,7 +6,6 @@ import { useEntitlements } from "@/hooks/useEntitlements";
 import { useDashboardSummary } from "@/hooks/useDashboardSummary";
 import { CovenantScreen } from "@/components/CovenantScreen";
 import { ResetDay } from "@/components/ResetDay";
-import { ReadingReview } from "@/components/ReadingReview";
 import { WelcomeBack } from "@/components/WelcomeBack";
 import { Day7Complete } from "@/components/Day7Complete";
 import { ResetComplete } from "@/components/ResetComplete";
@@ -15,7 +14,6 @@ import { getJourneyById } from "@/lib/guidedJourneys";
 const Reset = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const isReviewMode = searchParams.get("mode") === "review";
   
   const {
     userId,
@@ -121,20 +119,8 @@ const Reset = () => {
     );
   }
 
-  // Today already done - check if in review mode
+  // Today already done - show completion screen
   if (isTodayCompleted) {
-    // If in review mode, show the reading content
-    if (isReviewMode) {
-      return (
-        <ReadingReview
-          dayNumber={currentDay}
-          completedDays={completedDays.length}
-          logDate={currentLogDate}
-          activeQuest={activeQuest}
-        />
-      );
-    }
-    // Otherwise show the completion screen
     return <ResetComplete isFullReset={false} />;
   }
 
