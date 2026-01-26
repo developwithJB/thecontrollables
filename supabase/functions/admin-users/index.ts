@@ -169,6 +169,8 @@ Deno.serve(async (req) => {
         const now = new Date();
         const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
         const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const previous7d = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
+        const last30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
         // Page views last 24h
         const { count: pageViews24h } = await adminClient
@@ -267,6 +269,146 @@ Deno.serve(async (req) => {
           .slice(0, 15)
           .map(([action, count]) => ({ action, count }));
 
+        // === GROWTH METRICS ===
+        
+        // Get user signups this week vs previous week for growth comparison
+        const { data: authUsers } = await adminClient.auth.admin.listUsers();
+        const allUsers = authUsers?.users || [];
+        
+        const usersThisWeek = allUsers.filter(u => new Date(u.created_at) >= new Date(last7d)).length;
+        const usersPreviousWeek = allUsers.filter(u => 
+          new Date(u.created_at) >= new Date(previous7d) && 
+          new Date(u.created_at) < new Date(last7d)
+        ).length;
+        const signupGrowth = usersPreviousWeek > 0 
+          ? Math.round(((usersThisWeek - usersPreviousWeek) / usersPreviousWeek) * 100)
+          : usersThisWeek > 0 ? 100 : 0;
+
+        // Active users (users who had any activity in the last 7 days)
+        const { data: activeUserEvents } = await adminClient
+          .from("app_events")
+          .select("user_id")
+          .gte("created_at", last7d)
+          .not("user_id", "is", null);
+        const activeUsersThisWeek = new Set(activeUserEvents?.map(e => e.user_id) || []).size;
+
+        const { data: prevActiveUserEvents } = await adminClient
+          .from("app_events")
+          .select("user_id")
+          .gte("created_at", previous7d)
+          .lt("created_at", last7d)
+          .not("user_id", "is", null);
+        const activeUsersPrevWeek = new Set(prevActiveUserEvents?.map(e => e.user_id) || []).size;
+        
+        const activeGrowth = activeUsersPrevWeek > 0
+          ? Math.round(((activeUsersThisWeek - activeUsersPrevWeek) / activeUsersPrevWeek) * 100)
+          : activeUsersThisWeek > 0 ? 100 : 0;
+
+        // Retention: Users who came back (had activity on 2+ different days this week)
+        const { data: retentionEvents } = await adminClient
+          .from("app_events")
+          .select("user_id, created_at")
+          .gte("created_at", last7d)
+          .not("user_id", "is", null);
+
+        const userDaysMap = new Map<string, Set<string>>();
+        retentionEvents?.forEach(e => {
+          if (!e.user_id) return;
+          if (!userDaysMap.has(e.user_id)) {
+            userDaysMap.set(e.user_id, new Set());
+          }
+          userDaysMap.get(e.user_id)!.add(new Date(e.created_at).toDateString());
+        });
+        const returningUsers = Array.from(userDaysMap.values()).filter(days => days.size >= 2).length;
+        const retentionRate = activeUsersThisWeek > 0 
+          ? Math.round((returningUsers / activeUsersThisWeek) * 100) 
+          : 0;
+
+        // Feature adoption: Key feature usage rates
+        const { data: featureEvents } = await adminClient
+          .from("app_events")
+          .select("event_type, event_name, user_id")
+          .gte("created_at", last7d)
+          .not("user_id", "is", null);
+
+        const featureUserSets = {
+          quest: new Set<string>(),
+          aiChat: new Set<string>(),
+          checkin: new Set<string>(),
+          build: new Set<string>(),
+          time: new Set<string>(),
+          integrity: new Set<string>(),
+        };
+
+        featureEvents?.forEach(e => {
+          if (!e.user_id) return;
+          if (e.event_type === "quest") featureUserSets.quest.add(e.user_id);
+          if (e.event_type === "guide" || e.event_name?.includes("controllable")) featureUserSets.aiChat.add(e.user_id);
+          if (e.event_type === "reset" || e.event_name?.includes("checkin")) featureUserSets.checkin.add(e.user_id);
+          if (e.event_type === "build") featureUserSets.build.add(e.user_id);
+          if (e.event_type === "time") featureUserSets.time.add(e.user_id);
+          if (e.event_type === "integrity") featureUserSets.integrity.add(e.user_id);
+        });
+
+        const featureAdoption = {
+          quest: featureUserSets.quest.size,
+          aiChat: featureUserSets.aiChat.size,
+          checkin: featureUserSets.checkin.size,
+          build: featureUserSets.build.size,
+          time: featureUserSets.time.size,
+          integrity: featureUserSets.integrity.size,
+        };
+
+        // Conversion funnel: Landing → Signup → Dashboard → Completed Action
+        const { data: funnelViews } = await adminClient
+          .from("page_views")
+          .select("page_path, user_id, session_id")
+          .gte("created_at", last7d);
+        
+        const landingVisitors = new Set(funnelViews?.filter(v => v.page_path === "/").map(v => v.session_id) || []).size;
+        const signups = usersThisWeek;
+        const dashboardUsers = new Set(funnelViews?.filter(v => v.page_path?.includes("/dashboard") && v.user_id).map(v => v.user_id) || []).size;
+        
+        const { data: completedActionUsers } = await adminClient
+          .from("completed_actions")
+          .select("user_id")
+          .gte("created_at", last7d);
+        const usersWithCompletedAction = new Set(completedActionUsers?.map(a => a.user_id) || []).size;
+
+        const conversionFunnel = {
+          landing: landingVisitors,
+          signup: signups,
+          dashboard: dashboardUsers,
+          completedAction: usersWithCompletedAction,
+        };
+
+        // Drop-off points (pages with high exits)
+        const { data: allPageViews } = await adminClient
+          .from("page_views")
+          .select("session_id, page_path, created_at")
+          .gte("created_at", last7d)
+          .order("created_at", { ascending: true });
+
+        const sessionPaths = new Map<string, string[]>();
+        allPageViews?.forEach(v => {
+          if (!sessionPaths.has(v.session_id)) {
+            sessionPaths.set(v.session_id, []);
+          }
+          sessionPaths.get(v.session_id)!.push(v.page_path);
+        });
+
+        const lastPageCounts: Record<string, number> = {};
+        sessionPaths.forEach(paths => {
+          const lastPage = paths[paths.length - 1];
+          lastPageCounts[lastPage] = (lastPageCounts[lastPage] || 0) + 1;
+        });
+
+        const dropOffPoints = Object.entries(lastPageCounts)
+          .filter(([path]) => path !== "/dashboard" && path !== "/dashboard/dashboard") // Exclude normal endpoints
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 5)
+          .map(([path, count]) => ({ path, count, percentage: Math.round((count / sessionPaths.size) * 100) }));
+
         return new Response(JSON.stringify({
           summary: {
             pageViews24h: pageViews24h || 0,
@@ -279,6 +421,17 @@ Deno.serve(async (req) => {
             eventBreakdown,
             errorBreakdown,
             actionBreakdown,
+            // Growth metrics
+            totalUsers: allUsers.length,
+            usersThisWeek,
+            signupGrowth,
+            activeUsersThisWeek,
+            activeGrowth,
+            returningUsers,
+            retentionRate,
+            featureAdoption,
+            conversionFunnel,
+            dropOffPoints,
           }
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
