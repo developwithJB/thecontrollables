@@ -502,14 +502,14 @@ export function SnapshotHistory({ sessions, className, isPaid = false, onStartNe
           {validSessions.length >= 2 && (
             <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
               <TabsList className="h-8">
-                <TabsTrigger value="week" className="text-xs px-2 h-6">
-                  Week
-                </TabsTrigger>
                 <TabsTrigger 
                   value="patterns" 
                   className="text-xs px-2 h-6"
                 >
                   Patterns
+                </TabsTrigger>
+                <TabsTrigger value="week" className="text-xs px-2 h-6">
+                  Week
                 </TabsTrigger>
                 <TabsTrigger 
                   value="month" 
