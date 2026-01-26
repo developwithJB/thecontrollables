@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Download, Share2, Loader2, Eye, Lock } from "lucide-react";
+import { Download, Share2, Loader2, Eye, Lock, ChevronRight, Sparkles, Coffee } from "lucide-react";
 import { useCertificate } from "@/hooks/useCertificate";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,14 +12,21 @@ import {
 } from "@/components/ui/dialog";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { isFeatureLocked } from "@/lib/entitlements";
-import { getPricing } from "@/lib/pricing";
+import { getPricing, isLaunchPriceActive, getDaysUntilLaunchEnd } from "@/lib/pricing";
 import { supabase } from "@/integrations/supabase/client";
+import { useBuildAssessment } from "@/hooks/useBuildAssessment";
+import { 
+  getRecommendedNextFoundation, 
+  getJourneyById,
+  GUIDED_JOURNEYS 
+} from "@/lib/guidedJourneys";
 
 interface Day7CompleteProps {
   displayName: string;
   startDate: string;
   endDate: string;
   resetSessionId: string;
+  completedJourneyId?: string;
 }
 
 export const Day7Complete = ({
@@ -27,10 +34,12 @@ export const Day7Complete = ({
   startDate,
   endDate,
   resetSessionId,
+  completedJourneyId,
 }: Day7CompleteProps) => {
   const navigate = useNavigate();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [showWhatsNext, setShowWhatsNext] = useState(true);
   const {
     certificate,
     isLoading,
@@ -42,13 +51,25 @@ export const Day7Complete = ({
   const { isPaid } = useEntitlements(userId);
   const isLocked = isFeatureLocked("certificateDownload", isPaid);
   const pricing = getPricing();
+  
+  // Get build data for recommendations
+  const { currentBuild, assessmentHistory } = useBuildAssessment();
+  
+  // Get recommended next Foundation
+  const recommendedJourney = getRecommendedNextFoundation(
+    currentBuild,
+    assessmentHistory,
+    completedJourneyId
+  );
+  
+  const completedJourney = completedJourneyId ? getJourneyById(completedJourneyId) : null;
 
   // Get user ID on mount
-  useState(() => {
+  useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setUserId(data.user?.id ?? null);
     });
-  });
+  }, []);
 
   // Format dates nicely
   const formatDate = (dateStr: string) => {
@@ -63,7 +84,23 @@ export const Day7Complete = ({
     shareCertificate(displayName, startDate, endDate);
   };
 
+  const handleStartNextFoundation = (journeyId: string) => {
+    // Navigate to dashboard with the journey selection
+    navigate(`/dashboard?startFoundation=${journeyId}`);
+  };
+
+  const handleChooseDifferent = () => {
+    navigate("/dashboard?showJourneySwitcher=true");
+  };
+
+  const handleTakeBreak = () => {
+    // Enable maintenance mode via query param
+    navigate("/dashboard?maintenanceMode=true");
+  };
+
   const isWorking = isLoading || isGenerating || isDownloading;
+  const daysRemaining = getDaysUntilLaunchEnd();
+  const showLaunchBadge = isLaunchPriceActive() && daysRemaining > 0;
 
   return (
     <>
@@ -109,14 +146,116 @@ export const Day7Complete = ({
             {displayName && (
               <p className="text-foreground mt-4 font-medium">{displayName}</p>
             )}
+            {completedJourney && (
+              <p className="text-primary mt-2 text-sm">
+                {completedJourney.emoji} {completedJourney.title}
+              </p>
+            )}
           </motion.div>
+
+          {/* What's Next Section - NEW! */}
+          {showWhatsNext && isPaid && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45 }}
+              className="mb-8"
+            >
+              <div className="border border-primary/20 bg-primary/5 rounded-xl p-5">
+                <div className="flex items-center gap-2 justify-center mb-3">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-foreground">What's Next?</h3>
+                </div>
+                
+                <p className="text-sm text-muted-foreground mb-4">
+                  Based on your Build, we recommend:
+                </p>
+                
+                {/* Recommended Journey */}
+                <button
+                  onClick={() => handleStartNextFoundation(recommendedJourney.id)}
+                  className="w-full bg-background hover:bg-muted/50 border border-border rounded-lg p-4 text-left transition-colors group mb-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{recommendedJourney.emoji}</span>
+                      <div>
+                        <p className="font-medium text-foreground group-hover:text-primary transition-colors">
+                          {recommendedJourney.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {recommendedJourney.tagline}
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
+                </button>
+                
+                {/* Alternative Options */}
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleChooseDifferent}
+                    className="flex-1 text-xs h-9"
+                  >
+                    Choose Different
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleTakeBreak}
+                    className="flex-1 text-xs h-9"
+                  >
+                    <Coffee className="w-3 h-3 mr-1" />
+                    Take a Break
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* What's Next for Free Users - Show upgrade prompt */}
+          {showWhatsNext && !isPaid && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45 }}
+              className="mb-8"
+            >
+              <div className="border border-primary/20 bg-primary/5 rounded-xl p-5">
+                <div className="flex items-center gap-2 justify-center mb-3">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-foreground">Ready for More?</h3>
+                </div>
+                
+                <p className="text-sm text-muted-foreground mb-4">
+                  You've completed your free 7-Day Foundation. Unlock unlimited Foundations and AI Guides to continue your journey.
+                </p>
+                
+                <Button
+                  onClick={() => navigate("/dashboard?upgrade=true")}
+                  className="w-full h-10"
+                >
+                  Unlock Full Access - ${pricing.amount}
+                </Button>
+                
+                {showLaunchBadge && (
+                  <p className="text-xs text-primary mt-2">
+                    🔥 Launch price ends in {daysRemaining} days
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          )}
 
           {/* Certificate Preview Thumbnail */}
           {certificate?.certificate_url && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.45 }}
+              transition={{ delay: 0.5 }}
               className="mb-6"
             >
               <button
@@ -142,7 +281,7 @@ export const Day7Complete = ({
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
+            transition={{ delay: 0.55 }}
             className="space-y-3 mb-8"
           >
             {isLocked ? (
@@ -162,6 +301,11 @@ export const Day7Complete = ({
                   >
                     Unlock for ${pricing.amount}
                   </Button>
+                  {showLaunchBadge && (
+                    <p className="text-xs text-primary mt-2">
+                      🔥 {daysRemaining} days left at launch price
+                    </p>
+                  )}
                 </div>
                 <Button
                   onClick={handleShare}
