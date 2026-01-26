@@ -775,6 +775,7 @@ export default function Dashboard() {
                     isPaid={isPaid}
                     onUpgrade={initiateCheckout}
                     isCheckingOut={isCheckingOut}
+                    hasActiveSnapshot={!!activeSession && !isCompleted}
                   />
                 </div>
               )}

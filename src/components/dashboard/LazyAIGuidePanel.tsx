@@ -16,6 +16,7 @@ interface LazyAIGuidePanelWrapperProps {
   isPaid?: boolean;
   onUpgrade?: () => void;
   isCheckingOut?: boolean;
+  hasActiveSnapshot?: boolean;
 }
 
 export function LazyAIGuidePanelWrapper(props: LazyAIGuidePanelWrapperProps) {
