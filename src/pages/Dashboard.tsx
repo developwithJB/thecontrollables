@@ -1043,118 +1043,103 @@ export default function Dashboard() {
 
 
               {/* Snapshot History - Visual Brick Stacking View */}
-              {!isSimplifiedMode && user?.id && (
+              {!isSimplifiedMode && user?.id && isPaid && (
+                <SuspenseExperienceComponent>
+                  <LazySnapshotHistory
+                    sessions={allSessions.map((s) => ({
+                      id: s.id,
+                      snapshotId: s.journey_id,
+                      startDate: s.start_date,
+                      completedAt: s.completed_at,
+                      status: s.status as "active" | "completed" | "expired" | "paused",
+                      daysCompleted: allCompletedDays.filter((d) => d.session_id === s.id).length,
+                      xpEarned: allCompletedDays.filter((d) => d.session_id === s.id).length * 25 + 
+                        (s.status === "completed" ? 25 : 0), // Day 7 bonus
+                    }))}
+                  />
+                </SuspenseExperienceComponent>
+              )}
+
+              {/* ===== LOCKED CONTENT (Premium) - Single consolidated lock for free users ===== */}
+              {!isPaid && !isSimplifiedMode && (
                 <div className="relative">
-                  <SuspenseExperienceComponent>
-                    <LazySnapshotHistory
-                      sessions={allSessions.map((s) => ({
-                        id: s.id,
-                        snapshotId: s.journey_id,
-                        startDate: s.start_date,
-                        completedAt: s.completed_at,
-                        status: s.status as "active" | "completed" | "expired" | "paused",
-                        daysCompleted: allCompletedDays.filter((d) => d.session_id === s.id).length,
-                        xpEarned: allCompletedDays.filter((d) => d.session_id === s.id).length * 25 + 
-                          (s.status === "completed" ? 25 : 0), // Day 7 bonus
-                      }))}
-                    />
-                  </SuspenseExperienceComponent>
-                  {!isPaid && (
-                    <LockedOverlay
-                      variant="experience-history"
-                      onUpgrade={initiateCheckout}
-                      isLoading={isCheckingOut}
-                    />
-                  )}
+                  {/* Blurred preview of locked content */}
+                  <div className="space-y-4 opacity-40 blur-[2px] pointer-events-none">
+                    <SuspenseExperienceComponent>
+                      <LazySnapshotHistory
+                        sessions={allSessions.slice(0, 2).map((s) => ({
+                          id: s.id,
+                          snapshotId: s.journey_id,
+                          startDate: s.start_date,
+                          completedAt: s.completed_at,
+                          status: s.status as "active" | "completed" | "expired" | "paused",
+                          daysCompleted: allCompletedDays.filter((d) => d.session_id === s.id).length,
+                          xpEarned: allCompletedDays.filter((d) => d.session_id === s.id).length * 25 + 
+                            (s.status === "completed" ? 25 : 0),
+                        }))}
+                      />
+                    </SuspenseExperienceComponent>
+                    <SuspenseExperienceComponent>
+                      <LazyBadgesEarned earnedBadges={earnedBadges} isLoading={false} />
+                    </SuspenseExperienceComponent>
+                  </div>
+                  {/* Single consolidated lock overlay */}
+                  <LockedOverlay
+                    variant="experience-history"
+                    onUpgrade={initiateCheckout}
+                    isLoading={isCheckingOut}
+                  />
                 </div>
               )}
 
-              {/* ===== LOCKED CONTENT (Premium) ===== */}
-
-              {/* Badges Earned - Lazy loaded, Locked for free users, hidden in simplified mode */}
-              {!isSimplifiedMode && (
-                <div className="relative">
-                  <SuspenseExperienceComponent>
-                    <LazyBadgesEarned earnedBadges={earnedBadges} isLoading={badgesLoading} />
-                  </SuspenseExperienceComponent>
-                  {!isPaid && (
-                    <LockedOverlay
-                      variant="experience-history"
-                      onUpgrade={initiateCheckout}
-                      isLoading={isCheckingOut}
-                    />
-                  )}
-                </div>
+              {/* Badges Earned - Lazy loaded, for paid users */}
+              {!isSimplifiedMode && isPaid && (
+                <SuspenseExperienceComponent>
+                  <LazyBadgesEarned earnedBadges={earnedBadges} isLoading={badgesLoading} />
+                </SuspenseExperienceComponent>
               )}
 
-              {/* Activity History - Lazy loaded, Locked for free users, hidden in simplified mode */}
-              {!isSimplifiedMode && (
-                <div className="relative">
-                  <SuspenseExperienceComponent>
-                    <LazyActivityHistory
-                      totalXp={totalXp}
-                      xpLogs={xpLogs}
-                      resetSessions={allSessions}
-                      completedResetsCount={allSessions.filter((s) => s.status === "completed").length}
-                    />
-                  </SuspenseExperienceComponent>
-                  {!isPaid && (
-                    <LockedOverlay
-                      variant="experience-history"
-                      onUpgrade={initiateCheckout}
-                      isLoading={isCheckingOut}
-                    />
-                  )}
-                </div>
+              {/* Activity History - Lazy loaded, for paid users */}
+              {!isSimplifiedMode && isPaid && (
+                <SuspenseExperienceComponent>
+                  <LazyActivityHistory
+                    totalXp={totalXp}
+                    xpLogs={xpLogs}
+                    resetSessions={allSessions}
+                    completedResetsCount={allSessions.filter((s) => s.status === "completed").length}
+                  />
+                </SuspenseExperienceComponent>
               )}
 
-              {/* Certificates - Lazy loaded, Locked for free users */}
-              {user?.id && (
-                <div className="relative">
-                  <SuspenseExperienceComponent>
-                    <LazyCertificates resetSessions={allSessions} userId={user.id} dailyResets={allCompletedDays} />
-                  </SuspenseExperienceComponent>
-                  {!isPaid && allSessions.filter((s) => s.status === "completed").length > 0 && (
-                    <LockedOverlay
-                      variant="experience-history"
-                      onUpgrade={initiateCheckout}
-                      isLoading={isCheckingOut}
-                    />
-                  )}
-                </div>
+              {/* Certificates - Lazy loaded, for paid users */}
+              {user?.id && isPaid && (
+                <SuspenseExperienceComponent>
+                  <LazyCertificates resetSessions={allSessions} userId={user.id} dailyResets={allCompletedDays} />
+                </SuspenseExperienceComponent>
               )}
 
-              {/* Momentum Decay - Lazy loaded, Locked for free users, hidden in simplified mode */}
-              {!isSimplifiedMode && (
-                <div className="relative">
-                  <SuspenseExperienceComponent>
-                    <LazyMomentumDecay
-                      lastActivity={(() => {
-                        // Get the most recent activity from multiple sources
-                        const dates: Date[] = [];
-                        if (xpLogs[0]?.created_at) dates.push(new Date(xpLogs[0].created_at));
-                        const latestSession = allSessions[0];
-                        if (latestSession?.completed_at) dates.push(new Date(latestSession.completed_at));
-                        if (latestSession?.created_at) dates.push(new Date(latestSession.created_at));
-                        const latestCompletedDay = completedDays[0];
-                        if (latestCompletedDay?.completed_at) dates.push(new Date(latestCompletedDay.completed_at));
-                        if (dates.length === 0) return null;
-                        return dates.sort((a, b) => b.getTime() - a.getTime())[0].toISOString();
-                      })()}
-                      currentStreak={completedDays.length}
-                      hasActiveQuest={!!activeQuest}
-                      hasActiveReset={!!activeSession && !isCompleted}
-                      onStartReset={() => navigate("/reset")}
-                    />
-                  </SuspenseExperienceComponent>
-                  {!isPaid && (
-                    <LockedOverlay
-                      variant="experience-history"
-                      onUpgrade={initiateCheckout}
-                      isLoading={isCheckingOut}
-                    />
-                  )}
-                </div>
+              {/* Momentum Decay - Lazy loaded, for paid users */}
+              {!isSimplifiedMode && isPaid && (
+                <SuspenseExperienceComponent>
+                  <LazyMomentumDecay
+                    lastActivity={(() => {
+                      // Get the most recent activity from multiple sources
+                      const dates: Date[] = [];
+                      if (xpLogs[0]?.created_at) dates.push(new Date(xpLogs[0].created_at));
+                      const latestSession = allSessions[0];
+                      if (latestSession?.completed_at) dates.push(new Date(latestSession.completed_at));
+                      if (latestSession?.created_at) dates.push(new Date(latestSession.created_at));
+                      const latestCompletedDay = completedDays[0];
+                      if (latestCompletedDay?.completed_at) dates.push(new Date(latestCompletedDay.completed_at));
+                      if (dates.length === 0) return null;
+                      return dates.sort((a, b) => b.getTime() - a.getTime())[0].toISOString();
+                    })()}
+                    currentStreak={completedDays.length}
+                    hasActiveQuest={!!activeQuest}
+                    hasActiveReset={!!activeSession && !isCompleted}
+                    onStartReset={() => navigate("/reset")}
+                  />
+                </SuspenseExperienceComponent>
               )}
 
               {/* Journey Summary Footer */}
