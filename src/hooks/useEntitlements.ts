@@ -2,31 +2,30 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getPricing, type PlanType } from "@/lib/pricing";
+
+interface SubscriptionInfo {
+  isPaid: boolean;
+  plan: PlanType | "lifetime" | null;
+  subscriptionStatus: string | null;
+  currentPeriodEnd: string | null;
+  purchasedAt: string | null;
+}
 
 interface EntitlementStatus {
   isPaid: boolean;
   isLoading: boolean;
   purchasedAt: string | null;
+  plan: PlanType | "lifetime" | null;
+  subscriptionStatus: string | null;
+  currentPeriodEnd: string | null;
   checkPaymentStatus: () => void;
-  initiateCheckout: () => Promise<void>;
+  initiateCheckout: (plan?: PlanType) => Promise<void>;
   isCheckingOut: boolean;
 }
 
-// Launch pricing configuration
-const LAUNCH_END_DATE = new Date("2025-03-01T00:00:00Z");
-
-export const isLaunchPeriod = () => new Date() < LAUNCH_END_DATE;
-
-export const getPricing = () => ({
-  amount: isLaunchPeriod() ? 29 : 49,
-  launchAmount: 29,
-  regularAmount: 49,
-  isLaunchPeriod: isLaunchPeriod(),
-  launchEndDate: LAUNCH_END_DATE,
-});
-
 /**
- * Hook to check user entitlement status (free vs paid).
+ * Hook to check user entitlement status (free vs paid subscription).
  * 
  * Free users CAN use:
  * - Build Overview (assessment + archetype)
@@ -46,24 +45,45 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
   // Query to check payment status via Stripe
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["payment-status", userId],
-    queryFn: async () => {
-      if (!userId) return { isPaid: false, purchasedAt: null };
+    queryFn: async (): Promise<SubscriptionInfo> => {
+      if (!userId) return { 
+        isPaid: false, 
+        purchasedAt: null, 
+        plan: null, 
+        subscriptionStatus: null, 
+        currentPeriodEnd: null 
+      };
       
       try {
         const { data: result, error } = await supabase.functions.invoke("check-payment");
         
         if (error) {
           console.error("Error checking payment status:", error);
-          return { isPaid: false, purchasedAt: null };
+          return { 
+            isPaid: false, 
+            purchasedAt: null, 
+            plan: null, 
+            subscriptionStatus: null, 
+            currentPeriodEnd: null 
+          };
         }
         
         return {
           isPaid: result?.isPaid ?? false,
           purchasedAt: result?.purchasedAt ?? null,
+          plan: result?.plan ?? null,
+          subscriptionStatus: result?.subscriptionStatus ?? null,
+          currentPeriodEnd: result?.currentPeriodEnd ?? null,
         };
       } catch (error) {
         console.error("Error checking payment status:", error);
-        return { isPaid: false, purchasedAt: null };
+        return { 
+          isPaid: false, 
+          purchasedAt: null, 
+          plan: null, 
+          subscriptionStatus: null, 
+          currentPeriodEnd: null 
+        };
       }
     },
     enabled: !!userId,
@@ -78,7 +98,7 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
     
     if (paymentStatus === "success") {
       toast.success("Welcome to Full Access! 🎉", {
-        description: "AI Companions and Experience History are now unlocked.",
+        description: "The Controllables and Experience History are now unlocked.",
         duration: 5000,
       });
       // Refetch payment status
@@ -86,8 +106,8 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
       // Clean up URL
       window.history.replaceState({}, "", window.location.pathname);
     } else if (paymentStatus === "canceled") {
-      toast("Payment canceled", {
-        description: "No worries—you can upgrade anytime.",
+      toast("Checkout canceled", {
+        description: "No worries—you can subscribe anytime.",
         duration: 3000,
       });
       // Clean up URL
@@ -99,16 +119,18 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
     refetch();
   }, [refetch]);
 
-  const initiateCheckout = useCallback(async () => {
+  const initiateCheckout = useCallback(async (plan: PlanType = "yearly") => {
     if (!userId) {
-      toast.error("Please sign in to upgrade");
+      toast.error("Please sign in to subscribe");
       return;
     }
 
     setIsCheckingOut(true);
     
     try {
-      const { data: result, error } = await supabase.functions.invoke("create-checkout");
+      const { data: result, error } = await supabase.functions.invoke("create-checkout", {
+        body: { plan }
+      });
       
       if (error) {
         throw new Error(error.message || "Failed to create checkout session");
@@ -139,11 +161,17 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
     isPaid: data?.isPaid ?? false,
     isLoading,
     purchasedAt: data?.purchasedAt ?? null,
+    plan: data?.plan ?? null,
+    subscriptionStatus: data?.subscriptionStatus ?? null,
+    currentPeriodEnd: data?.currentPeriodEnd ?? null,
     checkPaymentStatus,
     initiateCheckout,
     isCheckingOut,
   };
 }
+
+// Re-export pricing utilities for convenience
+export { getPricing } from "@/lib/pricing";
 
 // Feature flags for entitlements
 export const PAID_FEATURES = {

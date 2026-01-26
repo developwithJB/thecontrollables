@@ -7,12 +7,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Pricing configuration (Production)
-// Launch price: $29.99 (until March 1, 2026)
-// Regular price: $49.99 (after March 1, 2026)
-const LAUNCH_PRICE_ID = "price_1Ss8UWIrFORWV7K41FKh4zVY"; // $29.99
-const REGULAR_PRICE_ID = "price_1Ss8XUIrFORWV7K4M9uAE2kY"; // $49.99
-const LAUNCH_END_DATE = new Date("2026-03-01T00:00:00Z");
+// Subscription Price IDs (Production)
+const MONTHLY_PRICE_ID = "price_1Sty37IrFORWV7K43PkIVSJx"; // $9.99/month
+const YEARLY_PRICE_ID = "price_1Sty3RIrFORWV7K4lF4DZhPV";  // $79.99/year
 
 // Helper logging function
 const logStep = (step: string, details?: Record<string, unknown>) => {
@@ -34,6 +31,16 @@ serve(async (req) => {
 
   try {
     logStep("Function started");
+
+    // Parse request body to get plan
+    const body = await req.json().catch(() => ({}));
+    const plan = body.plan || "monthly"; // Default to monthly
+    
+    if (plan !== "monthly" && plan !== "yearly") {
+      throw new Error("Invalid plan. Must be 'monthly' or 'yearly'");
+    }
+    
+    logStep("Plan selected", { plan });
 
     // Retrieve authenticated user
     const authHeader = req.headers.get("Authorization");
@@ -63,21 +70,17 @@ serve(async (req) => {
       customerId = customers.data[0].id;
       logStep("Existing customer found", { customerId });
       
-      // Check if user already has a completed payment for Full Access
-      const sessions = await stripe.checkout.sessions.list({
+      // Check if user already has an active subscription
+      const subscriptions = await stripe.subscriptions.list({
         customer: customerId,
-        limit: 10,
+        status: "active",
+        limit: 1,
       });
       
-      const hasPurchased = sessions.data.some(
-        (session: { payment_status: string; mode: string }) => 
-          session.payment_status === "paid" && session.mode === "payment"
-      );
-      
-      if (hasPurchased) {
-        logStep("User already has Full Access");
+      if (subscriptions.data.length > 0) {
+        logStep("User already has active subscription");
         return new Response(JSON.stringify({ 
-          error: "You already have Full Access!" 
+          error: "You already have an active subscription!" 
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 400,
@@ -87,21 +90,14 @@ serve(async (req) => {
       logStep("No existing customer, will create during checkout");
     }
 
-    // Determine which price to use based on current date
-    const now = new Date();
-    const isLaunchPeriod = now < LAUNCH_END_DATE;
-    const priceId = isLaunchPeriod ? LAUNCH_PRICE_ID : REGULAR_PRICE_ID;
-    
-    logStep("Price selected", { 
-      isLaunchPeriod, 
-      priceId,
-      launchEndDate: LAUNCH_END_DATE.toISOString()
-    });
+    // Select price based on plan
+    const priceId = plan === "yearly" ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID;
+    logStep("Price selected", { plan, priceId });
 
     // Get origin for redirect URLs
     const origin = req.headers.get("origin") || "https://thedashboard.agbcoaching.com";
 
-    // Create a one-time payment session
+    // Create a subscription checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -112,12 +108,19 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      mode: "payment",
+      mode: "subscription",
       success_url: `${origin}/dashboard?payment=success`,
       cancel_url: `${origin}/dashboard?payment=canceled`,
       metadata: {
         user_id: user.id,
         product: "full_access",
+        plan: plan,
+      },
+      subscription_data: {
+        metadata: {
+          user_id: user.id,
+          plan: plan,
+        },
       },
     });
 
