@@ -43,8 +43,8 @@ export function LockedOverlay({
         };
       case "ai-companion":
         return {
-          title: "AI Companions",
-          description: "Free includes the full 7-Day Snapshot.\n\nAI Companions unlock with Full Access.",
+          title: "The Controllables",
+          description: "Free includes the full 7-Day Snapshot.\n\nThe Controllables unlock with Full Access.",
           buttonText: "Unlock Full Access",
           priceLine: priceText
         };
