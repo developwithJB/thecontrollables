@@ -539,7 +539,7 @@ export function TodayActions({
             </div>
           </div>
 
-          {/* Start foundation prompt */}
+          {/* Start snapshot prompt */}
           <div className="p-4">
             <div className="flex items-start gap-3 p-3 rounded-lg bg-accent/5 border border-accent/20">
               <div className="p-2 rounded-lg bg-accent/20">
@@ -547,7 +547,7 @@ export function TodayActions({
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-medium text-foreground mb-1">
-                  {isResetCompleted ? "Start a New Foundation" : "Begin Your 7-Day Foundation"}
+                  {isResetCompleted ? "Start a New Snapshot" : "Begin Your 7-Day Snapshot"}
                 </h4>
                 <p className="text-xs text-muted-foreground mb-3">
                   7 days. 7 readings. One intentional check-in each day.
@@ -642,7 +642,7 @@ export function TodayActions({
             tabIndex={0}
           >
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground">Foundation Focus:</span>
+              <span className="text-muted-foreground">Snapshot Focus:</span>
               <span className="font-medium text-foreground">{journeyTitle}</span>
             </div>
             <ChevronRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />

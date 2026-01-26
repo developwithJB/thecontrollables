@@ -272,7 +272,7 @@ export const useReset = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reset-session"] });
       toast({
-        title: "Your 7-Day Foundation begins",
+        title: "Your 7-Day Snapshot begins",
         description: "Day 1 awaits you.",
       });
     },

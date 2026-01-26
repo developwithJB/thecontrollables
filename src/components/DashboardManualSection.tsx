@@ -34,7 +34,7 @@ const MANUAL_SECTIONS: ManualSection[] = [
     title: "Today's Actions",
     icon: ListChecks,
     description: "Your daily checklist. A unified hub showing exactly what to do today—readings, time logs, and promises.",
-    howToUse: "Tap any item to open its tool directly. Complete each action to earn XP. The list evolves based on your Foundation day."
+    howToUse: "Tap any item to open its tool directly. Complete each action to earn XP. The list evolves based on your Snapshot day."
   },
   {
     title: "Daily Check-In",
@@ -93,8 +93,8 @@ const MANUAL_SECTIONS: ManualSection[] = [
   {
     title: "Experience Tab",
     icon: Sparkles,
-    description: "Your full history: badges earned, progress over time, past Foundations, and momentum trends.",
-    howToUse: "Check weekly to see patterns. Review past Foundations to remember what you've learned."
+    description: "Your full history: badges earned, progress over time, past Snapshots, and momentum trends.",
+    howToUse: "Check weekly to see patterns. Review past Snapshots to remember what you've learned."
   },
   {
     title: "Install the App",
