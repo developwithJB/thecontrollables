@@ -259,7 +259,7 @@ export function SnapshotSelector({
         key={snapshot.id}
         onClick={() => handleSelect(snapshot.id)}
         whileTap={{ scale: 0.98 }}
-        className={`w-full p-4 rounded-xl border text-left transition-all relative ${
+        className={`w-full p-4 rounded-xl border text-left transition-all relative overflow-hidden ${
           isSelected
             ? snapshot.isCustom
               ? "border-amber-500 bg-amber-500/10"
@@ -269,26 +269,41 @@ export function SnapshotSelector({
             : "border-border bg-card hover:border-primary/30"
         }`}
       >
-        {/* Badges */}
-        <div className="absolute top-3 right-3 flex items-center gap-1.5">
-          {snapshot.isCustom && (
-            <Badge variant="outline" className="bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30 text-xs px-1.5">
-              <Sparkles className="w-3 h-3 mr-1" />
-              For You
-            </Badge>
-          )}
-          {isRecommended && !snapshot.isCustom && (
-            <Badge variant="outline" className="bg-primary/20 text-primary border-primary/30 text-xs px-1.5">
-              <Sparkles className="w-3 h-3 mr-1" />
-              Recommended
-            </Badge>
-          )}
-          {isCurrent && (
-            <Badge variant="secondary" className="text-xs px-1.5">Current</Badge>
-          )}
+        {/* Selection indicator - positioned absolute top-right, below badges */}
+        <div
+          className={`absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+            isSelected
+              ? snapshot.isCustom
+                ? "border-amber-500 bg-amber-500"
+                : "border-primary bg-primary"
+              : "border-muted-foreground/30"
+          }`}
+        >
+          {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
         </div>
 
-        <div className="flex items-start gap-3 pr-20">
+        {/* Badges - positioned below the checkmark */}
+        {(snapshot.isCustom || isRecommended || isCurrent) && (
+          <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+            {snapshot.isCustom && (
+              <Badge variant="outline" className="bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30 text-xs px-1.5">
+                <Sparkles className="w-3 h-3 mr-1" />
+                For You
+              </Badge>
+            )}
+            {isRecommended && !snapshot.isCustom && (
+              <Badge variant="outline" className="bg-primary/20 text-primary border-primary/30 text-xs px-1.5">
+                <Sparkles className="w-3 h-3 mr-1" />
+                Recommended
+              </Badge>
+            )}
+            {isCurrent && (
+              <Badge variant="secondary" className="text-xs px-1.5">Current</Badge>
+            )}
+          </div>
+        )}
+
+        <div className="flex items-start gap-3 pr-8">
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0 ${
             snapshot.isCustom 
               ? "bg-gradient-to-br from-amber-500/20 to-orange-500/20"
@@ -303,17 +318,6 @@ export function SnapshotSelector({
               <span className="text-sm">{focusConfig.emoji}</span>
               <span className="text-xs text-muted-foreground">{focusConfig.label} Focus</span>
             </div>
-          </div>
-          <div
-            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 transition-colors ${
-              isSelected
-                ? snapshot.isCustom
-                  ? "border-amber-500 bg-amber-500"
-                  : "border-primary bg-primary"
-                : "border-muted-foreground/30"
-            }`}
-          >
-            {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
           </div>
         </div>
 
