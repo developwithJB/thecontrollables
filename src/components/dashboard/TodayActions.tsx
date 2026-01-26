@@ -633,21 +633,7 @@ export function TodayActions({
           </div>
         </div>
 
-        {/* Focus indicator - shows current journey */}
-        {journeyId && journeyTitle && (
-          <div
-            className="px-4 py-2 border-b border-border/50 bg-muted/30 flex items-center justify-between group cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={onChangeJourney}
-            role="button"
-            tabIndex={0}
-          >
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground">Snapshot Focus:</span>
-              <span className="font-medium text-foreground">{journeyTitle}</span>
-            </div>
-            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
-        )}
+        {/* Snapshot Focus moved to GreetingBanner - removed from here */}
 
         {/* Collapsible action list */}
         <AnimatePresence initial={false}>

@@ -632,11 +632,7 @@ export function ResetProgressModule({
           </span>
         </div>
 
-        {/* Snapshot Focus - clickable to open selector */}
-        <JourneyDisplay 
-          journeyId={currentJourneyId} 
-          onSwitchJourney={onSwitchJourney}
-        />
+        {/* Snapshot Focus moved to GreetingBanner for cleaner layout */}
       </div>
 
       {/* Expandable day list */}
