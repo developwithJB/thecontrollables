@@ -18,6 +18,7 @@ interface LazyAIGuidePanelWrapperProps {
   onUpgrade?: () => void;
   isCheckingOut?: boolean;
   hasActiveSnapshot?: boolean;
+  onMessageSent?: () => void;
 }
 
 export const LazyAIGuidePanelWrapper = forwardRef<AIGuidePanelHandle, LazyAIGuidePanelWrapperProps>(
