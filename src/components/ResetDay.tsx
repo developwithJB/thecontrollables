@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Compass } from "lucide-react";
 import { getDayContent } from "@/lib/resetContent";
 import { ProgressDots } from "./ProgressDots";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 interface ResetDayProps {
   dayNumber: number;
@@ -13,9 +13,21 @@ interface ResetDayProps {
   logDate: string; // The real calendar date for this day
   onComplete: (data: { reflection?: string; userInput?: string }) => void;
   isCompleting: boolean;
+  snapshotEmoji?: string;
+  snapshotTitle?: string;
+  onChangeFocus?: () => void;
 }
 
-export const ResetDay = ({ dayNumber, completedDays, logDate, onComplete, isCompleting }: ResetDayProps) => {
+export const ResetDay = ({ 
+  dayNumber, 
+  completedDays, 
+  logDate, 
+  onComplete, 
+  isCompleting,
+  snapshotEmoji,
+  snapshotTitle,
+  onChangeFocus,
+}: ResetDayProps) => {
   const content = getDayContent(dayNumber);
   const navigate = useNavigate();
   const [userInput, setUserInput] = useState("");
@@ -43,14 +55,27 @@ export const ResetDay = ({ dayNumber, completedDays, logDate, onComplete, isComp
       animate={{ opacity: 1 }}
       className="min-h-screen flex flex-col bg-background"
     >
-      {/* Minimal Header */}
-      <header className="px-4 py-4 flex items-center">
+      {/* Minimal Header with Focus indicator */}
+      <header className="px-4 py-4 flex items-center justify-between">
         <button
           onClick={() => navigate("/dashboard")}
           className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
+        
+        {/* Snapshot Focus indicator - clickable to change */}
+        {snapshotTitle && (
+          <button
+            onClick={onChangeFocus}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/50 hover:bg-muted transition-colors text-sm"
+            title={`Current Focus: ${snapshotTitle} - Click to change`}
+          >
+            <span>{snapshotEmoji || "🎯"}</span>
+            <span className="text-muted-foreground max-w-[120px] truncate">{snapshotTitle}</span>
+            <Compass className="w-3.5 h-3.5 text-muted-foreground" />
+          </button>
+        )}
       </header>
 
       {/* Main Content - Mobile-first, paper-like */}

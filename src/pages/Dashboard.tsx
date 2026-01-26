@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useMemo, lazy, Suspense, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { SplashScreen } from "@/components/SplashScreen";
 import { motion, AnimatePresence } from "framer-motion";
 import { Book, BookOpen, Sparkles, RefreshCw, User as UserIcon, Target, Pencil, Check, X } from "lucide-react";
@@ -101,6 +101,7 @@ export default function Dashboard() {
 
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   
   // Action tracking
@@ -338,6 +339,16 @@ export default function Dashboard() {
       checkReturnedBadge();
     }
   }, [user?.id, ensureOnboardingRecord, checkReturnedBadge]);
+
+  // Check for openFocus query param (from Reset page navigation)
+  useEffect(() => {
+    if (searchParams.get("openFocus") === "1" && activeSession) {
+      setShowJourneySwitcher(true);
+      // Remove the query param to prevent re-opening on refresh
+      searchParams.delete("openFocus");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, activeSession]);
 
   // Handle quest creation - award badge and complete onboarding
   const handleCreateQuest = useCallback(
@@ -615,6 +626,7 @@ export default function Dashboard() {
                   journeyTitle={activeSession?.journey_id ? 
                     getJourneyById(activeSession.journey_id)?.title : undefined}
                   onChangeJourney={() => setShowJourneySwitcher(true)}
+                  missionTitle={activeQuest?.title}
                   onOpenTimeLog={() => timeCurrencyRef.current?.openLogDialog()}
                   onOpenPromises={() => integrityRef.current?.openDetailDialog()}
                   onOpenAIGuide={() => {
