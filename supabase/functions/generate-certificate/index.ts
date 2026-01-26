@@ -16,7 +16,7 @@ const ALL_BADGES = [
   { key: "kept_promise", emoji: "🧱", name: "Kept a Promise" },
   { key: "respecd", emoji: "🛠️", name: "Respec'd" },
   { key: "paused_reacting", emoji: "🧘", name: "Paused Before Reacting" },
-  { key: "completed_reset", emoji: "🌱", name: "Completed a Reset" },
+  { key: "completed_reset", emoji: "🌱", name: "Completed a Snapshot" },
   { key: "protected_time", emoji: "⏳", name: "Protected My Time" },
   { key: "asked_guidance", emoji: "🧠", name: "Asked for Guidance" },
 ];
@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
         JSON.stringify({ 
           error: "Certificate requires all 7 days completed",
           completed_days: completedDayNumbers.length,
-          message: `You completed ${completedDayNumbers.length} of 7 days. Complete a full 7-day reset to earn your certificate.`
+          message: `You completed ${completedDayNumbers.length} of 7 days. Complete a full 7-day snapshot to earn your certificate.`
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -339,7 +339,7 @@ Deno.serve(async (req) => {
   <!-- Main title -->
   <text x="${svgWidth/2}" y="250" text-anchor="middle" 
         font-family="Georgia, 'Times New Roman', serif" font-size="22" font-weight="600" 
-        fill="#ffffff" letter-spacing="2">7-DAY RESET COMPLETE</text>
+        fill="#ffffff" letter-spacing="2">7-DAY SNAPSHOT COMPLETE</text>
   
   <!-- User name -->
   <text x="${svgWidth/2}" y="310" text-anchor="middle" 
