@@ -1,9 +1,9 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Download, Share2, Loader2, Eye, Lock, ChevronRight, Sparkles, Coffee } from "lucide-react";
 import { useCertificate } from "@/hooks/useCertificate";
-import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,13 +12,13 @@ import {
 } from "@/components/ui/dialog";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { isFeatureLocked } from "@/lib/entitlements";
-import { getPricing, isLaunchPriceActive, getDaysUntilLaunchEnd } from "@/lib/pricing";
+import { getPricing, type PlanType } from "@/lib/pricing";
 import { supabase } from "@/integrations/supabase/client";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
+import { PlanSelector } from "@/components/PlanSelector";
 import { 
   getRecommendedNextFoundation, 
   getJourneyById,
-  GUIDED_JOURNEYS 
 } from "@/lib/guidedJourneys";
 
 interface Day7CompleteProps {
@@ -40,6 +40,7 @@ export const Day7Complete = ({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [showWhatsNext, setShowWhatsNext] = useState(true);
+  const [selectedPlan, setSelectedPlan] = useState<PlanType | undefined>();
   const {
     certificate,
     isLoading,
@@ -48,7 +49,7 @@ export const Day7Complete = ({
     downloadCertificate,
     shareCertificate,
   } = useCertificate(resetSessionId);
-  const { isPaid } = useEntitlements(userId);
+  const { isPaid, initiateCheckout, isCheckingOut } = useEntitlements(userId);
   const isLocked = isFeatureLocked("certificateDownload", isPaid);
   const pricing = getPricing();
   
@@ -98,9 +99,12 @@ export const Day7Complete = ({
     navigate("/dashboard?maintenanceMode=true");
   };
 
+  const handlePlanSelect = (plan: PlanType) => {
+    setSelectedPlan(plan);
+    initiateCheckout(plan);
+  };
+
   const isWorking = isLoading || isGenerating || isDownloading;
-  const daysRemaining = getDaysUntilLaunchEnd();
-  const showLaunchBadge = isLaunchPriceActive() && daysRemaining > 0;
 
   return (
     <>
@@ -153,7 +157,7 @@ export const Day7Complete = ({
             )}
           </motion.div>
 
-          {/* What's Next Section - NEW! */}
+          {/* What's Next Section - Paid users */}
           {showWhatsNext && isPaid && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -234,18 +238,16 @@ export const Day7Complete = ({
                   You've completed your free 7-Day Snapshot. Unlock unlimited Snapshots and The Controllables to continue your journey.
                 </p>
                 
-                <Button
-                  onClick={() => navigate("/dashboard?upgrade=true")}
-                  className="w-full h-10"
-                >
-                  Unlock Full Access - ${pricing.amount}
-                </Button>
+                <PlanSelector
+                  onSelect={handlePlanSelect}
+                  isLoading={isCheckingOut}
+                  selectedPlan={selectedPlan}
+                  variant="compact"
+                />
                 
-                {showLaunchBadge && (
-                  <p className="text-xs text-primary mt-2">
-                    🔥 Launch price ends in {daysRemaining} days
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground mt-3">
+                  Save {pricing.yearlySavingsPercent}% with yearly
+                </p>
               </div>
             </motion.div>
           )}
@@ -294,18 +296,12 @@ export const Day7Complete = ({
                   <p className="text-sm text-muted-foreground mb-3">
                     Unlock certificate downloads and your full experience history.
                   </p>
-                  <Button
-                    onClick={() => navigate("/dashboard?upgrade=true")}
-                    className="w-full h-10"
-                    size="sm"
-                  >
-                    Unlock for ${pricing.amount}
-                  </Button>
-                  {showLaunchBadge && (
-                    <p className="text-xs text-primary mt-2">
-                      🔥 {daysRemaining} days left at launch price
-                    </p>
-                  )}
+                  <PlanSelector
+                    onSelect={handlePlanSelect}
+                    isLoading={isCheckingOut}
+                    selectedPlan={selectedPlan}
+                    variant="compact"
+                  />
                 </div>
                 <Button
                   onClick={handleShare}

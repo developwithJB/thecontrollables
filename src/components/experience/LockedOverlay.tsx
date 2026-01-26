@@ -1,15 +1,17 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Lock, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getPricing } from "@/lib/pricing";
-import { LaunchCountdownBadge } from "@/components/LaunchCountdownBadge";
+import { PlanSelector } from "@/components/PlanSelector";
+import { getPricing, type PlanType } from "@/lib/pricing";
+
 interface LockedOverlayProps {
   featureName?: string;
   title?: string;
   description?: string;
   buttonText?: string;
   priceLine?: string;
-  onUpgrade?: () => void;
+  onUpgrade?: (plan?: PlanType) => void;
   isLoading?: boolean;
   variant?: "default" | "experience-history" | "ai-companion";
 }
@@ -24,14 +26,12 @@ export function LockedOverlay({
   isLoading = false,
   variant = "default"
 }: LockedOverlayProps) {
-  
+  const [selectedPlan, setSelectedPlan] = useState<PlanType | undefined>();
   const pricing = getPricing();
   
   // Default copy based on variant
   const getDefaultCopy = () => {
-    const priceText = pricing.isLaunchPeriod 
-      ? `$${pricing.launchAmount} one-time. $${pricing.regularAmount} after March 1.`
-      : `$${pricing.regularAmount} one-time purchase.`;
+    const priceText = `$${pricing.monthly}/mo or $${pricing.yearly}/yr (save ${pricing.yearlySavingsPercent}%)`;
       
     switch (variant) {
       case "experience-history":
@@ -53,7 +53,7 @@ export function LockedOverlay({
           title: featureName || "Premium Feature",
           description: description || "Unlock your full journey history",
           buttonText: "Upgrade to Unlock",
-          priceLine: undefined
+          priceLine: priceText
         };
     }
   };
@@ -61,14 +61,12 @@ export function LockedOverlay({
   const defaultCopy = getDefaultCopy();
   const displayTitle = title || defaultCopy.title;
   const displayDescription = description || defaultCopy.description;
-  const displayButtonText = buttonText || defaultCopy.buttonText;
   const displayPriceLine = priceLine || defaultCopy.priceLine;
 
-  const handleUpgradeClick = () => {
+  const handlePlanSelect = (plan: PlanType) => {
+    setSelectedPlan(plan);
     if (onUpgrade) {
-      onUpgrade();
-    } else {
-      console.log("Upgrade clicked - no handler provided");
+      onUpgrade(plan);
     }
   };
 
@@ -100,31 +98,19 @@ export function LockedOverlay({
           {displayDescription}
         </p>
         
-        {/* Upgrade CTA */}
-        <Button
-          onClick={handleUpgradeClick}
-          disabled={isLoading}
-          size="sm"
-          className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-          data-testid="locked-overlay-upgrade-cta"
-        >
-          {isLoading ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Sparkles className="w-3.5 h-3.5" />
-          )}
-          {isLoading ? "Opening checkout..." : displayButtonText}
-        </Button>
-
-        {/* Launch countdown badge */}
-        <LaunchCountdownBadge variant="compact" className="mt-3" />
+        {/* Plan Selector */}
+        <PlanSelector
+          onSelect={handlePlanSelect}
+          isLoading={isLoading}
+          selectedPlan={selectedPlan}
+          variant="compact"
+          className="mb-3"
+        />
         
-        {/* Price line - only show if not in launch period (countdown shows price) */}
-        {displayPriceLine && !getPricing().isLaunchPeriod && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            {displayPriceLine}
-          </p>
-        )}
+        {/* Price summary */}
+        <p className="text-xs text-muted-foreground">
+          {displayPriceLine}
+        </p>
       </div>
     </motion.div>
   );

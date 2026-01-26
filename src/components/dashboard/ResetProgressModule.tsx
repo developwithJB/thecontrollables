@@ -8,7 +8,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { getDayContent, RESET_DAYS, COVENANT_TEXT, COVENANT_CHECKBOX_TEXT } from "@/lib/resetContent";
 
 import { useActionTracking } from "@/hooks/useActionTracking";
-import { getPricing } from "@/hooks/useEntitlements";
+import { getPricing } from "@/lib/pricing";
 import { getJourneyById, getQuestTitleFromJourney } from "@/lib/guidedJourneys";
 
 interface CompletedDay {
@@ -341,7 +341,7 @@ export function ResetProgressModule({
           
           <Button className="w-full" onClick={onUpgrade}>
             <Sparkles className="w-4 h-4 mr-2" />
-            Unlock for ${pricing.amount}
+            Unlock Full Access
           </Button>
         </motion.div>
       );
@@ -460,7 +460,7 @@ export function ResetProgressModule({
           
           <Button className="w-full" onClick={onUpgrade}>
             <Sparkles className="w-4 h-4 mr-2" />
-            Unlock for ${pricing.amount}
+            Unlock Full Access
           </Button>
         </motion.div>
       );

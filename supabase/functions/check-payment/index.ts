@@ -42,7 +42,7 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    // STEP 1: Check user_entitlements table first (for manual grants)
+    // STEP 1: Check user_entitlements table first (for manual grants and legacy one-time purchases)
     const { data: entitlement, error: entitlementError } = await supabaseClient
       .from("user_entitlements")
       .select("*")
@@ -69,6 +69,9 @@ serve(async (req) => {
           purchasedAt: entitlement.granted_at,
           source: entitlement.source,
           expiresAt: entitlement.expires_at,
+          // For legacy entitlements, mark as "lifetime" plan
+          plan: entitlement.source === "stripe" ? null : "lifetime",
+          subscriptionStatus: "active",
           message: "Full Access granted"
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -77,7 +80,7 @@ serve(async (req) => {
       }
     }
 
-    // STEP 2: Check Stripe for payment
+    // STEP 2: Check Stripe for active subscription
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
     logStep("Stripe key verified");
@@ -92,7 +95,7 @@ serve(async (req) => {
       logStep("No customer found, user has not purchased");
       return new Response(JSON.stringify({ 
         isPaid: false,
-        message: "No purchase found"
+        message: "No subscription found"
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -102,98 +105,141 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
-    // Check for completed checkout sessions with payment mode
+    // Check for active subscriptions
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "active",
+      limit: 1,
+    });
+
+    if (subscriptions.data.length > 0) {
+      const subscription = subscriptions.data[0];
+      const currentPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
+      const priceId = subscription.items.data[0]?.price?.id;
+      
+      // Determine plan type from price ID
+      let plan: "monthly" | "yearly" = "monthly";
+      if (priceId === "price_1Sty3RIrFORWV7K4lF4DZhPV") {
+        plan = "yearly";
+      }
+      
+      logStep("Active subscription found", { 
+        subscriptionId: subscription.id,
+        plan,
+        currentPeriodEnd
+      });
+
+      // Record/update entitlement in database for faster lookups
+      const { error: insertError } = await supabaseClient
+        .from("user_entitlements")
+        .upsert({
+          user_id: user.id,
+          entitlement_type: "full_access",
+          source: "stripe_subscription",
+          granted_at: new Date(subscription.start_date * 1000).toISOString(),
+          expires_at: currentPeriodEnd,
+          stripe_session_id: subscription.id
+        }, { onConflict: "user_id,entitlement_type" });
+
+      if (insertError) {
+        logStep("Error recording entitlement", { error: insertError.message });
+      }
+      
+      return new Response(JSON.stringify({ 
+        isPaid: true,
+        subscriptionStatus: subscription.status,
+        plan: plan,
+        currentPeriodEnd: currentPeriodEnd,
+        purchasedAt: new Date(subscription.start_date * 1000).toISOString(),
+        source: "stripe_subscription",
+        message: "Active subscription"
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Check for past_due or canceled subscriptions (still might have access until period end)
+    const allSubscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      limit: 5,
+    });
+
+    const recentSub = allSubscriptions.data.find(
+      (sub: { status: string; current_period_end: number }) => 
+        sub.status === "past_due" || 
+        (sub.status === "canceled" && new Date(sub.current_period_end * 1000) > new Date())
+    );
+
+    if (recentSub) {
+      const currentPeriodEnd = new Date(recentSub.current_period_end * 1000).toISOString();
+      const priceId = recentSub.items.data[0]?.price?.id;
+      const plan = priceId === "price_1Sty3RIrFORWV7K4lF4DZhPV" ? "yearly" : "monthly";
+      
+      logStep("Subscription in grace period", { 
+        status: recentSub.status,
+        currentPeriodEnd
+      });
+
+      return new Response(JSON.stringify({ 
+        isPaid: true,
+        subscriptionStatus: recentSub.status,
+        plan: plan,
+        currentPeriodEnd: currentPeriodEnd,
+        purchasedAt: new Date(recentSub.start_date * 1000).toISOString(),
+        source: "stripe_subscription",
+        message: recentSub.status === "past_due" ? "Payment past due" : "Subscription ending"
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // STEP 3: Check for legacy one-time payments (backwards compatibility)
     const sessions = await stripe.checkout.sessions.list({
       customer: customerId,
       limit: 100,
     });
 
-    // Find any successful payment session for our product
     const successfulPayment = sessions.data.find(
-      (session: { payment_status: string; mode: string; metadata?: { product?: string }; id: string; created: number }) => 
+      (session: { payment_status: string; mode: string; metadata?: { product?: string } }) => 
         session.payment_status === "paid" && 
         session.mode === "payment" &&
         session.metadata?.product === "full_access"
     );
 
     if (successfulPayment) {
-      logStep("Full Access payment found in Stripe", { 
-        sessionId: successfulPayment.id,
-        paidAt: successfulPayment.created 
-      });
-
-      // Record this payment in user_entitlements for faster future lookups
-      const { error: insertError } = await supabaseClient
-        .from("user_entitlements")
-        .upsert({
-          user_id: user.id,
-          entitlement_type: "full_access",
-          source: "stripe",
-          granted_at: new Date(successfulPayment.created * 1000).toISOString(),
-          stripe_session_id: successfulPayment.id
-        }, { onConflict: "user_id,entitlement_type" });
-
-      if (insertError) {
-        logStep("Error recording entitlement", { error: insertError.message });
-      } else {
-        logStep("Recorded entitlement in database");
-      }
-      
-      return new Response(JSON.stringify({ 
-        isPaid: true,
-        purchasedAt: new Date(successfulPayment.created * 1000).toISOString(),
-        source: "stripe",
-        message: "Full Access purchased"
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
-
-    // Also check for successful payment intents as backup
-    const paymentIntents = await stripe.paymentIntents.list({
-      customer: customerId,
-      limit: 50,
-    });
-
-    const successfulIntent = paymentIntents.data.find(
-      (intent: { status: string; id: string; created: number }) => intent.status === "succeeded"
-    );
-
-    if (successfulIntent) {
-      logStep("Successful payment intent found", { 
-        intentId: successfulIntent.id 
+      logStep("Legacy one-time payment found", { 
+        sessionId: successfulPayment.id
       });
 
       // Record this payment in user_entitlements
-      const { error: insertError } = await supabaseClient
+      await supabaseClient
         .from("user_entitlements")
         .upsert({
           user_id: user.id,
           entitlement_type: "full_access",
-          source: "stripe",
-          granted_at: new Date(successfulIntent.created * 1000).toISOString()
+          source: "stripe_legacy",
+          granted_at: new Date(successfulPayment.created * 1000).toISOString(),
+          stripe_session_id: successfulPayment.id
         }, { onConflict: "user_id,entitlement_type" });
-
-      if (insertError) {
-        logStep("Error recording entitlement", { error: insertError.message });
-      }
       
       return new Response(JSON.stringify({ 
         isPaid: true,
-        purchasedAt: new Date(successfulIntent.created * 1000).toISOString(),
-        source: "stripe",
-        message: "Full Access purchased"
+        plan: "lifetime",
+        purchasedAt: new Date(successfulPayment.created * 1000).toISOString(),
+        source: "stripe_legacy",
+        message: "Lifetime access (legacy purchase)"
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
 
-    logStep("No successful payment found");
+    logStep("No subscription or purchase found");
     return new Response(JSON.stringify({ 
       isPaid: false,
-      message: "No purchase found"
+      message: "No subscription found"
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

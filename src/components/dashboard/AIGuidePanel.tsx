@@ -8,7 +8,7 @@ import { getArchetypeInfo, type UserBuildCurrent } from "@/lib/build";
 import { useGuideSession } from "@/hooks/useGuideSession";
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { toast } from "sonner";
-import { LaunchCountdownBadge } from "@/components/LaunchCountdownBadge";
+import { getPricing } from "@/lib/pricing";
 import { AIOperatorIntro, useAIOperatorIntro } from "./AIOperatorIntro";
 
 interface MainQuest {
@@ -708,7 +708,9 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
                       {isCheckingOut ? "Opening checkout..." : "Unlock Full Access"}
                     </Button>
                     
-                    <LaunchCountdownBadge variant="compact" className="mt-3" />
+                    <p className="text-xs text-muted-foreground mt-3">
+                      Starting at ${getPricing().monthly}/mo
+                    </p>
                   </div>
                 </div>
               )}
