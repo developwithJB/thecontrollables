@@ -195,6 +195,24 @@ export const ResetDay = ({
           transition={{ delay: 0.6 }}
           className="space-y-4"
         >
+          {/* Snapshot Focus row - clickable to edit */}
+          {snapshotTitle && (
+            <button
+              onClick={onChangeFocus}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors text-left"
+              title="Click to change your focus"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl">{snapshotEmoji || "🎯"}</span>
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider">Your Focus</span>
+                  <span className="text-sm font-medium text-foreground">{snapshotTitle}</span>
+                </div>
+              </div>
+              <Compass className="w-4 h-4 text-muted-foreground" />
+            </button>
+          )}
+
           <Button
             onClick={handleSubmit}
             disabled={isCompleting || !isValid}
