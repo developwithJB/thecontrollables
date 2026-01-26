@@ -4,6 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft,
@@ -410,17 +416,30 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
                   <p className="text-xs text-muted-foreground">Promises Kept</p>
                 </CardContent>
               </Card>
-              <Card>
-                <CardContent className="py-3 text-center">
-                  <Heart className="w-4 h-4 mx-auto text-rose-500 mb-1" />
-                  <p className="text-lg font-bold text-foreground">
-                    {avgWellness ? avgWellness.toFixed(1) : "—"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {avgWellness ? "Avg Wellness" : "Not tracked"}
-                  </p>
-                </CardContent>
-              </Card>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Card className="cursor-help">
+                      <CardContent className="py-3 text-center">
+                        <Heart className="w-4 h-4 mx-auto text-rose-500 mb-1" />
+                        <p className="text-lg font-bold text-foreground">
+                          {avgWellness ? avgWellness.toFixed(1) : "—"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {avgWellness ? "Avg Wellness" : "Not tracked"}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-[200px] text-center">
+                    {avgWellness ? (
+                      <p>Average of Sleep, Movement & Nutrition ratings (1-5 scale)</p>
+                    ) : (
+                      <p>Log your Battery Check on Day 4 to track Sleep, Movement & Nutrition</p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
 
             {loading ? (
