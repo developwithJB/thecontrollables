@@ -220,15 +220,22 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
   const totalXP = data?.xpLogs.reduce((sum, log) => sum + log.amount, 0) || 0;
   const promisesKept = data?.integrityLogs.filter((l) => l.kept === true).length || 0;
   const promisesTotal = data?.integrityLogs.length || 0;
+  // Calculate average wellness only from non-null ratings
   const avgWellness = data?.wellnessLogs.length
-    ? data.wellnessLogs.reduce((sum, log) => {
-        const avg = (
-          (log.sleep_rating || 0) +
-          (log.movement_rating || 0) +
-          (log.nutrition_rating || 0)
-        ) / 3;
-        return sum + avg;
-      }, 0) / data.wellnessLogs.length
+    ? (() => {
+        let totalSum = 0;
+        let totalCount = 0;
+        data.wellnessLogs.forEach((log) => {
+          const ratings = [log.sleep_rating, log.movement_rating, log.nutrition_rating];
+          ratings.forEach((r) => {
+            if (r !== null) {
+              totalSum += r;
+              totalCount++;
+            }
+          });
+        });
+        return totalCount > 0 ? totalSum / totalCount : null;
+      })()
     : null;
 
   // Export as image using html2canvas
@@ -267,31 +274,36 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
 
   // Share functionality
   const handleShare = async () => {
-    const shareText = `📊 My Week: ${snapshot?.name || "Week Record"}\n${dateRange}\n\n` +
+    const shareText = 
+      `📊 My Week: ${snapshot?.name || "Week Record"}\n` +
+      `${dateRange}\n\n` +
       `✅ ${record.daysCompleted}/7 days completed\n` +
       `⚡ ${totalXP} XP earned\n` +
-      `🛡️ ${promisesKept}/${promisesTotal} promises kept\n\n` +
-      `#TheControllables #WeeklySnapshot`;
+      `🛡️ ${promisesKept}/${promisesTotal} promises kept\n` +
+      (avgWellness ? `❤️ ${avgWellness.toFixed(1)}/5 avg wellness\n` : "") +
+      `\nA quiet place to restart → thedashboard.agbcoaching.com\n\n` +
+      `#TheDashboard`;
     
     if (navigator.share) {
       try {
         await navigator.share({
           title: `My Snapshot: ${snapshot?.name || "Week Record"}`,
           text: shareText,
-          url: window.location.origin,
+          url: "https://thedashboard.agbcoaching.com",
         });
+        toast.success("Shared! Thanks for spreading the word 🙏");
       } catch (error) {
         // User cancelled or error
         if ((error as Error).name !== "AbortError") {
           // Fallback to clipboard
-          await navigator.clipboard.writeText(shareText);
-          toast.success("Copied to clipboard!");
+          await navigator.clipboard.writeText(shareText + "\nhttps://thedashboard.agbcoaching.com");
+          toast.success("Copied to clipboard — ready to share!");
         }
       }
     } else {
       // Fallback for browsers without Web Share API
-      await navigator.clipboard.writeText(shareText);
-      toast.success("Copied to clipboard!");
+      await navigator.clipboard.writeText(shareText + "\nhttps://thedashboard.agbcoaching.com");
+      toast.success("Copied to clipboard — ready to share!");
     }
   };
 
@@ -405,7 +417,9 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
                   <p className="text-lg font-bold text-foreground">
                     {avgWellness ? avgWellness.toFixed(1) : "—"}
                   </p>
-                  <p className="text-xs text-muted-foreground">Avg Wellness</p>
+                  <p className="text-xs text-muted-foreground">
+                    {avgWellness ? "Avg Wellness" : "Not tracked"}
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -662,6 +676,16 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
                 <div className="text-center py-4">
                   <p className="text-xs text-muted-foreground italic max-w-[280px] mx-auto">
                     "Each snapshot is an unbiased record in time — surfacing what's actually happening without judgment."
+                  </p>
+                </div>
+
+                {/* Export Branding Footer - visible in exported image */}
+                <div className="pt-6 mt-6 border-t border-border/30 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    A quiet place to restart
+                  </p>
+                  <p className="text-sm font-medium text-foreground mt-1">
+                    thedashboard.agbcoaching.com
                   </p>
                 </div>
               </>
