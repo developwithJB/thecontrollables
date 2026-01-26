@@ -18,7 +18,8 @@ import {
   RotateCcw, 
   TrendingDown,
   Compass,
-  ArrowLeft 
+  ArrowLeft,
+  Plus, 
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { 
@@ -40,6 +41,7 @@ import { toast } from "sonner";
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { BuildAssessmentModal } from "./BuildAssessmentModal";
+import { CustomSnapshotCreator } from "./CustomSnapshotCreator";
 import {
   Collapsible,
   CollapsibleContent,
@@ -77,6 +79,8 @@ export function SnapshotSelector({
   const [selectedSnapshot, setSelectedSnapshot] = useState<string | null>(null);
   const [isChanging, setIsChanging] = useState(false);
   const [showBuildModal, setShowBuildModal] = useState(false);
+  const [showCustomCreator, setShowCustomCreator] = useState(false);
+  const [customSnapshots, setCustomSnapshots] = useState<Snapshot[]>([]);
   const [viewMode, setViewMode] = useState<"recommendation" | "browse">("recommendation");
   const [expandedBuckets, setExpandedBuckets] = useState<Set<BucketId>>(new Set());
 
@@ -116,7 +120,19 @@ export function SnapshotSelector({
     return scores.reduce((min, curr) => curr.value < min.value ? curr : min).key;
   }, [currentBuild]);
 
-  const currentSnapshot = currentSnapshotId ? getSnapshotById(currentSnapshotId) : null;
+  // Helper to get snapshot from both standard and custom lists
+  const getSnapshot = (id: string | null): Snapshot | null => {
+    if (!id) return null;
+    // Check custom snapshots first
+    const customMatch = customSnapshots.find((s) => s.id === id);
+    if (customMatch) return customMatch;
+    // Check generated custom snapshot
+    if (customSnapshot?.id === id) return customSnapshot;
+    // Fall back to standard
+    return getSnapshotById(id);
+  };
+
+  const currentSnapshot = getSnapshot(currentSnapshotId);
 
   const handleOpen = () => {
     setSelectedSnapshot(currentSnapshotId || null);
@@ -124,6 +140,15 @@ export function SnapshotSelector({
     setExpandedBuckets(new Set());
     setIsOpen(true);
     trackFeatureUse("snapshot_selector", "open");
+  };
+
+  const handleCustomSnapshotCreated = (snapshot: Snapshot) => {
+    setCustomSnapshots((prev) => [...prev, snapshot]);
+    setSelectedSnapshot(snapshot.id);
+    trackFeatureUse("snapshot_selector", "custom_created", { 
+      bucket: snapshot.bucketId, 
+      focus: snapshot.focus 
+    });
   };
 
   const handleSelect = (snapshotId: string) => {
@@ -158,8 +183,8 @@ export function SnapshotSelector({
 
     setIsChanging(true);
 
-    const newControllable = getSnapshotById(selectedSnapshot)?.focus || "habit";
-    const newSnapshot = getSnapshotById(selectedSnapshot);
+    const newSnapshot = getSnapshot(selectedSnapshot);
+    const newControllable = newSnapshot?.focus || "habit";
 
     try {
       // Log the change
@@ -463,6 +488,28 @@ export function SnapshotSelector({
                   Back to Recommendation
                 </Button>
 
+                {/* Create Custom Button */}
+                <Button
+                  variant="outline"
+                  className="w-full mb-3 border-dashed border-amber-500/50 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                  onClick={() => setShowCustomCreator(true)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Custom Snapshot
+                </Button>
+
+                {/* Custom Snapshots Section (if any) */}
+                {customSnapshots.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                      Your Custom Snapshots
+                    </p>
+                    <div className="space-y-2">
+                      {customSnapshots.map((snapshot) => renderSnapshotCard(snapshot))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Buckets with Snapshots */}
                 <div className="space-y-2">
                   {(Object.keys(BUCKETS) as BucketId[]).map((bucketId) => {
@@ -530,6 +577,13 @@ export function SnapshotSelector({
         questions={questions || []}
         onSubmit={handleBuildComplete}
         isSubmitting={isSubmitting}
+      />
+
+      {/* Custom Snapshot Creator */}
+      <CustomSnapshotCreator
+        open={showCustomCreator}
+        onOpenChange={setShowCustomCreator}
+        onSnapshotCreated={handleCustomSnapshotCreated}
       />
     </>
   );
