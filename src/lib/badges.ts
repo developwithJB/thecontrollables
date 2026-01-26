@@ -10,7 +10,7 @@ export type BadgeKey =
   | "completed_reset"
   | "protected_time"
   | "asked_guidance"
-  | "foundation_explorer"
+  | "snapshot_explorer"
   | "foundation_streak_2"
   | "foundation_streak_3"
   | "foundation_streak_5";
@@ -80,12 +80,12 @@ export const BADGES: Record<BadgeKey, Badge> = {
     meaning: "You didn't carry this alone.",
     trigger: "Engaged with 3+ different Controllables",
   },
-  foundation_explorer: {
-    key: "foundation_explorer",
+  snapshot_explorer: {
+    key: "snapshot_explorer",
     emoji: "🎓",
-    name: "Foundation Explorer",
+    name: "Snapshot Explorer",
     meaning: "You learned the tools to build your life.",
-    trigger: "Completed the Welcome 7-Day Foundation",
+    trigger: "Completed the Welcome 7-Day Snapshot",
   },
   foundation_streak_2: {
     key: "foundation_streak_2",

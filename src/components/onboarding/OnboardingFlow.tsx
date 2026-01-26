@@ -194,9 +194,10 @@ export function OnboardingFlow({
     setCurrentStep("starting");
     
     // Map custom journey to standard journey ID for storage
-    const journeyIdToStore = journey.isCustom && journey.id.startsWith("custom-")
+    const standardJourney = journey.isCustom && journey.id.startsWith("custom-")
       ? getStandardJourneyForCustom(journey.id)
-      : journey.id;
+      : null;
+    const journeyIdToStore = standardJourney ? standardJourney.id : journey.id;
     
     const startReset = async () => {
       try {
