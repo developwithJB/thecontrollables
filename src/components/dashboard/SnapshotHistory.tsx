@@ -14,9 +14,14 @@ import {
   ChevronDown,
   ChevronUp,
   Layers,
+  CheckCircle2,
+  Circle,
+  XCircle,
+  Info,
 } from "lucide-react";
 import { format, startOfWeek, startOfMonth, startOfYear, isWithinInterval, subDays, eachWeekOfInterval, eachMonthOfInterval, addDays, endOfMonth, isSameMonth, isSameYear } from "date-fns";
 import { BUCKETS, SNAPSHOTS, getSnapshotById, type BucketId, type Snapshot } from "@/lib/snapshots";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SnapshotRecord {
   id: string;
@@ -36,13 +41,41 @@ interface SnapshotHistoryProps {
 
 type ViewMode = "week" | "month" | "year";
 
-// Generate color based on completion percentage
-function getBrickColor(completionRate: number, bucketId?: BucketId): string {
-  if (completionRate === 0) return "bg-muted text-muted-foreground";
-  if (completionRate < 0.3) return "bg-red-500/80 dark:bg-red-400/70 text-white dark:text-red-50";
-  if (completionRate < 0.7) return "bg-amber-500/80 dark:bg-amber-400/70 text-white dark:text-amber-50";
-  if (completionRate < 1) return "bg-emerald-500/80 dark:bg-emerald-400/70 text-white dark:text-emerald-50";
-  return "bg-primary text-primary-foreground";
+// Get status icon and color
+function getStatusInfo(status: string, daysCompleted: number): { icon: React.ReactNode; label: string; colorClass: string } {
+  if (status === "completed") {
+    return {
+      icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+      label: "Completed",
+      colorClass: "bg-emerald-500 dark:bg-emerald-400 text-white",
+    };
+  }
+  if (status === "active") {
+    return {
+      icon: <Circle className="w-3.5 h-3.5 animate-pulse" />,
+      label: "In Progress",
+      colorClass: "bg-primary text-primary-foreground",
+    };
+  }
+  if (daysCompleted >= 5) {
+    return {
+      icon: <Circle className="w-3.5 h-3.5" />,
+      label: "Almost",
+      colorClass: "bg-amber-500 dark:bg-amber-400 text-white",
+    };
+  }
+  if (daysCompleted >= 1) {
+    return {
+      icon: <XCircle className="w-3.5 h-3.5" />,
+      label: "Incomplete",
+      colorClass: "bg-orange-500 dark:bg-orange-400 text-white",
+    };
+  }
+  return {
+    icon: <XCircle className="w-3.5 h-3.5" />,
+    label: "Abandoned",
+    colorClass: "bg-muted text-muted-foreground",
+  };
 }
 
 // Single brick component representing a 7-day snapshot
@@ -57,99 +90,124 @@ function SnapshotBrick({
 }) {
   const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
   const bucket = snapshot ? BUCKETS[snapshot.bucketId] : null;
-  const completionRate = record.daysCompleted / 7;
-  const isComplete = record.status === "completed";
+  const statusInfo = getStatusInfo(record.status, record.daysCompleted);
+  const startDate = new Date(record.startDate);
+  const dateRange = `${format(startDate, "MMM d")} - ${format(addDays(startDate, 6), "MMM d")}`;
 
   return (
-    <motion.button
-      layout
-      onClick={onClick}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className={`relative group transition-all ${
-        isExpanded ? "col-span-full" : ""
-      }`}
-    >
-      <motion.div
-        layout
-        className={`rounded-lg border transition-all overflow-hidden ${
-          getBrickColor(completionRate)
-        } ${isComplete ? "border-primary/30" : "border-border"} ${
-          isExpanded ? "p-4" : "p-2"
-        }`}
-      >
-        {/* Compact view */}
-        {!isExpanded ? (
-          <div className="flex flex-col items-center justify-center min-h-[48px]">
-            <span className="text-lg">{snapshot?.emoji || "📅"}</span>
-            <span className="text-[10px] font-semibold mt-0.5">
-              {record.daysCompleted}/7
-            </span>
-          </div>
-        ) : (
-          /* Expanded view */
-          <div className="space-y-2">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">{snapshot?.emoji || "📅"}</span>
-                <div className="text-left">
-                  <p className="font-medium text-sm text-foreground">
-                    {snapshot?.name || "Unknown Snapshot"}
-                  </p>
-                  {bucket && (
-                    <p className="text-xs text-muted-foreground">
-                      {bucket.emoji} {bucket.name}
-                    </p>
-                  )}
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <motion.button
+            layout
+            onClick={onClick}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className={`relative group transition-all ${
+              isExpanded ? "col-span-full" : ""
+            }`}
+          >
+            <motion.div
+              layout
+              className={`rounded-lg border transition-all overflow-hidden ${statusInfo.colorClass} ${
+                isExpanded ? "p-4" : "p-2"
+              }`}
+            >
+              {/* Compact view */}
+              {!isExpanded ? (
+                <div className="flex flex-col items-center justify-center min-h-[56px] gap-0.5">
+                  {/* Date label */}
+                  <span className="text-[10px] font-medium opacity-90">
+                    {format(startDate, "MMM d")}
+                  </span>
+                  {/* Progress indicator */}
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+                      <div
+                        key={day}
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          day <= record.daysCompleted
+                            ? "bg-white/90"
+                            : "bg-white/30"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  {/* Status badge */}
+                  <div className="flex items-center gap-0.5 mt-0.5">
+                    {statusInfo.icon}
+                  </div>
                 </div>
-              </div>
-              {isComplete && (
-                <Badge variant="default" className="text-xs">
-                  <Trophy className="w-3 h-3 mr-1" />
-                  Complete
-                </Badge>
+              ) : (
+                /* Expanded view */
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                        <span className="text-xl">{snapshot?.emoji || "📅"}</span>
+                      </div>
+                      <div className="text-left">
+                        <p className="font-semibold text-sm">
+                          {snapshot?.name || "7-Day Snapshot"}
+                        </p>
+                        <p className="text-xs opacity-80">
+                          {dateRange}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="text-xs bg-white/20 text-current border-0">
+                      {statusInfo.icon}
+                      <span className="ml-1">{statusInfo.label}</span>
+                    </Badge>
+                  </div>
+
+                  {bucket && (
+                    <div className="text-xs opacity-90 flex items-center gap-1">
+                      <span>{bucket.emoji}</span>
+                      <span>{bucket.name}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-4 text-xs">
+                    <span className="flex items-center gap-1">
+                      <Layers className="w-3 h-3" />
+                      {record.daysCompleted}/7 days
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Zap className="w-3 h-3" />
+                      +{record.xpEarned} XP
+                    </span>
+                  </div>
+
+                  {/* Day completion grid */}
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+                      <div
+                        key={day}
+                        className={`flex-1 h-2 rounded-sm ${
+                          day <= record.daysCompleted
+                            ? "bg-white/80"
+                            : "bg-white/20"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
               )}
+            </motion.div>
+          </motion.button>
+        </TooltipTrigger>
+        {!isExpanded && (
+          <TooltipContent side="top" className="text-xs">
+            <div className="space-y-1">
+              <p className="font-medium">{snapshot?.name || "7-Day Snapshot"}</p>
+              <p className="text-muted-foreground">{dateRange}</p>
+              <p>{record.daysCompleted}/7 days • {statusInfo.label}</p>
             </div>
-
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <CalendarDays className="w-3 h-3" />
-                {format(new Date(record.startDate), "MMM d")}
-              </span>
-              <span className="flex items-center gap-1">
-                <Zap className="w-3 h-3" />
-                +{record.xpEarned} XP
-              </span>
-              <span className="flex items-center gap-1">
-                <Layers className="w-3 h-3" />
-                {record.daysCompleted}/7 days
-              </span>
-            </div>
-
-            {/* Day completion grid */}
-            <div className="flex gap-1 mt-2">
-              {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-                <div
-                  key={day}
-                  className={`flex-1 h-2 rounded-sm ${
-                    day <= record.daysCompleted
-                      ? "bg-primary"
-                      : "bg-muted-foreground/20"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
+          </TooltipContent>
         )}
-
-        {/* Completion indicator corner */}
-        {isComplete && !isExpanded && (
-          <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-primary flex items-center justify-center">
-            <Trophy className="w-2 h-2 text-primary-foreground" />
-          </div>
-        )}
-      </motion.div>
-    </motion.button>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -206,7 +264,7 @@ function BrickStack({
             <div className="relative w-12 mb-2">
               {records.slice(0, 4).map((record, idx) => {
                 const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
-                const completionRate = record.daysCompleted / 7;
+                const statusInfo = getStatusInfo(record.status, record.daysCompleted);
                 return (
                   <motion.div
                     key={record.id}
@@ -217,9 +275,7 @@ function BrickStack({
                       zIndex: records.length - idx,
                       marginTop: idx > 0 ? "-4px" : 0
                     }}
-                    className={`w-full h-6 rounded-sm border border-background/50 flex items-center justify-center text-xs ${
-                      getBrickColor(completionRate, snapshot?.bucketId)
-                    }`}
+                    className={`w-full h-6 rounded-sm border border-background/50 flex items-center justify-center text-xs ${statusInfo.colorClass}`}
                   >
                     {snapshot?.emoji || "📅"}
                   </motion.div>
@@ -290,12 +346,12 @@ function BrickStack({
             <div className="grid grid-cols-4 sm:grid-cols-7 gap-1 pt-2 border-t border-border">
               {records.map((record) => {
                 const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
-                const completionRate = record.daysCompleted / 7;
+                const statusInfo = getStatusInfo(record.status, record.daysCompleted);
                 return (
                   <div
                     key={record.id}
-                    className={`h-8 rounded flex items-center justify-center text-sm ${getBrickColor(completionRate)}`}
-                    title={`${snapshot?.name || "Unknown"}: ${record.daysCompleted}/7 days`}
+                    className={`h-8 rounded flex items-center justify-center text-sm ${statusInfo.colorClass}`}
+                    title={`${snapshot?.name || "7-Day Snapshot"}: ${record.daysCompleted}/7 days`}
                   >
                     {snapshot?.emoji || "📅"}
                   </div>
@@ -429,14 +485,34 @@ export function SnapshotHistory({ sessions, className }: SnapshotHistoryProps) {
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* Legend */}
+        <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground pb-2 border-b border-border">
+          <span className="flex items-center gap-1">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            Completed
+          </span>
+          <span className="flex items-center gap-1">
+            <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+            In Progress
+          </span>
+          <span className="flex items-center gap-1">
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+            Almost (5-6 days)
+          </span>
+          <span className="flex items-center gap-1">
+            <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+            Incomplete
+          </span>
+        </div>
+
         {/* Summary Stats */}
         <div className="grid grid-cols-4 gap-2 text-center">
           <div className="p-2 rounded-lg bg-muted/50">
             <p className="text-lg font-bold text-foreground">{stats.total}</p>
-            <p className="text-[10px] text-muted-foreground">Total</p>
+            <p className="text-[10px] text-muted-foreground">Weeks</p>
           </div>
           <div className="p-2 rounded-lg bg-muted/50">
-            <p className="text-lg font-bold text-primary">{stats.completed}</p>
+            <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{stats.completed}</p>
             <p className="text-[10px] text-muted-foreground">Complete</p>
           </div>
           <div className="p-2 rounded-lg bg-muted/50">
