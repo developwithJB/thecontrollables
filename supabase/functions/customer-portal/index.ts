@@ -44,7 +44,14 @@ serve(async (req) => {
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     if (customers.data.length === 0) {
-      throw new Error("No Stripe customer found for this user");
+      logStep("No Stripe customer found - user may have manual entitlement");
+      return new Response(JSON.stringify({ 
+        error: "no_stripe_customer",
+        message: "No subscription found. Your access may have been granted manually." 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200, // Return 200 so frontend can handle gracefully
+      });
     }
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
