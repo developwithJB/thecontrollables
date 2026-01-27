@@ -1148,51 +1148,42 @@ export default function Dashboard() {
         onSignOut={handleSignOut}
       />
 
-      {/* Mission Edit Modal */}
+      {/* Mission Edit Modal - Direction, not a task */}
       <Dialog open={showMissionEdit} onOpenChange={setShowMissionEdit}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
               <Target className="w-5 h-5 text-primary" />
-              Edit Mission
+              Set Your Direction
             </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              This can evolve. You're just choosing where to point right now.
+            </p>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            <Input
-              value={editingMissionTitle}
-              onChange={(e) => setEditingMissionTitle(e.target.value)}
-              placeholder="Mission title"
-              className="text-base"
-            />
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  if (activeQuest) {
-                    completeQuest(activeQuest.id);
-                    setShowMissionEdit(false);
-                  }
-                }}
-                disabled={isCompletingQuest}
-              >
-                <Check className="w-4 h-4 mr-1" />
-                {isCompletingQuest ? "Completing..." : "Complete"}
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={() => {
-                  if (activeQuest && editingMissionTitle.trim()) {
-                    handleUpdateQuest({ questId: activeQuest.id, title: editingMissionTitle.trim() });
-                    setShowMissionEdit(false);
-                  }
-                }}
-                disabled={!editingMissionTitle.trim() || isUpdatingQuest}
-              >
-                <Pencil className="w-4 h-4 mr-1" />
-                {isUpdatingQuest ? "Saving..." : "Save"}
-              </Button>
+            <div>
+              <p className="text-[11px] text-muted-foreground mb-2">
+                Direction, not a task.
+              </p>
+              <Input
+                value={editingMissionTitle}
+                onChange={(e) => setEditingMissionTitle(e.target.value)}
+                placeholder="e.g., Reclaim Energy, Build Discipline"
+                className="text-base"
+              />
             </div>
+            <Button
+              className="w-full"
+              onClick={() => {
+                if (activeQuest && editingMissionTitle.trim()) {
+                  handleUpdateQuest({ questId: activeQuest.id, title: editingMissionTitle.trim() });
+                  setShowMissionEdit(false);
+                }
+              }}
+              disabled={!editingMissionTitle.trim() || isUpdatingQuest}
+            >
+              {isUpdatingQuest ? "Updating..." : "Update Direction"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
