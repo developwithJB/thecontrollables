@@ -17,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useReset } from "@/hooks/useReset";
 import { useDashboardSummary } from "@/hooks/useDashboardSummary";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
+import { useWelcomeBack } from "@/hooks/useWelcomeBack";
+import { WelcomeBackScreen, WelcomeBackFollowUp, WelcomeBackBanner } from "@/components/welcome-back";
 
 import { useBadges } from "@/hooks/useBadges";
 import { useOnboarding } from "@/hooks/useOnboarding";
@@ -208,6 +210,27 @@ export default function Dashboard() {
 
   // Entitlements (free vs paid)
   const { isPaid, isLoading: entitlementsLoading, initiateCheckout, isCheckingOut } = useEntitlements(user?.id || null);
+
+  // Check if today's actions are completed (for welcome back trigger logic)
+  const todayActionsCompleted = useMemo(() => {
+    // For now, just check if they've logged time or done a checkin
+    return !!todayTimeLog;
+  }, [todayTimeLog]);
+
+  // Welcome Back flow for returning users (3+ days since last action)
+  const {
+    showWelcomeBack,
+    showFollowUp,
+    showReturnBanner,
+    daysSinceLastAction,
+    dismissWelcomeBack,
+    dismissFollowUp,
+    markFirstActionCompleted,
+  } = useWelcomeBack({
+    userId: user?.id || null,
+    hasActiveSession: !!activeSession,
+    todayActionsCompleted,
+  });
 
   // PWA Install - check if user has completed meaningful action
   const hasCompletedMeaningfulAction = useMemo(() => {
@@ -429,9 +452,11 @@ export default function Dashboard() {
       trackTimeLog(data.invested, data.wasted);
       // Check if protected_time badge should be awarded
       checkProtectedTimeBadge();
+      // Dismiss welcome back banner on first action
+      markFirstActionCompleted();
       return result;
     },
-    [logTime, checkProtectedTimeBadge, trackTimeLog],
+    [logTime, checkProtectedTimeBadge, trackTimeLog, markFirstActionCompleted],
   );
 
   // Handle XP earned with onboarding completion for "rep" action
@@ -441,7 +466,9 @@ export default function Dashboard() {
     if (isSimplifiedMode) {
       completeOnboarding("rep");
     }
-  }, [handleXpEarned, isSimplifiedMode, completeOnboarding]);
+    // Dismiss welcome back banner on first action
+    markFirstActionCompleted();
+  }, [handleXpEarned, isSimplifiedMode, completeOnboarding, markFirstActionCompleted]);
 
   // Handle operator interaction for onboarding
   const handleOperatorInteraction = useCallback(() => {
@@ -451,7 +478,9 @@ export default function Dashboard() {
     if (isSimplifiedMode) {
       completeOnboarding("operator");
     }
-  }, [handleXpEarned, isSimplifiedMode, completeOnboarding, trackGuideInteraction]);
+    // Dismiss welcome back banner on first action
+    markFirstActionCompleted();
+  }, [handleXpEarned, isSimplifiedMode, completeOnboarding, trackGuideInteraction, markFirstActionCompleted]);
 
   // Handle tab changes with tracking
   const handleTabChange = useCallback((tab: TabType) => {
@@ -487,6 +516,37 @@ export default function Dashboard() {
         }}
         onUpdateOnboarding={async (data) => {
           await updateOnboardingProgress(data);
+        }}
+      />
+    );
+  }
+
+  // Show Welcome Back flow for returning users (3+ days since last action)
+  if (showWelcomeBack) {
+    return (
+      <WelcomeBackScreen
+        onContinue={dismissWelcomeBack}
+        onViewHistory={() => {
+          dismissWelcomeBack();
+          setActiveTab("experience");
+        }}
+      />
+    );
+  }
+
+  // Show Welcome Back follow-up (optional snapshot reset prompt)
+  if (showFollowUp) {
+    const currentJourney = activeSession?.journey_id 
+      ? getJourneyById(activeSession.journey_id) 
+      : null;
+    
+    return (
+      <WelcomeBackFollowUp
+        currentSnapshotTitle={currentJourney?.title}
+        onKeepCurrent={dismissFollowUp}
+        onChooseNew={() => {
+          dismissFollowUp();
+          setShowJourneySwitcher(true);
         }}
       />
     );
@@ -587,6 +647,9 @@ export default function Dashboard() {
               transition={{ duration: 0.3 }}
               className="space-y-4"
             >
+              {/* Welcome Back Banner - shows on first day back */}
+              {showReturnBanner && <WelcomeBackBanner />}
+
               {/* Greeting Banner with streak/XP, mission, and snapshot focus */}
               <GreetingBanner
                 userId={user?.id}
