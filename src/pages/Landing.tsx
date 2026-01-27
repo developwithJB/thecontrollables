@@ -58,10 +58,22 @@ export default function Landing() {
               The Dashboard is a simple, private system for rebuilding momentum when life knocks you off track. Check in daily, focus on what's controllable, and stack quiet proof that you can trust yourself again.
             </p>
 
-            <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground/80">
+            <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground/80 mb-6">
               <span>No feeds. No streak shame. No guilt.</span>
               <span>Just you, your week, and what matters most.</span>
             </div>
+
+            {/* Secondary CTA - Early Action */}
+            <Link to="/auth?mode=signup">
+              <Button
+                variant="outline"
+                size="lg"
+                className="h-11 text-sm font-medium group"
+              >
+                Start with one Snapshot
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
           </motion.div>
 
           {/* The Controllables Grid */}
@@ -156,12 +168,10 @@ export default function Landing() {
                 href="https://a.co/d/1DGPGEV"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block"
+                className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
               >
-                <Button variant="ghost" className="w-full text-muted-foreground">
-                  <Book className="w-4 h-4 mr-2" />
-                  Read the Book First
-                </Button>
+                <Book className="w-3 h-3" />
+                Or read the book first
               </a>
             </div>
           </div>

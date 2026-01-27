@@ -52,7 +52,7 @@ const coreFeatures = [
   {
     icon: Sparkles,
     title: "Personalized Insights",
-    description: "Weekly AI-generated observations about your patterns. \"You're most consistent on Tuesdays.\" \"Your promise-keeping improved 15% this week.\"",
+    description: "Weekly observations about your patterns, based on your check-ins and Snapshots. \"You're most consistent on Tuesdays.\"",
     premium: true,
   },
   {
