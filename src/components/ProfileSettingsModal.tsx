@@ -230,14 +230,22 @@ export function ProfileSettingsModal({
               />
             </div>
 
-            {/* Email Nudges Section */}
-            <div className="space-y-4 p-4 rounded-lg bg-muted/50 border border-border">
+            {/* Gentle Daily Nudges (Premium) */}
+            <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  <Label htmlFor="nudge-toggle" className="cursor-pointer">
-                    Daily email nudge
-                  </Label>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
+                    <Label htmlFor="nudge-toggle" className="cursor-pointer font-medium">
+                      Gentle Daily Nudges
+                    </Label>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                      Premium
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 pr-4">
+                    A calm reminder to come back to your Snapshot — without pressure, streaks, or guilt.
+                  </p>
                 </div>
                 <Switch
                   id="nudge-toggle"
@@ -247,8 +255,8 @@ export function ProfileSettingsModal({
               </div>
               
               {emailNudgeEnabled && (
-                <div className="space-y-2 pt-2">
-                  <Label className="text-sm text-muted-foreground">When should we send it?</Label>
+                <div className="space-y-2 pt-2 border-t border-border/50">
+                  <Label className="text-sm text-muted-foreground">When works best for you?</Label>
                   <RadioGroup 
                     value={emailNudgeTime} 
                     onValueChange={(value) => setEmailNudgeTime(value as "morning" | "evening")}
