@@ -13,12 +13,12 @@ import { APP_VERSION } from "@/lib/version";
 // Changelog entries - update this with each version
 const CHANGELOG: Record<string, { title: string; items: string[] }> = {
   "1.3.2": {
-    title: "Launch Ready",
+    title: "Checkout & Stability",
     items: [
-      "Streamlined dashboard experience",
-      "Simplified Rules & Manual sections",
-      "Improved message panel auto-scroll",
-      "Better onboarding flow tracking",
+      "Fixed subscription checkout flow",
+      "Improved Today's Actions clickability",
+      "Better collapsible section handling",
+      "Streamlined upgrade experience",
     ],
   },
   "1.3.1": {
@@ -116,7 +116,7 @@ export function WhatsNewTrigger() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        className="flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mx-auto"
       >
         <Sparkles className="w-3 h-3" />
         <span>What's new in v{APP_VERSION}</span>
