@@ -298,7 +298,7 @@ export default function Billing() {
                   free={true}
                 />
                 <FeatureRow 
-                  label="Time Currency Logger" 
+                  label="Time Reflection" 
                   included={true} 
                   free={true}
                 />

@@ -29,8 +29,8 @@ const coreFeatures = [
   },
   {
     icon: Clock,
-    title: "Time Currency Logger",
-    description: "Track where your time actually goes. Notice patterns between invested and wasted hours.",
+    title: "Time Reflection",
+    description: "Log yesterday's focus level. A simple daily reflection that reveals patterns over time.",
   },
   {
     icon: Shield,

@@ -88,9 +88,9 @@ const CORE_SECTIONS: ManualSection[] = [
 // Extended sections for those who want more detail
 const EXTENDED_SECTIONS: ManualSection[] = [
   {
-    title: "Time Currency",
+    title: "Time Reflection",
     icon: Clock,
-    description: "Log time invested vs. wasted. Look for patterns in where your hours go.",
+    description: "Rate yesterday's focus on a simple slider. Notice patterns in how present you were.",
   },
   {
     title: "Integrity Meter",
