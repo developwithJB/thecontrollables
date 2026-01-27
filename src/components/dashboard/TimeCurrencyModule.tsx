@@ -1,4 +1,4 @@
-import { useState, useImperativeHandle, forwardRef } from "react";
+import { useState, useImperativeHandle, forwardRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Clock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 import { useActionTracking } from "@/hooks/useActionTracking";
+import { useAutoLoadingTimeout } from "@/hooks/useLoadingTimeout";
+import { TimeoutWarning } from "@/components/ui/TimeoutWarning";
 
 interface TimeLog {
   time_invested_minutes: number;
@@ -50,6 +52,17 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
   const [isNotesOpen, setIsNotesOpen] = useState(false);
 
   const { trackButtonClick, trackModalAction } = useActionTracking();
+
+  // Track saving timeout
+  const { isTimedOut: isSaveTimedOut } = useAutoLoadingTimeout(isSaving, {
+    timeoutMs: 5000,
+    context: "TimeReflectionSave",
+  });
+
+  // Immediate input handler for notes - no debouncing for responsiveness
+  const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNotes(e.target.value);
+  }, []);
 
   // Expose imperative handle to open dialog from parent
   useImperativeHandle(ref, () => ({
@@ -275,20 +288,29 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
                   <Textarea
                     placeholder="Any thoughts, wins, or lessons from yesterday..."
                     value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
+                    onChange={handleNotesChange}
                     className="min-h-[80px] text-sm resize-none"
                     maxLength={500}
+                    data-testid="time-reflection-notes"
                   />
                   <p className="text-xs text-muted-foreground text-right mt-1">{notes.length}/500</p>
                 </CollapsibleContent>
               </Collapsible>
 
+              {isSaveTimedOut && (
+                <TimeoutWarning
+                  variant="inline"
+                  message="Save is taking longer than expected..."
+                />
+              )}
+
               <Button 
                 onClick={handleSubmit} 
                 className="w-full" 
                 disabled={isSaving || disabled}
+                data-testid="time-reflection-submit"
               >
-                {isSaving ? "Saving..." : disabled ? "Loading..." : todayTimeLog ? "Update" : "Save Reflection"}
+                {isSaving ? (isSaveTimedOut ? "Still saving..." : "Saving...") : disabled ? "Loading..." : todayTimeLog ? "Update" : "Save Reflection"}
               </Button>
             </div>
           </DialogContent>
@@ -379,20 +401,29 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
                 <Textarea
                   placeholder="Any thoughts, wins, or lessons from yesterday..."
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={handleNotesChange}
                   className="min-h-[80px] text-sm resize-none"
                   maxLength={500}
+                  data-testid="time-reflection-notes-full"
                 />
                 <p className="text-xs text-muted-foreground text-right mt-1">{notes.length}/500</p>
               </CollapsibleContent>
             </Collapsible>
 
+            {isSaveTimedOut && (
+              <TimeoutWarning
+                variant="inline"
+                message="Save is taking longer than expected..."
+              />
+            )}
+
             <Button 
               onClick={handleSubmit} 
               className="w-full" 
               disabled={isSaving || disabled}
+              data-testid="time-reflection-submit-full"
             >
-              {isSaving ? "Saving..." : disabled ? "Loading..." : todayTimeLog ? "Update" : "Save Reflection"}
+              {isSaving ? (isSaveTimedOut ? "Still saving..." : "Saving...") : disabled ? "Loading..." : todayTimeLog ? "Update" : "Save Reflection"}
             </Button>
           </div>
         </DialogContent>

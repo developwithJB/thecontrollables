@@ -1,4 +1,4 @@
-import { useState, useImperativeHandle, forwardRef } from "react";
+import { useState, useImperativeHandle, forwardRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Shield, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useActionTracking } from "@/hooks/useActionTracking";
+import { useAutoLoadingTimeout } from "@/hooks/useLoadingTimeout";
+import { TimeoutWarning } from "@/components/ui/TimeoutWarning";
 
 interface IntegrityLog {
   id: string;
@@ -55,6 +57,17 @@ export const IntegrityMeterModule = forwardRef<IntegrityMeterModuleHandle, Integ
     const promiseMadeToday = todayPromiseMade || optimisticPromiseMadeToday;
 
   const { trackButtonClick, trackModalAction } = useActionTracking();
+
+  // Track promise submission timeout
+  const { isTimedOut: isSubmitTimedOut } = useAutoLoadingTimeout(isSubmittingPromise, {
+    timeoutMs: 5000,
+    context: "PromiseSubmit",
+  });
+
+  // Immediate input handler for promise text - no debouncing for responsiveness
+  const handlePromiseTextChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setPromiseText(e.target.value);
+  }, []);
 
   // Expose imperative handle to open dialogs from parent
   useImperativeHandle(ref, () => ({
@@ -292,15 +305,24 @@ export const IntegrityMeterModule = forwardRef<IntegrityMeterModuleHandle, Integ
               <Input
                 placeholder="I will..."
                 value={promiseText}
-                onChange={(e) => setPromiseText(e.target.value)}
+                onChange={handlePromiseTextChange}
                 className="text-base"
+                data-testid="promise-input"
+                autoFocus
               />
+              {isSubmitTimedOut && (
+                <TimeoutWarning
+                  variant="inline"
+                  message="Save is taking longer than expected..."
+                />
+              )}
               <Button
                 onClick={handleSubmit}
                 className="w-full"
                 disabled={!promiseText.trim() || disabled || isSubmittingPromise}
+                data-testid="promise-submit"
               >
-                {isSubmittingPromise ? "Saving..." : disabled ? "Loading..." : "Make Promise"}
+                {isSubmittingPromise ? (isSubmitTimedOut ? "Still saving..." : "Saving...") : disabled ? "Loading..." : "Make Promise"}
               </Button>
             </div>
           </DialogContent>
@@ -407,15 +429,24 @@ export const IntegrityMeterModule = forwardRef<IntegrityMeterModuleHandle, Integ
             <Input
               placeholder="I will..."
               value={promiseText}
-              onChange={(e) => setPromiseText(e.target.value)}
+              onChange={handlePromiseTextChange}
               className="text-base"
+              data-testid="promise-input-full"
+              autoFocus
             />
+            {isSubmitTimedOut && (
+              <TimeoutWarning
+                variant="inline"
+                message="Save is taking longer than expected..."
+              />
+            )}
             <Button
               onClick={handleSubmit}
               className="w-full"
               disabled={!promiseText.trim() || disabled || isSubmittingPromise}
+              data-testid="promise-submit-full"
             >
-              {isSubmittingPromise ? "Saving..." : disabled ? "Loading..." : "Make Promise"}
+              {isSubmittingPromise ? (isSubmitTimedOut ? "Still saving..." : "Saving...") : disabled ? "Loading..." : "Make Promise"}
             </Button>
           </div>
         </DialogContent>

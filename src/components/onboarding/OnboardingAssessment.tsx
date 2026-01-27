@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { useAutoLoadingTimeout } from "@/hooks/useLoadingTimeout";
+import { TimeoutWarning } from "@/components/ui/TimeoutWarning";
 import type { BuildQuestion } from "@/lib/build";
 
 interface OnboardingAssessmentProps {
@@ -63,12 +65,33 @@ export function OnboardingAssessment({
     }
   };
 
+  // Track loading timeout for questions
+  const { isTimedOut: isQuestionsTimedOut } = useAutoLoadingTimeout(questionsLoading, {
+    timeoutMs: 5000,
+    context: "BuildAssessment",
+  });
+
+  // Track submitting timeout
+  const { isTimedOut: isSubmitTimedOut } = useAutoLoadingTimeout(isSubmitting, {
+    timeoutMs: 5000,
+    context: "AssessmentSubmit",
+  });
+
   if (questionsLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center px-6">
         <div className="text-center space-y-4">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Preparing your assessment...</p>
+          {isQuestionsTimedOut ? (
+            <TimeoutWarning
+              context="Assessment"
+              onRetry={() => window.location.reload()}
+            />
+          ) : (
+            <>
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+              <p className="text-muted-foreground">Preparing your assessment...</p>
+            </>
+          )}
         </div>
       </div>
     );
@@ -201,12 +224,17 @@ export function OnboardingAssessment({
             onClick={handleNext}
             disabled={!canGoNext || isSubmitting}
             className="flex-1"
+            data-testid="assessment-next-button"
           >
             {isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Analyzing...
-              </>
+              isSubmitTimedOut ? (
+                "Still processing..."
+              ) : (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Analyzing...
+                </>
+              )
             ) : isLastQuestion ? (
               "See My Build"
             ) : (
