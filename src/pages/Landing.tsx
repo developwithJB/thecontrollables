@@ -71,6 +71,8 @@ export default function Landing() {
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
+            <br />
+            <br />
 
             <p className="text-muted-foreground text-sm leading-relaxed text-balance max-w-xs mx-auto mb-4">
               Check in daily, focus on what's controllable, and stack quiet proof that you can trust yourself again.
