@@ -139,11 +139,23 @@ export function MainQuestModule({
                   What area of life are you investing in?
                 </label>
                 <Input
-                  placeholder="e.g., Reclaim Energy, Build Discipline"
+                  placeholder="Type your direction..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="text-base"
                 />
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {["Build discipline", "Reclaim energy", "Strengthen relationships", "Find clarity", "Improve health"].map((example) => (
+                    <button
+                      key={example}
+                      type="button"
+                      onClick={() => setTitle(example)}
+                      className="px-3 py-1.5 text-xs rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <Button 
