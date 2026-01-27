@@ -69,7 +69,6 @@ export default function Landing() {
             </p>
 
             <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground/80 mb-6">
-              <span>No feeds. No streak shame.</span>
               <span>Just you, your week, and what matters most.</span>
             </div>
 
