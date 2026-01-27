@@ -24,6 +24,7 @@ import { getDayContent, COVENANT_TEXT, COVENANT_CHECKBOX_TEXT } from "@/lib/rese
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { getJourneyDailyAction, getJourneyById, type DailyAction } from "@/lib/guidedJourneys";
+import { useTGIMWeeklyThreshold } from "@/hooks/useTGIMWeeklyThreshold";
 
 
 interface TodayActionsProps {
@@ -420,7 +421,7 @@ export function TodayActions({
     prevAllCompletedRef.current = allCompleted;
   }, [allCompleted]);
 
-  // Covenant Dialog component
+  // Covenant Dialog component - includes TGIM confirmation moment
   const CovenantDialog = () => (
     <Dialog
       open={showCovenantDialog}
@@ -431,9 +432,21 @@ export function TodayActions({
     >
       <DialogContent className="max-w-md p-6">
         <div className="space-y-6">
-          <p className="text-foreground leading-relaxed whitespace-pre-line">
-            {COVENANT_TEXT}
-          </p>
+          {/* TGIM Snapshot Start Moment - calm, intentional */}
+          <div className="text-center py-2">
+            <p className="text-sm text-muted-foreground mb-1">TGIM.</p>
+            <p className="text-foreground text-sm leading-relaxed">
+              You don't need a perfect plan.
+              <br />
+              Just an honest week.
+            </p>
+          </div>
+          
+          <div className="border-t border-border/50 pt-4">
+            <p className="text-foreground leading-relaxed whitespace-pre-line">
+              {COVENANT_TEXT}
+            </p>
+          </div>
           <div className="flex items-start gap-3">
             <Checkbox
               id="covenant-today"
@@ -678,6 +691,9 @@ export function TodayActions({
           </div>
         </div>
 
+        {/* TGIM Weekly Threshold - subtle weekly ritual microcopy */}
+        <TGIMWeeklyBanner userId={userId} />
+
         {/* Primary Action Highlight - "One Thing" Anchor */}
         {!isListCollapsed && primaryAction && !primaryAction.completed && (
           <div className="p-4 border-b border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
@@ -874,5 +890,29 @@ export function TodayActions({
       </motion.div>
       <JourneyActionModal />
     </>
+  );
+}
+
+// TGIM Weekly Banner - subtle weekly ritual microcopy
+// Appears once per week on first app open
+function TGIMWeeklyBanner({ userId }: { userId?: string }) {
+  const { showTGIM, dismiss } = useTGIMWeeklyThreshold(userId);
+  
+  if (!showTGIM) return null;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      onClick={dismiss}
+      className="px-4 py-3 border-b border-border/30 bg-muted/20 cursor-pointer"
+    >
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        <span className="text-foreground font-medium">TGIM.</span>
+        <br />
+        What kind of week do you want this to be?
+      </p>
+    </motion.div>
   );
 }
