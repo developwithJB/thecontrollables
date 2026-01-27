@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, LogOut, Moon, Sun, CreditCard } from "lucide-react";
+import { User, LogOut, Moon, Sun, CreditCard, Mail } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -52,11 +53,12 @@ export function ProfileSettingsModal({
   onOpenChange,
   userId,
   userEmail,
-  onSignOut,
 }: ProfileSettingsModalProps) {
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState("");
   const [timezone, setTimezone] = useState("");
+  const [emailNudgeEnabled, setEmailNudgeEnabled] = useState(false);
+  const [emailNudgeTime, setEmailNudgeTime] = useState<"morning" | "evening">("morning");
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isDark, setIsDark] = useState(false);
@@ -77,7 +79,7 @@ export function ProfileSettingsModal({
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("display_name")
+          .select("display_name, timezone, email_nudge_enabled, email_nudge_time")
           .eq("id", userId)
           .single();
 
@@ -87,21 +89,17 @@ export function ProfileSettingsModal({
 
         if (data) {
           setDisplayName(data.display_name || "");
-        }
-
-        // Try to get timezone from reset_sessions (existing field)
-        const { data: sessionData } = await supabase
-          .from("reset_sessions")
-          .select("timezone")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-
-        if (sessionData?.timezone) {
-          setTimezone(sessionData.timezone);
+          setEmailNudgeEnabled(data.email_nudge_enabled || false);
+          setEmailNudgeTime((data.email_nudge_time as "morning" | "evening") || "morning");
+          
+          if (data.timezone) {
+            setTimezone(data.timezone);
+          } else {
+            // Default to browser timezone
+            setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+          }
         } else {
-          // Default to browser timezone
+          // No profile yet, use browser timezone
           setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
         }
       } catch (err) {
@@ -127,15 +125,26 @@ export function ProfileSettingsModal({
     }
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    onOpenChange(false);
+    navigate("/");
+  };
+
   const handleSave = async () => {
     if (!userId) return;
 
     setIsSaving(true);
     try {
-      // Update profile
+      // Update profile with all settings
       const { error: profileError } = await supabase
         .from("profiles")
-        .update({ display_name: displayName.trim() || null })
+        .update({ 
+          display_name: displayName.trim() || null,
+          timezone: timezone,
+          email_nudge_enabled: emailNudgeEnabled,
+          email_nudge_time: emailNudgeTime,
+        })
         .eq("id", userId);
 
       if (profileError) throw profileError;
@@ -146,11 +155,12 @@ export function ProfileSettingsModal({
       });
 
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error saving profile:", err);
+      const errorMessage = err instanceof Error ? err.message : "Please try again.";
       toast({
         title: "Error saving profile",
-        description: err.message || "Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -160,7 +170,7 @@ export function ProfileSettingsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display">Profile Settings</DialogTitle>
         </DialogHeader>
@@ -220,6 +230,47 @@ export function ProfileSettingsModal({
               />
             </div>
 
+            {/* Email Nudges Section */}
+            <div className="space-y-4 p-4 rounded-lg bg-muted/50 border border-border">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  <Label htmlFor="nudge-toggle" className="cursor-pointer">
+                    Daily email nudge
+                  </Label>
+                </div>
+                <Switch
+                  id="nudge-toggle"
+                  checked={emailNudgeEnabled}
+                  onCheckedChange={setEmailNudgeEnabled}
+                />
+              </div>
+              
+              {emailNudgeEnabled && (
+                <div className="space-y-2 pt-2">
+                  <Label className="text-sm text-muted-foreground">When should we send it?</Label>
+                  <RadioGroup 
+                    value={emailNudgeTime} 
+                    onValueChange={(value) => setEmailNudgeTime(value as "morning" | "evening")}
+                    className="flex gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="morning" id="morning" />
+                      <Label htmlFor="morning" className="cursor-pointer font-normal">
+                        Morning (7am)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="evening" id="evening" />
+                      <Label htmlFor="evening" className="cursor-pointer font-normal">
+                        Evening (7pm)
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              )}
+            </div>
+
             {/* Timezone */}
             <div className="space-y-2">
               <Label>Timezone</Label>
@@ -236,7 +287,7 @@ export function ProfileSettingsModal({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Used for daily reset timing
+                Used for daily reset timing{emailNudgeEnabled ? " and email nudges" : ""}
               </p>
             </div>
 
@@ -268,7 +319,7 @@ export function ProfileSettingsModal({
             {/* Sign Out */}
             <Button
               variant="ghost"
-              onClick={onSignOut}
+              onClick={handleSignOut}
               className="w-full text-muted-foreground hover:text-destructive"
             >
               <LogOut className="w-4 h-4 mr-2" />
