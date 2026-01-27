@@ -2,7 +2,8 @@ import { useEffect, useCallback, useMemo, lazy, Suspense, useState, useRef } fro
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { SplashScreen } from "@/components/SplashScreen";
 import { motion, AnimatePresence } from "framer-motion";
-import { Book, BookOpen, Sparkles, RefreshCw, User as UserIcon, Target, Pencil, Check, X } from "lucide-react";
+import { Book, BookOpen, Sparkles, RefreshCw, User as UserIcon, Target, Pencil, Check, X, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -94,6 +95,7 @@ export default function Dashboard() {
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [showMissionEdit, setShowMissionEdit] = useState(false);
   const [editingMissionTitle, setEditingMissionTitle] = useState("");
+  const [showInsights, setShowInsights] = useState(false); // Analytics cards hidden by default
   // Refs for imperative dialog triggers
   const timeCurrencyRef = useRef<TimeCurrencyModuleHandle>(null);
   const integrityRef = useRef<IntegrityMeterModuleHandle>(null);
@@ -773,77 +775,87 @@ export default function Dashboard() {
                 />
               )}
 
-              {/* Progressive disclosure divider - reframe analytics as optional insight */}
-              <div className="mt-6 mb-3">
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                  When you want more insight
-                </p>
-              </div>
-
-              {/* Your Current State - Compact 2x2 grid of state indicators */}
+              {/* Progressive disclosure divider - collapsible analytics section */}
               {!isSimplifiedMode && (
-                <div className="space-y-2">
-                  {/* Section Label */}
-                  <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
-                    Your Current State
-                  </p>
+                <Collapsible open={showInsights} onOpenChange={setShowInsights}>
+                  <CollapsibleTrigger asChild>
+                    <button className="mt-6 mb-3 w-full flex items-center justify-between group">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        When you want more insight
+                      </p>
+                      <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showInsights ? "rotate-180" : ""}`} />
+                    </button>
+                  </CollapsibleTrigger>
 
-                  {/* 2x2 Grid - compact state indicators */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {/* Top-left: Your Build */}
-                    {buildLoading ? (
-                      <SmallModuleSkeleton />
-                    ) : (
-                      <div data-testid="build-overview-module">
-                        <BuildOverviewModule compact ref={buildRef} />
-                      </div>
-                    )}
+                  <CollapsibleContent>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="space-y-2"
+                    >
+                      {/* Section Label */}
+                      <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
+                        Your Current State
+                      </p>
 
-                    {/* Top-right: Momentum */}
-                    {dashboardLoading ? (
-                      <SmallModuleSkeleton />
-                    ) : (
-                      <div data-testid="xp-momentum-module">
-                        <XpMomentumModule totalXp={totalXp} recentLogs={xpLogs} compact />
-                      </div>
-                    )}
+                      {/* 2x2 Grid - compact state indicators */}
+                      <div className="grid grid-cols-2 gap-2">
+                        {/* Top-left: Your Build */}
+                        {buildLoading ? (
+                          <SmallModuleSkeleton />
+                        ) : (
+                          <div data-testid="build-overview-module">
+                            <BuildOverviewModule compact ref={buildRef} />
+                          </div>
+                        )}
 
-                    {/* Bottom-left: Time Currency */}
-                    {dashboardLoading ? (
-                      <SmallModuleSkeleton />
-                    ) : (
-                      <div data-testid="time-currency-module">
-                        <TimeCurrencyModule
-                          ref={timeCurrencyRef}
-                          todayTimeLog={todayTimeLog}
-                          onLogTime={handleLogTime}
-                          isLogging={isLoggingTime}
-                          compact
-                          disabled={!isAuthReady}
-                        />
-                      </div>
-                    )}
+                        {/* Top-right: Momentum */}
+                        {dashboardLoading ? (
+                          <SmallModuleSkeleton />
+                        ) : (
+                          <div data-testid="xp-momentum-module">
+                            <XpMomentumModule totalXp={totalXp} recentLogs={xpLogs} compact />
+                          </div>
+                        )}
 
-                    {/* Bottom-right: Integrity */}
-                    {dashboardLoading ? (
-                      <SmallModuleSkeleton />
-                    ) : (
-                      <div data-testid="integrity-meter-module">
-                        <IntegrityMeterModule
-                          ref={integrityRef}
-                          integrityScore={integrityScore}
-                          pendingPromises={pendingPromises}
-                          hasAnyPromises={integrityLogs.length > 0}
-                          todayPromiseMade={integrityLogs.some((log) => log.promised_at.startsWith(todayLocal))}
-                          onCreatePromise={createPromise}
-                          onResolvePromise={handleResolvePromise}
-                          compact
-                          disabled={!isAuthReady}
-                        />
+                        {/* Bottom-left: Time Currency */}
+                        {dashboardLoading ? (
+                          <SmallModuleSkeleton />
+                        ) : (
+                          <div data-testid="time-currency-module">
+                            <TimeCurrencyModule
+                              ref={timeCurrencyRef}
+                              todayTimeLog={todayTimeLog}
+                              onLogTime={handleLogTime}
+                              isLogging={isLoggingTime}
+                              compact
+                              disabled={!isAuthReady}
+                            />
+                          </div>
+                        )}
+
+                        {/* Bottom-right: Integrity */}
+                        {dashboardLoading ? (
+                          <SmallModuleSkeleton />
+                        ) : (
+                          <div data-testid="integrity-meter-module">
+                            <IntegrityMeterModule
+                              ref={integrityRef}
+                              integrityScore={integrityScore}
+                              pendingPromises={pendingPromises}
+                              hasAnyPromises={integrityLogs.length > 0}
+                              todayPromiseMade={integrityLogs.some((log) => log.promised_at.startsWith(todayLocal))}
+                              onCreatePromise={createPromise}
+                              onResolvePromise={handleResolvePromise}
+                              compact
+                              disabled={!isAuthReady}
+                            />
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
+                    </motion.div>
+                  </CollapsibleContent>
+                </Collapsible>
               )}
 
               {/* Simplified mode: Show only Build & Momentum until first action */}
