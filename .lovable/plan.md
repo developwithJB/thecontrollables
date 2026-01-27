@@ -1,137 +1,79 @@
 
-# Fix the "Moving Goalpost" Problem in Today's Actions
+# Terminology Consistency: Mission as Direction, Snapshot as Weekly Focus
 
-## Problem Summary
-When a user completes the primary action (e.g., "Day 6: Integrity"), another task immediately gets promoted to the "If you do one thing today, do this." position. This contradicts the promise of "one thing" and makes users feel tricked—they thought they were done, but a new "one thing" appeared.
+## Summary
 
----
+The user correctly identified that the **Mission** concept still shows duration/countdown behavior throughout the app (e.g., "5d left" in Experience tab, "X days remaining" in MainQuestModule), which contradicts the refined philosophy where:
 
-## Solution: Lock the Primary Action to the Daily Check-In Only
+- **Mission = Direction** (a north star, not time-bound, not a task)
+- **7-Day Snapshot = Weekly Focus** (time-bound, the weekly commitment with a specific theme)
 
-### Philosophy
-The "If you do one thing today, do this." anchor should **only ever refer to the Daily Check-In**. Once that's complete, the special framing disappears entirely. Other tasks remain visible as optional—never promoted to "the one thing."
+## Changes Required
 
-This aligns with the app's philosophy:
-- "This is about today only. One honest check-in. Then you're done."
-- The check-in IS the ritual. Everything else is genuinely optional.
+### 1. MainQuestModule.tsx - Remove Duration Display
+**Current Issue:** Shows progress bar, "X days remaining", and allows duration selection (7/30/90 days)  
+**Fix:** 
+- Remove the progress bar entirely
+- Remove "days remaining" text
+- Remove duration selector from creation dialog (or set a very long default like 365 days internally so it never shows urgency)
+- Mission becomes a persistent direction without end date visibility
 
----
+### 2. TimeCycleCard.tsx (Experience Tab) - Remove Quest Cycle Section
+**Current Issue:** Shows Mission/Quest as "Lock in spending and tr... 5d left" with progress bar  
+**Fix:**
+- Remove the "Quest Cycle" section entirely (lines 148-171)
+- The TimeCycleCard should only show:
+  - Day Phase (Build/Execute/Reflect/Rest)
+  - Week Progress (M-S)
+  - 7-Day Snapshot progress
 
-## Implementation
+### 3. Update Terminology Labels
+**GreetingBanner.tsx:**
+- Keep "Mission" label (line 122) - this is correct
+- Update tooltip (line 117) to say `"Your Direction: ${missionTitle}"` instead of `"Mission: ${missionTitle}"`
 
-### 1. Change Primary Action Logic
+**ResetProgressModule.tsx (line 611):**  
+- "X days remaining" refers to the 7-Day Snapshot, which IS time-bound - this is CORRECT and should stay
 
-**Current behavior** (lines 389-397):
-```typescript
-const getPrimaryAction = (): ActionItem | null => {
-  const priorityOrder = ["checkin", "journey-action", "time", ...];
-  for (const id of priorityOrder) {
-    const action = actions.find((a) => a.id === id && !a.completed);
-    if (action) return action;
-  }
-  return null;
-};
-```
-
-**New behavior**:
-- The primary action is **only** the daily check-in (`checkin`)
-- If the check-in is complete (or doesn't exist), `primaryAction` becomes `null`
-- No other task gets promoted to the "one thing" position
-
-```typescript
-const getPrimaryAction = (): ActionItem | null => {
-  // The "one thing" is ONLY the daily check-in
-  // Once complete, nothing else gets promoted
-  const checkin = actions.find((a) => a.id === "checkin");
-  if (checkin && !checkin.completed) {
-    return checkin;
-  }
-  return null;
-};
-```
-
-### 2. Update UI for Post-Completion State
-
-**When check-in is complete**, the "One Thing" anchor section should **not render at all**. The remaining tasks appear as a flat list under a neutral header.
-
-**Current** (line 683):
-```tsx
-{!isListCollapsed && primaryAction && !primaryAction.completed && (
-  <div className="...">
-    If you do one thing today, do this.
-  </div>
-)}
-```
-
-This already works correctly—if `primaryAction` is `null`, the section won't render.
-
-### 3. Adjust Secondary Actions Display
-
-After the check-in is complete:
-- Show all remaining tasks as a simple list
-- No "Everything else is optional" label needed (since there's no primary action to contrast with)
-- Keep the completion states visible (checkmarks for done items)
-
-**Update the separator logic** (lines 728-735):
-```tsx
-{/* Only show separator and "optional" label when check-in is still pending */}
-{secondaryActions.length > 0 && primaryAction && !primaryAction.completed && (
-  <>
-    <div className="mx-4 border-t border-border/50" />
-    <div className="px-4 pt-3 pb-1">
-      <p className="text-xs text-muted-foreground">Everything else is optional.</p>
-    </div>
-  </>
-)}
-```
-
-This already works correctly since `primaryAction` will be `null` after check-in.
-
-### 4. Update Helper Copy for Accuracy
-
-The current helper text says:
-> "This is about today only. One honest check-in. Then you're done."
-
-This is now accurate because:
-- The "one thing" IS the check-in
-- Once complete, the special framing disappears
-- Remaining tasks are just a list, not a new "one thing"
+### 4. Database/API - Remove Duration Dependency (Optional Consideration)
+The `main_quests` table stores `duration_days` and `ends_at`. While we won't change the DB schema, the UI should simply not display these values for Mission.
 
 ---
 
-## File Changes
+## Technical Implementation
+
+### File: src/components/dashboard/MainQuestModule.tsx
+
+1. **Remove progress bar section** (lines 256-266)
+2. **Remove "days remaining" display** (lines 268-271) - replace with microcopy reinforcing direction
+3. **Remove duration selector from creation dialog** (lines 148-167) - hard-code a default duration internally
+4. **Update creation button text** from "Activate Mission" to "Set Direction"
+
+### File: src/components/experience/TimeCycleCard.tsx
+
+1. **Remove entire Quest Cycle section** (lines 148-171) - the Mission should not appear as a time-tracked item in Time Cycles
+
+### File: src/components/dashboard/GreetingBanner.tsx
+
+1. **Update Mission tooltip** (line 117): Change from `Mission: ${missionTitle}` to `Direction: ${missionTitle}`
+
+---
+
+## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/components/dashboard/TodayActions.tsx` | Simplify `getPrimaryAction()` to only return the `checkin` action |
+| `src/components/dashboard/MainQuestModule.tsx` | Remove progress bar, remove duration display, hide duration selector |
+| `src/components/experience/TimeCycleCard.tsx` | Remove Quest Cycle section entirely |
+| `src/components/dashboard/GreetingBanner.tsx` | Update Mission tooltip to "Direction" |
 
 ---
 
-## Validation
+## Outcome
 
-After this change:
-1. User sees "If you do one thing today, do this." with the daily check-in
-2. User completes the check-in
-3. The "One Thing" anchor **disappears entirely**
-4. Remaining tasks (journey action, time reflection) appear as a simple list
-5. User feels "done" with the core ritual—other tasks are clearly supplementary
+After these changes:
+- **Mission** will appear as a simple text direction with no countdown, no progress bar, no end date
+- **7-Day Snapshot** remains the ONLY time-tracked weekly construct (as it should be)
+- The Experience tab's "Time Cycles" will show Day/Week/Snapshot progress only
+- Users will understand Mission = Direction (persistent), Snapshot = This Week (7 days)
 
----
-
-## Edge Cases
-
-**No active check-in**: If there's no Snapshot session, `primaryAction` is `null`, and the "One Thing" section doesn't render. Users see only the supplementary actions (time reflection, promises).
-
-**All actions complete**: The "All done!" celebration state already handles this correctly (lines 654-662).
-
----
-
-## Why This Fixes the "Tricked" Feeling
-
-Before:
-> "Day 6 reading is the one thing → Done! → Wait, now 'Stretch for 5 minutes' is the one thing??"
-
-After:
-> "Day 6 reading is the one thing → Done! → (anchor disappears) → Here's what else you can do if you want."
-
-The key insight: **"The one thing" should mean THE one thing, not "the next thing in a queue."**
