@@ -804,7 +804,7 @@ Deno.serve(async (req) => {
     }
 
     if (method === "POST" && action === "grant") {
-      const { userId } = await req.json();
+      const { userId, durationType, months } = await req.json();
       if (!userId) {
         return new Response(JSON.stringify({ error: "userId required" }), {
           status: 400,
@@ -812,17 +812,41 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Insert entitlement
+      // Calculate expires_at based on duration type
+      let expiresAt: string | null = null;
+      if (durationType === "months" && months) {
+        const expiry = new Date();
+        expiry.setMonth(expiry.getMonth() + months);
+        expiresAt = expiry.toISOString();
+      } else if (durationType === "year") {
+        const expiry = new Date();
+        expiry.setFullYear(expiry.getFullYear() + 1);
+        expiresAt = expiry.toISOString();
+      }
+      // For "lifetime" or no durationType, expiresAt remains null (never expires)
+
+      // First delete any existing entitlement for this user
+      await adminClient
+        .from("user_entitlements")
+        .delete()
+        .eq("user_id", userId);
+
+      // Insert new entitlement with expiration
       const { error: insertError } = await adminClient.from("user_entitlements").insert({
         user_id: userId,
         entitlement_type: "full_access",
         source: "manual",
         granted_by: user.email,
+        expires_at: expiresAt,
       });
 
       if (insertError) throw insertError;
 
-      return new Response(JSON.stringify({ success: true }), {
+      return new Response(JSON.stringify({ 
+        success: true,
+        expiresAt,
+        durationType: durationType || "lifetime"
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

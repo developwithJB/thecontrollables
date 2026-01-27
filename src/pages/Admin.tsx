@@ -26,6 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { AccessGrantModal, type AccessDuration } from "@/components/admin/AccessGrantModal";
 
 const ADMIN_EMAIL = "developwithjb@gmail.com";
 
@@ -35,7 +36,11 @@ interface AdminUser {
   created_at: string;
   last_sign_in_at: string | null;
   isPaid: boolean;
-  entitlement: any | null;
+  entitlement: {
+    expires_at: string | null;
+    granted_at: string;
+    source: string;
+  } | null;
 }
 
 interface AppEvent {
@@ -177,6 +182,8 @@ export default function Admin() {
   const [errorUserFilter, setErrorUserFilter] = useState<string>("");
   const [pageViewUserFilter, setPageViewUserFilter] = useState<string>("");
   const [pageViewPathFilter, setPageViewPathFilter] = useState<string>("");
+  const [grantModalOpen, setGrantModalOpen] = useState(false);
+  const [selectedUserForGrant, setSelectedUserForGrant] = useState<AdminUser | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -412,14 +419,74 @@ export default function Admin() {
     return `${seconds}s`;
   };
 
-  const handleToggleAccess = async (userId: string, currentlyPaid: boolean) => {
+  const openGrantModal = (user: AdminUser) => {
+    setSelectedUserForGrant(user);
+    setGrantModalOpen(true);
+  };
+
+  const handleGrantAccess = async (duration: AccessDuration) => {
+    if (!selectedUserForGrant) return;
+    
+    setActionLoading(selectedUserForGrant.id);
+    try {
+      const headers = await getAuthHeaders();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users?action=grant`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ 
+            userId: selectedUserForGrant.id,
+            durationType: duration.type,
+            months: duration.months 
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to grant access");
+      }
+
+      const result = await response.json();
+      
+      let description = "User now has paid access";
+      if (result.expiresAt) {
+        const expiryDate = new Date(result.expiresAt).toLocaleDateString("en-US", {
+          month: "short", day: "numeric", year: "numeric"
+        });
+        description = `Access granted until ${expiryDate}`;
+      } else {
+        description = "Lifetime access granted";
+      }
+
+      toast({
+        title: "Access Granted",
+        description,
+      });
+
+      setGrantModalOpen(false);
+      setSelectedUserForGrant(null);
+      loadUsers();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRevokeAccess = async (userId: string) => {
     setActionLoading(userId);
     try {
       const headers = await getAuthHeaders();
-      const action = currentlyPaid ? "revoke" : "grant";
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users?action=${action}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users?action=revoke`,
         {
           method: "POST",
           headers,
@@ -429,14 +496,12 @@ export default function Admin() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to update access");
+        throw new Error(error.error || "Failed to revoke access");
       }
 
       toast({
-        title: currentlyPaid ? "Access Revoked" : "Access Granted",
-        description: currentlyPaid 
-          ? "User is now on Free tier" 
-          : "User now has Paid access",
+        title: "Access Revoked",
+        description: "User is now on Free tier",
       });
 
       loadUsers();
@@ -1150,37 +1215,101 @@ export default function Admin() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {users.map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell className="font-medium">
-                            {user.email}
-                            {user.email === ADMIN_EMAIL && (
-                              <Badge variant="outline" className="ml-2">Admin</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>{formatDate(user.created_at)}</TableCell>
-                          <TableCell>{formatDate(user.last_sign_in_at)}</TableCell>
-                          <TableCell>
-                            <Badge variant={user.isPaid ? "default" : "secondary"}>
-                              {user.isPaid ? "Paid" : "Free"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              size="sm"
-                              variant={user.isPaid ? "destructive" : "default"}
-                              onClick={() => handleToggleAccess(user.id, user.isPaid)}
-                              disabled={actionLoading === user.id || user.email === ADMIN_EMAIL}
-                            >
-                              {actionLoading === user.id
-                                ? "..."
-                                : user.isPaid
-                                ? "Revoke"
-                                : "Grant"}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {users.map((user) => {
+                        const getStatusDisplay = () => {
+                          if (!user.isPaid) {
+                            return { label: "Free", variant: "secondary" as const, expiry: null };
+                          }
+                          
+                          const entitlement = user.entitlement;
+                          if (!entitlement?.expires_at) {
+                            return { label: "Lifetime", variant: "default" as const, expiry: null };
+                          }
+                          
+                          const expiryDate = new Date(entitlement.expires_at);
+                          const now = new Date();
+                          const daysLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                          
+                          if (daysLeft <= 0) {
+                            return { label: "Expired", variant: "destructive" as const, expiry: expiryDate };
+                          }
+                          if (daysLeft <= 7) {
+                            return { 
+                              label: `${daysLeft}d left`, 
+                              variant: "outline" as const, 
+                              expiry: expiryDate 
+                            };
+                          }
+                          
+                          return { 
+                            label: "Paid", 
+                            variant: "default" as const, 
+                            expiry: expiryDate 
+                          };
+                        };
+                        
+                        const status = getStatusDisplay();
+                        
+                        return (
+                          <TableRow key={user.id}>
+                            <TableCell className="font-medium">
+                              {user.email}
+                              {user.email === ADMIN_EMAIL && (
+                                <Badge variant="outline" className="ml-2">Admin</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>{formatDate(user.created_at)}</TableCell>
+                            <TableCell>{formatDate(user.last_sign_in_at)}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-1">
+                                <Badge variant={status.variant}>
+                                  {status.label}
+                                </Badge>
+                                {status.expiry && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {status.expiry.toLocaleDateString("en-US", { 
+                                      month: "short", day: "numeric", year: "numeric" 
+                                    })}
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                {user.isPaid ? (
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => handleRevokeAccess(user.id)}
+                                    disabled={actionLoading === user.id || user.email === ADMIN_EMAIL}
+                                  >
+                                    {actionLoading === user.id ? "..." : "Revoke"}
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    onClick={() => openGrantModal(user)}
+                                    disabled={actionLoading === user.id || user.email === ADMIN_EMAIL}
+                                  >
+                                    {actionLoading === user.id ? "..." : "Grant"}
+                                  </Button>
+                                )}
+                                {user.isPaid && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => openGrantModal(user)}
+                                    disabled={actionLoading === user.id || user.email === ADMIN_EMAIL}
+                                  >
+                                    Extend
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </ScrollArea>
@@ -1479,6 +1608,15 @@ export default function Admin() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Access Grant Modal */}
+      <AccessGrantModal
+        open={grantModalOpen}
+        onOpenChange={setGrantModalOpen}
+        userEmail={selectedUserForGrant?.email || ""}
+        onGrant={handleGrantAccess}
+        isLoading={actionLoading === selectedUserForGrant?.id}
+      />
     </div>
   );
 }
