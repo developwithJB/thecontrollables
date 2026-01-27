@@ -260,7 +260,7 @@ export function TodayActions({
     // Build sublabel with focus context if available
     const baseSublabel = todayResetCompleted ? "Completed" : todayInfo.chapter;
     const sublabelWithFocus = missionTitle 
-      ? `${baseSublabel} · Focus: ${missionTitle.length > 25 ? missionTitle.slice(0, 25) + "..." : missionTitle}`
+      ? `${baseSublabel} · Snapshot Focus: ${missionTitle.length > 20 ? missionTitle.slice(0, 20) + "..." : missionTitle}`
       : baseSublabel;
     actions.push({
       id: "checkin",
@@ -710,6 +710,15 @@ export function TodayActions({
                 </div>
               </div>
             </button>
+          </div>
+        )}
+
+        {/* Done for today affirmation - shown after primary action (checkin) is completed */}
+        {!isListCollapsed && (!primaryAction || primaryAction.completed) && hasActiveSession && !isResetCompleted && todayResetCompleted && (
+          <div className="px-4 py-3 border-b border-border/50 bg-muted/30">
+            <p className="text-xs text-muted-foreground">
+              You're done for today. Everything else is optional.
+            </p>
           </div>
         )}
 

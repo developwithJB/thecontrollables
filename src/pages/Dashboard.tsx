@@ -773,6 +773,13 @@ export default function Dashboard() {
                 />
               )}
 
+              {/* Progressive disclosure divider - reframe analytics as optional insight */}
+              <div className="mt-6 mb-3">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                  When you want more insight
+                </p>
+              </div>
+
               {/* Your Current State - Compact 2x2 grid of state indicators */}
               {!isSimplifiedMode && (
                 <div className="space-y-2">
