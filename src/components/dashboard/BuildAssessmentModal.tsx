@@ -95,6 +95,11 @@ export function BuildAssessmentModal({
           <DialogTitle className="font-display">
             {showResults ? "Your Build" : "Scan Your Build"}
           </DialogTitle>
+          {!showResults && (
+            <p className="text-sm text-muted-foreground mt-1">
+              No right answers. This just helps us know where to start.
+            </p>
+          )}
         </DialogHeader>
 
         <AnimatePresence mode="wait">

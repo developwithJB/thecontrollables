@@ -555,6 +555,9 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
 
       {/* Persistent Operator Selector - iOS Glass Style */}
       <div className="px-4 pb-3 border-t border-border/50">
+        <p className="text-xs text-muted-foreground mt-2 mb-2">
+          Use a guide when you're stuck or need help choosing your next rep.
+        </p>
         <div className="flex items-center justify-between gap-1.5 py-2">
           {GUIDES.map((guide) => (
             <motion.button

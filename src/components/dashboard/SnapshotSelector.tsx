@@ -385,7 +385,7 @@ export function SnapshotSelector({
             </DialogTitle>
             <DialogDescription>
               {viewMode === "recommendation" 
-                ? "Based on your Build, here's what we recommend."
+                ? "A Snapshot is your focus for the next 7 days. One theme. No perfection."
                 : "Explore all 36 Snapshots across 6 life themes."
               }
             </DialogDescription>
