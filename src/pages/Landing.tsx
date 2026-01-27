@@ -59,9 +59,9 @@ export default function Landing() {
             className="text-center mb-8"
           >
             <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-3 text-balance">
-              Five guides. One calm place to reset.
-              <br />
               <span className="text-accent">The Dashboard.</span>
+              <br />
+              Five guides. One calm place to reset.
             </h1>
 
             {/* Secondary CTA - Early Action */}
