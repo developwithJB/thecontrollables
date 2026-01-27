@@ -9,8 +9,8 @@ const features = [
   },
   {
     icon: Camera,
-    title: "Adaptive Snapshots",
-    description: "Your Snapshots adjust to what you need most each week.",
+    title: "Weekly Snapshots",
+    description: "Over time, patterns emerge. The Dashboard notices what works for you.",
   },
   {
     icon: History,
@@ -30,7 +30,7 @@ export function FeatureGrid() {
         className="max-w-md mx-auto"
       >
         <h2 className="font-display text-xl font-semibold text-center mb-2 text-foreground">
-          This dashboard adapts to you.
+          Over time, patterns emerge.
         </h2>
         <p className="text-sm text-muted-foreground text-center mb-8">
           Not through notifications or noise — but through repetition.

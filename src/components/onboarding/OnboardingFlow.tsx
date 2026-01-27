@@ -9,6 +9,7 @@ import { OnboardingJourneySelection } from "./OnboardingJourneySelection";
 import { OnboardingStarting } from "./OnboardingStarting";
 import { OnboardingSkipConfirmation } from "./OnboardingSkipConfirmation";
 import { OnboardingRecovery } from "./OnboardingRecovery";
+import { OnboardingOrientation } from "./OnboardingOrientation";
 import { 
   getDefaultJourney, 
   journeyToControllable,
@@ -20,7 +21,7 @@ import type { BuildScore } from "@/lib/build";
 import type { OnboardingStep } from "@/hooks/useOnboarding";
 
 // Internal step type that includes transitional states
-type InternalOnboardingStep = OnboardingStep | "starting" | "skip_confirmation" | "recovery";
+type InternalOnboardingStep = OnboardingStep | "orientation" | "starting" | "skip_confirmation" | "recovery";
 
 interface OnboardingFlowProps {
   userId: string;
@@ -223,7 +224,8 @@ export function OnboardingFlow({
 
   const handleJourneySelected = async (journey: GuidedJourney) => {
     setSelectedJourney(journey);
-    setCurrentStep("starting");
+    // Show orientation screen first (Day 0)
+    setCurrentStep("orientation");
     
     // Map custom journey to standard journey ID for storage
     const standardJourney = journey.isCustom && journey.id.startsWith("custom-")
@@ -235,7 +237,20 @@ export function OnboardingFlow({
     const recommendedId = getRecommendedJourneyId(buildResult);
     const isRecommended = journey.id === recommendedId;
     trackSnapshotSelected(journeyIdToStore, journey.title, isRecommended);
-    trackStepChange("journey_selection", "starting");
+    trackStepChange("journey_selection", "orientation");
+  };
+
+  const handleOrientationComplete = async () => {
+    if (!selectedJourney) return;
+    
+    setCurrentStep("starting");
+    trackStepChange("orientation", "starting");
+    
+    // Map custom journey to standard journey ID for storage
+    const standardJourney = selectedJourney.isCustom && selectedJourney.id.startsWith("custom-")
+      ? getStandardJourneyForCustom(selectedJourney.id)
+      : null;
+    const journeyIdToStore = standardJourney ? standardJourney.id : selectedJourney.id;
     
     const startReset = async () => {
       try {
@@ -244,7 +259,7 @@ export function OnboardingFlow({
         
         // Auto-create Main Quest with Journey title
         if (createQuest) {
-          const questTitle = getQuestTitleFromJourney(journey);
+          const questTitle = getQuestTitleFromJourney(selectedJourney);
           await createQuest({ title: questTitle, durationDays: 7 });
         }
         
@@ -316,6 +331,15 @@ export function OnboardingFlow({
             recommendedJourneyId={getRecommendedJourneyId(buildResult)}
             buildResult={buildResult}
             onSelect={handleJourneySelected}
+          />
+        )}
+        
+        {currentStep === "orientation" && selectedJourney && (
+          <OnboardingOrientation
+            key="orientation"
+            journeyTitle={selectedJourney.title}
+            journeyEmoji={selectedJourney.emoji}
+            onStartDay1={handleOrientationComplete}
           />
         )}
         

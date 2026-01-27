@@ -1048,7 +1048,7 @@ export function generateCustomFocus(
   return snapshot ? snapshotToJourney(snapshot) : null;
 }
 
-export function getRecommendedNextFoundation(
+export function getRecommendedNextSnapshot(
   build: UserBuildCurrent | BuildScore | null,
   assessmentHistory: BuildScore[] | undefined,
   completedJourneyId?: string | null
@@ -1056,6 +1056,9 @@ export function getRecommendedNextFoundation(
   const snapshot = getRecommendedSnapshot(build, completedJourneyId);
   return snapshotToJourney(snapshot);
 }
+
+// Backward compatibility alias
+export const getRecommendedNextFoundation = getRecommendedNextSnapshot;
 
 export function getStandardJourneyForCustom(customJourneyId: string): GuidedJourney | null {
   if (!customJourneyId.startsWith("custom-")) return null;
