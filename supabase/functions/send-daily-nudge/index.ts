@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
@@ -6,23 +6,279 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SUBJECTS = [
-  "Your Snapshot is ready",
-  "5 minutes. That's it.",
-  "Just do today",
-  "Ready when you are",
-];
-
 const MORNING_HOUR = 7;
 const EVENING_HOUR = 19;
 
+// Controllable emojis and names
+const CONTROLLABLES: Record<string, { emoji: string; name: string }> = {
+  awareness: { emoji: "🦉", name: "Awareness Owl" },
+  perspective: { emoji: "🐢", name: "Perspective Turtle" },
+  habit: { emoji: "🦈", name: "Habit Shark" },
+  wellness: { emoji: "🛰️", name: "Wellness Satellite" },
+  environment: { emoji: "🚀", name: "Environment Rocket" },
+};
+
+interface UserContext {
+  lowestControllable: string | null;
+  lowestScore: number | null;
+  currentSnapshotDay: number | null;
+  journeyTitle: string | null;
+  focusControllable: string | null;
+  totalXp: number;
+  displayName: string | null;
+}
+
 interface NudgeRequest {
   nudgeTime?: "morning" | "evening";
-  testMode?: boolean; // Bypass timezone check for testing
+  testMode?: boolean;
+}
+
+interface BuildScores {
+  awareness: number;
+  perspective: number;
+  habit: number;
+  wellness: number;
+  environment: number;
+}
+
+interface ResetSession {
+  current_day: number;
+  journey_id: string | null;
+}
+
+interface XpLog {
+  amount: number;
+}
+
+interface Profile {
+  display_name: string | null;
+}
+
+// Get user context for personalization
+async function getUserContext(supabase: SupabaseClient, userId: string): Promise<UserContext> {
+  const context: UserContext = {
+    lowestControllable: null,
+    lowestScore: null,
+    currentSnapshotDay: null,
+    journeyTitle: null,
+    focusControllable: null,
+    totalXp: 0,
+    displayName: null,
+  };
+
+  try {
+    // Fetch in parallel
+    const [buildResult, sessionResult, xpResult, profileResult] = await Promise.all([
+      supabase
+        .from("user_build_current")
+        .select("awareness, perspective, habit, wellness, environment")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      supabase
+        .from("reset_sessions")
+        .select("current_day, journey_id")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .maybeSingle(),
+      supabase
+        .from("xp_logs")
+        .select("amount")
+        .eq("user_id", userId),
+      supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", userId)
+        .maybeSingle(),
+    ]);
+
+    // Process build scores to find lowest
+    if (buildResult.data) {
+      const scores = buildResult.data as BuildScores;
+      const controllableScores: [string, number][] = [
+        ["awareness", Number(scores.awareness) || 0],
+        ["perspective", Number(scores.perspective) || 0],
+        ["habit", Number(scores.habit) || 0],
+        ["wellness", Number(scores.wellness) || 0],
+        ["environment", Number(scores.environment) || 0],
+      ];
+      
+      // Find lowest score (only if they have build data)
+      const validScores = controllableScores.filter(([_, score]) => score > 0);
+      if (validScores.length > 0) {
+        const lowest = validScores.reduce((min, current) => 
+          current[1] < min[1] ? current : min
+        );
+        context.lowestControllable = lowest[0];
+        context.lowestScore = lowest[1];
+      }
+    }
+
+    // Process active session
+    if (sessionResult.data) {
+      const session = sessionResult.data as ResetSession;
+      context.currentSnapshotDay = session.current_day;
+      const journeyId = session.journey_id;
+      if (journeyId) {
+        // Extract controllable from journey_id (format: "bucket_controllable" e.g., "reset_awareness")
+        const parts = journeyId.split("_");
+        if (parts.length >= 2) {
+          context.focusControllable = parts[parts.length - 1];
+        }
+        // Convert to title (e.g., "reset_awareness" -> "Reset & Awareness")
+        context.journeyTitle = journeyId
+          .split("_")
+          .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(" ");
+      }
+    }
+
+    // Sum XP
+    if (xpResult.data) {
+      const logs = xpResult.data as XpLog[];
+      context.totalXp = logs.reduce((sum, log) => sum + (log.amount || 0), 0);
+    }
+
+    // Display name
+    if (profileResult.data) {
+      const profile = profileResult.data as Profile;
+      context.displayName = profile.display_name;
+    }
+  } catch (err) {
+    console.warn(`[NUDGE] Error fetching context for ${userId}:`, err);
+  }
+
+  return context;
+}
+
+// Generate personalized email content
+function generateEmailContent(
+  context: UserContext,
+  nudgeTime: "morning" | "evening"
+): { subject: string; body: string } {
+  const greeting = context.displayName ? `Hey ${context.displayName}` : "Hey";
+  const isMorning = nudgeTime === "morning";
+  
+  // Build personalized message based on available context
+  let mainMessage = "";
+  let subMessage = "";
+  let emoji = "📍";
+  
+  // Priority 1: Active snapshot progress
+  if (context.currentSnapshotDay !== null && context.currentSnapshotDay > 0) {
+    const dayNum = context.currentSnapshotDay;
+    
+    if (dayNum === 7) {
+      mainMessage = "Day 7 — you're at the finish line.";
+      subMessage = isMorning 
+        ? "Complete your Snapshot and see how far you've come."
+        : "One last check-in before you wrap this week.";
+      emoji = "🎯";
+    } else if (dayNum >= 5) {
+      mainMessage = `Day ${dayNum} of 7. Almost there.`;
+      subMessage = isMorning
+        ? "Momentum is building. Keep going."
+        : "Consistency beats perfection. Just show up.";
+      emoji = "🔥";
+    } else {
+      mainMessage = `Day ${dayNum} of your Snapshot.`;
+      subMessage = isMorning
+        ? "Small actions today, lasting change over time."
+        : "How did today go? Take a minute to check in.";
+      emoji = "📍";
+    }
+  }
+  // Priority 2: Low build score (personalized focus area)
+  else if (context.lowestControllable && context.lowestScore !== null) {
+    const guide = CONTROLLABLES[context.lowestControllable];
+    if (guide) {
+      emoji = guide.emoji;
+      mainMessage = `Your ${guide.name} could use some attention.`;
+      subMessage = isMorning
+        ? `Start with one small ${context.lowestControllable}-focused action today.`
+        : `How's your ${context.lowestControllable} practice going?`;
+    }
+  }
+  // Priority 3: Focus controllable from journey
+  else if (context.focusControllable) {
+    const guide = CONTROLLABLES[context.focusControllable];
+    if (guide) {
+      emoji = guide.emoji;
+      mainMessage = `${guide.name} has a message for you.`;
+      subMessage = isMorning
+        ? "Your guides are ready when you are."
+        : "Check in before the day ends.";
+    }
+  }
+  // Fallback: Generic motivational
+  else {
+    const genericMessages = isMorning
+      ? [
+          { main: "Just do today. That's it.", sub: "Your guides are waiting." },
+          { main: "5 minutes. That's all it takes.", sub: "Start small, stay consistent." },
+          { main: "Ready when you are.", sub: "One action at a time." },
+        ]
+      : [
+          { main: "How was today?", sub: "A quick reflection goes a long way." },
+          { main: "Before you wrap up...", sub: "One minute with your guides." },
+          { main: "End the day intentionally.", sub: "Check in before you unwind." },
+        ];
+    const selected = genericMessages[Math.floor(Math.random() * genericMessages.length)];
+    mainMessage = selected.main;
+    subMessage = selected.sub;
+    emoji = "🌅";
+  }
+
+  // Generate subject line
+  const subjects = context.currentSnapshotDay
+    ? [
+        `Day ${context.currentSnapshotDay}: ${mainMessage}`,
+        mainMessage,
+        isMorning ? "Your Snapshot is ready" : "End-of-day check-in",
+      ]
+    : [mainMessage, isMorning ? "Ready when you are" : "Quick check-in"];
+  
+  const subject = subjects[Math.floor(Math.random() * subjects.length)];
+
+  // Build HTML body
+  const body = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 440px; margin: 0 auto; padding: 40px 20px; text-align: center; background: #fafafa;">
+      <div style="font-size: 40px; margin-bottom: 20px;">${emoji}</div>
+      
+      <p style="font-size: 22px; color: #1a1a1a; margin: 0 0 8px 0; font-weight: 600;">
+        ${greeting},
+      </p>
+      
+      <p style="font-size: 20px; color: #333; margin: 0 0 16px 0;">
+        ${mainMessage}
+      </p>
+      
+      <p style="font-size: 15px; color: #666; margin: 0 0 28px 0;">
+        ${subMessage}
+      </p>
+      
+      <a href="https://thedashboard.agbcoaching.com/dashboard" 
+         style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 15px;">
+        Open Today's Actions →
+      </a>
+      
+      ${context.totalXp > 0 ? `
+        <p style="font-size: 12px; color: #999; margin-top: 24px;">
+          You've earned ${context.totalXp.toLocaleString()} XP so far. Keep going.
+        </p>
+      ` : ""}
+      
+      <p style="font-size: 11px; color: #aaa; margin-top: 32px;">
+        <a href="https://thedashboard.agbcoaching.com/dashboard" style="color: #888; text-decoration: none;">
+          Turn off anytime in settings
+        </a>
+      </p>
+    </div>
+  `;
+
+  return { subject, body };
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -86,20 +342,24 @@ Deno.serve(async (req) => {
     console.log(`[NUDGE] Found ${profiles.length} users with ${nudgeTime} nudges enabled`);
 
     // Filter users whose local time matches the target hour (or include all in test mode)
+    interface ProfileRow {
+      id: string;
+      timezone: string | null;
+      email_nudge_time: string;
+    }
+    
     const usersToNudge: { userId: string; timezone: string }[] = [];
     const now = new Date();
 
-    for (const profile of profiles) {
+    for (const profile of profiles as ProfileRow[]) {
       const userTimezone = profile.timezone || "America/New_York";
       
-      // In test mode, skip timezone check and include all matching users
       if (testMode) {
         usersToNudge.push({ userId: profile.id, timezone: userTimezone });
         continue;
       }
 
       try {
-        // Get current hour in user's timezone
         const userLocalTime = new Date(now.toLocaleString("en-US", { timeZone: userTimezone }));
         const userHour = userLocalTime.getHours();
 
@@ -120,12 +380,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get user emails from auth.users (requires service role)
     let sentCount = 0;
     let skippedCount = 0;
     const errors: string[] = [];
 
-    // Process in batches of 10 to avoid rate limits
+    // Process in batches of 10
     for (let i = 0; i < usersToNudge.length; i += 10) {
       const batch = usersToNudge.slice(i, i + 10);
       
@@ -145,7 +404,7 @@ Deno.serve(async (req) => {
             return;
           }
 
-          // Get user email from auth.users
+          // Get user email
           const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
           
           if (userError || !userData?.user?.email) {
@@ -154,30 +413,23 @@ Deno.serve(async (req) => {
           }
 
           const email = userData.user.email;
-          const subject = SUBJECTS[Math.floor(Math.random() * SUBJECTS.length)];
+
+          // Fetch user context for personalization
+          const context = await getUserContext(supabase, userId);
+          console.log(`[NUDGE] Context for ${userId}:`, JSON.stringify(context));
+
+          // Generate personalized content
+          const { subject, body } = generateEmailContent(context, nudgeTime);
 
           // Send email via Resend
           const emailResult = await resend.emails.send({
             from: "The Dashboard <noreply@thedashboard.agbcoaching.com>",
             to: [email],
             subject: subject,
-            html: `
-              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 400px; margin: 0 auto; padding: 40px 20px; text-align: center;">
-                <p style="font-size: 24px; color: #1a1a1a; margin-bottom: 24px;">
-                  Just do today. That's it.
-                </p>
-                <a href="https://thedashboard.agbcoaching.com/dashboard" 
-                   style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
-                  Open Today's Actions →
-                </a>
-                <p style="font-size: 12px; color: #888; margin-top: 32px;">
-                  Turn off anytime in settings.
-                </p>
-              </div>
-            `,
+            html: body,
           });
 
-          console.log(`[NUDGE] Sent to ${email}:`, emailResult);
+          console.log(`[NUDGE] Sent to ${email} with subject "${subject}":`, emailResult);
 
           // Log the successful send
           await supabase
@@ -196,7 +448,7 @@ Deno.serve(async (req) => {
         }
       }));
 
-      // Small delay between batches to avoid rate limits
+      // Small delay between batches
       if (i + 10 < usersToNudge.length) {
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
