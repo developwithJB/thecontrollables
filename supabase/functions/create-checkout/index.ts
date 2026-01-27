@@ -98,10 +98,10 @@ serve(async (req) => {
     const origin = req.headers.get("origin") || "https://thedashboard.agbcoaching.com";
 
     // Create a subscription checkout session
+    // Note: customer_creation is NOT valid for subscription mode - Stripe auto-creates customers
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
-      customer_creation: customerId ? undefined : "always",
       line_items: [
         {
           price: priceId,
