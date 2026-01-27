@@ -1,223 +1,267 @@
 
-# Subscription Pricing Migration: $9.99/month or $79.99/year
+# UX Clarity & Trust Improvements Plan
 
 ## Overview
-Migrating from one-time payment ($29/$49) to a subscription model with two tiers:
-- **Monthly**: $9.99/month
-- **Yearly**: $79.99/year (saves ~33%)
-
-This requires changes to Stripe configuration, backend edge functions, frontend pricing logic, and all UI components displaying pricing.
+A focused update to improve daily orientation, reduce confusion, humanize language, and build trust through reliability. All changes preserve the calm philosophy while making the app more obvious and welcoming.
 
 ---
 
-## Step 1: Create Stripe Products and Prices
+## 1. Daily Orientation - "One Thing" Anchor (CRITICAL)
 
-New Stripe prices need to be created:
+### Current State
+The `TodayActions` component shows a checklist of 3-6 items without clear priority hierarchy. Users report not knowing "what to do today."
 
-| Plan | Price | Interval | Savings |
-|------|-------|----------|---------|
-| Monthly | $9.99 | month | - |
-| Yearly | $79.99 | year | ~$40/year (33% off) |
+### Implementation
 
-I'll use the Stripe tools to create a new product "The Dashboard - Full Access Subscription" with both pricing tiers.
+**File: `src/components/dashboard/TodayActions.tsx`**
 
----
-
-## Step 2: Update Pricing Configuration
-
-**File: `src/lib/pricing.ts`**
-
-Replace the one-time pricing model with subscription tiers:
+Add a highlighted "Primary Action" section at the top of the component:
 
 ```text
-Before:
-- PRICE_IDS: { launch, regular }
-- getPricing(): returns one-time amounts ($29/$49)
-- isLaunchPeriod logic
-
-After:
-- PRICE_IDS: { monthly, yearly }
-- getPricing(): returns subscription amounts
-- getYearlySavings(): calculate discount %
-- Remove launch period logic (no longer needed)
+┌─────────────────────────────────────────┐
+│  ✨ If you do one thing today, do this. │
+│  ────────────────────────────────────── │
+│  [Day 3: Habit 🦈] "Show up for 2 mins" │
+│                             [Continue →]│
+├─────────────────────────────────────────┤
+│  Everything else is optional.           │
+│  ○ Reflect on yesterday      2 min      │
+│  ○ Review 1 promise          3 min      │
+│  ○ Ask The Controllables     3 min      │
+└─────────────────────────────────────────┘
 ```
 
----
+**Logic:**
+- Primary action = First incomplete action from: Check-in → Journey Action → Time Reflection
+- Visually elevate with gradient border and larger text
+- Secondary actions use smaller, muted styling
+- Add "Everything else is optional." subtext between sections
 
-## Step 3: Update Edge Functions
-
-### `supabase/functions/create-checkout/index.ts`
-- Change `mode: "payment"` to `mode: "subscription"`
-- Accept `plan` parameter (monthly/yearly) from frontend
-- Remove launch/regular price logic
-- Use the new subscription price IDs
-
-### `supabase/functions/check-payment/index.ts`
-- Add `stripe.subscriptions.list()` check for active subscriptions
-- Return subscription status, plan type, and renewal date
-- Keep backward compatibility for existing one-time purchasers
+**Changes:**
+1. Add `getPrimaryAction()` function to identify the most important incomplete action
+2. Render primary action in a highlighted card at top
+3. Group remaining actions under "Optional" subheader
+4. Style secondary items with muted colors and smaller text
 
 ---
 
-## Step 4: Update Frontend Hook
+## 2. Day 0 Orientation Screen (First-Time Only)
 
-**File: `src/hooks/useEntitlements.ts`**
+### Current State
+New users go directly from Snapshot selection to Day 1. No explanation of how the app works.
+
+### Implementation
+
+**New File: `src/components/onboarding/OnboardingOrientation.tsx`**
+
+A simple interstitial screen shown once before the first Day 1:
 
 ```text
-Changes:
-- Remove isLaunchPeriod() and getPricing() duplicate logic
-- Add plan selection state to initiateCheckout(plan: 'monthly' | 'yearly')
-- Update response handling to include subscription info
+┌─────────────────────────────────────────┐
+│                                         │
+│         Here's how this works           │
+│                                         │
+│    📸  One Snapshot per week            │
+│                                         │
+│    ⏱️  About 5 minutes per day          │
+│                                         │
+│    📅  No catching up. Just today.      │
+│                                         │
+│              [Start Day 1]              │
+│                                         │
+└─────────────────────────────────────────┘
 ```
 
----
+**Files to modify:**
+- `src/components/onboarding/OnboardingFlow.tsx` - Add "orientation" step between journey_selection and starting
+- `src/components/onboarding/index.ts` - Export new component
+- `src/hooks/useOnboarding.ts` - Track orientation_seen in onboarding progress
 
-## Step 5: Update All Pricing UI Components
-
-### Components to Update
-
-| Component | Current Display | New Display |
-|-----------|-----------------|-------------|
-| `LockedOverlay.tsx` | "$29 one-time. $49 after March 1." | "$9.99/mo or $79.99/yr (save 33%)" |
-| `Day7Complete.tsx` | "Unlock Full Access - $29" | Plan selector + pricing |
-| `ResetProgressModule.tsx` | "Unlock for $29" | "Unlock Full Access" |
-| `AIGuidePanel.tsx` | LaunchCountdownBadge | Subscription pricing |
-| `LaunchCountdownBadge.tsx` | DELETE or repurpose | No longer needed |
+**Logic:**
+- Only shown once per user (tracked in `user_onboarding.features_unlocked.orientation_seen`)
+- Simple 3-bullet layout with icons
+- Single CTA button that triggers the existing "starting" flow
 
 ---
 
-## Step 6: Create Plan Selector Component
+## 3. Terminology Cleanup - Foundation → Snapshot
 
-**New File: `src/components/PlanSelector.tsx`**
+### Current State
+Several files still use "Foundation" terminology instead of "Snapshot":
 
-A reusable component for selecting monthly vs yearly:
+### Files to Update
 
+| File | Change |
+|------|--------|
+| `src/lib/badges.ts` | Rename `foundation_streak_*` to `snapshot_streak_*`, update names/descriptions |
+| `src/components/dashboard/ResetProgressModule.tsx` | Replace "7-Day Foundation" with "7-Day Snapshot", "Start New Foundation" → "Start New Snapshot" |
+| `src/components/dashboard/JourneySwitcher.tsx` | "Update Your Mission?" → "Update Your Focus?" |
+| `src/lib/snapshots.ts` | Rename `getRecommendedNextFoundation` to `getRecommendedNextSnapshot` |
+| `src/components/Day7Complete.tsx` | Update import and function name |
+| `src/components/landing/FeatureGrid.tsx` | Keep "Adaptive Snapshots" (already correct) |
+
+**Note:** Database column `foundation_level` will remain unchanged to avoid migration complexity, but all user-facing copy will use "Snapshot."
+
+---
+
+## 4. Build Assessment Language Simplification
+
+### Current State
+Some questions use philosophical/abstract language that confuses users.
+
+### Questions to Rewrite (via database update)
+
+| ID | Current | Proposed Rewrite |
+|----|---------|------------------|
+| E3 | "My digital inputs are intentional, not default." | "I often scroll or check my phone without meaning to." (inverted) |
+| A3 | "I recognize when I'm acting from fear, ego, or impulse." | "I can tell when I'm reacting instead of choosing." |
+| P3 | "I interpret challenges as part of a longer story." | "When things go wrong, I remind myself it's temporary." |
+| H3 | "I focus on reps instead of outcomes." | "I show up even when I can't see results yet." |
+| A1 | "I notice my thoughts before acting on them." | "I catch myself before reacting automatically." |
+
+**Implementation:**
+- Create a database migration to UPDATE these 5 prompts
+- Questions will now follow the rule: "One idea per sentence, everyday language"
+- Answer options already work well (Rarely/Sometimes/Often/Always)
+
+---
+
+## 5. Email Nudges (Opt-In)
+
+### Database Changes
+
+Add columns to `profiles` table:
+```sql
+ALTER TABLE profiles ADD COLUMN email_nudge_enabled BOOLEAN DEFAULT false;
+ALTER TABLE profiles ADD COLUMN email_nudge_time TEXT DEFAULT 'morning'; -- 'morning' or 'evening'
+ALTER TABLE profiles ADD COLUMN timezone TEXT;
+```
+
+### Backend Implementation
+
+**New Edge Function: `supabase/functions/send-daily-nudge/index.ts`**
+
+- Triggered by cron job (Supabase pg_cron)
+- Two scheduled jobs: 7am nudges, 7pm nudges (user's local time)
+- Queries users where `email_nudge_enabled = true` and matches nudge time
+- Uses Resend API (existing RESEND_API_KEY secret required)
+- One email per user per day max
+
+**Email Templates (minimal):**
 ```text
-- Two plan cards side-by-side
-- Monthly: "$9.99/mo" 
-- Yearly: "$79.99/yr" with "Save 33%" badge
-- Visual highlight on yearly (recommended)
-- onSelect callback triggers checkout with plan type
+Subject: "Your Snapshot is ready"
+Body: "Just do today. That's it."
+[Open Today's Actions →]
+---
+Turn off anytime.
+```
+
+### Frontend Implementation
+
+**Update: `src/components/ProfileSettingsModal.tsx`**
+
+Add toggle section:
+```text
+Would you like a gentle daily nudge?
+[ ] Enable email nudges
+    ○ Morning (7am)  ● Evening (7pm)
 ```
 
 ---
 
-## Step 7: Update Tests
+## 6. Reduce "AI Vibes" in Copy
 
-### Unit Tests (`tests/unit/pricing.test.ts`)
-- Update to test new subscription pricing values
-- Remove launch period tests
-- Add yearly savings calculation tests
+### Files to Update
 
-### E2E Tests (`tests/e2e/pricing-rule.spec.ts`)
-- Update price expectations ($29/$49 → $9.99/$79.99)
-- Update text matching patterns
-- Test plan selection flow
+| File | Current | Replacement |
+|------|---------|-------------|
+| `src/pages/Landing.tsx` | Comment "Adaptive Intelligence" | "How it helps" |
+| `src/components/landing/FeatureGrid.tsx` | "This dashboard adapts to you" | "Over time, patterns emerge" |
+| `src/components/landing/FeatureGrid.tsx` | "Adaptive Snapshots" | "Weekly Snapshots" |
+| `src/components/dashboard/AIGuidePanel.tsx` | Keep "The Controllables" branding | (No change needed) |
+| `src/hooks/useGuideSession.ts` | Internal comment only | (No user-facing change) |
 
----
-
-## Implementation Files Summary
-
-| File | Action | Description |
-|------|--------|-------------|
-| `src/lib/pricing.ts` | REWRITE | New subscription pricing model |
-| `supabase/functions/create-checkout/index.ts` | REWRITE | Subscription mode + plan parameter |
-| `supabase/functions/check-payment/index.ts` | UPDATE | Add subscription status check |
-| `src/hooks/useEntitlements.ts` | UPDATE | Plan selection, remove duplicate logic |
-| `src/components/PlanSelector.tsx` | CREATE | New plan selection UI |
-| `src/components/experience/LockedOverlay.tsx` | UPDATE | New pricing display + plan selector |
-| `src/components/Day7Complete.tsx` | UPDATE | New pricing CTAs |
-| `src/components/dashboard/ResetProgressModule.tsx` | UPDATE | New pricing CTA |
-| `src/components/dashboard/AIGuidePanel.tsx` | UPDATE | New pricing display |
-| `src/components/LaunchCountdownBadge.tsx` | DELETE | No longer needed |
-| `tests/unit/pricing.test.ts` | UPDATE | New pricing expectations |
-| `tests/e2e/pricing-rule.spec.ts` | UPDATE | New pricing patterns |
+**Philosophy shift:**
+- From: "The Dashboard learns your patterns"
+- To: "The Dashboard notices what works for you"
 
 ---
 
-## Technical Details
+## 7. Trust & Bug Prevention
 
-### New Pricing Configuration
-```typescript
-export const PRICE_IDS = {
-  monthly: "price_xxx", // Will be created via Stripe tool
-  yearly: "price_yyy",  // Will be created via Stripe tool
-} as const;
+### Input Reliability Audit
 
-export const PRICING = {
-  monthly: 9.99,
-  yearly: 79.99,
-  yearlyMonthlyEquivalent: 6.67, // $79.99/12
-  yearlySavingsPercent: 33,
-} as const;
+Review and ensure all input fields work correctly:
 
-export const getPricing = () => ({
-  monthly: PRICING.monthly,
-  yearly: PRICING.yearly,
-  yearlySavingsPercent: PRICING.yearlySavingsPercent,
-});
-```
+1. **Build Assessment** (`OnboardingAssessment.tsx`)
+   - Verify answer selection triggers state update immediately
+   - Add `autoFocus` to first interactive element
+   - Ensure `disabled` states are removed promptly after loading
 
-### Create Checkout Request (Frontend)
-```typescript
-const initiateCheckout = async (plan: 'monthly' | 'yearly') => {
-  const { data, error } = await supabase.functions.invoke("create-checkout", {
-    body: { plan }
-  });
-  // ...
-};
-```
+2. **Time Reflection** (`TimeCurrencyModule.tsx`)
+   - Check slider responds to touch/click immediately
+   - Verify notes textarea accepts input without delay
 
-### Create Checkout Response (Backend)
-```typescript
-// create-checkout will now:
-const priceId = plan === 'yearly' ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID;
-const session = await stripe.checkout.sessions.create({
-  mode: "subscription", // Changed from "payment"
-  line_items: [{ price: priceId, quantity: 1 }],
-  // ...
-});
-```
+3. **Promise Input** (`IntegrityMeterModule.tsx`)
+   - Ensure text input is never blocked by loading states
+   - Add visual feedback on successful save
 
-### Check Payment Response (Backend)
-```typescript
-// check-payment will now return:
-{
-  isPaid: true,
-  subscriptionStatus: "active", // or "canceled", "past_due"
-  plan: "yearly", // or "monthly"
-  currentPeriodEnd: "2027-01-26T00:00:00Z",
-  source: "stripe"
-}
-```
+4. **Dashboard Loading**
+   - Review `isAuthReady` gating in all interactive modules
+   - Ensure skeleton states transition cleanly to interactive states
+   - Add `data-testid` attributes for E2E test coverage
+
+### Implementation
+- Add console warnings for any module that stays in loading state > 5 seconds
+- Ensure all mutation buttons show loading spinners during operation
+- Test: Pull-to-refresh should complete within 8 seconds or show timeout message
 
 ---
 
-## Existing Purchaser Handling
+## Implementation Order
 
-Users who already purchased the one-time $29 or $49 will continue to have full access. The `check-payment` function will:
-
-1. First check `user_entitlements` table (existing behavior)
-2. Then check for active Stripe subscriptions (new)
-3. Finally check for completed one-time payments (existing behavior)
-
-This ensures no disruption for existing paid users.
+| Phase | Tasks | Priority |
+|-------|-------|----------|
+| 1 | Daily Orientation ("One Thing" anchor) | CRITICAL |
+| 2 | Day 0 Orientation Screen | HIGH |
+| 3 | Terminology Cleanup (Foundation → Snapshot) | HIGH |
+| 4 | Build Assessment Language Simplification | MEDIUM |
+| 5 | Reduce AI Vibes in Copy | MEDIUM |
+| 6 | Email Nudges (Opt-In) | LOW |
+| 7 | Trust & Bug Audit | ONGOING |
 
 ---
 
-## UI Messaging Examples
+## Files Summary
 
-### LockedOverlay
-> **Unlock Full Access**  
-> $9.99/mo or $79.99/yr  
-> ✨ Save 33% with yearly
+### New Files
+- `src/components/onboarding/OnboardingOrientation.tsx`
+- `supabase/functions/send-daily-nudge/index.ts`
 
-### Day7Complete  
-> **Ready for More?**  
-> Continue your journey with unlimited Snapshots and The Controllables.  
-> [Monthly $9.99/mo] [Yearly $79.99/yr - Save 33%]
+### Modified Files
+- `src/components/dashboard/TodayActions.tsx` (Primary action highlight)
+- `src/components/onboarding/OnboardingFlow.tsx` (Add orientation step)
+- `src/components/ProfileSettingsModal.tsx` (Email nudge settings)
+- `src/lib/badges.ts` (Terminology update)
+- `src/components/dashboard/ResetProgressModule.tsx` (Terminology update)
+- `src/components/dashboard/JourneySwitcher.tsx` (Terminology update)
+- `src/lib/snapshots.ts` (Rename function)
+- `src/components/Day7Complete.tsx` (Import update)
+- `src/pages/Landing.tsx` (Copy update)
+- `src/components/landing/FeatureGrid.tsx` (Copy update)
 
-### AIGuidePanel Upgrade CTA
-> Come back tomorrow for another free message, or unlock unlimited access.  
-> [Unlock Full Access]  
-> Starting at $9.99/mo
+### Database Changes
+- Add columns to `profiles`: `email_nudge_enabled`, `email_nudge_time`, `timezone`
+- Update 5 rows in `build_questions` with simplified prompts
+
+---
+
+## Success Metrics
+
+After implementation, verify:
+
+1. **3-Second Clarity Test**: A new user can answer "What do I do today?" within 3 seconds of viewing the dashboard
+2. **Return Safety**: Missed day messaging emphasizes "welcome back" over "you missed"
+3. **Input Reliability**: All text inputs respond to typing within 100ms
+4. **Human Tone**: No user-facing copy contains "adapts", "learns", or "intelligence"
+5. **Email Opt-In**: < 5% of users enable nudges (confirms it's truly optional)
