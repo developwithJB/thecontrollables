@@ -1,13 +1,16 @@
-import { motion } from "framer-motion";
-import { Flame, Zap, Target, Compass } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Flame, Zap, Target, Compass, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useInsights } from "@/hooks/useInsights";
 
 interface GreetingBannerProps {
   userId?: string;
   totalXp: number;
   streakDays?: number;
   visitCount: number;
+  isPaid?: boolean;
   // Mission indicator
   missionTitle?: string | null;
   onMissionClick?: () => void;
@@ -22,12 +25,17 @@ export function GreetingBanner({
   totalXp, 
   streakDays = 0, 
   visitCount,
+  isPaid = false,
   missionTitle,
   onMissionClick,
   snapshotFocus,
   snapshotEmoji,
   onSnapshotClick,
 }: GreetingBannerProps) {
+  const [showInsight, setShowInsight] = useState(false);
+  
+  // Fetch AI insights for premium users
+  const { data: insightData, isLoading: insightLoading } = useInsights(userId, isPaid);
   // Fetch user's display name from profiles
   const { data: profile } = useQuery({
     queryKey: ["user-profile", userId],
@@ -151,6 +159,44 @@ export function GreetingBanner({
         <p className="text-xs text-muted-foreground/70">
           Designed for intentional check-ins. Desktop or mobile.
         </p>
+      )}
+
+      {/* AI-Powered Weekly Insight (Premium only) */}
+      {isPaid && insightData?.insight && (
+        <motion.div
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-3"
+        >
+          <button
+            onClick={() => setShowInsight(!showInsight)}
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full group"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span className="font-medium">Weekly Insight</span>
+            {showInsight ? (
+              <ChevronUp className="w-3.5 h-3.5 ml-auto opacity-50 group-hover:opacity-100" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5 ml-auto opacity-50 group-hover:opacity-100" />
+            )}
+          </button>
+          
+          <AnimatePresence>
+            {showInsight && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <p className="text-sm text-foreground/80 mt-2 pl-5 border-l-2 border-amber-500/30 leading-relaxed">
+                  {insightData.insight}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
       )}
     </motion.div>
   );

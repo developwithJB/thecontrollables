@@ -181,13 +181,19 @@ export const ResetDay = ({
               ))}
             </div>
           ) : (
-            <Textarea
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              placeholder="Write here..."
-              className="min-h-[80px] max-h-[120px] resize-none bg-muted/30 border-muted text-base"
-              data-testid="reset-day-reflection-input"
-            />
+            <div className="relative">
+              <Textarea
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value.slice(0, 1000))}
+                placeholder="Write here..."
+                className="min-h-[80px] max-h-[120px] resize-none bg-muted/30 border-muted text-base pb-6"
+                maxLength={1000}
+                data-testid="reset-day-reflection-input"
+              />
+              <span className="absolute bottom-2 right-3 text-xs text-muted-foreground">
+                {userInput.length}/1000
+              </span>
+            </div>
           )}
         </motion.div>
 
