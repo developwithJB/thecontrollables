@@ -1,15 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft,
@@ -30,7 +24,7 @@ import {
   Share2,
   Loader2,
 } from "lucide-react";
-import { format, addDays, parseISO, isWithinInterval } from "date-fns";
+import { format, addDays, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKETS, getSnapshotById } from "@/lib/snapshots";
 import { toast } from "sonner";
@@ -280,20 +274,21 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
 
   // Share functionality
   const handleShare = async () => {
+    const focusText = snapshot ? `Focus: ${snapshot.focus}` : "";
     const shareText = 
-      `📊 My Week: ${snapshot?.name || "Week Record"}\n` +
+      `📊 ${snapshot?.name || "Week Record"}\n` +
       `${dateRange}\n\n` +
-      `✅ ${record.daysCompleted}/7 days completed\n` +
-      `⚡ ${totalXP} XP earned\n` +
-      `🛡️ ${promisesKept}/${promisesTotal} promises kept\n` +
-      (avgWellness ? `❤️ ${avgWellness.toFixed(1)}/5 avg wellness\n` : "") +
+      (focusText ? `${focusText}\n` : "") +
+      `✅ ${record.daysCompleted}/7 days\n` +
+      `⚡ ${totalXP} XP\n` +
+      (promisesTotal > 0 ? `🛡️ ${promisesKept}/${promisesTotal} promises kept\n` : "") +
       `\nA quiet place to restart → thedashboard.agbcoaching.com\n\n` +
       `#TheDashboard`;
     
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `My Snapshot: ${snapshot?.name || "Week Record"}`,
+          title: `${snapshot?.name || "Week Record"}`,
           text: shareText,
         });
         toast.success("Shared! Thanks for spreading the word 🙏");
@@ -312,6 +307,45 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
     }
   };
 
+  // Generate week story based on actual data
+  const generateWeekStory = () => {
+    if (!data) return null;
+    
+    const daysCompleted = data.dailyResets.length;
+    const actionsCount = data.completedActions.length;
+    const reflectionsCount = data.timeLogs.length;
+    const promiseRate = promisesTotal > 0 ? Math.round((promisesKept / promisesTotal) * 100) : null;
+    
+    // Build contextual summary
+    const parts: string[] = [];
+    
+    if (daysCompleted === 7) {
+      parts.push("You showed up every day this week.");
+    } else if (daysCompleted >= 5) {
+      parts.push(`You checked in ${daysCompleted} of 7 days.`);
+    } else if (daysCompleted >= 1) {
+      parts.push(`You started this week with ${daysCompleted} check-in${daysCompleted > 1 ? 's' : ''}.`);
+    }
+    
+    if (actionsCount > 0) {
+      parts.push(`Completed ${actionsCount} action${actionsCount > 1 ? 's' : ''}.`);
+    }
+    
+    if (promiseRate !== null && promisesTotal >= 2) {
+      if (promiseRate >= 80) {
+        parts.push(`Strong integrity: ${promiseRate}% of promises kept.`);
+      } else if (promiseRate >= 50) {
+        parts.push(`Made ${promisesTotal} promises, kept ${promisesKept}.`);
+      }
+    }
+    
+    if (reflectionsCount >= 5) {
+      parts.push("Consistently reflected on your time.");
+    }
+    
+    return parts.length > 0 ? parts.join(' ') : "This week was recorded.";
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -327,12 +361,6 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{snapshot?.emoji || "📅"}</span>
-                <h1 className="text-lg font-display font-semibold truncate">
-                  {snapshot?.name || "Week Record"}
-                </h1>
-              </div>
               <p className="text-sm text-muted-foreground">{dateRange}</p>
             </div>
             {/* Share/Export buttons */}
@@ -360,86 +388,75 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
                 )}
               </Button>
             </div>
-            <Badge
-              variant="secondary"
-              className={`shrink-0 ${
-                record.status === "completed"
-                  ? "bg-emerald-500/80 text-white"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {record.daysCompleted}/7 days
-            </Badge>
           </div>
         </div>
 
         {/* Content */}
         <ScrollArea className="flex-1">
           <div ref={contentRef} className="p-4 space-y-6 pb-20 bg-background">
-            {/* Snapshot Theme */}
-            {bucket && (
-              <Card>
-                <CardContent className="py-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{bucket.emoji}</span>
-                    <div>
-                      <p className="font-medium text-foreground">{bucket.name}</p>
-                      <p className="text-sm text-muted-foreground italic">
-                        "{bucket.question}"
-                      </p>
-                    </div>
+            {/* Hero: Focus & Theme Card */}
+            <Card className="border-2 border-primary/20 bg-gradient-to-br from-card to-muted/30">
+              <CardContent className="py-5">
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-3xl">{snapshot?.emoji || bucket?.emoji || "📅"}</span>
                   </div>
-                  {snapshot && (
-                    <p className="mt-3 text-sm text-muted-foreground">
-                      Focus: <span className="capitalize font-medium text-foreground">{snapshot.focus}</span> — {snapshot.tagline}
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-xl font-display font-semibold text-foreground">
+                      {snapshot?.name || "Week Record"}
+                    </h1>
+                    {bucket && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {bucket.name}
+                      </p>
+                    )}
+                    {snapshot && (
+                      <div className="mt-3 flex items-center gap-2">
+                        <Badge variant="secondary" className="capitalize">
+                          {snapshot.focus}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground">{snapshot.tagline}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Week Story */}
+                {!loading && (
+                  <div className="mt-4 pt-4 border-t border-border/50">
+                    <p className="text-sm text-foreground leading-relaxed">
+                      {generateWeekStory()}
                     </p>
-                  )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Quick Stats - Simplified */}
+            <div className="grid grid-cols-3 gap-3">
+              <Card>
+                <CardContent className="py-3 text-center">
+                  <Calendar className="w-4 h-4 mx-auto text-primary mb-1" />
+                  <p className="text-lg font-bold text-foreground">{record.daysCompleted}/7</p>
+                  <p className="text-xs text-muted-foreground">Days</p>
                 </CardContent>
               </Card>
-            )}
-
-            {/* Quick Stats */}
-            <div className="grid grid-cols-3 gap-3">
               <Card>
                 <CardContent className="py-3 text-center">
                   <Zap className="w-4 h-4 mx-auto text-amber-500 mb-1" />
                   <p className="text-lg font-bold text-foreground">{totalXP}</p>
-                  <p className="text-xs text-muted-foreground">XP Earned</p>
+                  <p className="text-xs text-muted-foreground">XP</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="py-3 text-center">
                   <Shield className="w-4 h-4 mx-auto text-emerald-500 mb-1" />
                   <p className="text-lg font-bold text-foreground">
-                    {promisesKept}/{promisesTotal}
+                    {promisesTotal > 0 ? `${promisesKept}/${promisesTotal}` : "—"}
                   </p>
-                  <p className="text-xs text-muted-foreground">Promises Kept</p>
+                  <p className="text-xs text-muted-foreground">Promises</p>
                 </CardContent>
               </Card>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Card className="cursor-help">
-                      <CardContent className="py-3 text-center">
-                        <Heart className="w-4 h-4 mx-auto text-rose-500 mb-1" />
-                        <p className="text-lg font-bold text-foreground">
-                          {avgWellness ? avgWellness.toFixed(1) : "—"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {avgWellness ? "Avg Wellness" : "Not tracked"}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-[200px] text-center">
-                    {avgWellness ? (
-                      <p>Average of Sleep, Movement & Nutrition ratings (1-5 scale)</p>
-                    ) : (
-                      <p>Log your Battery Check on Day 4 to track Sleep, Movement & Nutrition</p>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             </div>
 
             {loading ? (
