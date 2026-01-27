@@ -6,6 +6,7 @@ import { useEntitlements } from "@/hooks/useEntitlements";
 import { useDashboardSummary } from "@/hooks/useDashboardSummary";
 import { CovenantScreen } from "@/components/CovenantScreen";
 import { ResetDay } from "@/components/ResetDay";
+import { ReadingReview } from "@/components/ReadingReview";
 import { WelcomeBack } from "@/components/WelcomeBack";
 import { Day7Complete } from "@/components/Day7Complete";
 import { ResetComplete } from "@/components/ResetComplete";
@@ -119,8 +120,32 @@ const Reset = () => {
     );
   }
 
-  // Today already done - show completion screen
+  // Get snapshot/journey info for display
+  const journey = activeSession?.journey_id ? getJourneyById(activeSession.journey_id) : null;
+  
+  // Handler to navigate to dashboard and open snapshot selector
+  const handleChangeFocus = () => {
+    navigate("/dashboard?openFocus=1");
+  };
+
+  // Today already done - check if reviewing or show completion
   if (isTodayCompleted) {
+    const isReviewMode = searchParams.get("mode") === "review";
+    
+    if (isReviewMode) {
+      // Show reading review instead of completion screen
+      return (
+        <ReadingReview
+          dayNumber={currentDay}
+          completedDays={completedDays.length}
+          snapshotEmoji={journey?.emoji}
+          snapshotTitle={journey?.title}
+          onChangeFocus={handleChangeFocus}
+          activeQuest={activeQuest}
+        />
+      );
+    }
+    
     return <ResetComplete isFullReset={false} />;
   }
 
@@ -128,14 +153,6 @@ const Reset = () => {
   if (missedDays && !acknowledgedMissedDays) {
     return <WelcomeBack onContinue={() => setAcknowledgedMissedDays(true)} />;
   }
-
-  // Get snapshot/journey info for display
-  const journey = activeSession?.journey_id ? getJourneyById(activeSession.journey_id) : null;
-
-  // Handler to navigate to dashboard and open snapshot selector
-  const handleChangeFocus = () => {
-    navigate("/dashboard?openFocus=1");
-  };
 
   // Show today's reset
   return (
