@@ -720,8 +720,30 @@ export default function Dashboard() {
                     getJourneyById(activeSession.journey_id)?.title : undefined}
                   onChangeJourney={() => setShowJourneySwitcher(true)}
                   missionTitle={activeQuest?.title}
-                  onOpenTimeLog={() => timeCurrencyRef.current?.openLogDialog()}
-                  onOpenPromises={() => integrityRef.current?.openDetailDialog()}
+                  onOpenTimeLog={() => {
+                    // Ensure insights section is visible, then open dialog
+                    if (!showInsights) {
+                      setShowInsights(true);
+                      // Wait for React to mount the component before opening
+                      requestAnimationFrame(() => {
+                        setTimeout(() => timeCurrencyRef.current?.openLogDialog(), 50);
+                      });
+                    } else {
+                      timeCurrencyRef.current?.openLogDialog();
+                    }
+                  }}
+                  onOpenPromises={() => {
+                    // Ensure insights section is visible, then open dialog
+                    if (!showInsights) {
+                      setShowInsights(true);
+                      // Wait for React to mount the component before opening
+                      requestAnimationFrame(() => {
+                        setTimeout(() => integrityRef.current?.openDetailDialog(), 50);
+                      });
+                    } else {
+                      integrityRef.current?.openDetailDialog();
+                    }
+                  }}
                   onOpenAIGuide={() => {
                     trackGuideInteraction("open");
                     // Stay on dashboard tab and open The Controllables messenger
