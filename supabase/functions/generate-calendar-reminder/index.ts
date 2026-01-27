@@ -11,60 +11,42 @@ interface ReminderRequest {
   format: 'google' | 'ics';
 }
 
-// Format date for iCal (YYYYMMDDTHHMMSS)
-function formatICalDate(date: Date): string {
+// Format date for iCal (YYYYMMDDTHHMMSS) - local time format
+function formatICalDate(year: number, month: number, day: number, hour: number, minute: number): string {
   const pad = (n: number) => n.toString().padStart(2, '0');
-  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+  return `${year}${pad(month)}${pad(day)}T${pad(hour)}${pad(minute)}00`;
 }
 
-// Format date for Google Calendar URL (YYYYMMDDTHHMMSSZ for UTC)
-function formatGoogleDate(date: Date): string {
-  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-}
-
-// Get the next occurrence of the preferred time
-function getNextReminderTime(timezone: string, timePreference: 'morning' | 'evening'): Date {
+// Get tomorrow's date in user's timezone
+function getTomorrowInTimezone(timezone: string): { year: number; month: number; day: number } {
   const now = new Date();
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
   
-  // Get today's date in the user's timezone
+  // Format in user's timezone
   const formatter = new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   });
-  const localDateStr = formatter.format(now);
   
-  // Set the preferred hour (7:00 for morning, 20:00 for evening)
-  const hour = timePreference === 'morning' ? 7 : 20;
+  const parts = formatter.formatToParts(tomorrow);
+  const year = parseInt(parts.find(p => p.type === 'year')?.value || '2026');
+  const month = parseInt(parts.find(p => p.type === 'month')?.value || '01');
+  const day = parseInt(parts.find(p => p.type === 'day')?.value || '01');
   
-  // Create the reminder time in the user's timezone
-  // We'll use tomorrow to ensure the first reminder is in the future
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  const tomorrowFormatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-  const tomorrowDateStr = tomorrowFormatter.format(tomorrow);
-  
-  // Create a date string in the user's timezone
-  const reminderDate = new Date(`${tomorrowDateStr}T${hour.toString().padStart(2, '0')}:00:00`);
-  
-  return reminderDate;
+  return { year, month, day };
 }
 
-// Generate .ics file content
-function generateICS(startTime: Date, timezone: string): string {
-  const endTime = new Date(startTime.getTime() + 5 * 60 * 1000); // 5 minutes duration
+// Generate .ics file content with proper timezone handling
+function generateICS(timezone: string, timePreference: 'morning' | 'evening'): string {
+  const { year, month, day } = getTomorrowInTimezone(timezone);
+  const hour = timePreference === 'morning' ? 7 : 20;
   
   const uid = `dashboard-checkin-${Date.now()}@thedashboard.agbcoaching.com`;
-  const dtstamp = formatICalDate(new Date());
-  const dtstart = formatICalDate(startTime);
-  const dtend = formatICalDate(endTime);
+  const dtstamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const dtstart = formatICalDate(year, month, day, hour, 0);
+  const dtend = formatICalDate(year, month, day, hour, 5); // 5 minutes later
   
   // Escape special characters in text
   const description = `A calm check-in with The Dashboard.\\nOne honest rep. Then you're done.\\n\\nOpen: https://thedashboard.agbcoaching.com`;
@@ -74,12 +56,9 @@ VERSION:2.0
 PRODID:-//The Dashboard//Calendar Reminder//EN
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
-BEGIN:VTIMEZONE
-TZID:${timezone}
-END:VTIMEZONE
 BEGIN:VEVENT
 UID:${uid}
-DTSTAMP:${dtstamp}Z
+DTSTAMP:${dtstamp}
 DTSTART;TZID=${timezone}:${dtstart}
 DTEND;TZID=${timezone}:${dtend}
 RRULE:FREQ=DAILY
@@ -92,9 +71,10 @@ END:VEVENT
 END:VCALENDAR`;
 }
 
-// Generate Google Calendar URL
-function generateGoogleCalendarUrl(startTime: Date, timezone: string): string {
-  const endTime = new Date(startTime.getTime() + 5 * 60 * 1000); // 5 minutes duration
+// Generate Google Calendar URL with proper local time handling
+function generateGoogleCalendarUrl(timezone: string, timePreference: 'morning' | 'evening'): string {
+  const { year, month, day } = getTomorrowInTimezone(timezone);
+  const hour = timePreference === 'morning' ? 7 : 20;
   
   const title = encodeURIComponent('Dashboard Check-In');
   const description = encodeURIComponent(`A calm check-in with The Dashboard.
@@ -102,12 +82,16 @@ One honest rep. Then you're done.
 
 Open: https://thedashboard.agbcoaching.com`);
   
-  const startStr = formatGoogleDate(startTime);
-  const endStr = formatGoogleDate(endTime);
+  // Format dates as YYYYMMDDTHHMMSS (local time, no Z suffix)
+  // When combined with ctz parameter, Google Calendar interprets this as local time
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const startStr = `${year}${pad(month)}${pad(day)}T${pad(hour)}0000`;
+  const endStr = `${year}${pad(month)}${pad(day)}T${pad(hour)}0500`; // 5 minutes later
   
   // RRULE for daily recurrence
   const recur = encodeURIComponent('RRULE:FREQ=DAILY');
   
+  // ctz parameter tells Google Calendar which timezone the times are in
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${description}&dates=${startStr}/${endStr}&recur=${recur}&ctz=${encodeURIComponent(timezone)}`;
 }
 
@@ -135,11 +119,9 @@ serve(async (req) => {
       );
     }
     
-    const startTime = getNextReminderTime(timezone, time_preference);
-    
     if (format === 'ics') {
       // Return .ics file
-      const icsContent = generateICS(startTime, timezone);
+      const icsContent = generateICS(timezone, time_preference);
       
       return new Response(icsContent, {
         headers: {
@@ -150,7 +132,7 @@ serve(async (req) => {
       });
     } else {
       // Return Google Calendar URL
-      const googleUrl = generateGoogleCalendarUrl(startTime, timezone);
+      const googleUrl = generateGoogleCalendarUrl(timezone, time_preference);
       
       return new Response(
         JSON.stringify({ url: googleUrl }),
