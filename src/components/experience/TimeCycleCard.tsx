@@ -145,30 +145,7 @@ export function TimeCycleCard({ activeQuest, currentResetDay = 1, hasActiveReset
           </div>
         )}
 
-        {/* Quest Cycle */}
-        {activeQuest && (
-          <div className="p-3 rounded-xl bg-accent/10 border border-accent/20">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Target className="w-3 h-3 text-accent" />
-                <span className="text-xs font-medium text-accent truncate max-w-[150px]">
-                  {activeQuest.title}
-                </span>
-              </div>
-              <span className="text-xs text-accent">
-                {questDaysLeft !== null ? `${questDaysLeft}d left` : "Active"}
-              </span>
-            </div>
-            <div className="h-2 bg-accent/20 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${questProgress}%` }}
-                transition={{ duration: 0.5 }}
-                className="h-full bg-accent rounded-full"
-              />
-            </div>
-          </div>
-        )}
+        {/* Quest Cycle removed - Mission is a Direction, not time-tracked */}
       </div>
     </motion.div>
   );
