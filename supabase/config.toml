@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.check-payment]
 verify_jwt = false
+
+[functions.send-daily-nudge]
+verify_jwt = false
