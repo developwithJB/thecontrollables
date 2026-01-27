@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
 
           // Send email via Resend
           const emailResult = await resend.emails.send({
-            from: "The Controllables <noreply@thecontrollables.lovable.app>",
+            from: "The Dashboard <noreply@thedashboard.agbcoaching.com>",
             to: [email],
             subject: subject,
             html: `
@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
                 <p style="font-size: 24px; color: #1a1a1a; margin-bottom: 24px;">
                   Just do today. That's it.
                 </p>
-                <a href="https://thecontrollables.lovable.app/dashboard" 
+                <a href="https://thedashboard.agbcoaching.com/dashboard" 
                    style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
                   Open Today's Actions →
                 </a>
