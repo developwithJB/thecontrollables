@@ -288,9 +288,9 @@ Deno.serve(async (req) => {
     }
 
     const targetHour = nudgeTime === "morning" ? MORNING_HOUR : EVENING_HOUR;
-    const today = new Date().toISOString().split("T")[0];
+    // Note: We'll use each user's local date for duplicate checking, not UTC date
 
-    console.log(`[NUDGE] Starting ${nudgeTime} nudge run for ${today} (target hour: ${targetHour})`);
+    console.log(`[NUDGE] Starting ${nudgeTime} nudge run (target hour: ${targetHour}:00 local time)`);
 
     // Get all users with nudges enabled for this time preference
     const { data: profiles, error: profilesError } = await supabase
@@ -324,13 +324,38 @@ Deno.serve(async (req) => {
     const usersToNudge: { userId: string; timezone: string; localDate: string }[] = [];
     const now = new Date();
 
+    // Helper to get user's local hour and date correctly
+    function getUserLocalTimeInfo(timezone: string): { hour: number; localDate: string } {
+      // Use Intl.DateTimeFormat for reliable timezone conversion
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        hour12: false,
+      });
+      const parts = formatter.formatToParts(now);
+      
+      const year = parts.find(p => p.type === "year")?.value || "2026";
+      const month = parts.find(p => p.type === "month")?.value || "01";
+      const day = parts.find(p => p.type === "day")?.value || "01";
+      const hourStr = parts.find(p => p.type === "hour")?.value || "0";
+      
+      // Handle hour "24" edge case (midnight)
+      const hour = parseInt(hourStr, 10) % 24;
+      const localDate = `${year}-${month}-${day}`;
+      
+      return { hour, localDate };
+    }
+
     for (const profile of profiles as ProfileRow[]) {
       const userTimezone = profile.timezone || "America/New_York";
 
       try {
-        const userLocalTime = new Date(now.toLocaleString("en-US", { timeZone: userTimezone }));
-        const userHour = userLocalTime.getHours();
-        const localDate = userLocalTime.toISOString().split("T")[0];
+        const { hour: userHour, localDate } = getUserLocalTimeInfo(userTimezone);
+        
+        console.log(`[NUDGE] User ${profile.id} timezone=${userTimezone}, localHour=${userHour}, localDate=${localDate}, targetHour=${targetHour}`);
 
         if (testMode) {
           usersToNudge.push({ userId: profile.id, timezone: userTimezone, localDate });
@@ -341,7 +366,7 @@ Deno.serve(async (req) => {
           usersToNudge.push({ userId: profile.id, timezone: userTimezone, localDate });
         }
       } catch (tzError) {
-        console.warn(`[NUDGE] Invalid timezone for user ${profile.id}: ${userTimezone}`);
+        console.warn(`[NUDGE] Invalid timezone for user ${profile.id}: ${userTimezone}`, tzError);
       }
     }
 
@@ -364,12 +389,12 @@ Deno.serve(async (req) => {
 
       await Promise.all(batch.map(async ({ userId, localDate }) => {
         try {
-          // Check if already sent today
+          // Check if already sent for this user's local date
           const { data: existingLog } = await supabase
             .from("email_nudge_logs")
             .select("id")
             .eq("user_id", userId)
-            .eq("nudge_date", today)
+            .eq("nudge_date", localDate)
             .maybeSingle();
 
           if (existingLog) {
@@ -412,12 +437,12 @@ Deno.serve(async (req) => {
 
           console.log(`[NUDGE] Sent to ${email} with subject "${subject}":`, emailResult);
 
-          // Log the successful send
+          // Log the successful send using user's local date
           await supabase
             .from("email_nudge_logs")
             .insert({
               user_id: userId,
-              nudge_date: today,
+              nudge_date: localDate,
               status: "sent",
             });
 
