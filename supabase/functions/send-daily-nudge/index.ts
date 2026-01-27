@@ -18,6 +18,7 @@ const EVENING_HOUR = 19;
 
 interface NudgeRequest {
   nudgeTime?: "morning" | "evening";
+  testMode?: boolean; // Bypass timezone check for testing
 }
 
 Deno.serve(async (req) => {
@@ -44,10 +45,14 @@ Deno.serve(async (req) => {
 
     // Parse request body
     let nudgeTime: "morning" | "evening" = "morning";
+    let testMode = false;
     try {
       const body: NudgeRequest = await req.json();
       if (body.nudgeTime === "evening") {
         nudgeTime = "evening";
+      }
+      if (body.testMode === true) {
+        testMode = true;
       }
     } catch {
       // Default to morning if no body
@@ -80,13 +85,19 @@ Deno.serve(async (req) => {
 
     console.log(`[NUDGE] Found ${profiles.length} users with ${nudgeTime} nudges enabled`);
 
-    // Filter users whose local time matches the target hour
+    // Filter users whose local time matches the target hour (or include all in test mode)
     const usersToNudge: { userId: string; timezone: string }[] = [];
     const now = new Date();
 
     for (const profile of profiles) {
       const userTimezone = profile.timezone || "America/New_York";
       
+      // In test mode, skip timezone check and include all matching users
+      if (testMode) {
+        usersToNudge.push({ userId: profile.id, timezone: userTimezone });
+        continue;
+      }
+
       try {
         // Get current hour in user's timezone
         const userLocalTime = new Date(now.toLocaleString("en-US", { timeZone: userTimezone }));
@@ -100,7 +111,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[NUDGE] ${usersToNudge.length} users are at the target hour (${targetHour}:00)`);
+    console.log(`[NUDGE] ${usersToNudge.length} users to nudge${testMode ? " (TEST MODE)" : ` at target hour (${targetHour}:00)`}`);
 
     if (usersToNudge.length === 0) {
       return new Response(
