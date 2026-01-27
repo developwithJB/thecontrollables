@@ -63,7 +63,14 @@ export default function Landing() {
               <br />
               Five guides. One calm place to reset.
             </h1>
-            <br />
+
+            {/* Secondary CTA - Early Action */}
+            <Link to="/auth?mode=signup">
+              <Button variant="outline" size="lg" className="h-11 text-sm font-medium group">
+                Start with one Snapshot
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
             <br />
 
             <p className="text-muted-foreground text-sm leading-relaxed text-balance max-w-xs mx-auto mb-4">
