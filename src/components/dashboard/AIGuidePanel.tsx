@@ -698,7 +698,7 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
                     </p>
                     
                     <Button 
-                      onClick={onUpgrade}
+                      onClick={() => onUpgrade?.()}
                       disabled={isCheckingOut}
                       className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                       data-testid="ai-operators-upgrade-cta"

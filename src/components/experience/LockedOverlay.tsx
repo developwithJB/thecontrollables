@@ -66,7 +66,7 @@ export function LockedOverlay({
   const handlePlanSelect = (plan: PlanType) => {
     setSelectedPlan(plan);
     if (onUpgrade) {
-      onUpgrade(plan);
+      onUpgrade(plan);  // This one is correct - we want to pass the plan
     }
   };
 

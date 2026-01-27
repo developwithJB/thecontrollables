@@ -339,7 +339,7 @@ export function ResetProgressModule({
             </div>
           </div>
           
-          <Button className="w-full" onClick={onUpgrade}>
+          <Button className="w-full" onClick={() => onUpgrade?.()}>
             <Sparkles className="w-4 h-4 mr-2" />
             Unlock Full Access
           </Button>
