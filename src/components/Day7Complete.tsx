@@ -124,6 +124,18 @@ export const Day7Complete = ({
             ✨
           </motion.div>
 
+          {/* TGIM Completion Message - calm, no hype */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="mb-4"
+          >
+            <p className="text-sm text-muted-foreground">
+              TGIM, again.
+            </p>
+          </motion.div>
+
           {/* Completion Message */}
           <motion.h1
             initial={{ opacity: 0, y: 10 }}
@@ -131,7 +143,7 @@ export const Day7Complete = ({
             transition={{ delay: 0.3 }}
             className="text-2xl font-semibold text-foreground mb-6"
           >
-            You did it.
+            You showed up this week.
           </motion.h1>
 
           {/* Statement */}

@@ -60,7 +60,7 @@ function getStatusInfo(status: string, daysCompleted: number): { label: string; 
   return { label: "Started", colorClass: "bg-muted text-muted-foreground" };
 }
 
-// Generate narrative for month
+// Generate narrative for month - occasionally reference TGIM-style language
 function getMonthNarrative(records: SnapshotRecord[]): string {
   if (records.length === 0) return "";
   
@@ -76,8 +76,15 @@ function getMonthNarrative(records: SnapshotRecord[]): string {
   const topBucket = Object.entries(bucketCounts)
     .sort(([, a], [, b]) => b - a)[0];
   
+  // Count restarts (snapshots after the first one)
+  const restarts = records.length - 1;
+  
+  // Occasionally use TGIM-style language (not always - keep it subtle)
+  if (restarts >= 2) {
+    return "This month included a few quiet restarts.";
+  }
+  
   if (topBucket) {
-    const bucket = BUCKETS[topBucket[0] as BucketId];
     const narratives: Record<BucketId, string> = {
       "reset-reentry": "This month was about starting fresh.",
       "momentum-consistency": "This month was about building consistency.",
@@ -86,19 +93,23 @@ function getMonthNarrative(records: SnapshotRecord[]): string {
       "integrity-trust": "This month was about keeping your word.",
       "growth-expansion": "This month was about growing forward.",
     };
-    return narratives[topBucket[0] as BucketId] || `This month was about ${bucket.name.toLowerCase()}.`;
+    return narratives[topBucket[0] as BucketId] || `This month was about ${BUCKETS[topBucket[0] as BucketId].name.toLowerCase()}.`;
   }
   
   return "This month, you showed up.";
 }
 
-// Generate narrative for year
+// Generate narrative for year - occasionally reference TGIM-style language
 function getYearNarrative(records: SnapshotRecord[]): string {
   if (records.length === 0) return "";
   
   const completed = records.filter(r => r.status === "completed").length;
   const returns = records.length - 1; // How many times they came back
   
+  // Use TGIM-style language for resilience narratives
+  if (returns >= 10) {
+    return "This year, you kept giving yourself new beginnings.";
+  }
   if (completed >= 10) {
     return "This year, you built something real.";
   }
