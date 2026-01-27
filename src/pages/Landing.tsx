@@ -64,14 +64,6 @@ export default function Landing() {
               <span className="text-accent">The Dashboard.</span>
             </h1>
 
-            <p className="text-muted-foreground text-sm leading-relaxed text-balance max-w-xs mx-auto mb-4">
-              Check in daily, focus on what's controllable, and stack quiet proof that you can trust yourself again.
-            </p>
-
-            <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground/80 mb-6">
-              <span>Just you, your week, and what matters most.</span>
-            </div>
-
             {/* Secondary CTA - Early Action */}
             <Link to="/auth?mode=signup">
               <Button variant="outline" size="lg" className="h-11 text-sm font-medium group">
@@ -79,6 +71,10 @@ export default function Landing() {
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
+
+            <p className="text-muted-foreground text-sm leading-relaxed text-balance max-w-xs mx-auto mb-4">
+              Check in daily, focus on what's controllable, and stack quiet proof that you can trust yourself again.
+            </p>
           </motion.div>
 
           {/* The Controllables Grid */}
