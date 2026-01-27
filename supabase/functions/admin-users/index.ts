@@ -941,12 +941,18 @@ Deno.serve(async (req) => {
       const { data: authUsers, error: authError } = await adminClient.auth.admin.listUsers();
       if (authError) throw authError;
 
-      // Get all entitlements
-      const { data: entitlements, error: entError } = await adminClient
+      // Get all entitlements (both lifetime and time-limited that haven't expired)
+      const { data: allEntitlements, error: entError } = await adminClient
         .from("user_entitlements")
-        .select("*")
-        .is("expires_at", null);
+        .select("*");
       if (entError) throw entError;
+
+      // Filter to only include valid entitlements (no expiry OR not yet expired)
+      const now = new Date();
+      const entitlements = allEntitlements?.filter(e => {
+        if (!e.expires_at) return true; // Lifetime access
+        return new Date(e.expires_at) > now; // Not yet expired
+      }) || [];
 
       const entitlementMap = new Map(entitlements?.map((e) => [e.user_id, e]) || []);
 
