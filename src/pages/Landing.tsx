@@ -8,6 +8,8 @@ import { ControllableGuideCard, type ControllableType } from "@/components/landi
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { FeatureGrid } from "@/components/landing/FeatureGrid";
 import { TrustDisclosure } from "@/components/landing/TrustDisclosure";
+import { PhilosophySection } from "@/components/landing/PhilosophySection";
+import { WhyStartSection } from "@/components/landing/WhyStartSection";
 
 const controllables: Array<{
   type: ControllableType;
@@ -53,12 +55,11 @@ export default function Landing() {
             </h1>
 
             <p className="text-muted-foreground text-sm leading-relaxed text-balance max-w-xs mx-auto mb-4">
-              The Dashboard is a simple, private system for rebuilding momentum when life knocks you off track.
+              The Dashboard is a simple, private system for rebuilding momentum when life knocks you off track. Check in daily, focus on what's controllable, and stack quiet proof that you can trust yourself again.
             </p>
 
             <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground/80">
-              <span>No feeds.</span>
-              <span>No streak shame.</span>
+              <span>No feeds. No streak shame. No guilt.</span>
               <span>Just you, your week, and what matters most.</span>
             </div>
           </motion.div>
@@ -112,8 +113,14 @@ export default function Landing() {
         {/* How It Works */}
         <HowItWorksSection />
 
-        {/* Adaptive Intelligence */}
+        {/* Why Start */}
+        <WhyStartSection />
+
+        {/* Features */}
         <FeatureGrid />
+
+        {/* Philosophy */}
+        <PhilosophySection />
 
         {/* Trust Disclosure */}
         <TrustDisclosure />
@@ -162,8 +169,19 @@ export default function Landing() {
       </main>
 
       {/* Footer */}
-      <footer className="px-6 py-6 text-center">
+      <footer className="px-6 py-8 text-center space-y-3 border-t border-border/30">
         <p className="text-xs text-muted-foreground">
+          Questions? Message us on Instagram{" "}
+          <a 
+            href="https://instagram.com/agbcoaching" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            @agbcoaching
+          </a>
+        </p>
+        <p className="text-xs text-muted-foreground/70">
           © {new Date().getFullYear()} The Controllables
         </p>
       </footer>
