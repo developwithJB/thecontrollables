@@ -12,7 +12,10 @@ import {
   Clock,
   Shield,
   Download,
-  Share
+  Share,
+  Target,
+  Camera,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isStandalone, isIOS, hasDeferredPrompt, triggerInstallPrompt } from "@/lib/pwa";
@@ -23,6 +26,35 @@ interface ManualSection {
   icon: React.ElementType;
   description: string;
 }
+
+interface HierarchyItem {
+  title: string;
+  subtitle: string;
+  icon: React.ElementType;
+  description: string;
+}
+
+// Hierarchy explanation: Mission → Snapshot → Daily Check-In
+const HIERARCHY_ITEMS: HierarchyItem[] = [
+  {
+    title: "Mission",
+    subtitle: "Direction",
+    icon: Target,
+    description: "Your Mission is the direction you're pointing your life right now. It doesn't change daily.",
+  },
+  {
+    title: "Snapshot",
+    subtitle: "This Week",
+    icon: Camera,
+    description: "A Snapshot is your focus for the next 7 days. One theme. No perfection.",
+  },
+  {
+    title: "Daily Check-In",
+    subtitle: "Today",
+    icon: CheckCircle,
+    description: "This is about today only. One honest check-in. Then you're done.",
+  },
+];
 
 // Simplified to 5 core items
 const CORE_SECTIONS: ManualSection[] = [
@@ -39,12 +71,12 @@ const CORE_SECTIONS: ManualSection[] = [
   {
     title: "The Controllables",
     icon: MessageCircle,
-    description: "Five AI guides for action-focused advice. Ask when you're stuck.",
+    description: "Five guides to help when you're stuck. Ask a question, get one action.",
   },
   {
     title: "Your Build",
     icon: Dumbbell,
-    description: "Your scores across 5 dimensions. Take the assessment to discover your archetype.",
+    description: "Your scores across 5 dimensions. Answer a few questions to see where to grow.",
   },
   {
     title: "Experience",
@@ -158,9 +190,55 @@ export function DashboardManualSection() {
       transition={{ duration: 0.4 }}
       className="mb-8"
     >
+      {/* How This Works - Hierarchy Section */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <BookOpen className="w-4 h-4 text-primary" />
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            How This Works
+          </h2>
+        </div>
+        
+        <div className="space-y-3 mb-4">
+          {HIERARCHY_ITEMS.map((item, index) => {
+            const IconComponent = item.icon;
+            return (
+              <div
+                key={item.title}
+                className="p-3 rounded-xl bg-card border transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                    <IconComponent className="w-3.5 h-3.5" />
+                  </span>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-display font-medium text-foreground text-sm leading-snug">
+                        {item.title}
+                      </p>
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                        {item.subtitle}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+                      {item.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        
+        <p className="text-xs text-muted-foreground text-center">
+          You don't manage all three at once. Just focus on today.
+        </p>
+      </div>
+
       {/* Section Header */}
       <div className="flex items-center gap-2 mb-4">
-        <BookOpen className="w-4 h-4 text-primary" />
+        <ListChecks className="w-4 h-4 text-primary" />
         <h2 className="font-display text-lg font-semibold text-foreground">
           Quick Reference
         </h2>

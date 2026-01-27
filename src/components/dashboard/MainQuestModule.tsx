@@ -112,13 +112,11 @@ export function MainQuestModule({
           </div>
           <div>
             <h3 className="font-display font-semibold text-foreground">No Active Mission</h3>
-            <p className="text-sm text-muted-foreground">Default path detected.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Your Mission is the direction you're pointing your life right now. It doesn't change daily.
+            </p>
           </div>
         </div>
-        
-        <p className="text-sm text-muted-foreground mb-4">
-          Without a mission, life plays you instead of you playing it.
-        </p>
 
         <Dialog open={isOpen} onOpenChange={handleOpenDialog}>
           <DialogTrigger asChild>
@@ -130,6 +128,9 @@ export function MainQuestModule({
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle className="font-display">Define Your Main Mission</DialogTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Pick a direction. You can refine it later.
+              </p>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div>

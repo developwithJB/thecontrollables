@@ -682,10 +682,13 @@ export function TodayActions({
         {/* Primary Action Highlight - "One Thing" Anchor */}
         {!isListCollapsed && primaryAction && !primaryAction.completed && (
           <div className="p-4 border-b border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
-            <div className="flex items-center gap-1.5 text-xs text-primary font-medium mb-2">
-              <Sparkles className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-2 text-sm text-primary font-semibold mb-1">
+              <Sparkles className="w-4 h-4" />
               If you do one thing today, do this.
             </div>
+            <p className="text-[10px] text-muted-foreground mb-3">
+              This is about today only. One honest check-in. Then you're done.
+            </p>
             <button
               onClick={primaryAction.action}
               className="w-full p-3 rounded-lg bg-card border-2 border-primary/30 hover:border-primary/50 transition-all text-left group"
@@ -721,11 +724,14 @@ export function TodayActions({
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              {/* "Everything else is optional" label - only show if there are secondary actions */}
+              {/* Visual separator between primary and secondary actions */}
               {secondaryActions.length > 0 && primaryAction && !primaryAction.completed && (
-                <div className="px-4 pt-3 pb-1">
-                  <p className="text-xs text-muted-foreground">Everything else is optional.</p>
-                </div>
+                <>
+                  <div className="mx-4 border-t border-border/50" />
+                  <div className="px-4 pt-3 pb-1">
+                    <p className="text-xs text-muted-foreground">Everything else is optional.</p>
+                  </div>
+                </>
               )}
               
               <div className="divide-y divide-border/50">

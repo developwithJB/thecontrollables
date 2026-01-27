@@ -12,7 +12,7 @@ const steps = [
   {
     icon: Brain,
     title: "Get Guided",
-    description: "Based on your Build and patterns, The Dashboard suggests what to focus on this week.",
+    description: "The Dashboard notices what works for you and suggests what to focus on this week.",
     color: "text-perspective",
     bgColor: "bg-perspective/10",
   },
