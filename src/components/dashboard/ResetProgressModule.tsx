@@ -547,6 +547,72 @@ export function ResetProgressModule({
 
   // Active session - show progress (Quest-like styling)
   return (
+    <>
+    {/* Completed Day Reading Modal */}
+    <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+        {selectedDay && (() => {
+          const dayInfo = getDayInfo(selectedDay.day_number);
+          const fullContent = getDayContent(selectedDay.day_number);
+          return (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="text-center">
+                <span className="text-4xl mb-2 block">{dayInfo.emoji}</span>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+                  Day {selectedDay.day_number} of 7
+                </p>
+                <h3 className="font-display text-xl font-semibold text-foreground">
+                  {dayInfo.controllable}
+                </h3>
+                {selectedDay.completed_at && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Completed {new Date(selectedDay.completed_at).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+
+              {/* Reading */}
+              <div className="bg-gradient-to-br from-primary/10 to-muted/30 rounded-xl p-5">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+                  {fullContent.reading.source}
+                </p>
+                <p className="text-sm font-semibold text-foreground mb-3">
+                  {fullContent.reading.chapter}
+                </p>
+                <p className="text-lg leading-relaxed text-foreground font-serif italic">
+                  "{fullContent.reading.text}"
+                </p>
+              </div>
+
+              {/* Framing Line */}
+              <p className="text-foreground/90 text-sm text-center leading-relaxed">
+                {fullContent.framingLine}
+              </p>
+
+              {/* Control / Surrender */}
+              <div className="space-y-2 py-3 border-t border-muted/50">
+                <p className="text-sm text-foreground/80">
+                  <span className="text-muted-foreground">Control:</span> {fullContent.controlLine}
+                </p>
+                <p className="text-sm text-foreground/80 italic">
+                  <span className="text-muted-foreground not-italic">Surrender:</span> {fullContent.surrenderLine}
+                </p>
+              </div>
+
+              {/* User's Reflection (if saved) */}
+              {selectedDay.reflection && (
+                <div className="bg-muted/30 rounded-lg p-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Your Reflection</p>
+                  <p className="text-sm text-foreground italic">"{selectedDay.reflection}"</p>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+      </DialogContent>
+    </Dialog>
+
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -762,5 +828,6 @@ export function ResetProgressModule({
       </AnimatePresence>
 
     </motion.div>
+    </>
   );
 }
