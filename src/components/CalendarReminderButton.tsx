@@ -42,10 +42,16 @@ export function CalendarReminderButton({
   // Get timezone - prefer passed value, fall back to browser
   const userTimezone = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  // Detect if user is on Apple device (for .ics vs Google URL)
-  const isAppleDevice = () => {
+  // Detect calendar platform preference
+  // Use .ics only for Safari on Apple devices (no Chrome)
+  // All other browsers (including Chrome on any platform) use Google Calendar
+  const shouldUseICS = () => {
     const ua = navigator.userAgent;
-    return /iPad|iPhone|iPod|Macintosh/.test(ua) && !/Chrome/.test(ua);
+    // Safari on Apple devices (not Chrome, not CriOS which is Chrome on iOS)
+    const isAppleSafari = /iPad|iPhone|iPod|Macintosh/.test(ua) && 
+                          /Safari/.test(ua) && 
+                          !/Chrome|CriOS|Chromium/.test(ua);
+    return isAppleSafari;
   };
 
   const handleAddReminder = async (timePreference: TimePreference) => {
@@ -53,10 +59,10 @@ export function CalendarReminderButton({
     setSelectedTime(timePreference);
 
     try {
-      const format = isAppleDevice() ? "ics" : "google";
+      const useICS = shouldUseICS();
 
-      if (format === "google") {
-        // Get Google Calendar URL
+      if (!useICS) {
+        // Get Google Calendar URL - works for Chrome (mobile & desktop), Firefox, etc.
         const { data, error } = await supabase.functions.invoke("generate-calendar-reminder", {
           body: {
             time_preference: timePreference,
@@ -82,7 +88,7 @@ export function CalendarReminderButton({
           description: "Complete the setup in your calendar to save the reminder.",
         });
       } else {
-        // Download .ics file for Apple devices
+        // Download .ics file for Safari on Apple devices
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-calendar-reminder`,
           {
