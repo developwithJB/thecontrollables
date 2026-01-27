@@ -385,13 +385,12 @@ export function TodayActions({
     }
   }
 
-  // Determine primary action (first incomplete action, prioritizing check-in)
+  // Determine primary action - ONLY the daily check-in qualifies
+  // Once complete, the "one thing" anchor disappears entirely
   const getPrimaryAction = (): ActionItem | null => {
-    // Priority: Check-in -> Journey Action -> Time Reflection -> Others
-    const priorityOrder = ["checkin", "journey-action", "time", "promises", "make-promise", "review-build", "ask-guide"];
-    for (const id of priorityOrder) {
-      const action = actions.find((a) => a.id === id && !a.completed);
-      if (action) return action;
+    const checkin = actions.find((a) => a.id === "checkin");
+    if (checkin && !checkin.completed) {
+      return checkin;
     }
     return null;
   };
