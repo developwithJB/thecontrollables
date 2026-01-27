@@ -924,6 +924,7 @@ export type Database = {
           email_nudge_enabled: boolean | null
           email_nudge_time: string | null
           id: string
+          nudge_frequency: string | null
           timezone: string | null
           updated_at: string
         }
@@ -934,6 +935,7 @@ export type Database = {
           email_nudge_enabled?: boolean | null
           email_nudge_time?: string | null
           id: string
+          nudge_frequency?: string | null
           timezone?: string | null
           updated_at?: string
         }
@@ -944,6 +946,7 @@ export type Database = {
           email_nudge_enabled?: boolean | null
           email_nudge_time?: string | null
           id?: string
+          nudge_frequency?: string | null
           timezone?: string | null
           updated_at?: string
         }

@@ -292,12 +292,11 @@ Deno.serve(async (req) => {
 
     console.log(`[NUDGE] Starting ${nudgeTime} nudge run (target hour: ${targetHour}:00 local time)`);
 
-    // Get all users with nudges enabled for this time preference
+    // Get all users with nudges enabled
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
-      .select("id, timezone, email_nudge_time")
-      .eq("email_nudge_enabled", true)
-      .eq("email_nudge_time", nudgeTime);
+      .select("id, timezone, email_nudge_time, nudge_frequency")
+      .eq("email_nudge_enabled", true);
 
     if (profilesError) {
       console.error("[NUDGE] Error fetching profiles:", profilesError);
@@ -314,11 +313,21 @@ Deno.serve(async (req) => {
 
     console.log(`[NUDGE] Found ${profiles.length} users with ${nudgeTime} nudges enabled`);
 
-    // Filter users whose local time matches the target hour (or include all in test mode)
+    // Filter users whose local time and frequency matches
     interface ProfileRow {
       id: string;
       timezone: string | null;
       email_nudge_time: string;
+      nudge_frequency: string | null;
+    }
+
+    // Helper to check if today is Monday in user's timezone
+    function isMondayLocal(timezone: string): boolean {
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone,
+        weekday: "long",
+      });
+      return formatter.format(new Date()) === "Monday";
     }
 
     const usersToNudge: { userId: string; timezone: string; localDate: string }[] = [];
@@ -351,14 +360,35 @@ Deno.serve(async (req) => {
 
     for (const profile of profiles as ProfileRow[]) {
       const userTimezone = profile.timezone || "America/New_York";
+      const userFrequency = profile.nudge_frequency || "daily";
+      const userPreferredTime = profile.email_nudge_time || "morning";
 
       try {
         const { hour: userHour, localDate } = getUserLocalTimeInfo(userTimezone);
         
-        console.log(`[NUDGE] User ${profile.id} timezone=${userTimezone}, localHour=${userHour}, localDate=${localDate}, targetHour=${targetHour}`);
+        console.log(`[NUDGE] User ${profile.id} timezone=${userTimezone}, localHour=${userHour}, localDate=${localDate}, targetHour=${targetHour}, frequency=${userFrequency}, preferredTime=${userPreferredTime}`);
 
         if (testMode) {
           usersToNudge.push({ userId: profile.id, timezone: userTimezone, localDate });
+          continue;
+        }
+
+        // Weekly nudges: only on Monday at morning time (7am)
+        if (userFrequency === "weekly") {
+          if (!isMondayLocal(userTimezone)) {
+            console.log(`[NUDGE] User ${profile.id} has weekly frequency but today is not Monday, skipping`);
+            continue;
+          }
+          // Weekly nudges always go out at morning time
+          if (nudgeTime !== "morning" || userHour !== MORNING_HOUR) {
+            continue;
+          }
+          usersToNudge.push({ userId: profile.id, timezone: userTimezone, localDate });
+          continue;
+        }
+
+        // Daily nudges: check time preference matches this run
+        if (userPreferredTime !== nudgeTime) {
           continue;
         }
 

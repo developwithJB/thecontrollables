@@ -78,12 +78,18 @@ export function DailyCheckIn({ isCheckedIn, focus, onCheckIn }: DailyCheckInProp
       </div>
 
       <div className="space-y-4">
-        <Textarea
-          value={inputFocus}
-          onChange={(e) => setInputFocus(e.target.value)}
-          placeholder="The one thing I will focus on today..."
-          className="min-h-[80px] resize-none bg-muted/30 border-border/50 focus:border-accent focus:ring-accent/20"
-        />
+        <div className="relative">
+          <Textarea
+            value={inputFocus}
+            onChange={(e) => setInputFocus(e.target.value.slice(0, 1000))}
+            placeholder="The one thing I will focus on today..."
+            className="min-h-[80px] resize-none bg-muted/30 border-border/50 focus:border-accent focus:ring-accent/20"
+            maxLength={1000}
+          />
+          <span className="absolute bottom-2 right-3 text-xs text-muted-foreground">
+            {inputFocus.length}/1000
+          </span>
+        </div>
         
         <Button
           onClick={handleSubmit}
