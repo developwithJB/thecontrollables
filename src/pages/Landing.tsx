@@ -17,8 +17,18 @@ const controllables: Array<{
   name: string;
   tagline: string;
 }> = [
-  { type: "awareness", emoji: "🦉", name: "Awareness", tagline: "Pause before reacting. Notice what's actually happening." },
-  { type: "perspective", emoji: "🐢", name: "Perspective", tagline: "Zoom out. This is one chapter, not the whole story." },
+  {
+    type: "awareness",
+    emoji: "🦉",
+    name: "Awareness",
+    tagline: "Pause before reacting. Notice what's actually happening.",
+  },
+  {
+    type: "perspective",
+    emoji: "🐢",
+    name: "Perspective",
+    tagline: "Zoom out. This is one chapter, not the whole story.",
+  },
   { type: "habit", emoji: "🦈", name: "Habit", tagline: "One rep still counts. Show up imperfectly." },
   { type: "wellness", emoji: "🛰️", name: "Wellness", tagline: "Sleep, movement, fuel. Fix the basics first." },
   { type: "environment", emoji: "🚀", name: "Environment", tagline: "Remove friction. Make the right choice easier." },
@@ -26,7 +36,7 @@ const controllables: Array<{
 
 export default function Landing() {
   usePageViewTracking("Landing");
-  
+
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
       {/* Navigation */}
@@ -51,25 +61,21 @@ export default function Landing() {
             <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-3 text-balance">
               Five guides. One calm place to reset.
               <br />
-              <span className="text-accent">Built for starting over.</span>
+              <span className="text-accent">The Dashboard.</span>
             </h1>
 
             <p className="text-muted-foreground text-sm leading-relaxed text-balance max-w-xs mx-auto mb-4">
-              The Dashboard is a simple, private system for rebuilding momentum when life knocks you off track. Check in daily, focus on what's controllable, and stack quiet proof that you can trust yourself again.
+              Check in daily, focus on what's controllable, and stack quiet proof that you can trust yourself again.
             </p>
 
             <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground/80 mb-6">
-              <span>No feeds. No streak shame. No guilt.</span>
+              <span>No feeds. No streak shame.</span>
               <span>Just you, your week, and what matters most.</span>
             </div>
 
             {/* Secondary CTA - Early Action */}
             <Link to="/auth?mode=signup">
-              <Button
-                variant="outline"
-                size="lg"
-                className="h-11 text-sm font-medium group"
-              >
+              <Button variant="outline" size="lg" className="h-11 text-sm font-medium group">
                 Start with one Snapshot
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
@@ -89,7 +95,7 @@ export default function Landing() {
               />
             ))}
           </div>
-          
+
           {/* Fifth controllable centered */}
           <div className="flex justify-center mb-10">
             <div className="w-[calc(50%-0.375rem)]">
@@ -111,10 +117,7 @@ export default function Landing() {
             className="space-y-3"
           >
             <Link to="/auth?mode=signup">
-              <Button
-                size="lg"
-                className="w-full h-14 text-base font-medium group"
-              >
+              <Button size="lg" className="w-full h-14 text-base font-medium group">
                 Start with a 7-Day Snapshot
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
@@ -141,28 +144,19 @@ export default function Landing() {
         <section className="py-8 px-6">
           <div className="max-w-md mx-auto text-center space-y-4">
             <div className="space-y-2">
-              <h3 className="font-display text-lg font-semibold text-foreground">
-                Try one Snapshot.
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                See what changes.
-              </p>
+              <h3 className="font-display text-lg font-semibold text-foreground">Try one Snapshot.</h3>
+              <p className="text-sm text-muted-foreground">See what changes.</p>
             </div>
-            
+
             <div className="space-y-3">
               <Link to="/auth?mode=signup">
-                <Button
-                  size="lg"
-                  className="w-full h-12 text-base font-medium group"
-                >
+                <Button size="lg" className="w-full h-12 text-base font-medium group">
                   Start free
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
-              
-              <p className="text-xs text-muted-foreground">
-                Upgrade only if it helps.
-              </p>
+
+              <p className="text-xs text-muted-foreground">Upgrade only if it helps.</p>
 
               <a
                 href="https://a.co/d/1DGPGEV"
@@ -182,8 +176,8 @@ export default function Landing() {
       <footer className="px-6 py-8 text-center space-y-3 border-t border-border/30">
         <p className="text-xs text-muted-foreground">
           Questions? Message us on Instagram{" "}
-          <a 
-            href="https://instagram.com/agbcoaching" 
+          <a
+            href="https://instagram.com/agbcoaching"
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline"
@@ -191,9 +185,7 @@ export default function Landing() {
             @agbcoaching
           </a>
         </p>
-        <p className="text-xs text-muted-foreground/70">
-          © {new Date().getFullYear()} The Controllables
-        </p>
+        <p className="text-xs text-muted-foreground/70">© {new Date().getFullYear()} The Controllables</p>
       </footer>
     </div>
   );
