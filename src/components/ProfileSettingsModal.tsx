@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, LogOut, Moon, Sun, CreditCard, Mail } from "lucide-react";
+import { User, LogOut, Moon, Sun, CreditCard, Mail, Calendar } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { CalendarReminderButton } from "@/components/CalendarReminderButton";
 
 interface ProfileSettingsModalProps {
   open: boolean;
@@ -233,87 +234,111 @@ export function ProfileSettingsModal({
               />
             </div>
 
-            {/* Gentle Nudges (Premium) */}
-            <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-muted-foreground" />
-                    <Label htmlFor="nudge-toggle" className="cursor-pointer font-medium">
-                      Gentle Nudges
-                    </Label>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                      Premium
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1 pr-4">
-                    A calm reminder to come back to your Snapshot — without pressure, streaks, or guilt.
-                  </p>
+            {/* Reminders Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-foreground">Reminders</h3>
+              
+              {/* Free Option: Calendar Reminder */}
+              <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border/50">
+                <div className="flex items-center gap-2 mb-1">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <Label className="font-medium">Calendar Reminder</Label>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/20 text-accent-foreground font-medium">
+                    Free
+                  </span>
                 </div>
-                <Switch
-                  id="nudge-toggle"
-                  checked={emailNudgeEnabled}
-                  onCheckedChange={setEmailNudgeEnabled}
+                <p className="text-xs text-muted-foreground mb-3">
+                  A simple reminder using your own calendar.
+                </p>
+                <CalendarReminderButton
+                  source="profile"
+                  timezone={timezone}
+                  compact={true}
                 />
               </div>
-              
-              {emailNudgeEnabled && (
-                <div className="space-y-4 pt-3 border-t border-border/50">
-                  {/* Frequency selector */}
-                  <div className="space-y-2">
-                    <Label className="text-sm text-muted-foreground">How often?</Label>
-                    <RadioGroup 
-                      value={nudgeFrequency} 
-                      onValueChange={(value) => setNudgeFrequency(value as "daily" | "weekly")}
-                      className="flex gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="daily" id="daily" />
-                        <Label htmlFor="daily" className="cursor-pointer font-normal">
-                          Daily
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="weekly" id="weekly" />
-                        <Label htmlFor="weekly" className="cursor-pointer font-normal">
-                          Weekly (Monday)
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
 
-                  {/* Time selector - only show for daily nudges */}
-                  {nudgeFrequency === "daily" && (
+              {/* Premium Option: Email Nudges */}
+              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-muted-foreground" />
+                      <Label htmlFor="nudge-toggle" className="cursor-pointer font-medium">
+                        Gentle Email Nudges
+                      </Label>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                        Premium
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 pr-4">
+                      The Dashboard checks in for you — without pressure, streaks, or guilt.
+                    </p>
+                  </div>
+                  <Switch
+                    id="nudge-toggle"
+                    checked={emailNudgeEnabled}
+                    onCheckedChange={setEmailNudgeEnabled}
+                  />
+                </div>
+                
+                {emailNudgeEnabled && (
+                  <div className="space-y-4 pt-3 border-t border-border/50">
+                    {/* Frequency selector */}
                     <div className="space-y-2">
-                      <Label className="text-sm text-muted-foreground">When works best?</Label>
+                      <Label className="text-sm text-muted-foreground">How often?</Label>
                       <RadioGroup 
-                        value={emailNudgeTime} 
-                        onValueChange={(value) => setEmailNudgeTime(value as "morning" | "evening")}
+                        value={nudgeFrequency} 
+                        onValueChange={(value) => setNudgeFrequency(value as "daily" | "weekly")}
                         className="flex gap-4"
                       >
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="morning" id="morning" />
-                          <Label htmlFor="morning" className="cursor-pointer font-normal">
-                            Morning (7am)
+                          <RadioGroupItem value="daily" id="daily" />
+                          <Label htmlFor="daily" className="cursor-pointer font-normal">
+                            Daily
                           </Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="evening" id="evening" />
-                          <Label htmlFor="evening" className="cursor-pointer font-normal">
-                            Evening (7pm)
+                          <RadioGroupItem value="weekly" id="weekly" />
+                          <Label htmlFor="weekly" className="cursor-pointer font-normal">
+                            Weekly (Monday)
                           </Label>
                         </div>
                       </RadioGroup>
                     </div>
-                  )}
 
-                  {nudgeFrequency === "weekly" && (
-                    <p className="text-xs text-muted-foreground italic">
-                      One calm check-in per week, sent Monday at 7am your time.
-                    </p>
-                  )}
-                </div>
-              )}
+                    {/* Time selector - only show for daily nudges */}
+                    {nudgeFrequency === "daily" && (
+                      <div className="space-y-2">
+                        <Label className="text-sm text-muted-foreground">When works best?</Label>
+                        <RadioGroup 
+                          value={emailNudgeTime} 
+                          onValueChange={(value) => setEmailNudgeTime(value as "morning" | "evening")}
+                          className="flex gap-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="morning" id="morning" />
+                            <Label htmlFor="morning" className="cursor-pointer font-normal">
+                              Morning (7am)
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="evening" id="evening" />
+                            <Label htmlFor="evening" className="cursor-pointer font-normal">
+                              Evening (7pm)
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+                    )}
+
+                    {nudgeFrequency === "weekly" && (
+                      <p className="text-xs text-muted-foreground italic">
+                        One calm check-in per week, sent Monday at 7am your time.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Timezone */}

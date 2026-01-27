@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Lock, Sparkles, Loader2 } from "lucide-react";
+import { Lock, Sparkles, Loader2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlanSelector } from "@/components/PlanSelector";
 import { getPricing, type PlanType } from "@/lib/pricing";
+import { CalendarReminderButton } from "@/components/CalendarReminderButton";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LockedOverlayProps {
   featureName?: string;
@@ -27,7 +29,26 @@ export function LockedOverlay({
   variant = "default"
 }: LockedOverlayProps) {
   const [selectedPlan, setSelectedPlan] = useState<PlanType | undefined>();
+  const [timezone, setTimezone] = useState<string>(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const pricing = getPricing();
+
+  // Fetch user's timezone
+  useEffect(() => {
+    const fetchTimezone = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("timezone")
+          .eq("id", user.id)
+          .single();
+        if (data?.timezone) {
+          setTimezone(data.timezone);
+        }
+      }
+    };
+    fetchTimezone();
+  }, []);
   
   // Default copy based on variant
   const getDefaultCopy = () => {
@@ -70,6 +91,9 @@ export function LockedOverlay({
     }
   };
 
+  // Only show calendar alternative for ai-companion variant (email nudges related)
+  const showCalendarAlternative = variant === "ai-companion";
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -108,9 +132,23 @@ export function LockedOverlay({
         />
         
         {/* Price summary */}
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground mb-4">
           {displayPriceLine}
         </p>
+
+        {/* Calendar alternative for free users */}
+        {showCalendarAlternative && (
+          <div className="pt-3 border-t border-border/50">
+            <p className="text-xs text-muted-foreground mb-2">
+              Prefer no emails?
+            </p>
+            <CalendarReminderButton
+              source="paywall"
+              timezone={timezone}
+              compact={true}
+            />
+          </div>
+        )}
       </div>
     </motion.div>
   );
