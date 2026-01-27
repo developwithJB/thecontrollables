@@ -716,6 +716,33 @@ export type Database = {
           },
         ]
       }
+      email_nudge_logs: {
+        Row: {
+          created_at: string
+          id: string
+          nudge_date: string
+          sent_at: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nudge_date: string
+          sent_at?: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nudge_date?: string
+          sent_at?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       guide_sessions: {
         Row: {
           context: string | null
@@ -894,21 +921,30 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           display_name: string | null
+          email_nudge_enabled: boolean | null
+          email_nudge_time: string | null
           id: string
+          timezone: string | null
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
+          email_nudge_enabled?: boolean | null
+          email_nudge_time?: string | null
           id: string
+          timezone?: string | null
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
+          email_nudge_enabled?: boolean | null
+          email_nudge_time?: string | null
           id?: string
+          timezone?: string | null
           updated_at?: string
         }
         Relationships: []
