@@ -385,6 +385,20 @@ export function TodayActions({
     }
   }
 
+  // Determine primary action (first incomplete action, prioritizing check-in)
+  const getPrimaryAction = (): ActionItem | null => {
+    // Priority: Check-in -> Journey Action -> Time Reflection -> Others
+    const priorityOrder = ["checkin", "journey-action", "time", "promises", "make-promise", "review-build", "ask-guide"];
+    for (const id of priorityOrder) {
+      const action = actions.find((a) => a.id === id && !a.completed);
+      if (action) return action;
+    }
+    return null;
+  };
+
+  const primaryAction = getPrimaryAction();
+  const secondaryActions = actions.filter((a) => a.id !== primaryAction?.id);
+
   const completedCount = actions.filter((a) => a.completed).length;
   const totalActions = actions.length;
   const allCompleted = completedCount === totalActions && totalActions > 0;
@@ -665,9 +679,39 @@ export function TodayActions({
           </div>
         </div>
 
-        {/* Snapshot Focus moved to GreetingBanner - removed from here */}
+        {/* Primary Action Highlight - "One Thing" Anchor */}
+        {!isListCollapsed && primaryAction && !primaryAction.completed && (
+          <div className="p-4 border-b border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
+            <div className="flex items-center gap-1.5 text-xs text-primary font-medium mb-2">
+              <Sparkles className="w-3.5 h-3.5" />
+              If you do one thing today, do this.
+            </div>
+            <button
+              onClick={primaryAction.action}
+              className="w-full p-3 rounded-lg bg-card border-2 border-primary/30 hover:border-primary/50 transition-all text-left group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                  {primaryAction.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-foreground">{primaryAction.label}</p>
+                  {primaryAction.sublabel && (
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      {primaryAction.sublabel}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Clock className="w-3.5 h-3.5" />
+                  {primaryAction.timeEstimate}
+                </div>
+              </div>
+            </button>
+          </div>
+        )}
 
-        {/* Collapsible action list */}
+        {/* Optional Actions Section */}
         <AnimatePresence initial={false}>
           {!isListCollapsed && (
             <motion.div
@@ -677,8 +721,15 @@ export function TodayActions({
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
+              {/* "Everything else is optional" label - only show if there are secondary actions */}
+              {secondaryActions.length > 0 && primaryAction && !primaryAction.completed && (
+                <div className="px-4 pt-3 pb-1">
+                  <p className="text-xs text-muted-foreground">Everything else is optional.</p>
+                </div>
+              )}
+              
               <div className="divide-y divide-border/50">
-                {actions.map((action) => (
+                {secondaryActions.map((action) => (
                   <div key={action.id}>
                     {action.expandable ? (
                       <Collapsible

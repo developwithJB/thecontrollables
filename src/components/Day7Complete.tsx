@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { PlanSelector } from "@/components/PlanSelector";
 import { 
-  getRecommendedNextFoundation, 
+  getRecommendedNextSnapshot, 
   getJourneyById,
 } from "@/lib/guidedJourneys";
 
@@ -57,7 +57,7 @@ export const Day7Complete = ({
   const { currentBuild, assessmentHistory } = useBuildAssessment();
   
   // Get recommended next Snapshot
-  const recommendedJourney = getRecommendedNextFoundation(
+  const recommendedJourney = getRecommendedNextSnapshot(
     currentBuild,
     assessmentHistory,
     completedJourneyId

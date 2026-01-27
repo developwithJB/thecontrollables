@@ -254,13 +254,13 @@ export function ResetProgressModule({
           )}
           
           <p className="text-sm text-muted-foreground mb-4">
-            Your Foundation builds momentum.{" "}
-            <span className="text-foreground/70">Your Mission gives you direction.</span>
+            Your Snapshot builds momentum.{" "}
+            <span className="text-foreground/70">Your Focus gives you direction.</span>
           </p>
           
           <Button className="w-full" onClick={handleOpenCovenantDialog}>
             <RefreshCw className="w-4 h-4 mr-2" />
-            Begin Your Foundation
+            Begin Your Snapshot
           </Button>
         </motion.div>
 
@@ -432,16 +432,16 @@ export function ResetProgressModule({
               <Check className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-display font-semibold text-foreground">7-Day Foundation</h3>
+              <h3 className="font-display font-semibold text-foreground">7-Day Snapshot</h3>
               <p className="text-sm text-primary">Complete • Well played</p>
             </div>
           </div>
 
-          {/* Days since last foundation */}
+          {/* Days since last Snapshot */}
           {daysSinceLastReset !== null && (
             <div className="mb-4 p-3 rounded-lg bg-background/50 border border-primary/10">
               <p className="text-sm text-muted-foreground">
-                <span className="text-foreground font-medium">{daysSinceLastReset} days</span> since you completed your foundation
+                <span className="text-foreground font-medium">{daysSinceLastReset} days</span> since you completed your Snapshot
               </p>
             </div>
           )}
@@ -450,9 +450,9 @@ export function ResetProgressModule({
             <div className="flex items-start gap-2">
               <Lock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-foreground">Free foundation complete</p>
+                <p className="text-sm font-medium text-foreground">Free Snapshot complete</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Upgrade to download your certificate and start new foundations.
+                  Upgrade to download your certificate and start new Snapshots.
                 </p>
               </div>
             </div>
@@ -479,7 +479,7 @@ export function ResetProgressModule({
                 <Check className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">7-Day Foundation</p>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">7-Day Snapshot</p>
                 <h3 className="font-display font-semibold text-foreground text-lg">Complete</h3>
               </div>
             </div>
