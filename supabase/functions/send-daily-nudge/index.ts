@@ -9,13 +9,14 @@ const corsHeaders = {
 const MORNING_HOUR = 7;
 const EVENING_HOUR = 19;
 
-// Controllable emojis and names
-const CONTROLLABLES: Record<string, { emoji: string; name: string }> = {
-  awareness: { emoji: "🦉", name: "Awareness Owl" },
-  perspective: { emoji: "🐢", name: "Perspective Turtle" },
-  habit: { emoji: "🦈", name: "Habit Shark" },
-  wellness: { emoji: "🛰️", name: "Wellness Satellite" },
-  environment: { emoji: "🚀", name: "Environment Rocket" },
+// Calm, grounded icons only — no hustle emojis
+const CALM_ICONS = {
+  default: "🌱",
+  awareness: "🦉",
+  perspective: "🐢",
+  habit: "🧭",
+  wellness: "🛰️",
+  environment: "⏳",
 };
 
 interface UserContext {
@@ -24,8 +25,8 @@ interface UserContext {
   currentSnapshotDay: number | null;
   journeyTitle: string | null;
   focusControllable: string | null;
-  totalXp: number;
   displayName: string | null;
+  todayActionsCompleted: boolean;
 }
 
 interface NudgeRequest {
@@ -46,29 +47,46 @@ interface ResetSession {
   journey_id: string | null;
 }
 
-interface XpLog {
-  amount: number;
-}
-
 interface Profile {
   display_name: string | null;
 }
 
+// Check if user already completed Today's Actions today
+async function checkTodayActionsCompleted(
+  supabase: SupabaseClient,
+  userId: string,
+  localDate: string
+): Promise<boolean> {
+  // Check if they did a check-in today
+  const { data: checkin } = await supabase
+    .from("daily_checkins")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("check_in_date", localDate)
+    .maybeSingle();
+
+  return !!checkin;
+}
+
 // Get user context for personalization
-async function getUserContext(supabase: SupabaseClient, userId: string): Promise<UserContext> {
+async function getUserContext(
+  supabase: SupabaseClient,
+  userId: string,
+  localDate: string
+): Promise<UserContext> {
   const context: UserContext = {
     lowestControllable: null,
     lowestScore: null,
     currentSnapshotDay: null,
     journeyTitle: null,
     focusControllable: null,
-    totalXp: 0,
     displayName: null,
+    todayActionsCompleted: false,
   };
 
   try {
     // Fetch in parallel
-    const [buildResult, sessionResult, xpResult, profileResult] = await Promise.all([
+    const [buildResult, sessionResult, profileResult, actionsCompleted] = await Promise.all([
       supabase
         .from("user_build_current")
         .select("awareness, perspective, habit, wellness, environment")
@@ -81,15 +99,14 @@ async function getUserContext(supabase: SupabaseClient, userId: string): Promise
         .eq("status", "active")
         .maybeSingle(),
       supabase
-        .from("xp_logs")
-        .select("amount")
-        .eq("user_id", userId),
-      supabase
         .from("profiles")
         .select("display_name")
         .eq("id", userId)
         .maybeSingle(),
+      checkTodayActionsCompleted(supabase, userId, localDate),
     ]);
+
+    context.todayActionsCompleted = actionsCompleted;
 
     // Process build scores to find lowest
     if (buildResult.data) {
@@ -101,11 +118,11 @@ async function getUserContext(supabase: SupabaseClient, userId: string): Promise
         ["wellness", Number(scores.wellness) || 0],
         ["environment", Number(scores.environment) || 0],
       ];
-      
+
       // Find lowest score (only if they have build data)
       const validScores = controllableScores.filter(([_, score]) => score > 0);
       if (validScores.length > 0) {
-        const lowest = validScores.reduce((min, current) => 
+        const lowest = validScores.reduce((min, current) =>
           current[1] < min[1] ? current : min
         );
         context.lowestControllable = lowest[0];
@@ -132,12 +149,6 @@ async function getUserContext(supabase: SupabaseClient, userId: string): Promise
       }
     }
 
-    // Sum XP
-    if (xpResult.data) {
-      const logs = xpResult.data as XpLog[];
-      context.totalXp = logs.reduce((sum, log) => sum + (log.amount || 0), 0);
-    }
-
     // Display name
     if (profileResult.data) {
       const profile = profileResult.data as Profile;
@@ -150,110 +161,78 @@ async function getUserContext(supabase: SupabaseClient, userId: string): Promise
   return context;
 }
 
-// Generate personalized email content
+// Generate personalized email content — calm, grounded tone
 function generateEmailContent(
   context: UserContext,
   nudgeTime: "morning" | "evening"
 ): { subject: string; body: string } {
   const greeting = context.displayName ? `Hey ${context.displayName}` : "Hey";
   const isMorning = nudgeTime === "morning";
-  
+
   // Build personalized message based on available context
   let mainMessage = "";
-  let subMessage = "";
-  let emoji = "📍";
-  
-  // Priority 1: Active snapshot progress
+  let emoji = CALM_ICONS.default;
+
+  // Priority 1: Active snapshot progress — no pressure language
   if (context.currentSnapshotDay !== null && context.currentSnapshotDay > 0) {
     const dayNum = context.currentSnapshotDay;
-    
+
     if (dayNum === 7) {
-      mainMessage = "Day 7 — you're at the finish line.";
-      subMessage = isMorning 
-        ? "Complete your Snapshot and see how far you've come."
-        : "One last check-in before you wrap this week.";
-      emoji = "🎯";
-    } else if (dayNum >= 5) {
-      mainMessage = `Day ${dayNum} of 7. Almost there.`;
-      subMessage = isMorning
-        ? "Momentum is building. Keep going."
-        : "Consistency beats perfection. Just show up.";
-      emoji = "🔥";
+      mainMessage = "Day 7 of 7.";
+      emoji = CALM_ICONS.default;
     } else {
-      mainMessage = `Day ${dayNum} of your Snapshot.`;
-      subMessage = isMorning
-        ? "Small actions today, lasting change over time."
-        : "How did today go? Take a minute to check in.";
-      emoji = "📍";
+      // Simple day count, no "almost there" or urgency
+      mainMessage = `Day ${dayNum} of 7.`;
+      emoji = CALM_ICONS.default;
     }
   }
-  // Priority 2: Low build score (personalized focus area)
-  else if (context.lowestControllable && context.lowestScore !== null) {
-    const guide = CONTROLLABLES[context.lowestControllable];
-    if (guide) {
-      emoji = guide.emoji;
-      mainMessage = `Your ${guide.name} could use some attention.`;
-      subMessage = isMorning
-        ? `Start with one small ${context.lowestControllable}-focused action today.`
-        : `How's your ${context.lowestControllable} practice going?`;
-    }
-  }
-  // Priority 3: Focus controllable from journey
+  // Priority 2: Focus controllable from journey
   else if (context.focusControllable) {
-    const guide = CONTROLLABLES[context.focusControllable];
-    if (guide) {
-      emoji = guide.emoji;
-      mainMessage = `${guide.name} has a message for you.`;
-      subMessage = isMorning
-        ? "Your guides are ready when you are."
-        : "Check in before the day ends.";
-    }
+    const focusIcon = CALM_ICONS[context.focusControllable as keyof typeof CALM_ICONS] || CALM_ICONS.default;
+    emoji = focusIcon;
+    mainMessage = "Your Snapshot is ready.";
   }
-  // Fallback: Generic motivational
+  // Fallback: Generic grounded message
   else {
     const genericMessages = isMorning
-      ? [
-          { main: "Just do today. That's it.", sub: "Your guides are waiting." },
-          { main: "5 minutes. That's all it takes.", sub: "Start small, stay consistent." },
-          { main: "Ready when you are.", sub: "One action at a time." },
-        ]
-      : [
-          { main: "How was today?", sub: "A quick reflection goes a long way." },
-          { main: "Before you wrap up...", sub: "One minute with your guides." },
-          { main: "End the day intentionally.", sub: "Check in before you unwind." },
-        ];
-    const selected = genericMessages[Math.floor(Math.random() * genericMessages.length)];
-    mainMessage = selected.main;
-    subMessage = selected.sub;
-    emoji = "🌅";
+      ? ["Just today.", "Ready when you are.", "One small step."]
+      : ["Just today.", "This still counts.", "No rush."];
+    mainMessage = genericMessages[Math.floor(Math.random() * genericMessages.length)];
+    emoji = CALM_ICONS.default;
   }
 
-  // Generate subject line
-  const subjects = context.currentSnapshotDay
+  // One grounding line — calm, supportive
+  const groundingLines = isMorning
     ? [
-        `Day ${context.currentSnapshotDay}: ${mainMessage}`,
-        mainMessage,
-        isMorning ? "Your Snapshot is ready" : "End-of-day check-in",
+        "You've been showing up.",
+        "Just coming back matters.",
+        "No extra effort required.",
       ]
-    : [mainMessage, isMorning ? "Ready when you are" : "Quick check-in"];
-  
-  const subject = subjects[Math.floor(Math.random() * subjects.length)];
+    : [
+        "This still counts.",
+        "Just coming back matters.",
+        "No pressure. Just presence.",
+      ];
+  const groundingLine = groundingLines[Math.floor(Math.random() * groundingLines.length)];
 
-  // Build HTML body
+  // Simple subject line — calm
+  const subject = mainMessage;
+
+  // Build HTML body — standardized structure
   const body = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 440px; margin: 0 auto; padding: 40px 20px; text-align: center; background: #fafafa;">
-      <div style="font-size: 40px; margin-bottom: 20px;">${emoji}</div>
+      <div style="font-size: 36px; margin-bottom: 24px;">${emoji}</div>
       
-      <p style="font-size: 22px; color: #1a1a1a; margin: 0 0 8px 0; font-weight: 600;">
+      <p style="font-size: 20px; color: #1a1a1a; margin: 0 0 8px 0; font-weight: 500;">
         ${greeting},
       </p>
       
-      <p style="font-size: 20px; color: #333; margin: 0 0 16px 0;">
+      <p style="font-size: 18px; color: #333; margin: 0 0 12px 0;">
         ${mainMessage}
       </p>
       
       <p style="font-size: 15px; color: #666; margin: 0 0 28px 0;">
-        ${subMessage}
+        ${groundingLine}
       </p>
       
       <a href="https://thedashboard.agbcoaching.com/dashboard" 
@@ -261,13 +240,7 @@ function generateEmailContent(
         Open Today's Actions →
       </a>
       
-      ${context.totalXp > 0 ? `
-        <p style="font-size: 12px; color: #999; margin-top: 24px;">
-          You've earned ${context.totalXp.toLocaleString()} XP so far. Keep going.
-        </p>
-      ` : ""}
-      
-      <p style="font-size: 11px; color: #aaa; margin-top: 32px;">
+      <p style="font-size: 11px; color: #aaa; margin-top: 40px;">
         <a href="https://thedashboard.agbcoaching.com/dashboard" style="color: #888; text-decoration: none;">
           Turn off anytime in settings
         </a>
@@ -294,7 +267,7 @@ Deno.serve(async (req) => {
     }
 
     const resend = new Resend(resendApiKey);
-    
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -347,24 +320,25 @@ Deno.serve(async (req) => {
       timezone: string | null;
       email_nudge_time: string;
     }
-    
-    const usersToNudge: { userId: string; timezone: string }[] = [];
+
+    const usersToNudge: { userId: string; timezone: string; localDate: string }[] = [];
     const now = new Date();
 
     for (const profile of profiles as ProfileRow[]) {
       const userTimezone = profile.timezone || "America/New_York";
-      
-      if (testMode) {
-        usersToNudge.push({ userId: profile.id, timezone: userTimezone });
-        continue;
-      }
 
       try {
         const userLocalTime = new Date(now.toLocaleString("en-US", { timeZone: userTimezone }));
         const userHour = userLocalTime.getHours();
+        const localDate = userLocalTime.toISOString().split("T")[0];
+
+        if (testMode) {
+          usersToNudge.push({ userId: profile.id, timezone: userTimezone, localDate });
+          continue;
+        }
 
         if (userHour === targetHour) {
-          usersToNudge.push({ userId: profile.id, timezone: userTimezone });
+          usersToNudge.push({ userId: profile.id, timezone: userTimezone, localDate });
         }
       } catch (tzError) {
         console.warn(`[NUDGE] Invalid timezone for user ${profile.id}: ${userTimezone}`);
@@ -387,8 +361,8 @@ Deno.serve(async (req) => {
     // Process in batches of 10
     for (let i = 0; i < usersToNudge.length; i += 10) {
       const batch = usersToNudge.slice(i, i + 10);
-      
-      await Promise.all(batch.map(async ({ userId }) => {
+
+      await Promise.all(batch.map(async ({ userId, localDate }) => {
         try {
           // Check if already sent today
           const { data: existingLog } = await supabase
@@ -404,19 +378,26 @@ Deno.serve(async (req) => {
             return;
           }
 
+          // Fetch user context for personalization
+          const context = await getUserContext(supabase, userId, localDate);
+          console.log(`[NUDGE] Context for ${userId}:`, JSON.stringify(context));
+
+          // SUPPRESSION: Skip if Today's Actions already completed
+          if (context.todayActionsCompleted) {
+            console.log(`[NUDGE] User ${userId} already completed Today's Actions, skipping`);
+            skippedCount++;
+            return;
+          }
+
           // Get user email
           const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
-          
+
           if (userError || !userData?.user?.email) {
             console.warn(`[NUDGE] Could not get email for user ${userId}:`, userError);
             return;
           }
 
           const email = userData.user.email;
-
-          // Fetch user context for personalization
-          const context = await getUserContext(supabase, userId);
-          console.log(`[NUDGE] Context for ${userId}:`, JSON.stringify(context));
 
           // Generate personalized content
           const { subject, body } = generateEmailContent(context, nudgeTime);
