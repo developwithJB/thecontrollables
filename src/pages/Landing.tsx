@@ -59,9 +59,9 @@ export default function Landing() {
             className="text-center mb-8"
           >
             <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-3 text-balance">
-              <span className="text-accent">The Dashboard.</span>
-              <br />
               Five guides. One calm place to reset.
+              <br />
+              <span className="text-accent">The Dashboard.</span>
             </h1>
 
             {/* Secondary CTA - Early Action */}
@@ -75,7 +75,7 @@ export default function Landing() {
             <br />
 
             <p className="text-muted-foreground text-sm leading-relaxed text-balance max-w-xs mx-auto mb-4">
-              Check in daily, focus on what you can control, and rebuild trust with yourself one week at a time.
+              Check in daily, focus on what's controllable, and stack quiet proof that you can trust yourself again.
             </p>
           </motion.div>
 
