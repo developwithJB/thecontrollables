@@ -653,6 +653,123 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Nudge email logs and monitoring
+      if (resource === "nudge_logs") {
+        const limit = parseInt(url.searchParams.get("limit") || "100");
+        const now = new Date();
+        const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+        const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+        // Get recent nudge logs
+        const { data: nudgeLogs, error: nudgeError } = await adminClient
+          .from("email_nudge_logs")
+          .select("*")
+          .order("sent_at", { ascending: false })
+          .limit(limit);
+        
+        if (nudgeError) throw nudgeError;
+
+        // Get user emails for the logs
+        const userIds = [...new Set(nudgeLogs?.map(n => n.user_id) || [])];
+        let userEmailMap = new Map<string, string>();
+        let userTimezoneMap = new Map<string, string>();
+        
+        if (userIds.length > 0) {
+          const { data: authUsers } = await adminClient.auth.admin.listUsers();
+          if (authUsers?.users) {
+            authUsers.users.forEach(u => {
+              if (userIds.includes(u.id) && u.email) {
+                userEmailMap.set(u.id, u.email);
+              }
+            });
+          }
+          
+          // Get timezone preferences
+          const { data: profiles } = await adminClient
+            .from("profiles")
+            .select("id, timezone, email_nudge_time, email_nudge_enabled")
+            .in("id", userIds);
+          
+          profiles?.forEach(p => {
+            userTimezoneMap.set(p.id, p.timezone || "America/New_York");
+          });
+        }
+
+        // Enrich logs with user email and timezone
+        const enrichedLogs = nudgeLogs?.map(n => ({
+          ...n,
+          user_email: userEmailMap.get(n.user_id) || null,
+          user_timezone: userTimezoneMap.get(n.user_id) || "America/New_York",
+        })) || [];
+
+        // Calculate stats
+        const sentToday = nudgeLogs?.filter(n => n.sent_at >= last24h).length || 0;
+        const sentThisWeek = nudgeLogs?.filter(n => n.sent_at >= last7d).length || 0;
+        const failedLogs = nudgeLogs?.filter(n => n.status === "failed") || [];
+        const failedToday = failedLogs.filter(n => n.sent_at >= last24h).length;
+        const failedThisWeek = failedLogs.length;
+
+        // Get users with nudges enabled to compare expected vs actual
+        const { data: enabledProfiles, error: profilesError } = await adminClient
+          .from("profiles")
+          .select("id, timezone, email_nudge_time, email_nudge_enabled")
+          .eq("email_nudge_enabled", true);
+
+        const nudgeEnabledCount = enabledProfiles?.length || 0;
+        
+        // Calculate nudge coverage (how many enabled users got a nudge today)
+        const usersNudgedToday = new Set(
+          nudgeLogs?.filter(n => n.sent_at >= last24h && n.status === "sent").map(n => n.user_id) || []
+        );
+        const coverageRate = nudgeEnabledCount > 0 
+          ? Math.round((usersNudgedToday.size / nudgeEnabledCount) * 100) 
+          : 0;
+
+        // Identify potential timezone issues (users with nudges enabled who haven't received one in 2+ days)
+        const last48h = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
+        const recentNudgeUserIds = new Set(
+          nudgeLogs?.filter(n => n.sent_at >= last48h).map(n => n.user_id) || []
+        );
+        
+        const potentialIssues = enabledProfiles?.filter(p => !recentNudgeUserIds.has(p.id)) || [];
+        const potentialIssuesWithEmail = potentialIssues.map(p => ({
+          user_id: p.id,
+          email: userEmailMap.get(p.id) || "Unknown",
+          timezone: p.timezone || "Not set",
+          nudge_time: p.email_nudge_time || "morning",
+        }));
+
+        // Get auth users list for potential issues emails
+        if (potentialIssues.length > 0) {
+          const issueUserIds = potentialIssues.map(p => p.id);
+          const { data: authUsers } = await adminClient.auth.admin.listUsers();
+          if (authUsers?.users) {
+            authUsers.users.forEach(u => {
+              if (issueUserIds.includes(u.id) && u.email) {
+                const issue = potentialIssuesWithEmail.find(i => i.user_id === u.id);
+                if (issue) issue.email = u.email;
+              }
+            });
+          }
+        }
+
+        return new Response(JSON.stringify({
+          logs: enrichedLogs,
+          stats: {
+            sentToday,
+            sentThisWeek,
+            failedToday,
+            failedThisWeek,
+            nudgeEnabledUsers: nudgeEnabledCount,
+            coverageRate,
+            potentialIssuesCount: potentialIssues.length,
+          },
+          potentialIssues: potentialIssuesWithEmail,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // User journeys - group events by session to show flow (legacy)
       if (resource === "user_journeys") {
         const limit = parseInt(url.searchParams.get("limit") || "20");

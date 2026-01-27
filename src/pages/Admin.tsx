@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { 
   ArrowLeft, Shield, Crown, User, RefreshCw, Activity, AlertTriangle, 
   BarChart3, Eye, CheckCircle, XCircle, Clock, Route, MousePointerClick,
-  ChevronDown, ChevronRight
+  ChevronDown, ChevronRight, Mail, AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -164,6 +164,33 @@ interface AnalyticsSummary {
   dropOffPoints: { path: string; count: number; percentage: number }[];
 }
 
+interface NudgeLog {
+  id: string;
+  user_id: string;
+  nudge_date: string;
+  sent_at: string;
+  status: string;
+  user_email: string | null;
+  user_timezone: string;
+}
+
+interface NudgeStats {
+  sentToday: number;
+  sentThisWeek: number;
+  failedToday: number;
+  failedThisWeek: number;
+  nudgeEnabledUsers: number;
+  coverageRate: number;
+  potentialIssuesCount: number;
+}
+
+interface NudgePotentialIssue {
+  user_id: string;
+  email: string;
+  timezone: string;
+  nudge_time: string;
+}
+
 export default function Admin() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [events, setEvents] = useState<AppEvent[]>([]);
@@ -174,6 +201,9 @@ export default function Admin() {
   const [userActivityStats, setUserActivityStats] = useState<UserActivityStats | null>(null);
   const [actionFlows, setActionFlows] = useState<ActionFlow[]>([]);
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
+  const [nudgeLogs, setNudgeLogs] = useState<NudgeLog[]>([]);
+  const [nudgeStats, setNudgeStats] = useState<NudgeStats | null>(null);
+  const [nudgePotentialIssues, setNudgePotentialIssues] = useState<NudgePotentialIssue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -233,6 +263,7 @@ export default function Admin() {
         loadJourneys(),
         loadUserActivity(),
         loadActionFlows(),
+        loadNudgeLogs(),
       ]);
     } finally {
       setIsLoading(false);
@@ -376,6 +407,25 @@ export default function Admin() {
       }
     } catch (error) {
       console.error("Error loading action flows:", error);
+    }
+  };
+
+  const loadNudgeLogs = async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users?resource=nudge_logs&limit=100`,
+        { headers }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setNudgeLogs(data.logs || []);
+        setNudgeStats(data.stats || null);
+        setNudgePotentialIssues(data.potentialIssues || []);
+      }
+    } catch (error) {
+      console.error("Error loading nudge logs:", error);
     }
   };
 
@@ -599,7 +649,7 @@ export default function Admin() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid grid-cols-7 w-full max-w-3xl">
+          <TabsList className="grid grid-cols-8 w-full max-w-4xl">
             <TabsTrigger value="overview" className="flex items-center gap-1">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -611,6 +661,15 @@ export default function Admin() {
             <TabsTrigger value="actions" className="flex items-center gap-1">
               <MousePointerClick className="h-4 w-4" />
               <span className="hidden sm:inline">Actions</span>
+            </TabsTrigger>
+            <TabsTrigger value="nudges" className="flex items-center gap-1">
+              <Mail className="h-4 w-4" />
+              <span className="hidden sm:inline">Nudges</span>
+              {nudgeStats && nudgeStats.potentialIssuesCount > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-amber-500/20 text-amber-600">
+                  {nudgeStats.potentialIssuesCount}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-1">
               <User className="h-4 w-4" />
@@ -1188,6 +1247,175 @@ export default function Admin() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Nudges Tab */}
+          <TabsContent value="nudges" className="space-y-4">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="border-l-4 border-l-green-500">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Sent Today
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">{nudgeStats?.sentToday || 0}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {nudgeStats?.sentThisWeek || 0} this week
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-l-4 border-l-blue-500">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Coverage Rate
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">{nudgeStats?.coverageRate || 0}%</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    of {nudgeStats?.nudgeEnabledUsers || 0} enabled users
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-l-4 border-l-destructive">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Failed Today
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-destructive">{nudgeStats?.failedToday || 0}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {nudgeStats?.failedThisWeek || 0} this week
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className={`border-l-4 ${(nudgeStats?.potentialIssuesCount || 0) > 0 ? "border-l-amber-500" : "border-l-muted"}`}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Potential Issues
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${(nudgeStats?.potentialIssuesCount || 0) > 0 ? "text-amber-600" : "text-muted-foreground"}`}>
+                    {nudgeStats?.potentialIssuesCount || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Users missing nudges (48h)
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Potential Issues Alert */}
+            {nudgePotentialIssues.length > 0 && (
+              <Card className="border-amber-500/50 bg-amber-500/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-amber-600">
+                    <AlertCircle className="h-5 w-5" />
+                    Users Missing Nudges (Last 48h)
+                  </CardTitle>
+                  <CardDescription>
+                    These users have nudges enabled but haven't received one recently. Check timezone settings.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="max-h-[200px]">
+                    <div className="space-y-2">
+                      {nudgePotentialIssues.map((issue) => (
+                        <div
+                          key={issue.user_id}
+                          className="flex items-center justify-between p-2 bg-background rounded border"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">{issue.email}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{issue.nudge_time}</Badge>
+                            <Badge variant="secondary" className="font-mono text-xs">
+                              {issue.timezone || "No TZ set"}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Recent Nudge Logs */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-primary" />
+                  Recent Nudge Emails
+                </CardTitle>
+                <CardDescription>
+                  Last 100 nudge emails sent
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[400px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Sent At</TableHead>
+                        <TableHead>Timezone</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {nudgeLogs.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                            No nudge emails sent yet
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        nudgeLogs.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell className="font-medium">
+                              {log.user_email || "Unknown"}
+                            </TableCell>
+                            <TableCell>{log.nudge_date}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {formatTime(log.sent_at)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="font-mono text-xs">
+                                {log.user_timezone}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {log.status === "sent" ? (
+                                <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Sent
+                                </Badge>
+                              ) : (
+                                <Badge variant="destructive">
+                                  <XCircle className="h-3 w-3 mr-1" />
+                                  {log.status}
+                                </Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Users Tab */}
