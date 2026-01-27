@@ -1,279 +1,137 @@
 
+# Fix the "Moving Goalpost" Problem in Today's Actions
 
-# Clarity Refinements with Product Owner Adjustments
-
-## Overview
-This plan incorporates your feedback to preserve the "welcome check-in" magic by placing contextual helper text directly in the UI components (not just the Manual), adding pre-assessment reassurance, and ensuring The Controllables surface only when users are stuck—never as a primary CTA.
-
----
-
-## 1. Contextual Helper Text in UI Components
-
-### Problem
-The Dashboard Manual alone isn't enough—users need one-time, in-context explanations where they first encounter each concept.
-
-### Solution
-Add subtle helper text directly in the Mission card, Snapshot card, and Daily Check-In area. These appear once per user or on first meaningful interaction.
-
-### Implementation
-
-**A. Mission Card (`MainQuestModule.tsx`)**
-
-Add helper text when showing "No Active Mission" state (lines 114-121):
-
-```tsx
-<h3 className="font-display font-semibold text-foreground">No Active Mission</h3>
-<p className="text-xs text-muted-foreground mt-1">
-  Your Mission is the direction you're pointing your life right now. It doesn't change daily.
-</p>
-```
-
-Also update the Dialog header (line 132) with contextual copy:
-
-```tsx
-<DialogTitle className="font-display">Define Your Main Mission</DialogTitle>
-<p className="text-xs text-muted-foreground mt-1">
-  Pick a direction. You can refine it later.
-</p>
-```
-
-**B. Snapshot Card (`SnapshotSelector.tsx`)**
-
-Update DialogDescription (lines 387-391) to include grounding copy:
-
-```tsx
-<DialogDescription>
-  {viewMode === "recommendation" 
-    ? "A Snapshot is your focus for the next 7 days. One theme. No perfection."
-    : "Explore all 36 Snapshots across 6 life themes."
-  }
-</DialogDescription>
-```
-
-**C. Daily Check-In Area (`TodayActions.tsx`)**
-
-Add a one-time helper line below the primary action anchor (around line 687):
-
-```tsx
-<div className="flex items-center gap-1.5 text-xs text-primary font-medium mb-2">
-  <Sparkles className="w-3.5 h-3.5" />
-  If you do one thing today, do this.
-</div>
-<p className="text-[10px] text-muted-foreground mb-3">
-  This is about today only. One honest check-in. Then you're done.
-</p>
-```
-
-This helper appears only when the check-in is the primary action.
+## Problem Summary
+When a user completes the primary action (e.g., "Day 6: Integrity"), another task immediately gets promoted to the "If you do one thing today, do this." position. This contradicts the promise of "one thing" and makes users feel tricked—they thought they were done, but a new "one thing" appeared.
 
 ---
 
-## 2. Dashboard Manual Hierarchy Section (Keep)
+## Solution: Lock the Primary Action to the Daily Check-In Only
 
-### Rationale
-The Manual should still contain a clear hierarchy explanation for users who explore it. This complements the in-context text.
+### Philosophy
+The "If you do one thing today, do this." anchor should **only ever refer to the Daily Check-In**. Once that's complete, the special framing disappears entirely. Other tasks remain visible as optional—never promoted to "the one thing."
 
-### Implementation
+This aligns with the app's philosophy:
+- "This is about today only. One honest check-in. Then you're done."
+- The check-in IS the ritual. Everything else is genuinely optional.
 
-Add a new section to `DashboardManualSection.tsx` before "Quick Reference":
+---
 
-**New constant:**
+## Implementation
+
+### 1. Change Primary Action Logic
+
+**Current behavior** (lines 389-397):
 ```typescript
-import { Target, Camera, CheckCircle } from "lucide-react";
-
-const HIERARCHY_ITEMS = [
-  {
-    title: "Mission",
-    subtitle: "Direction",
-    icon: Target,
-    description: "Your Mission is the direction you're pointing your life right now. It doesn't change daily.",
-  },
-  {
-    title: "Snapshot", 
-    subtitle: "This Week",
-    icon: Camera,
-    description: "A Snapshot is your focus for the next 7 days. One theme. No perfection.",
-  },
-  {
-    title: "Daily Check-In",
-    subtitle: "Today",
-    icon: CheckCircle,
-    description: "This is about today only. One honest check-in. Then you're done.",
-  },
-];
+const getPrimaryAction = (): ActionItem | null => {
+  const priorityOrder = ["checkin", "journey-action", "time", ...];
+  for (const id of priorityOrder) {
+    const action = actions.find((a) => a.id === id && !a.completed);
+    if (action) return action;
+  }
+  return null;
+};
 ```
 
-**Render a simple "How This Works" card** above Quick Reference with these three items stacked vertically, plus footer text: "You don't manage all three at once. Just focus on today."
+**New behavior**:
+- The primary action is **only** the daily check-in (`checkin`)
+- If the check-in is complete (or doesn't exist), `primaryAction` becomes `null`
+- No other task gets promoted to the "one thing" position
 
----
-
-## 3. Pre-Assessment Reassurance Line (Add)
-
-### Problem
-Users may feel anxious before starting the Build assessment. The current intro text is functional but not emotionally grounding.
-
-### Solution
-Add a single reassurance line at the start of the assessment.
-
-### Implementation
-
-**Update `BuildAssessmentModal.tsx`**
-
-Add below the DialogTitle (after line 97):
-
-```tsx
-<DialogHeader>
-  <DialogTitle className="font-display">
-    {showResults ? "Your Build" : "Scan Your Build"}
-  </DialogTitle>
-  {!showResults && (
-    <p className="text-sm text-muted-foreground mt-1">
-      No right answers. This just helps us know where to start.
-    </p>
-  )}
-</DialogHeader>
+```typescript
+const getPrimaryAction = (): ActionItem | null => {
+  // The "one thing" is ONLY the daily check-in
+  // Once complete, nothing else gets promoted
+  const checkin = actions.find((a) => a.id === "checkin");
+  if (checkin && !checkin.completed) {
+    return checkin;
+  }
+  return null;
+};
 ```
 
-This appears only during the questions phase, not results.
+### 2. Update UI for Post-Completion State
 
----
+**When check-in is complete**, the "One Thing" anchor section should **not render at all**. The remaining tasks appear as a flat list under a neutral header.
 
-## 4. Daily Success Anchor Visual Emphasis (Keep)
-
-### Current State
-The primary action anchor at lines 682-711 already has the correct copy:
-- "If you do one thing today, do this."
-- "Everything else is optional." (line 727)
-
-### Refinements
-
-**Slightly increase prominence:**
-- Increase icon size from `w-3.5 h-3.5` to `w-4 h-4`
-- Add `font-semibold` to the anchor text
-- Add a subtle separator (horizontal line) between primary and secondary actions
-
-**Implementation:**
+**Current** (line 683):
 ```tsx
-{/* After primary action card, before "Everything else is optional" */}
-{secondaryActions.length > 0 && primaryAction && !primaryAction.completed && (
-  <div className="mx-4 border-t border-border/50" />
+{!isListCollapsed && primaryAction && !primaryAction.completed && (
+  <div className="...">
+    If you do one thing today, do this.
+  </div>
 )}
 ```
 
----
+This already works correctly—if `primaryAction` is `null`, the section won't render.
 
-## 5. AI Guides Positioning: Optional, Not Primary (Critical)
+### 3. Adjust Secondary Actions Display
 
-### Goal
-The Controllables should never be a primary CTA. They surface when users are stuck—contextually, not proactively.
+After the check-in is complete:
+- Show all remaining tasks as a simple list
+- No "Everything else is optional" label needed (since there's no primary action to contrast with)
+- Keep the completion states visible (checkmarks for done items)
 
-### Current Issue
-- "Ask The Controllables" appears as a Day 5 task in Today's Actions (line 359)
-- The Manual says "Five AI guides for action-focused advice. Ask when you're stuck."—mentions "AI"
-
-### Refinements
-
-**A. Update Dashboard Manual (`DashboardManualSection.tsx`)**
-
-Change line 41-43:
+**Update the separator logic** (lines 728-735):
 ```tsx
-{
-  title: "The Controllables",
-  icon: MessageCircle,
-  description: "Five guides to help when you're stuck. Ask a question, get one action.",
-},
+{/* Only show separator and "optional" label when check-in is still pending */}
+{secondaryActions.length > 0 && primaryAction && !primaryAction.completed && (
+  <>
+    <div className="mx-4 border-t border-border/50" />
+    <div className="px-4 pt-3 pb-1">
+      <p className="text-xs text-muted-foreground">Everything else is optional.</p>
+    </div>
+  </>
+)}
 ```
 
-This removes "AI" language entirely.
+This already works correctly since `primaryAction` will be `null` after check-in.
 
-**B. Update AI Guide Panel Header (`AIGuidePanel.tsx`)**
+### 4. Update Helper Copy for Accuracy
 
-Add contextual helper text below the panel header (around line ~520 where the guide selector renders):
+The current helper text says:
+> "This is about today only. One honest check-in. Then you're done."
 
-```tsx
-<p className="text-xs text-muted-foreground mt-1 mb-3">
-  Use a guide when you're stuck or need help choosing your next rep.
-</p>
-```
-
-**C. Update Landing Page (`HowItWorksSection.tsx`)**
-
-Change line 15:
-```tsx
-description: "The Dashboard notices what works for you and suggests what to focus on this week.",
-```
-
-This removes "Based on your Build and patterns" which sounds too algorithmic.
-
-**D. Today's Actions: Keep "Ask The Controllables" as Day 5 Task BUT...**
-
-This is fine as-is because:
-- It only appears on Day 5 (not primary action by default)
-- It's marked as optional via the secondary actions section
-- Copy is already "Ask The Controllables" (not "Chat with AI")
-
-No change needed here.
+This is now accurate because:
+- The "one thing" IS the check-in
+- Once complete, the special framing disappears
+- Remaining tasks are just a list, not a new "one thing"
 
 ---
 
-## 6. Snapshot Terminology Audit (Keep)
+## File Changes
 
-### Verification
-- `MainQuestModule.tsx`: Uses "Mission" ✓
-- `SnapshotSelector.tsx`: Uses "Snapshot" ✓
-- `DashboardManualSection.tsx`: Uses "7-Day Snapshot" ✓
-
-### One Change Needed
-
-**`DashboardManualSection.tsx` line 46:**
-
-Current:
-```tsx
-description: "Your scores across 5 dimensions. Take the assessment to discover your archetype.",
-```
-
-Change to:
-```tsx
-description: "Your scores across 5 dimensions. Answer a few questions to see where to grow.",
-```
-
-This is simpler and doesn't promise "discovery"—just insight.
+| File | Change |
+|------|--------|
+| `src/components/dashboard/TodayActions.tsx` | Simplify `getPrimaryAction()` to only return the `checkin` action |
 
 ---
 
-## 7. Tone Check Validation (Add)
+## Validation
 
-### Implementation
-This is a process guideline, not a code change. Before shipping, apply this test to all copy:
-
-> "Does this still feel like a welcome check-in?"
-
-If a tired person would feel evaluated or pressured, simplify.
-
----
-
-## Summary of File Changes
-
-| File | Changes |
-|------|---------|
-| `src/components/dashboard/MainQuestModule.tsx` | Add helper text to empty state and dialog header |
-| `src/components/dashboard/SnapshotSelector.tsx` | Update DialogDescription to include grounding copy |
-| `src/components/dashboard/TodayActions.tsx` | Add one-time helper below primary action, add visual separator |
-| `src/components/DashboardManualSection.tsx` | Add hierarchy section, update Controllables copy, simplify Build description |
-| `src/components/dashboard/BuildAssessmentModal.tsx` | Add pre-assessment reassurance line |
-| `src/components/dashboard/AIGuidePanel.tsx` | Add contextual helper text for tool-like positioning |
-| `src/components/landing/HowItWorksSection.tsx` | Remove algorithmic language from "Get Guided" |
+After this change:
+1. User sees "If you do one thing today, do this." with the daily check-in
+2. User completes the check-in
+3. The "One Thing" anchor **disappears entirely**
+4. Remaining tasks (journey action, time reflection) appear as a simple list
+5. User feels "done" with the core ritual—other tasks are clearly supplementary
 
 ---
 
-## Validation Criteria
+## Edge Cases
 
-After implementation:
+**No active check-in**: If there's no Snapshot session, `primaryAction` is `null`, and the "One Thing" section doesn't render. Users see only the supplementary actions (time reflection, promises).
 
-1. A user can explain Mission vs Snapshot vs Daily Check-In in one sentence
-2. A tired user knows exactly what "done" means today
-3. The app feels calmer and more human than before
-4. The Controllables feel like optional tools, not a primary feature
-5. Pre-assessment copy reduces anxiety, not increases it
-6. All changes pass the "welcome check-in" tone test
+**All actions complete**: The "All done!" celebration state already handles this correctly (lines 654-662).
 
+---
+
+## Why This Fixes the "Tricked" Feeling
+
+Before:
+> "Day 6 reading is the one thing → Done! → Wait, now 'Stretch for 5 minutes' is the one thing??"
+
+After:
+> "Day 6 reading is the one thing → Done! → (anchor disappears) → Here's what else you can do if you want."
+
+The key insight: **"The one thing" should mean THE one thing, not "the next thing in a queue."**
