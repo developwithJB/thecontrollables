@@ -113,7 +113,7 @@ export function MainQuestModule({
           <div>
             <h3 className="font-display font-semibold text-foreground">No Active Mission</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              Your Mission is the direction you're pointing your life right now. It doesn't change daily.
+              Your Mission sets direction. You live under it — you don't complete it.
             </p>
           </div>
         </div>
@@ -127,9 +127,9 @@ export function MainQuestModule({
           </DialogTrigger>
           <DialogContent className="max-w-sm">
             <DialogHeader>
-              <DialogTitle className="font-display">Define Your Main Mission</DialogTitle>
+              <DialogTitle className="font-display">Set Your Direction</DialogTitle>
               <p className="text-xs text-muted-foreground mt-1">
-                Pick a direction. You can refine it later.
+                This can evolve. You're just choosing where to point right now.
               </p>
             </DialogHeader>
             <div className="space-y-4 pt-4">
@@ -192,7 +192,12 @@ export function MainQuestModule({
             <Target className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Main Mission</p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Main Mission</p>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">
+              Direction, not a task.
+            </p>
             
             {isEditing ? (
               <div className="flex items-center gap-2">
@@ -264,27 +269,18 @@ export function MainQuestModule({
         <span className="text-muted-foreground">
           {daysRemaining} days remaining
         </span>
-        <span className="text-primary font-medium">
-          {Math.round(progressPercent)}% complete
-        </span>
+        {onUpdateQuest && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+            onClick={handleStartEdit}
+          >
+            <Pencil className="w-3 h-3 mr-1" />
+            Update Direction
+          </Button>
+        )}
       </div>
-
-      {/* Complete Quest Button */}
-      {onCompleteQuest && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full mt-4 border-primary/30 text-primary hover:bg-primary/10"
-          onClick={() => {
-            trackButtonClick("quest_complete", { quest_id: activeQuest.id });
-            onCompleteQuest(activeQuest.id);
-          }}
-          disabled={isCompleting || disabled}
-        >
-          <CheckCircle className="w-4 h-4 mr-2" />
-          {isCompleting ? "Completing..." : "Complete Mission"}
-        </Button>
-      )}
     </motion.div>
   );
 }

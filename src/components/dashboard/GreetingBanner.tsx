@@ -129,7 +129,7 @@ export function GreetingBanner({
             <button
               onClick={onSnapshotClick}
               className="flex items-center gap-1.5 hover:bg-muted px-2 py-1 -mx-1 rounded-lg transition-colors group"
-              title={`Focus: ${snapshotEmoji} ${snapshotFocus}`}
+              title={`Snapshot Focus: ${snapshotEmoji} ${snapshotFocus}`}
             >
               <div className="p-1 rounded-lg bg-muted">
                 {snapshotEmoji ? (
