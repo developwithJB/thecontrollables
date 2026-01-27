@@ -5,7 +5,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const ADMIN_EMAIL = "developwithjb@gmail.com";
+// Fallback admin email for initial bootstrap
+const BOOTSTRAP_ADMIN_EMAIL = "developwithjb@gmail.com";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -32,7 +33,7 @@ Deno.serve(async (req) => {
     });
 
     const { data: { user }, error: userError } = await anonClient.auth.getUser();
-    if (userError || !user || user.email !== ADMIN_EMAIL) {
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -44,8 +45,54 @@ Deno.serve(async (req) => {
       auth: { persistSession: false },
     });
 
-    const method = req.method;
+    // Check if user is admin via role-based system
+    const { data: roleData, error: roleError } = await adminClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    // Allow bootstrap: if no admins exist and user has bootstrap email, auto-create admin role
+    if (!roleData && user.email === BOOTSTRAP_ADMIN_EMAIL) {
+      const { data: existingAdmins } = await adminClient
+        .from("user_roles")
+        .select("id")
+        .eq("role", "admin")
+        .limit(1);
+      
+      if (!existingAdmins || existingAdmins.length === 0) {
+        // Bootstrap first admin
+        await adminClient
+          .from("user_roles")
+          .insert({ user_id: user.id, role: "admin", granted_by: "system_bootstrap" });
+      }
+    }
+
+    // Re-check admin status after potential bootstrap
+    const { data: finalRoleCheck } = await adminClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (!finalRoleCheck) {
+      return new Response(JSON.stringify({ error: "Forbidden", isAdmin: false }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Handle admin verification endpoint
     const url = new URL(req.url);
+    if (url.searchParams.get("action") === "verify_admin") {
+      return new Response(JSON.stringify({ isAdmin: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const method = req.method;
     const action = url.searchParams.get("action");
     const resource = url.searchParams.get("resource");
 
@@ -903,12 +950,21 @@ Deno.serve(async (req) => {
 
       const entitlementMap = new Map(entitlements?.map((e) => [e.user_id, e]) || []);
 
+      // Get all admin roles
+      const { data: adminRoles, error: roleError } = await adminClient
+        .from("user_roles")
+        .select("user_id, role")
+        .eq("role", "admin");
+      
+      const adminUserIds = new Set(adminRoles?.map(r => r.user_id) || []);
+
       const users = authUsers.users.map((u) => ({
         id: u.id,
         email: u.email,
         created_at: u.created_at,
         last_sign_in_at: u.last_sign_in_at,
         isPaid: entitlementMap.has(u.id),
+        isAdmin: adminUserIds.has(u.id),
         entitlement: entitlementMap.get(u.id) || null,
       }));
 

@@ -28,14 +28,13 @@ import {
 } from "@/components/ui/table";
 import { AccessGrantModal, type AccessDuration } from "@/components/admin/AccessGrantModal";
 
-const ADMIN_EMAIL = "developwithjb@gmail.com";
-
 interface AdminUser {
   id: string;
   email: string;
   created_at: string;
   last_sign_in_at: string | null;
   isPaid: boolean;
+  isAdmin?: boolean;
   entitlement: {
     expires_at: string | null;
     granted_at: string;
@@ -229,18 +228,39 @@ export default function Admin() {
       return;
     }
 
-    if (user.email !== ADMIN_EMAIL) {
+    // Verify admin status via server-side check
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users?action=verify_admin`,
+        { headers }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (!errorData.isAdmin) {
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to view this page.",
+            variant: "destructive",
+          });
+          navigate("/dashboard");
+          return;
+        }
+        throw new Error(errorData.error || "Admin verification failed");
+      }
+
+      setIsAuthorized(true);
+      loadAllData();
+    } catch (error: any) {
+      console.error("Admin verification failed:", error);
       toast({
         title: "Access Denied",
         description: "You don't have permission to view this page.",
         variant: "destructive",
       });
       navigate("/dashboard");
-      return;
     }
-
-    setIsAuthorized(true);
-    loadAllData();
   };
 
   const getAuthHeaders = async () => {
@@ -1482,7 +1502,7 @@ export default function Admin() {
                           <TableRow key={user.id}>
                             <TableCell className="font-medium">
                               {user.email}
-                              {user.email === ADMIN_EMAIL && (
+                              {user.isAdmin && (
                                 <Badge variant="outline" className="ml-2">Admin</Badge>
                               )}
                             </TableCell>
@@ -1509,7 +1529,7 @@ export default function Admin() {
                                     size="sm"
                                     variant="destructive"
                                     onClick={() => handleRevokeAccess(user.id)}
-                                    disabled={actionLoading === user.id || user.email === ADMIN_EMAIL}
+                                    disabled={actionLoading === user.id || user.isAdmin}
                                   >
                                     {actionLoading === user.id ? "..." : "Revoke"}
                                   </Button>
@@ -1518,7 +1538,7 @@ export default function Admin() {
                                     size="sm"
                                     variant="default"
                                     onClick={() => openGrantModal(user)}
-                                    disabled={actionLoading === user.id || user.email === ADMIN_EMAIL}
+                                    disabled={actionLoading === user.id || user.isAdmin}
                                   >
                                     {actionLoading === user.id ? "..." : "Grant"}
                                   </Button>
@@ -1528,7 +1548,7 @@ export default function Admin() {
                                     size="sm"
                                     variant="outline"
                                     onClick={() => openGrantModal(user)}
-                                    disabled={actionLoading === user.id || user.email === ADMIN_EMAIL}
+                                    disabled={actionLoading === user.id || user.isAdmin}
                                   >
                                     Extend
                                   </Button>
