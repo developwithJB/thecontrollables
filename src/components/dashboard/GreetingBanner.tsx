@@ -113,7 +113,7 @@ export function GreetingBanner({
             <button
               onClick={onMissionClick}
               className="flex items-center gap-1.5 hover:bg-primary/10 px-2 py-1 -mx-1 rounded-lg transition-colors group"
-              title={`Mission: ${missionTitle}`}
+              title={`Direction: ${missionTitle}`}
             >
               <div className="p-1 rounded-lg bg-primary/10">
                 <Target className="w-4 h-4 text-primary" />

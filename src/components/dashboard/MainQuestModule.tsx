@@ -44,7 +44,8 @@ export function MainQuestModule({
 }: MainQuestModuleProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [duration, setDuration] = useState<7 | 30 | 90>(7);
+  // Hard-code a long internal duration (Mission = Direction, no visible end date)
+  const duration = 365;
   
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -144,34 +145,13 @@ export function MainQuestModule({
                   className="text-base"
                 />
               </div>
-              
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">
-                  Mission duration
-                </label>
-                <div className="flex gap-2">
-                  {[7, 30, 90].map((days) => (
-                    <button
-                      key={days}
-                      onClick={() => setDuration(days as 7 | 30 | 90)}
-                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                        duration === days
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80"
-                      }`}
-                    >
-                      {days} days
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               <Button 
                 onClick={handleSubmit} 
                 className="w-full" 
                 disabled={!title.trim() || isCreating || disabled}
               >
-                {isCreating ? "Activating..." : "Activate Mission"}
+                {isCreating ? "Setting..." : "Set Direction"}
               </Button>
             </div>
           </DialogContent>
@@ -253,22 +233,8 @@ export function MainQuestModule({
         
       </div>
 
-      {/* Progress bar */}
-      <div className="mb-3">
-        <div className="h-2 rounded-full bg-muted overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${progressPercent}%` }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="h-full bg-primary rounded-full"
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">
-          {daysRemaining} days remaining
-        </span>
+      {/* Bottom action row - no progress, no countdown */}
+      <div className="flex items-center justify-end text-sm">
         {onUpdateQuest && (
           <Button
             variant="ghost"
