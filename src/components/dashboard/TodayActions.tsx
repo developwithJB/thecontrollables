@@ -553,7 +553,7 @@ export function TodayActions({
               <p className="text-sm text-muted-foreground">
                 You've completed your free reset. Upgrade to continue with unlimited resets.
               </p>
-              <Button className="w-full" size="sm" onClick={onUpgrade}>
+              <Button className="w-full" size="sm" onClick={() => onUpgrade?.()}>
                 <Sparkles className="w-4 h-4 mr-2" />
                 Upgrade to Continue
               </Button>

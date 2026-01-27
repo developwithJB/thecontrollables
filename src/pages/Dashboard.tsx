@@ -706,7 +706,7 @@ export default function Dashboard() {
                   isStartingReset={isAcceptingCovenant}
                   isPaid={isPaid}
                   hasUsedFreeReset={!isPaid && allSessions.length >= 1}
-                  onUpgrade={initiateCheckout}
+                  onUpgrade={() => initiateCheckout()}
                   hasActiveQuest={!!activeQuest}
                   todayTimeLogged={!!todayTimeLog}
                   pendingPromisesCount={pendingPromises.length}
@@ -771,7 +771,7 @@ export default function Dashboard() {
                   isStartingReset={isAcceptingCovenant}
                   isPaid={isPaid}
                   totalSessionCount={allSessions.length}
-                  onUpgrade={initiateCheckout}
+                  onUpgrade={() => initiateCheckout()}
                   currentJourneyId={activeSession?.journey_id}
                   onSwitchJourney={() => setShowJourneySwitcher(true)}
                   lastCompletedAt={
@@ -922,7 +922,7 @@ export default function Dashboard() {
                     currentBuild={currentBuild}
                     onXpEarned={handleOperatorInteraction}
                     isPaid={isPaid}
-                    onUpgrade={initiateCheckout}
+                    onUpgrade={() => initiateCheckout()}
                     isCheckingOut={isCheckingOut}
                     hasActiveSnapshot={!!activeSession && !isCompleted}
                     onMessageSent={handleAskGuideMessageSent}
@@ -1041,7 +1041,7 @@ export default function Dashboard() {
                   {/* Single consolidated lock overlay */}
                   <LockedOverlay
                     variant="experience-history"
-                    onUpgrade={initiateCheckout}
+                    onUpgrade={(plan) => initiateCheckout(plan)}
                     isLoading={isCheckingOut}
                   />
                 </div>
