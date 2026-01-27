@@ -328,6 +328,11 @@ export default function Billing() {
                   included={isPaid} 
                   premium={true}
                 />
+                <FeatureRow 
+                  label="Gentle Email Nudges" 
+                  included={isPaid} 
+                  premium={true}
+                />
               </div>
             </CardContent>
           </Card>
@@ -336,12 +341,14 @@ export default function Billing() {
           <Card>
             <CardContent className="py-4">
               <p className="text-sm text-muted-foreground text-center">
-                Need help? Contact us at{" "}
+                Need help? Message us on Instagram{" "}
                 <a 
-                  href="mailto:support@agbcoaching.com" 
+                  href="https://instagram.com/agbcoaching" 
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-primary hover:underline"
                 >
-                  support@agbcoaching.com
+                  @agbcoaching
                 </a>
               </p>
             </CardContent>
