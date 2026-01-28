@@ -124,27 +124,24 @@ export const Day7Complete = ({
             ✨
           </motion.div>
 
-          {/* TGIM Completion Message - calm, no hype */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="mb-4"
-          >
-            <p className="text-sm text-muted-foreground">
-              TGIM, again.
-            </p>
-          </motion.div>
-
-          {/* Completion Message */}
+          {/* Completion Message - celebratory but calm */}
           <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-2xl font-semibold text-foreground mb-6"
+            transition={{ delay: 0.25 }}
+            className="text-2xl font-semibold text-foreground mb-2"
           >
-            You showed up this week.
+            7 Days Complete
           </motion.h1>
+          
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-muted-foreground mb-6"
+          >
+            You showed up every day this week.
+          </motion.p>
 
           {/* Statement */}
           <motion.div

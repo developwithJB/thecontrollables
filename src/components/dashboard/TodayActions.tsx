@@ -432,9 +432,8 @@ export function TodayActions({
     >
       <DialogContent className="max-w-md p-6">
         <div className="space-y-6">
-          {/* TGIM Snapshot Start Moment - calm, intentional */}
+          {/* Snapshot Start Moment - calm, intentional */}
           <div className="text-center py-2">
-            <p className="text-sm text-muted-foreground mb-1">TGIM.</p>
             <p className="text-foreground text-sm leading-relaxed">
               You don't need a perfect plan.
               <br />
