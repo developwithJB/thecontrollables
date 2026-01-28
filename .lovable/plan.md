@@ -1,220 +1,191 @@
 
-# Multi-Part Update: Certificates, Badges, Experience Tab, and Performance
+# Onboarding Clarity Update Plan
 
-This plan addresses four distinct improvements to make the app cleaner, faster, and more aligned with the product philosophy.
+## Problem
+The current onboarding flow uses outdated "Journey" terminology and a flat selection list, while the dashboard now uses a cleaner "By Goal" / "By State" Snapshot navigation system. This creates confusion from the user's first interaction.
 
----
-
-## Overview
-
-| Area | Change |
-|------|--------|
-| Certificate Design | Remove badges/XP sections, make user's name and commitment text most prominent |
-| Badge System | Simplify to philosophy-aligned badges, remove streak-based gamification |
-| Experience Tab | Remove "Cost of Inaction" module |
-| App Performance | Prioritize essential data loading with background fetching for secondary data |
+## Solution
+Align onboarding with the dashboard's Snapshot selection UX to create a consistent experience from first touch.
 
 ---
 
-## 1. Certificate Design Update
+## Current vs. New Flow
 
-**Goal**: Make the certificate feel personal and achievement-focused, not gamified.
-
-**Current State**: The certificate includes:
-- Left side: "Badges Earned" section with 8 badge slots
-- Right side: "Momentum" section with XP and Level display
-- Center: User name and commitment quote
-
-**New Design**: Clean, name-focused certificate that emphasizes:
-- User's name (larger, more prominent)
-- The commitment statement
-- The 5 Controllables section
-- Date range and verification
-
-**Changes to `supabase/functions/generate-certificate/index.ts`**:
-- Remove the left-side "Badges Earned" section (lines 357-369)
-- Remove the right-side "Momentum/XP/Level" section (lines 371-403)
-- Increase user name font size from 42px to 52px
-- Make commitment statement more prominent (increase font from 18px to 20px)
-- Center the layout now that side columns are removed
-- Keep the 5 Controllables, date range, and verification sections
-
----
-
-## 2. Badge System Philosophy Update
-
-**Goal**: Align badges with meaningful moments, not counts or streaks.
-
-**Current State** (`src/lib/badges.ts`):
-- 12 badges total including 3 streak-based badges:
-  - `foundation_streak_2` (2 consecutive snapshots)
-  - `foundation_streak_3` (3 consecutive snapshots)
-  - `foundation_streak_5` (5 consecutive snapshots)
-
-**New State**: 
-- Remove the 3 streak-based badges (they encourage gamification over meaning)
-- Keep the 8 philosophy-aligned badges that mark genuine moments:
-  - `chose_quest`, `returned`, `kept_promise`, `respecd`
-  - `paused_reacting`, `completed_reset`, `protected_time`, `asked_guidance`
-- Add 1 new meaningful badge:
-  - `snapshot_explorer` (already defined but not in certificate logic)
-
-**Files to update**:
-- `src/lib/badges.ts`: Remove streak badges from the type and BADGES object
-- `src/components/experience/BadgesEarned.tsx`: Update the "locked badges hint" count from 8 to the new total (9)
-- `supabase/functions/generate-certificate/index.ts`: Remove ALL_BADGES constant (no longer needed since badges aren't on certificate)
+```text
+CURRENT ONBOARDING:                    NEW ONBOARDING:
+┌──────────────────────┐              ┌──────────────────────┐
+│ Build Assessment     │──────────►   │ Build Assessment     │ (Keep)
+└──────────────────────┘              └──────────────────────┘
+           │                                     │
+           ▼                                     ▼
+┌──────────────────────┐              ┌──────────────────────┐
+│ Archetype Result     │──────────►   │ Archetype Result     │ (Keep)
+│ "Choose Your Journey"│              │ "Pick Your Snapshot" │
+└──────────────────────┘              └──────────────────────┘
+           │                                     │
+           ▼                                     ▼
+┌──────────────────────┐              ┌──────────────────────┐
+│ Journey Selection    │──────────►   │ Snapshot Selection   │
+│ (flat list, 8 items) │              │  ├─ By Goal tab      │
+│ "Begin 7-Day Reset"  │              │  └─ By State tab     │
+└──────────────────────┘              │ "Start 7-Day Snapshot"│
+           │                          └──────────────────────┘
+           ▼                                     │
+┌──────────────────────┐                         ▼
+│ Orientation (Day 0)  │──────────►   ┌──────────────────────┐
+└──────────────────────┘              │ Orientation (Day 0)  │ (Keep)
+                                      └──────────────────────┘
+```
 
 ---
 
-## 3. Remove "Cost of Inaction" Module
+## Changes Required
 
-**Goal**: Reduce negative reinforcement and simplify the Experience tab.
-
-**Current Location**: `src/pages/Dashboard.tsx` lines 1162-1184
+### 1. Update `OnboardingArchetypeResult.tsx`
+**File**: `src/components/onboarding/OnboardingArchetypeResult.tsx`
 
 **Changes**:
-- Remove the `LazyMomentumDecay` component import and usage from Dashboard.tsx
-- Remove the import from `src/components/experience/LazyExperienceComponents.tsx`
-- Keep the `MomentumDecay.tsx` file for now (can be deleted later if confirmed unused)
+- Button text: "Choose Your Journey" → "Pick Your Snapshot"
+- Subtitle: "You can retake this assessment anytime" (keep as is)
+
+### 2. Replace `OnboardingJourneySelection.tsx` with Goal/State Selection
+**File**: `src/components/onboarding/OnboardingJourneySelection.tsx`
+
+This is the main change. Replace the current flat journey list with a tabbed interface matching StartSnapshotDialog:
+
+**New Structure**:
+- **Header**: "Pick Your First Snapshot" with subtitle about focus
+- **Tabs**: "By Goal" | "By State" toggle (defaulting to "By Goal")
+- **By Goal Tab**:
+  - Goal categories (Break a Habit, Build a Habit, Shift Mindset)
+  - Clickable goal pills that filter snapshots
+  - Filtered snapshot cards when goal is selected
+- **By State Tab**:
+  - Build scores display (if available)
+  - Recommended snapshot based on Build
+  - Collapsible category buckets
+- **CTA**: "Start 7-Day Snapshot"
+
+**Key differences from StartSnapshotDialog**:
+- Full-screen layout (not modal)
+- Animation between views
+- Integrated with onboarding flow state
+- Default to "By Goal" for first-time users (more relatable)
+
+### 3. Update `OnboardingOrientation.tsx`
+**File**: `src/components/onboarding/OnboardingOrientation.tsx`
+
+**Minor copy changes**:
+- "Starting: {journeyTitle}" → "Your Focus: {snapshotName}"
+- Button "Start Day 1" (keep as is - this is clear)
+
+### 4. Update `OnboardingFlow.tsx`
+**File**: `src/components/onboarding/OnboardingFlow.tsx`
+
+**Changes**:
+- Update types/terminology in comments
+- Update `getRecommendedJourneyId` to use snapshot system
+- Pass snapshot data (not just journey) to child components
+
+### 5. Update Button/Label Terminology Across Files
+- "Begin 7-Day Reset" → "Start 7-Day Snapshot"
+- "journey" → "snapshot" in variable names and UI copy
+- "Choose Your Journey" → "Pick Your Snapshot"
 
 ---
 
-## 4. App Speed and Loading Optimizations
+## Detailed Component Changes
 
-**Goal**: Essential data first, secondary data in background. Create a snappy perceived experience.
+### OnboardingJourneySelection.tsx (Complete Rewrite)
 
-### 4.1 Dashboard Data Prioritization
-
-**Current State**: `useDashboardSummary` fetches all data in one edge function call.
-
-**Optimization Strategy** - Split into tiers:
-
-**Tier 1 - Critical (blocks render)**:
-- Active session status
-- Today's check-in status
-- User profile (display name)
-
-**Tier 2 - Important (load immediately after)**:
-- Active quest
-- Pending promises
-- Today's time log
-
-**Tier 3 - Background (lazy load)**:
-- XP logs (full history)
-- Integrity logs (30-day history)
-- All reset sessions (for Experience tab)
-- Badges
-
-### 4.2 Implementation Changes
-
-**`src/pages/Dashboard.tsx`**:
-- Add `staleTime` to queries that don't need real-time updates
-- Defer Experience tab data loading until tab is selected
-- Use `suspense: false` for non-critical queries
-
-**`src/hooks/useDashboardSummary.ts`**:
-- Already has `staleTime: 60 * 1000` - good baseline
-- Add `refetchOnMount: false` for stable data
-
-**`src/components/experience/LazyExperienceComponents.tsx`**:
-- Already lazy loading - maintain this pattern
-- Experience tab data should only load when tab is activated
-
-### 4.3 Specific Optimizations
-
-1. **Defer all-sessions query** until Experience tab is opened:
-```text
-const { data: allSessions } = useQuery({
-  ...
-  enabled: !!user?.id && activeTab === "experience",
-});
+**New Props**:
+```typescript
+interface OnboardingSnapshotSelectionProps {
+  buildResult?: BuildScore | null;
+  onSelect: (snapshot: Snapshot) => void;
+}
 ```
 
-2. **Defer all-completed-days query** similarly:
-```text
-const { data: allCompletedDays } = useQuery({
-  ...
-  enabled: !!user?.id && activeTab === "experience",
-});
+**State Management**:
+```typescript
+const [viewMode, setViewMode] = useState<"goal" | "state">("goal");
+const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
+const [selectedSnapshot, setSelectedSnapshot] = useState<Snapshot | null>(null);
+const [expandedBuckets, setExpandedBuckets] = useState<Set<BucketId>>(new Set());
 ```
 
-3. **Add skeleton fallbacks** when data is still loading (already partially implemented)
+**Layout Sections**:
+1. **Header** - "Pick Your First Snapshot"
+2. **Tab Toggle** - Goal | State (using existing Tabs component)
+3. **By Goal Content**:
+   - Goal category sections with clickable pills
+   - Filtered snapshot cards
+4. **By State Content**:
+   - Build scores (if available)
+   - Recommended snapshot
+   - Category accordions
+5. **Continue Button** - "Start 7-Day Snapshot"
 
-4. **Prefetch on tab hover** for smoother transitions (optional enhancement)
+---
+
+## UI/UX Details
+
+### By Goal Tab (Default for Onboarding)
+- Shows all 17 life goals organized by category
+- User taps a goal → relevant snapshots appear below
+- Pre-select first snapshot in filtered list for easy flow
+- Context message appears explaining connection
+
+### By State Tab
+- Shows Build assessment scores (if completed)
+- Highlights recommended snapshot based on lowest score
+- Buckets expand to show all options
+- Good for users who skipped assessment or want to explore
+
+### Animation Flow
+- Tab switch: Subtle fade/slide
+- Goal selection: Snapshot list slides in from bottom
+- Bucket expand: Standard collapsible animation
+
+---
+
+## Copy Updates Summary
+
+| Component | Current | New |
+|-----------|---------|-----|
+| ArchetypeResult button | "Choose Your Journey" | "Pick Your Snapshot" |
+| JourneySelection header | "Where to Begin" | "Pick Your First Snapshot" |
+| JourneySelection subtitle | "Direction should be selected..." | "What do you want to work on?" |
+| JourneySelection CTA | "Begin 7-Day Reset" | "Start 7-Day Snapshot" |
+| Orientation subtitle | "Starting: {title}" | "Your Focus: {name}" |
 
 ---
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `supabase/functions/generate-certificate/index.ts` | Remove badges/XP sections from SVG, enlarge name |
-| `src/lib/badges.ts` | Remove 3 streak-based badges |
-| `src/components/experience/BadgesEarned.tsx` | Update locked badge count |
-| `src/components/experience/LazyExperienceComponents.tsx` | Remove MomentumDecay export |
-| `src/pages/Dashboard.tsx` | Remove MomentumDecay usage, defer Experience queries |
+| File | Change Type |
+|------|-------------|
+| `src/components/onboarding/OnboardingArchetypeResult.tsx` | Minor copy update |
+| `src/components/onboarding/OnboardingJourneySelection.tsx` | Major rewrite |
+| `src/components/onboarding/OnboardingOrientation.tsx` | Minor copy update |
+| `src/components/onboarding/OnboardingFlow.tsx` | Type/terminology updates |
 
 ---
 
-## Technical Details
+## Benefits
 
-### Certificate SVG Changes (generate-certificate/index.ts)
-
-**Remove**:
-- Lines 240-261: `badgesSvg` generation
-- Lines 357-369: Left side badges section
-- Lines 371-403: Right side momentum/XP section
-
-**Update**:
-- Line 346: User name font size from `font-size="42"` to `font-size="52"`
-- Lines 350-355: Commitment statement font size from `font-size="18"` to `font-size="20"`
-
-### Badge Type Cleanup (badges.ts)
-
-**Remove from BadgeKey type**:
-```text
-| "foundation_streak_2"
-| "foundation_streak_3"
-| "foundation_streak_5"
-```
-
-**Remove from BADGES object**:
-- `foundation_streak_2` entry
-- `foundation_streak_3` entry
-- `foundation_streak_5` entry
-
-### Dashboard Query Optimization
-
-**Before** (always fetches):
-```text
-const { data: allSessions } = useQuery({
-  enabled: !!user?.id,
-  ...
-});
-```
-
-**After** (deferred until needed):
-```text
-const { data: allSessions } = useQuery({
-  enabled: !!user?.id && activeTab === "experience",
-  ...
-});
-```
+1. **First impression matches dashboard** - Users learn the UI once
+2. **Goal-first navigation** - More relatable for new users ("Stop procrastinating" vs "Habit controllable")
+3. **State-based fallback** - Users who took assessment can use their Build data
+4. **Consistent language** - "Snapshot" everywhere, no "Journey" confusion
+5. **Familiar patterns** - Same tab system they'll use on dashboard later
 
 ---
 
-## Expected Outcomes
+## Technical Notes
 
-1. **Certificate**: Cleaner, more personal design focused on the user's name and commitment
-2. **Badges**: Meaningful philosophy-aligned achievements only, no streak pressure
-3. **Experience Tab**: Simpler, removes negative "Cost of Inaction" messaging
-4. **Performance**: Dashboard feels snappier - essential data loads first, Experience tab data deferred
-
----
-
-## Rollout Notes
-
-- Certificate changes require edge function redeployment
-- Existing certificates won't change (already generated)
-- Badge changes are backward-compatible (existing streak badges in user_badges table won't break, just won't display)
-- Performance changes are transparent to users
+- Reuse `SNAPSHOTS`, `BUCKETS`, `LIFE_GOALS` from existing lib files
+- Import `getSnapshotsForGoal`, `getRecommendedSnapshot` helpers
+- Use same `Controllable` type and emoji config
+- Animations via existing Framer Motion patterns
+- No new dependencies needed
