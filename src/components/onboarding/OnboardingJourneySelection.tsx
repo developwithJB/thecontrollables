@@ -2,7 +2,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Check, ChevronDown, Sparkles, Target, Lightbulb, ArrowRight, TrendingDown, Crown } from "lucide-react";
+import { Check, ChevronDown, Sparkles, Target, Lightbulb, ArrowRight, TrendingDown, Crown, Plus } from "lucide-react";
+import { CustomSnapshotCreator } from "@/components/dashboard/CustomSnapshotCreator";
 import {
   SNAPSHOTS,
   BUCKETS,
@@ -40,6 +41,8 @@ export function OnboardingJourneySelection({
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [selectedSnapshot, setSelectedSnapshot] = useState<Snapshot | null>(null);
   const [expandedBuckets, setExpandedBuckets] = useState<Set<BucketId>>(new Set());
+  const [showCustomCreator, setShowCustomCreator] = useState(false);
+  const [customSnapshots, setCustomSnapshots] = useState<Snapshot[]>([]);
 
   // Get recommended snapshot based on build
   const recommendedSnapshot = buildResult ? getRecommendedSnapshot(buildResult) : null;
@@ -82,6 +85,11 @@ export function OnboardingJourneySelection({
     if (selectedSnapshot) {
       onSelect(selectedSnapshot);
     }
+  };
+
+  const handleCustomSnapshotCreated = (snapshot: Snapshot) => {
+    setCustomSnapshots((prev) => [...prev, snapshot]);
+    setSelectedSnapshot(snapshot);
   };
 
   const renderSnapshotCard = (snapshot: Snapshot, showRecommended = false, index = 0) => {
@@ -297,6 +305,25 @@ export function OnboardingJourneySelection({
                 {filteredSnapshots.map((snapshot, index) => renderSnapshotCard(snapshot, false, index))}
               </motion.div>
             )}
+
+            {/* Build Your Own */}
+            <motion.button
+              onClick={() => setShowCustomCreator(true)}
+              whileTap={{ scale: 0.98 }}
+              className="w-full p-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
+                  <Plus className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-foreground">Build Your Own</h3>
+                  <p className="text-xs text-muted-foreground italic">
+                    Create a custom 7-day snapshot
+                  </p>
+                </div>
+              </div>
+            </motion.button>
           </TabsContent>
 
           {/* By State Tab */}
@@ -399,6 +426,13 @@ export function OnboardingJourneySelection({
           </p>
         </motion.div>
       </div>
+
+      {/* Custom Snapshot Creator Modal */}
+      <CustomSnapshotCreator
+        open={showCustomCreator}
+        onOpenChange={setShowCustomCreator}
+        onSnapshotCreated={handleCustomSnapshotCreated}
+      />
     </motion.div>
   );
 }
