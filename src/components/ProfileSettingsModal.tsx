@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, LogOut, Moon, Sun, CreditCard, Mail, Calendar } from "lucide-react";
+import { LogOut, Moon, Sun, CreditCard, Mail, Calendar } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -185,12 +185,6 @@ export function ProfileSettingsModal({
           </div>
         ) : (
           <div className="space-y-6 py-4">
-            {/* Avatar placeholder */}
-            <div className="flex justify-center">
-              <div className="w-20 h-20 rounded-full bg-accent/20 flex items-center justify-center">
-                <User className="w-8 h-8 text-accent" />
-              </div>
-            </div>
 
             {/* Display Name */}
             <div className="space-y-2">
