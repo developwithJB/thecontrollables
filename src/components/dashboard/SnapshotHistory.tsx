@@ -296,19 +296,23 @@ function WeekCard({
               +{record.xpEarned}
             </span>
           )}
-          {isFullyCompleted && onViewSnapshot && (
+          {record.status !== "active" && onViewSnapshot && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onViewSnapshot();
               }}
-              className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium hover:underline"
+              className={`flex items-center gap-1 text-xs font-medium hover:underline ${
+                isFullyCompleted 
+                  ? "text-emerald-600 dark:text-emerald-400" 
+                  : "text-primary/70"
+              }`}
             >
               <Gift className="w-3 h-3" />
               Review This Week
             </button>
           )}
-          {!isFullyCompleted && (
+          {record.status === "active" && (
             <span 
               className="text-xs text-primary/70 cursor-pointer hover:underline"
               onClick={onClick}
