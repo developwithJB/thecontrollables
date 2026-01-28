@@ -51,15 +51,37 @@ const Reset = () => {
 
   // If user is logged in but has no active reset session, send them back to the dashboard
   // (they can start a reset whenever they want from there).
+  // IMPORTANT: Don't redirect if we're showing the Day 7 celebration!
   useEffect(() => {
-    if (!isLoading && userId && !activeSession) {
+    if (!isLoading && userId && !activeSession && !showDay7Complete) {
       navigate("/dashboard");
     }
-  }, [isLoading, userId, activeSession, navigate]);
+  }, [isLoading, userId, activeSession, navigate, showDay7Complete]);
+
+  // Store session data for Day 7 celebration (before it becomes null)
+  const [completedSessionData, setCompletedSessionData] = useState<{
+    displayName: string;
+    startDate: string;
+    endDate: string;
+    sessionId: string;
+    journeyId?: string;
+  } | null>(null);
 
   // Handle day completion
   const handleComplete = (data: { userInput?: string }) => {
     const isDay7 = currentDay >= 7;
+    
+    // Capture session data BEFORE completion (for Day 7 celebration)
+    if (isDay7 && activeSession) {
+      setCompletedSessionData({
+        displayName,
+        startDate: activeSession.start_date,
+        endDate,
+        sessionId: activeSession.id,
+        journeyId: activeSession.journey_id || undefined,
+      });
+    }
+    
     completeDay(data, {
       onSuccess: () => {
         if (isDay7) {
@@ -76,16 +98,27 @@ const Reset = () => {
   }
 
   // Show Day 7 complete with certificate
-  if (showDay7Complete && activeSession) {
-    return (
-      <Day7Complete
-        displayName={displayName}
-        startDate={activeSession.start_date}
-        endDate={endDate}
-        resetSessionId={activeSession.id}
-        completedJourneyId={activeSession.journey_id || undefined}
-      />
-    );
+  // Use completedSessionData when activeSession becomes null after completion
+  if (showDay7Complete) {
+    const sessionData = completedSessionData || (activeSession ? {
+      displayName,
+      startDate: activeSession.start_date,
+      endDate,
+      sessionId: activeSession.id,
+      journeyId: activeSession.journey_id || undefined,
+    } : null);
+    
+    if (sessionData) {
+      return (
+        <Day7Complete
+          displayName={sessionData.displayName}
+          startDate={sessionData.startDate}
+          endDate={sessionData.endDate}
+          resetSessionId={sessionData.sessionId}
+          completedJourneyId={sessionData.journeyId}
+        />
+      );
+    }
   }
 
   // Show day completion (non-Day 7)

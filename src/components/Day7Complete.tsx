@@ -111,67 +111,110 @@ export const Day7Complete = ({
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="min-h-screen flex flex-col items-center justify-center px-6 py-12"
+        className="min-h-screen flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden"
       >
-        <div className="max-w-sm w-full text-center">
-          {/* Calm emoji */}
+        {/* Subtle celebration particles */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {[...Array(12)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ 
+                opacity: 0, 
+                y: 100,
+                x: Math.random() * 100 - 50,
+              }}
+              animate={{ 
+                opacity: [0, 1, 0],
+                y: -200,
+                x: Math.random() * 200 - 100,
+              }}
+              transition={{ 
+                duration: 3 + Math.random() * 2,
+                delay: i * 0.3,
+                repeat: Infinity,
+                repeatDelay: 2,
+              }}
+              className="absolute bottom-0 text-2xl"
+              style={{ left: `${10 + i * 7}%` }}
+            >
+              {['✨', '🌟', '⭐', '💫'][i % 4]}
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="max-w-sm w-full text-center relative z-10">
+          {/* Big celebration moment */}
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
+            initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, type: "spring" }}
-            className="text-6xl mb-6"
+            transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 15 }}
+            className="text-7xl mb-4"
           >
-            ✨
+            🏆
           </motion.div>
 
-          {/* Completion Message - celebratory but calm */}
+          {/* Headline - impactful */}
           <motion.h1
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="text-2xl font-semibold text-foreground mb-2"
+            transition={{ delay: 0.3 }}
+            className="text-3xl font-bold text-foreground mb-2"
           >
-            7 Days Complete
+            You Did It.
           </motion.h1>
           
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-muted-foreground mb-6"
+            transition={{ delay: 0.4 }}
+            className="text-xl text-primary font-medium mb-6"
           >
-            You showed up every day this week.
+            7 Days. 7 Check-ins. 100% You.
           </motion.p>
 
-          {/* Statement */}
+          {/* Proof Statement - meaningful */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-muted/30 rounded-xl p-6 mb-8"
+            transition={{ delay: 0.5 }}
+            className="bg-gradient-to-br from-primary/20 via-primary/10 to-muted/30 rounded-2xl p-6 mb-6 border border-primary/20"
           >
-            <p className="text-foreground leading-relaxed">
-              I committed to controlling what I could and surrendering what I could not
+            <p className="text-sm uppercase tracking-widest text-muted-foreground mb-3">
+              Your Proof
             </p>
-            <p className="text-muted-foreground mt-2 text-sm">
+            <p className="text-lg text-foreground leading-relaxed font-medium">
+              This is evidence that you showed up, every single day, for yourself.
+            </p>
+            <p className="text-muted-foreground mt-3 text-sm">
               {formatDate(startDate)} – {formatDate(endDate)}
             </p>
             {displayName && (
-              <p className="text-foreground mt-4 font-medium">{displayName}</p>
+              <p className="text-foreground mt-4 font-semibold text-lg">{displayName}</p>
             )}
             {completedJourney && (
-              <p className="text-primary mt-2 text-sm">
-                {completedJourney.emoji} {completedJourney.title}
+              <p className="text-primary mt-2">
+                <span className="text-xl mr-1">{completedJourney.emoji}</span>
+                {completedJourney.title}
               </p>
             )}
           </motion.div>
+
+          {/* Affirmation */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="text-muted-foreground text-sm mb-8 italic"
+          >
+            "A 7-Day Snapshot is a recorded moment in time that proves you are who you say you are."
+          </motion.p>
 
           {/* What's Next Section - Paid users */}
           {showWhatsNext && isPaid && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.45 }}
+              transition={{ delay: 0.7 }}
               className="mb-8"
             >
               <div className="border border-primary/20 bg-primary/5 rounded-xl p-5">
@@ -234,7 +277,7 @@ export const Day7Complete = ({
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.45 }}
+              transition={{ delay: 0.7 }}
               className="mb-8"
             >
               <div className="border border-primary/20 bg-primary/5 rounded-xl p-5">
@@ -266,7 +309,7 @@ export const Day7Complete = ({
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.8 }}
               className="mb-6"
             >
               <button
@@ -292,7 +335,7 @@ export const Day7Complete = ({
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55 }}
+            transition={{ delay: 0.9 }}
             className="space-y-3 mb-8"
           >
             {isLocked ? (
@@ -364,7 +407,7 @@ export const Day7Complete = ({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.7 }}
+            transition={{ delay: 1.0 }}
             className="border-t pt-6"
           >
             <p className="text-muted-foreground text-sm mb-3">
@@ -384,7 +427,7 @@ export const Day7Complete = ({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
+            transition={{ delay: 1.1 }}
             className="mt-8"
           >
             <Button
