@@ -1,6 +1,15 @@
 import { motion } from "framer-motion";
-import { Sun, Moon, Calendar, Target, Clock } from "lucide-react";
-import { format, startOfWeek, endOfWeek, differenceInDays, differenceInHours } from "date-fns";
+import { Sun, Moon, Calendar, Target, Clock, Dna } from "lucide-react";
+import { format, startOfWeek, endOfWeek } from "date-fns";
+import { getArchetypeInfo, getArchetypeThemeColors, getLowestControllable, type UserBuildCurrent } from "@/lib/build";
+
+const CONTROLLABLE_EMOJIS: Record<string, { emoji: string; label: string }> = {
+  awareness: { emoji: "🦉", label: "Awareness" },
+  perspective: { emoji: "🐢", label: "Perspective" },
+  habit: { emoji: "🦈", label: "Habit" },
+  wellness: { emoji: "🛰️", label: "Wellness" },
+  environment: { emoji: "🚀", label: "Environment" },
+};
 
 interface TimeCycleCardProps {
   activeQuest?: {
@@ -11,15 +20,15 @@ interface TimeCycleCardProps {
   } | null;
   currentResetDay?: number;
   hasActiveReset?: boolean;
+  currentBuild?: UserBuildCurrent | null;
 }
 
-export function TimeCycleCard({ activeQuest, currentResetDay = 1, hasActiveReset }: TimeCycleCardProps) {
+export function TimeCycleCard({ activeQuest, currentResetDay = 1, hasActiveReset, currentBuild }: TimeCycleCardProps) {
   const now = new Date();
   const hour = now.getHours();
   const isNight = hour >= 20 || hour < 6;
   const isMorning = hour >= 6 && hour < 12;
   const isAfternoon = hour >= 12 && hour < 17;
-  const isEvening = hour >= 17 && hour < 20;
   
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
@@ -36,13 +45,11 @@ export function TimeCycleCard({ activeQuest, currentResetDay = 1, hasActiveReset
   const dayPhase = getDayPhase();
   const DayIcon = dayPhase.icon;
 
-  // Quest progress
-  const questDaysLeft = activeQuest?.ends_at 
-    ? Math.max(0, differenceInDays(new Date(activeQuest.ends_at), now))
-    : null;
-  const questProgress = activeQuest && questDaysLeft !== null
-    ? Math.min(100, ((activeQuest.duration_days - questDaysLeft) / activeQuest.duration_days) * 100)
-    : 0;
+  // Build state helpers
+  const archetypeInfo = currentBuild ? getArchetypeInfo(currentBuild.build_archetype_key) : null;
+  const themeColors = currentBuild ? getArchetypeThemeColors(currentBuild.build_archetype_key) : null;
+  const lowestControllable = currentBuild ? getLowestControllable(currentBuild) : null;
+  const lowestInfo = lowestControllable ? CONTROLLABLE_EMOJIS[lowestControllable] : null;
 
   return (
     <motion.div
@@ -145,7 +152,36 @@ export function TimeCycleCard({ activeQuest, currentResetDay = 1, hasActiveReset
           </div>
         )}
 
-        {/* Quest Cycle removed - Mission is a Direction, not time-tracked */}
+        {/* Your Build State */}
+        {currentBuild && archetypeInfo && themeColors ? (
+          <div className="p-3 rounded-xl bg-muted/30 border border-border/30">
+            <div className="flex items-center gap-2 mb-2">
+              <Dna className="w-4 h-4 text-purple-500" />
+              <span className="text-xs font-medium text-muted-foreground">Your Build</span>
+            </div>
+            <div className={`flex items-center justify-between p-2 rounded-lg ${themeColors.bg} border ${themeColors.border}`}>
+              <div className="flex items-center gap-2">
+                <span className="text-base">{archetypeInfo.emoji}</span>
+                <span className={`text-sm font-medium ${themeColors.text}`}>{archetypeInfo.label}</span>
+              </div>
+              <span className="text-sm font-semibold text-foreground">{currentBuild.overall.toFixed(1)}/4</span>
+            </div>
+            {lowestInfo && (
+              <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span>Focus:</span>
+                <span>{lowestInfo.emoji}</span>
+                <span className="text-amber-600 dark:text-amber-400">{lowestInfo.label}</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="p-3 rounded-xl bg-muted/20 border border-dashed border-border/30">
+            <div className="flex items-center gap-2">
+              <Dna className="w-4 h-4 text-muted-foreground/50" />
+              <span className="text-xs text-muted-foreground">Build not scanned yet</span>
+            </div>
+          </div>
+        )}
       </div>
     </motion.div>
   );
