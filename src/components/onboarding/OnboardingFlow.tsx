@@ -11,12 +11,10 @@ import { OnboardingSkipConfirmation } from "./OnboardingSkipConfirmation";
 import { OnboardingRecovery } from "./OnboardingRecovery";
 import { OnboardingOrientation } from "./OnboardingOrientation";
 import { 
-  getDefaultJourney, 
-  journeyToControllable,
-  getQuestTitleFromJourney,
-  getStandardJourneyForCustom,
-  type GuidedJourney 
-} from "@/lib/guidedJourneys";
+  SNAPSHOTS,
+  getRecommendedSnapshot,
+  type Snapshot,
+} from "@/lib/snapshots";
 import type { BuildScore } from "@/lib/build";
 import type { OnboardingStep } from "@/hooks/useOnboarding";
 
@@ -39,39 +37,14 @@ interface OnboardingFlowProps {
 // Timeout for stuck states (10 seconds)
 const STUCK_TIMEOUT_MS = 10000;
 
-// Map build scores to recommended journey
-function getRecommendedJourneyId(buildResult: BuildScore | null): string {
-  if (!buildResult) return "reenter-the-game";
-  
-  const scores = {
-    awareness: Number(buildResult.awareness),
-    perspective: Number(buildResult.perspective),
-    habit: Number(buildResult.habit),
-    wellness: Number(buildResult.wellness),
-    environment: Number(buildResult.environment),
-  };
-  
-  // Find lowest controllable
-  let lowest = "habit";
-  let lowestScore = scores.habit;
-  
-  for (const [key, value] of Object.entries(scores)) {
-    if (value < lowestScore) {
-      lowestScore = value;
-      lowest = key;
-    }
-  }
-  
-  // Map controllable to journey
-  const controllableToJourney: Record<string, string> = {
-    awareness: "breathe-easy",
-    perspective: "tiny-wins",
-    habit: "tiny-wins",
-    wellness: "happy-moves",
-    environment: "pocket-change",
-  };
-  
-  return controllableToJourney[lowest] || "happy-moves";
+// Get default snapshot for skip flow
+function getDefaultSnapshot(): Snapshot {
+  return SNAPSHOTS.find(s => s.id === "rebuild-confidence-agb") || SNAPSHOTS[0];
+}
+
+// Generate quest title from snapshot name
+function getQuestTitleFromSnapshot(snapshot: Snapshot): string {
+  return snapshot.name;
 }
 
 export function OnboardingFlow({ 
@@ -84,7 +57,7 @@ export function OnboardingFlow({
 }: OnboardingFlowProps) {
   const [currentStep, setCurrentStep] = useState<InternalOnboardingStep>(initialStep);
   const [buildResult, setBuildResult] = useState<BuildScore | null>(null);
-  const [selectedJourney, setSelectedJourney] = useState<GuidedJourney | null>(null);
+  const [selectedSnapshot, setSelectedSnapshot] = useState<Snapshot | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   
   // Timeout tracking for stuck states
@@ -158,37 +131,37 @@ export function OnboardingFlow({
     // Track that user skipped assessment
     trackAssessmentSkipped();
     trackStepChange("build_assessment", "skip_confirmation");
-    // Show skip confirmation, then auto-start with default journey
+    // Show skip confirmation, then auto-start with default snapshot
     setCurrentStep("skip_confirmation");
   };
 
   const handleSkipConfirmationComplete = async () => {
-    const defaultJourney = getDefaultJourney();
-    setSelectedJourney(defaultJourney);
+    const defaultSnapshot = getDefaultSnapshot();
+    setSelectedSnapshot(defaultSnapshot);
     setCurrentStep("starting");
     
-    // Track snapshot selection (default journey)
-    trackSnapshotSelected(defaultJourney.id, defaultJourney.title, true);
+    // Track snapshot selection (default snapshot)
+    trackSnapshotSelected(defaultSnapshot.id, defaultSnapshot.name, true);
     trackStepChange("skip_confirmation", "starting");
     
     const startReset = async () => {
       try {
-        // Start the reset with journey ID
-        await acceptCovenant({ isPaid, journeyId: defaultJourney.id });
+        // Start the reset with snapshot ID
+        await acceptCovenant({ isPaid, journeyId: defaultSnapshot.id });
         
-        // Auto-create Main Quest with Journey title
+        // Auto-create Main Quest with Snapshot name
         if (createQuest) {
-          const questTitle = getQuestTitleFromJourney(defaultJourney);
+          const questTitle = getQuestTitleFromSnapshot(defaultSnapshot);
           await createQuest({ title: questTitle, durationDays: 7 });
         }
         
         await onUpdateOnboarding({ 
           step: "completed", 
-          journeyControllable: journeyToControllable(defaultJourney.id)
+          journeyControllable: defaultSnapshot.focus
         });
         
         // Track onboarding complete
-        trackOnboardingComplete(defaultJourney.id, true);
+        trackOnboardingComplete(defaultSnapshot.id, true);
         
         // Small delay to show the starting animation
         setTimeout(() => {
@@ -222,54 +195,42 @@ export function OnboardingFlow({
     }
   };
 
-  const handleJourneySelected = async (journey: GuidedJourney) => {
-    setSelectedJourney(journey);
+  const handleSnapshotSelected = async (snapshot: Snapshot) => {
+    setSelectedSnapshot(snapshot);
     // Show orientation screen first (Day 0)
     setCurrentStep("orientation");
     
-    // Map custom journey to standard journey ID for storage
-    const standardJourney = journey.isCustom && journey.id.startsWith("custom-")
-      ? getStandardJourneyForCustom(journey.id)
-      : null;
-    const journeyIdToStore = standardJourney ? standardJourney.id : journey.id;
-    
-    // Track journey selection
-    const recommendedId = getRecommendedJourneyId(buildResult);
-    const isRecommended = journey.id === recommendedId;
-    trackSnapshotSelected(journeyIdToStore, journey.title, isRecommended);
+    // Track snapshot selection
+    const recommendedSnapshot = buildResult ? getRecommendedSnapshot(buildResult) : null;
+    const isRecommended = recommendedSnapshot ? snapshot.id === recommendedSnapshot.id : false;
+    trackSnapshotSelected(snapshot.id, snapshot.name, isRecommended);
     trackStepChange("journey_selection", "orientation");
   };
 
   const handleOrientationComplete = async () => {
-    if (!selectedJourney) return;
+    if (!selectedSnapshot) return;
     
     setCurrentStep("starting");
     trackStepChange("orientation", "starting");
     
-    // Map custom journey to standard journey ID for storage
-    const standardJourney = selectedJourney.isCustom && selectedJourney.id.startsWith("custom-")
-      ? getStandardJourneyForCustom(selectedJourney.id)
-      : null;
-    const journeyIdToStore = standardJourney ? standardJourney.id : selectedJourney.id;
-    
     const startReset = async () => {
       try {
-        // Start the reset with journey ID (use standard ID for storage)
-        await acceptCovenant({ isPaid, journeyId: journeyIdToStore });
+        // Start the reset with snapshot ID
+        await acceptCovenant({ isPaid, journeyId: selectedSnapshot.id });
         
-        // Auto-create Main Quest with Journey title
+        // Auto-create Main Quest with Snapshot name
         if (createQuest) {
-          const questTitle = getQuestTitleFromJourney(selectedJourney);
+          const questTitle = getQuestTitleFromSnapshot(selectedSnapshot);
           await createQuest({ title: questTitle, durationDays: 7 });
         }
         
         await onUpdateOnboarding({ 
           step: "completed", 
-          journeyControllable: journeyToControllable(journeyIdToStore)
+          journeyControllable: selectedSnapshot.focus
         });
         
         // Track onboarding complete
-        trackOnboardingComplete(journeyIdToStore, false);
+        trackOnboardingComplete(selectedSnapshot.id, false);
         
         // Small delay to show the starting animation
         setTimeout(() => {
@@ -327,18 +288,17 @@ export function OnboardingFlow({
         
         {currentStep === "journey_selection" && (
           <OnboardingJourneySelection
-            key="journey"
-            recommendedJourneyId={getRecommendedJourneyId(buildResult)}
+            key="snapshot-selection"
             buildResult={buildResult}
-            onSelect={handleJourneySelected}
+            onSelect={handleSnapshotSelected}
           />
         )}
         
-        {currentStep === "orientation" && selectedJourney && (
+        {currentStep === "orientation" && selectedSnapshot && (
           <OnboardingOrientation
             key="orientation"
-            journeyTitle={selectedJourney.title}
-            journeyEmoji={selectedJourney.emoji}
+            snapshotName={selectedSnapshot.name}
+            snapshotEmoji={selectedSnapshot.emoji}
             onStartDay1={handleOrientationComplete}
           />
         )}
@@ -346,8 +306,8 @@ export function OnboardingFlow({
         {currentStep === "starting" && (
           <OnboardingStarting
             key="starting"
-            journeyTitle={selectedJourney?.title || "your journey"}
-            journeyEmoji={selectedJourney?.emoji || "✨"}
+            journeyTitle={selectedSnapshot?.name || "your snapshot"}
+            journeyEmoji={selectedSnapshot?.emoji || "✨"}
           />
         )}
         
