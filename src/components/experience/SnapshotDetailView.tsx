@@ -142,8 +142,10 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
   const endDate = addDays(startDate, 6);
   const dateRange = `${format(startDate, "MMM d")} - ${format(endDate, "d, yyyy")}`;
   
-  // Check if this is a fully completed 7/7 snapshot
+  // Check completion status
   const isFullyCompleted = record.status === "completed" && record.daysCompleted === 7;
+  const hasAnyActivity = record.daysCompleted > 0;
+  const isEnded = record.status === "completed" || record.status === "expired";
 
   // Get user ID on mount
   useEffect(() => {
@@ -453,45 +455,75 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
               </CardContent>
             </Card>
 
-            {/* View Achievement Button - for fully completed 7/7 snapshots */}
-            {isFullyCompleted && (
+            {/* Snapshot Review Section - available for all ended snapshots with activity */}
+            {isEnded && hasAnyActivity && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <Card className="border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5">
-                  <CardContent className="py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
-                        <Trophy className="w-6 h-6 text-emerald-500" />
+                {isFullyCompleted ? (
+                  // Full completion - celebratory styling
+                  <Card className="border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5">
+                    <CardContent className="py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
+                          <Trophy className="w-6 h-6 text-emerald-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-foreground">🎉 Proof Recorded</h3>
+                          <p className="text-sm text-muted-foreground">
+                            7 days of showing up. That's proof.
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground">🎉 Proof Recorded</h3>
-                        <p className="text-sm text-muted-foreground">
-                          7 days of showing up. That's proof.
-                        </p>
+                      <div className="flex flex-col gap-2 mt-4">
+                        <Button
+                          onClick={() => navigate(`/reset?sessionId=${record.id}&celebration=true`)}
+                          variant="default"
+                        >
+                          <PartyPopper className="w-4 h-4 mr-2" />
+                          View Your Achievement
+                        </Button>
+                        <Button
+                          onClick={() => setIsReviewOpen(true)}
+                          variant="outline"
+                          className="border-primary/30"
+                        >
+                          <Gift className="w-4 h-4 mr-2 text-primary" />
+                          Review This Week
+                        </Button>
                       </div>
-                    </div>
-                    <div className="flex flex-col gap-2 mt-4">
-                      <Button
-                        onClick={() => navigate(`/reset?sessionId=${record.id}&celebration=true`)}
-                        variant="default"
-                      >
-                        <PartyPopper className="w-4 h-4 mr-2" />
-                        View Your Achievement
-                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  // Partial completion - neutral, honest styling
+                  <Card className="border border-border">
+                    <CardContent className="py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                          <FileText className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-foreground">
+                            {record.daysCompleted}/7 Days Recorded
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            This is still data. Still worth seeing.
+                          </p>
+                        </div>
+                      </div>
                       <Button
                         onClick={() => setIsReviewOpen(true)}
                         variant="outline"
-                        className="border-primary/30"
+                        className="w-full mt-4"
                       >
-                        <Gift className="w-4 h-4 mr-2 text-primary" />
-                        Review This Week
+                        <FileText className="w-4 h-4 mr-2" />
+                        View Your Snapshot
                       </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                )}
               </motion.div>
             )}
             <div className="grid grid-cols-3 gap-3">

@@ -136,8 +136,12 @@ export function SnapshotReviewModal({ sessionId, userId, isPaid, onClose }: Snap
       narratives.push("You showed up every single day.");
     } else if (completedDays.length >= 5) {
       narratives.push(`You showed up ${completedDays.length} of 7 days—that's consistency.`);
+    } else if (completedDays.length >= 3) {
+      narratives.push(`${completedDays.length} days this week. That's data, not failure.`);
+    } else if (completedDays.length >= 1) {
+      narratives.push(`${completedDays.length} day${completedDays.length > 1 ? 's' : ''} recorded. Now you know.`);
     } else {
-      narratives.push("You started. You tried. That matters.");
+      narratives.push("This week didn't go as planned. That's information.");
     }
     if (promiseStats && promiseStats.made > 0) {
       const rate = Math.round((promiseStats.kept / promiseStats.made) * 100);
@@ -145,6 +149,8 @@ export function SnapshotReviewModal({ sessionId, userId, isPaid, onClose }: Snap
         narratives.push(`You kept ${rate}% of your promises to yourself.`);
       } else if (rate >= 50) {
         narratives.push(`You kept more than half your promises—that's progress.`);
+      } else if (rate > 0) {
+        narratives.push(`${promiseStats.kept} of ${promiseStats.made} promises kept. Worth noticing.`);
       }
     }
     return narratives.slice(0, 2).join(" ");
@@ -216,12 +222,17 @@ export function SnapshotReviewModal({ sessionId, userId, isPaid, onClose }: Snap
             transition={{ type: "spring", stiffness: 200 }}
             className="text-6xl mb-4"
           >
-            🏆
+            {completedDays.length === 7 ? "🏆" : "📊"}
           </motion.div>
           <h3 className="text-xl font-bold text-foreground mb-2">
-            Snapshot Complete
+            {completedDays.length === 7 ? "Snapshot Complete" : `${completedDays.length}/7 Days`}
           </h3>
           <p className="text-muted-foreground text-sm">{formatDateRange()}</p>
+          {completedDays.length < 7 && completedDays.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-2">
+              This is still a record. Still counts.
+            </p>
+          )}
           {snapshot && (
             <div className="mt-4 p-3 bg-primary/10 rounded-lg">
               <p className="text-primary flex items-center justify-center gap-2 font-medium">
@@ -385,7 +396,7 @@ export function SnapshotReviewModal({ sessionId, userId, isPaid, onClose }: Snap
               Next
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
-          ) : (
+          ) : completedDays.length === 7 ? (
             <Button
               variant="ghost"
               size="sm"
@@ -394,6 +405,10 @@ export function SnapshotReviewModal({ sessionId, userId, isPaid, onClose }: Snap
             >
               <Award className="w-4 h-4 mr-1" />
               Certificate
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={onClose} className="text-primary">
+              Done
             </Button>
           )}
         </div>
