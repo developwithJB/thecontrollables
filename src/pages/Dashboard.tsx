@@ -46,6 +46,7 @@ import { BuildOverviewModule, BuildOverviewModuleHandle } from "@/components/das
 import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
 import { BuildEntryPoint } from "@/components/dashboard/BuildEntryPoint";
 import { SnapshotSelector } from "@/components/dashboard/SnapshotSelector";
+import { StartSnapshotDialog } from "@/components/dashboard/StartSnapshotDialog";
 import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
 // DailyCheckinCard removed - functionality merged into TodayActions
 import { TodayActions } from "@/components/dashboard/TodayActions";
@@ -860,6 +861,20 @@ export default function Dashboard() {
                   }}
                   isOpen={showJourneySwitcher}
                   onOpenChange={setShowJourneySwitcher}
+                />
+              )}
+
+              {/* Start New Snapshot Dialog - shows when no active session */}
+              {!activeSession && user?.id && (
+                <StartSnapshotDialog
+                  isOpen={showJourneySwitcher}
+                  onOpenChange={setShowJourneySwitcher}
+                  onSelectSnapshot={(snapshotId) => {
+                    acceptCovenant({ isPaid, journeyId: snapshotId });
+                    setShowJourneySwitcher(false);
+                  }}
+                  isStarting={isAcceptingCovenant}
+                  isPaid={isPaid}
                 />
               )}
 
