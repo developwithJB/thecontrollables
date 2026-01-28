@@ -150,7 +150,7 @@ export function OnboardingArchetypeResult({
           className="mt-auto"
         >
           <Button onClick={onContinue} className="w-full h-14 text-lg">
-            Choose Your Journey
+            Pick Your Snapshot
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
           <p className="text-xs text-muted-foreground text-center mt-3">

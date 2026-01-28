@@ -3,14 +3,14 @@ import { Camera, Clock, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface OnboardingOrientationProps {
-  journeyTitle: string;
-  journeyEmoji: string;
+  snapshotName: string;
+  snapshotEmoji: string;
   onStartDay1: () => void;
 }
 
 export function OnboardingOrientation({
-  journeyTitle,
-  journeyEmoji,
+  snapshotName,
+  snapshotEmoji,
   onStartDay1,
 }: OnboardingOrientationProps) {
   const orientationItems = [
@@ -46,7 +46,7 @@ export function OnboardingOrientation({
           transition={{ delay: 0.1, type: "spring" }}
           className="text-5xl mb-6"
         >
-          {journeyEmoji}
+          {snapshotEmoji}
         </motion.div>
 
         {/* Title */}
@@ -65,7 +65,7 @@ export function OnboardingOrientation({
           transition={{ delay: 0.25 }}
           className="text-sm text-muted-foreground mb-8"
         >
-          Starting: {journeyTitle}
+          Your Focus: {snapshotName}
         </motion.p>
 
         {/* Orientation Items */}
