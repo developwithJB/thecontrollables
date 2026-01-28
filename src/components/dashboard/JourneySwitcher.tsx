@@ -8,7 +8,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Check, RefreshCw, Compass, AlertCircle, Sparkles, Brain, TrendingDown, RotateCcw } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Check, RefreshCw, Compass, AlertCircle, Sparkles, Brain, TrendingDown, RotateCcw, Target, Lightbulb } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { 
   GUIDED_JOURNEYS, 
@@ -17,8 +18,11 @@ import {
   getQuestTitleFromJourney, 
   generateCustomFocus,
   getStandardJourneyForCustom,
+  getSnapshotById,
   type GuidedJourney 
 } from "@/lib/guidedJourneys";
+import { getSnapshotsForGoal, getGoalById, type LifeGoal } from "@/lib/lifeGoals";
+import { GoalChipGrid } from "./GoalChipGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -71,6 +75,8 @@ export function JourneySwitcher({
   const [isChanging, setIsChanging] = useState(false);
   const [showQuestUpdatePrompt, setShowQuestUpdatePrompt] = useState(false);
   const [pendingJourney, setPendingJourney] = useState<GuidedJourney | null>(null);
+  const [viewMode, setViewMode] = useState<"goal" | "state">("goal");
+  const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   
   // Use controlled state if provided, otherwise internal state
   const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
@@ -98,6 +104,17 @@ export function JourneySwitcher({
   const allJourneys: GuidedJourney[] = customFocus 
     ? [customFocus, ...GUIDED_JOURNEYS]
     : GUIDED_JOURNEYS;
+
+  // Filter journeys by selected goal
+  const getFilteredJourneys = () => {
+    if (viewMode === "goal" && selectedGoal) {
+      const snapshotIds = getSnapshotsForGoal(selectedGoal);
+      return allJourneys.filter(j => snapshotIds.includes(j.id));
+    }
+    return allJourneys;
+  };
+  
+  const filteredJourneys = getFilteredJourneys();
 
   // Find lowest score for highlighting
   const getLowestControllable = () => {
@@ -288,170 +305,243 @@ export function JourneySwitcher({
         <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display">What Kind of Week Is This?</DialogTitle>
-            <DialogDescription className="space-y-2">
-              <span className="block">
-                Pick a Snapshot that resonates. Each one guides you through 7 days with a focused lens.
-              </span>
+            <DialogDescription>
+              Pick a Snapshot that resonates. Each one guides you through 7 days with a focused lens.
             </DialogDescription>
           </DialogHeader>
           
-          {/* Importance of Snapshot callout */}
-          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 mb-2">
-            <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">A Snapshot captures your week.</span>{" "}
-              It's a single lens—one theme, one Controllable, 7 days of honest reps.
-            </p>
-          </div>
+          {/* View Mode Toggle */}
+          <Tabs value={viewMode} onValueChange={(v) => {
+            setViewMode(v as "goal" | "state");
+            setSelectedGoal(null); // Reset goal when switching
+          }} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="goal" className="flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5" />
+                By Goal
+              </TabsTrigger>
+              <TabsTrigger value="state" className="flex items-center gap-1.5">
+                <Lightbulb className="w-3.5 h-3.5" />
+                By State
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Build Scores Inline */}
-          {currentBuild ? (
-            <div className="p-3 rounded-lg bg-muted/50 border border-border mb-2">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <p className="text-xs font-medium text-foreground">Your Current Build</p>
-                  {currentBuild.updated_at && (
-                    <span className="text-[10px] text-muted-foreground">
-                      • {formatDistanceToNow(new Date(currentBuild.updated_at), { addSuffix: true })}
-                    </span>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowBuildModal(true)}
-                >
-                  <RotateCcw className="w-3 h-3 mr-1" />
-                  Re-scan
-                </Button>
+            <TabsContent value="goal" className="mt-0 space-y-4">
+              {/* Goal Selection */}
+              <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-xs font-medium text-foreground mb-3">What do you want to work on?</p>
+                <GoalChipGrid 
+                  selectedGoal={selectedGoal} 
+                  onSelectGoal={setSelectedGoal}
+                  showContext={true}
+                />
               </div>
-              <div className="grid grid-cols-5 gap-1">
-                {[
-                  { key: "awareness", label: "AWR", emoji: "🦉" },
-                  { key: "perspective", label: "PER", emoji: "🐢" },
-                  { key: "habit", label: "HAB", emoji: "🦈" },
-                  { key: "wellness", label: "WEL", emoji: "🛰️" },
-                  { key: "environment", label: "ENV", emoji: "🚀" },
-                ].map((stat) => {
-                  const value = Number(currentBuild[stat.key as keyof typeof currentBuild]) || 0;
-                  const isLowest = stat.key === lowestControllable;
-                  return (
-                    <div 
-                      key={stat.key} 
-                      className={`text-center p-1.5 rounded-lg ${
-                        isLowest 
-                          ? "bg-amber-500/10 border border-amber-500/30" 
-                          : "bg-background"
-                      }`}
-                    >
-                      <span className="text-sm block">{stat.emoji}</span>
-                      <span className={`text-xs font-medium block ${
-                        isLowest ? "text-amber-600 dark:text-amber-400" : "text-foreground"
-                      }`}>
-                        {value.toFixed(1)}
-                      </span>
-                      {isLowest && (
-                        <TrendingDown className="w-2.5 h-2.5 mx-auto text-amber-500 mt-0.5" />
+
+              {/* Filtered Snapshots (only show when goal is selected) */}
+              {selectedGoal && (
+                <div className="space-y-3">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Recommended Snapshots ({filteredJourneys.length})
+                  </p>
+                  {filteredJourneys.map((journey) => {
+                    const isSelected = selectedJourney === journey.id;
+                    const isCurrent = currentJourneyId === journey.id;
+
+                    return (
+                      <motion.button
+                        key={journey.id}
+                        onClick={() => handleSelect(journey.id)}
+                        whileTap={{ scale: 0.98 }}
+                        className={`w-full p-4 rounded-xl border text-left transition-all relative ${
+                          isSelected
+                            ? "border-primary bg-primary/5 shadow-[0_0_12px_rgba(102,189,239,0.15)]"
+                            : "border-border bg-card hover:border-primary/30"
+                        }`}
+                      >
+                        {isCurrent && (
+                          <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs">
+                            Current
+                          </div>
+                        )}
+
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0 bg-gradient-to-br from-primary/10 to-accent/10">
+                            {journey.emoji}
+                          </div>
+                          <div className="flex-1 min-w-0 pr-16">
+                            <h3 className="font-medium text-foreground">{journey.title}</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5 italic">
+                              {journey.tagline}
+                            </p>
+                          </div>
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 transition-colors ${
+                              isSelected
+                                ? "border-primary bg-primary"
+                                : "border-muted-foreground/30"
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                          </div>
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="state" className="mt-0 space-y-3">
+              {/* Build Scores Inline */}
+              {currentBuild ? (
+                <div className="p-3 rounded-lg bg-muted/50 border border-border mb-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-medium text-foreground">Your Current Build</p>
+                      {currentBuild.updated_at && (
+                        <span className="text-[10px] text-muted-foreground">
+                          • {formatDistanceToNow(new Date(currentBuild.updated_at), { addSuffix: true })}
+                        </span>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-              <p className="text-xs text-muted-foreground text-center mt-2">
-                {lowestControllable && (
-                  <>Your lowest area is highlighted • </>
-                )}
-                Choose a snapshot that addresses it
-              </p>
-            </div>
-          ) : (
-            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 mb-2">
-              <div className="flex items-start gap-2">
-                <Brain className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-foreground">No Build data found</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Scan your Build to unlock a personalized snapshot recommendation.
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowBuildModal(true)}
+                    >
+                      <RotateCcw className="w-3 h-3 mr-1" />
+                      Re-scan
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-5 gap-1">
+                    {[
+                      { key: "awareness", label: "AWR", emoji: "🦉" },
+                      { key: "perspective", label: "PER", emoji: "🐢" },
+                      { key: "habit", label: "HAB", emoji: "🦈" },
+                      { key: "wellness", label: "WEL", emoji: "🛰️" },
+                      { key: "environment", label: "ENV", emoji: "🚀" },
+                    ].map((stat) => {
+                      const value = Number(currentBuild[stat.key as keyof typeof currentBuild]) || 0;
+                      const isLowest = stat.key === lowestControllable;
+                      return (
+                        <div 
+                          key={stat.key} 
+                          className={`text-center p-1.5 rounded-lg ${
+                            isLowest 
+                              ? "bg-amber-500/10 border border-amber-500/30" 
+                              : "bg-background"
+                          }`}
+                        >
+                          <span className="text-sm block">{stat.emoji}</span>
+                          <span className={`text-xs font-medium block ${
+                            isLowest ? "text-amber-600 dark:text-amber-400" : "text-foreground"
+                          }`}>
+                            {value.toFixed(1)}
+                          </span>
+                          {isLowest && (
+                            <TrendingDown className="w-2.5 h-2.5 mx-auto text-amber-500 mt-0.5" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    {lowestControllable && (
+                      <>Your lowest area is highlighted • </>
+                    )}
+                    Choose a snapshot that addresses it
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 px-2 text-xs shrink-0"
-                  onClick={() => setShowBuildModal(true)}
-                >
-                  <RotateCcw className="w-3 h-3 mr-1" />
-                  Scan Now
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-3 pt-2">
-            {allJourneys.map((journey) => {
-              const isSelected = selectedJourney === journey.id;
-              const isCurrent = currentJourneyId === journey.id;
-
-              return (
-                <motion.button
-                  key={journey.id}
-                  onClick={() => handleSelect(journey.id)}
-                  whileTap={{ scale: 0.98 }}
-                  className={`w-full p-4 rounded-xl border text-left transition-all relative ${
-                    isSelected
-                      ? "border-primary bg-primary/5 shadow-[0_0_12px_rgba(102,189,239,0.15)]"
-                      : journey.isCustom
-                      ? "border-amber-500/30 bg-amber-500/5 hover:border-amber-500/50"
-                      : "border-border bg-card hover:border-primary/30"
-                  }`}
-                >
-                  {/* Custom focus badge */}
-                  {journey.isCustom && (
-                    <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
-                      <Sparkles className="w-3 h-3" />
-                      Based on your Build
-                    </div>
-                  )}
-                  
-                  {isCurrent && !journey.isCustom && (
-                    <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs">
-                      Current
-                    </div>
-                  )}
-
-                  <div className="flex items-start gap-3">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0 ${
-                      journey.isCustom 
-                        ? "bg-gradient-to-br from-amber-500/20 to-orange-500/20"
-                        : "bg-gradient-to-br from-primary/10 to-accent/10"
-                    }`}>
-                      {journey.emoji}
-                    </div>
-                    <div className="flex-1 min-w-0 pr-16">
-                      <h3 className="font-medium text-foreground">{journey.title}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5 italic">
-                        {journey.tagline}
+              ) : (
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 mb-2">
+                  <div className="flex items-start gap-2">
+                    <Brain className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-foreground">No Build data found</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Scan your Build to unlock a personalized snapshot recommendation.
                       </p>
-                      {journey.isCustom && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {journey.whatItHelps}
-                        </p>
-                      )}
                     </div>
-                    <div
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 transition-colors ${
-                        isSelected
-                          ? "border-primary bg-primary"
-                          : "border-muted-foreground/30"
-                      }`}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2 text-xs shrink-0"
+                      onClick={() => setShowBuildModal(true)}
                     >
-                      {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
-                    </div>
+                      <RotateCcw className="w-3 h-3 mr-1" />
+                      Scan Now
+                    </Button>
                   </div>
-                </motion.button>
-              );
-            })}
-          </div>
+                </div>
+              )}
+
+              {/* All Journeys (By State view) */}
+              {allJourneys.map((journey) => {
+                const isSelected = selectedJourney === journey.id;
+                const isCurrent = currentJourneyId === journey.id;
+
+                return (
+                  <motion.button
+                    key={journey.id}
+                    onClick={() => handleSelect(journey.id)}
+                    whileTap={{ scale: 0.98 }}
+                    className={`w-full p-4 rounded-xl border text-left transition-all relative ${
+                      isSelected
+                        ? "border-primary bg-primary/5 shadow-[0_0_12px_rgba(102,189,239,0.15)]"
+                        : journey.isCustom
+                        ? "border-amber-500/30 bg-amber-500/5 hover:border-amber-500/50"
+                        : "border-border bg-card hover:border-primary/30"
+                    }`}
+                  >
+                    {/* Custom focus badge */}
+                    {journey.isCustom && (
+                      <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
+                        <Sparkles className="w-3 h-3" />
+                        Based on your Build
+                      </div>
+                    )}
+                    
+                    {isCurrent && !journey.isCustom && (
+                      <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs">
+                        Current
+                      </div>
+                    )}
+
+                    <div className="flex items-start gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0 ${
+                        journey.isCustom 
+                          ? "bg-gradient-to-br from-amber-500/20 to-orange-500/20"
+                          : "bg-gradient-to-br from-primary/10 to-accent/10"
+                      }`}>
+                        {journey.emoji}
+                      </div>
+                      <div className="flex-1 min-w-0 pr-16">
+                        <h3 className="font-medium text-foreground">{journey.title}</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5 italic">
+                          {journey.tagline}
+                        </p>
+                        {journey.isCustom && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {journey.whatItHelps}
+                          </p>
+                        )}
+                      </div>
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 transition-colors ${
+                          isSelected
+                            ? "border-primary bg-primary"
+                            : "border-muted-foreground/30"
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                      </div>
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </TabsContent>
+          </Tabs>
 
           <div className="flex gap-3 pt-4">
             <Button
