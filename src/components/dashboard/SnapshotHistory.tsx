@@ -27,7 +27,7 @@ import { BUCKETS, getSnapshotById, type BucketId } from "@/lib/snapshots";
 import { useNavigate } from "react-router-dom";
 import { SnapshotDetailView } from "@/components/experience/SnapshotDetailView";
 import { WeeklyPatternView } from "@/components/experience/WeeklyPatternView";
-import { WrappedSlideModal } from "@/components/experience/WrappedSlideModal";
+import { SnapshotReviewModal } from "@/components/experience/SnapshotReviewModal";
 
 interface SnapshotRecord {
   id: string;
@@ -186,12 +186,12 @@ function WeekCard({
   record,
   index = 0,
   onClick,
-  onViewWrapped,
+  onViewSnapshot,
 }: {
   record: SnapshotRecord;
   index?: number;
   onClick?: () => void;
-  onViewWrapped?: () => void;
+  onViewSnapshot?: () => void;
 }) {
   const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
   const bucket = snapshot ? BUCKETS[snapshot.bucketId] : null;
@@ -296,16 +296,16 @@ function WeekCard({
               +{record.xpEarned}
             </span>
           )}
-          {isFullyCompleted && onViewWrapped && (
+          {isFullyCompleted && onViewSnapshot && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onViewWrapped();
+                onViewSnapshot();
               }}
               className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium hover:underline"
             >
               <Gift className="w-3 h-3" />
-              View Wrapped
+              Review This Week
             </button>
           )}
           {!isFullyCompleted && (
@@ -582,7 +582,7 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [selectedRecord, setSelectedRecord] = useState<SnapshotRecord | null>(null);
   const [showOlderWeeks, setShowOlderWeeks] = useState(false);
-  const [wrappedSessionId, setWrappedSessionId] = useState<string | null>(null);
+  const [reviewSessionId, setReviewSessionId] = useState<string | null>(null);
 
   // Filter to only show sessions with meaningful data
   const validSessions = useMemo(() => 
@@ -714,8 +714,8 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
                   record={record}
                   index={index}
                   onClick={() => setSelectedRecord(record)}
-                  onViewWrapped={record.status === "completed" && record.daysCompleted === 7 && userId
-                    ? () => setWrappedSessionId(record.id)
+                  onViewSnapshot={record.status === "completed" && record.daysCompleted === 7 && userId
+                    ? () => setReviewSessionId(record.id)
                     : undefined
                   }
                 />
@@ -754,8 +754,8 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
                             record={record}
                             index={index + 1}
                             onClick={() => setSelectedRecord(record)}
-                            onViewWrapped={record.status === "completed" && record.daysCompleted === 7 && userId
-                              ? () => setWrappedSessionId(record.id)
+                            onViewSnapshot={record.status === "completed" && record.daysCompleted === 7 && userId
+                              ? () => setReviewSessionId(record.id)
                               : undefined
                             }
                           />
@@ -838,14 +838,14 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
         )}
       </AnimatePresence>
 
-      {/* Wrapped Slide Modal */}
+      {/* Snapshot Review Modal */}
       <AnimatePresence>
-        {wrappedSessionId && userId && (
-          <WrappedSlideModal
-            sessionId={wrappedSessionId}
+        {reviewSessionId && userId && (
+          <SnapshotReviewModal
+            sessionId={reviewSessionId}
             userId={userId}
             isPaid={isPaid}
-            onClose={() => setWrappedSessionId(null)}
+            onClose={() => setReviewSessionId(null)}
           />
         )}
       </AnimatePresence>

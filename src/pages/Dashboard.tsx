@@ -49,7 +49,7 @@ import { SnapshotSelector } from "@/components/dashboard/SnapshotSelector";
 import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
 // DailyCheckinCard removed - functionality merged into TodayActions
 import { TodayActions } from "@/components/dashboard/TodayActions";
-import { SnapshotWrappedCard } from "@/components/dashboard/SnapshotWrappedCard";
+import { SnapshotReviewCard } from "@/components/dashboard/SnapshotReviewCard";
 // JourneyChangesLog removed - consolidated into Activity History
 
 import { GameRulesSection } from "@/components/GameRulesSection";
@@ -701,9 +701,9 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Snapshot Wrapped Card - shows after completing a 7-day snapshot */}
+              {/* Snapshot Review Card - shows after completing a 7-day snapshot */}
               {!activeSession && user?.id && !resetLoading && !dashboardLoading && (
-                <SnapshotWrappedCard
+                <SnapshotReviewCard
                   userId={user.id}
                   isPaid={isPaid}
                   onStartNewSnapshot={() => setShowJourneySwitcher(true)}

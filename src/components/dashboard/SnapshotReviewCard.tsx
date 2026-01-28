@@ -10,7 +10,7 @@ import { getSnapshotById, BUCKETS } from "@/lib/snapshots";
 import { useSnapshotInsight } from "@/hooks/useSnapshotInsight";
 import { toast } from "sonner";
 
-interface SnapshotWrappedCardProps {
+interface SnapshotReviewCardProps {
   userId: string;
   isPaid: boolean;
   onStartNewSnapshot?: () => void;
@@ -25,7 +25,7 @@ const CONTROLLABLE_GUIDES = [
   { emoji: "🚀", name: "Environment", controllable: "environment" },
 ];
 
-export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: SnapshotWrappedCardProps) {
+export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot }: SnapshotReviewCardProps) {
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -203,8 +203,8 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
     return `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
   };
 
-  // Share Wrapped summary
-  const handleShareWrapped = async () => {
+  // Share Snapshot summary
+  const handleShareSnapshot = async () => {
     const journeyText = snapshot ? `Journey: ${snapshot.name}` : "";
     const promiseText = promiseStats && promiseStats.made > 0 
       ? `🛡️ ${Math.round((promiseStats.kept / promiseStats.made) * 100)}% promises kept\n`
@@ -227,20 +227,20 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
           title: "My 7-Day Snapshot Complete",
           text: shareText,
         });
-        toast.success("Shared! Thanks for spreading the word 🙏");
+        toast.success("Shared!");
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
           await navigator.clipboard.writeText(shareText);
-          toast.success("Copied to clipboard — ready to share!");
+          toast.success("Copied to clipboard!");
         }
       }
     } else {
       await navigator.clipboard.writeText(shareText);
-      toast.success("Copied to clipboard — ready to share!");
+      toast.success("Copied to clipboard!");
     }
   };
 
-  // Build narrative slides (Spotify Wrapped style)
+  // Build narrative slides for Snapshot Review
   const slides = [
     // Slide 1: Celebration moment with journey context
     {
@@ -405,13 +405,13 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-primary" />
-              <span className="font-semibold text-foreground">Your Week Wrapped</span>
+              <span className="font-semibold text-foreground">Your Snapshot</span>
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={handleShareWrapped}
+                onClick={handleShareSnapshot}
                 className="text-muted-foreground hover:text-primary transition-colors p-1"
-                title="Share your Wrapped"
+                title="Share your Snapshot"
               >
                 <Share2 className="w-4 h-4" />
               </button>
@@ -423,6 +423,7 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
               </button>
             </div>
           </div>
+          <p className="text-xs text-muted-foreground mb-2">A clear record of how you showed up this week.</p>
         </div>
 
         <AnimatePresence mode="wait">
