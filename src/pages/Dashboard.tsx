@@ -402,6 +402,16 @@ export default function Dashboard() {
       setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, setSearchParams, activeSession]);
+  
+  // Check for Day 7 reading completion signal - immediately trigger celebration
+  // This handles the case where user just completed Day 7 reading from Reset page
+  useEffect(() => {
+    if (searchParams.get("day7reading") === "done" && currentDay === 7) {
+      // Day 7 reading was just completed - navigate to celebration immediately
+      // The celebration page handles showing certificates and next steps
+      navigate("/reset?day7complete=true");
+    }
+  }, [searchParams, currentDay, navigate]);
 
   // Handle quest creation - award badge and complete onboarding
   const handleCreateQuest = useCallback(

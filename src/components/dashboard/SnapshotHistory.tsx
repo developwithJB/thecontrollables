@@ -18,6 +18,8 @@ import {
   RefreshCw,
   Lock,
   TrendingUp,
+  Trophy,
+  Award,
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { BUCKETS, getSnapshotById, type BucketId } from "@/lib/snapshots";
@@ -45,8 +47,11 @@ interface SnapshotHistoryProps {
 
 type ViewMode = "week" | "month" | "year" | "patterns";
 
-// Get status info - no negative language
-function getStatusInfo(status: string, daysCompleted: number): { label: string; colorClass: string } {
+// Get status info - enhanced with proof language for completed
+function getStatusInfo(status: string, daysCompleted: number): { label: string; colorClass: string; isProof?: boolean } {
+  if (status === "completed" && daysCompleted === 7) {
+    return { label: "Proof Recorded", colorClass: "bg-emerald-500/80 text-white", isProof: true };
+  }
   if (status === "completed") {
     return { label: "Completed", colorClass: "bg-emerald-500/80 text-white" };
   }
@@ -189,6 +194,7 @@ function WeekCard({
   const startDate = new Date(record.startDate);
   const dateRange = `${format(startDate, "MMM d")} - ${format(addDays(startDate, 6), "d")}`;
   const isActive = record.status === "active";
+  const isFullyCompleted = record.status === "completed" && record.daysCompleted === 7;
   
   // For historical snapshots without journey data, generate unique visuals
   const historicalVisual = !snapshot ? getHistoricalSnapshotVisual(startDate, index) : null;
@@ -203,15 +209,23 @@ function WeekCard({
       className={`p-4 rounded-xl border transition-all cursor-pointer hover:border-primary/50 hover:bg-primary/5 active:scale-[0.98] ${
         isActive 
           ? "bg-primary/5 border-primary/30" 
+          : isFullyCompleted
+          ? "bg-emerald-500/5 border-emerald-500/30"
           : "bg-card border-border"
       }`}
     >
       {/* Header */}
       <div className="flex items-start gap-3 mb-3">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-          isActive ? "bg-primary/20" : "bg-muted"
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center relative ${
+          isActive ? "bg-primary/20" : isFullyCompleted ? "bg-emerald-500/20" : "bg-muted"
         }`}>
           <span className="text-xl">{displayEmoji}</span>
+          {/* Trophy badge for 7/7 completed */}
+          {isFullyCompleted && (
+            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+              <Trophy className="w-3 h-3 text-white" />
+            </div>
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-medium text-foreground truncate">
@@ -220,9 +234,16 @@ function WeekCard({
           <p className="text-xs text-muted-foreground">{dateRange}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className={`text-xs shrink-0 ${statusInfo.colorClass}`}>
-            {statusInfo.label}
-          </Badge>
+          {statusInfo.isProof ? (
+            <Badge variant="secondary" className={`text-xs shrink-0 ${statusInfo.colorClass}`}>
+              <Trophy className="w-3 h-3 mr-1" />
+              {statusInfo.label}
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className={`text-xs shrink-0 ${statusInfo.colorClass}`}>
+              {statusInfo.label}
+            </Badge>
+          )}
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </div>
       </div>
@@ -268,7 +289,11 @@ function WeekCard({
               +{record.xpEarned}
             </span>
           )}
-          <span className="text-xs text-primary/70">View details →</span>
+          {isFullyCompleted ? (
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">View achievement →</span>
+          ) : (
+            <span className="text-xs text-primary/70">View details →</span>
+          )}
         </div>
       </div>
     </motion.div>

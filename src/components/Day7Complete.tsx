@@ -27,6 +27,7 @@ interface Day7CompleteProps {
   endDate: string;
   resetSessionId: string;
   completedJourneyId?: string;
+  isHistoricalView?: boolean;
 }
 
 export const Day7Complete = ({
@@ -35,6 +36,7 @@ export const Day7Complete = ({
   endDate,
   resetSessionId,
   completedJourneyId,
+  isHistoricalView = false,
 }: Day7CompleteProps) => {
   const navigate = useNavigate();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
