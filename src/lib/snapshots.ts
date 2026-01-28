@@ -625,6 +625,23 @@ export const SNAPSHOTS: Snapshot[] = [
       { day: 7, task: "Reflect: did you do what you said?", description: "That's the measure." },
     ],
   },
+  {
+    id: "rebuild-confidence-agb",
+    name: "Rebuild Your Confidence",
+    bucketId: "integrity-trust",
+    focus: "habit",
+    tagline: "Confidence comes from kept promises",
+    emoji: "👑",
+    dailyActions: [
+      { day: 1, task: "Care for yourself today", description: "Confidence begins with caring." },
+      { day: 2, task: "Face one thing holding you back", description: "Name it. Take one step toward it." },
+      { day: 3, task: "Do one thing consistently today", description: "Confidence is a streak, not a spike." },
+      { day: 4, task: "Let go of one thing holding you down", description: "Release what isn't serving you." },
+      { day: 5, task: "Improve one skill by 1%", description: "Confidence grows when skills grow." },
+      { day: 6, task: "Focus only on what you can control", description: "Put energy where your power is." },
+      { day: 7, task: "Reflect and rise", description: "Confidence comes from kept promises." },
+    ],
+  },
 
   // 🌱 Growth & Expansion
   {
