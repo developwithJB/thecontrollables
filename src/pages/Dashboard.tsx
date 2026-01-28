@@ -1015,6 +1015,7 @@ export default function Dashboard() {
                 activeQuest={activeQuest}
                 currentResetDay={currentDay}
                 hasActiveReset={!!activeSession && !isCompleted}
+                currentBuild={currentBuild}
               />
 
 
