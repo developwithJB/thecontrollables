@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, ChevronRight, Award, Eye, Repeat, Share2, Sparkles } from "lucide-react";
+import { Trophy, ChevronRight, Award, Eye, Repeat, Share2, Sparkles, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
@@ -14,6 +14,7 @@ interface SnapshotReviewCardProps {
   userId: string;
   isPaid: boolean;
   onStartNewSnapshot?: () => void;
+  onUpgrade?: () => void;
 }
 
 // Controllable icons and personalities for the "guide voice"
@@ -25,21 +26,21 @@ const CONTROLLABLE_GUIDES = [
   { emoji: "🚀", name: "Environment", controllable: "environment" },
 ];
 
-export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot }: SnapshotReviewCardProps) {
+export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgrade }: SnapshotReviewCardProps) {
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Fetch most recent completed session
-  const { data: completedSession, isLoading: sessionLoading } = useQuery({
-    queryKey: ["recent-completed-session", userId],
+  // Fetch most recent ended session (completed OR expired/paused)
+  const { data: lastSession, isLoading: sessionLoading } = useQuery({
+    queryKey: ["last-ended-session", userId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reset_sessions")
         .select("*")
         .eq("user_id", userId)
-        .eq("status", "completed")
-        .order("completed_at", { ascending: false })
+        .in("status", ["completed", "expired", "paused"])
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -50,8 +51,11 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot }: Snaps
   });
 
   // Get journey/snapshot info
-  const snapshot = completedSession?.journey_id ? getSnapshotById(completedSession.journey_id) : null;
+  const snapshot = lastSession?.journey_id ? getSnapshotById(lastSession.journey_id) : null;
   const bucket = snapshot ? BUCKETS[snapshot.bucketId] : null;
+  
+  // Check if session was completed (vs expired/paused)
+  const isCompleted = lastSession?.status === "completed";
 
   // Choose guide based on journey focus or session ID
   const guide = useMemo(() => {
@@ -60,65 +64,72 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot }: Snaps
       if (focusGuide) return focusGuide;
     }
     // Fallback: cycle based on session ID
-    const guideIndex = completedSession?.id 
-      ? completedSession.id.charCodeAt(0) % CONTROLLABLE_GUIDES.length 
+    const guideIndex = lastSession?.id 
+      ? lastSession.id.charCodeAt(0) % CONTROLLABLE_GUIDES.length 
       : 0;
     return CONTROLLABLE_GUIDES[guideIndex];
-  }, [completedSession?.id, snapshot?.focus]);
+  }, [lastSession?.id, snapshot?.focus]);
 
   // Fetch XP earned during this session's date range
   const { data: sessionXp = 0 } = useQuery({
-    queryKey: ["session-xp", completedSession?.id],
+    queryKey: ["session-xp", lastSession?.id],
     queryFn: async () => {
-      if (!completedSession) return 0;
+      if (!lastSession) return 0;
+      const endDate = lastSession.completed_at || lastSession.start_date;
+      const endDatePlusDays = new Date(lastSession.start_date + "T00:00:00");
+      endDatePlusDays.setDate(endDatePlusDays.getDate() + 7);
+      
       const { data, error } = await supabase
         .from("xp_logs")
         .select("amount")
         .eq("user_id", userId)
-        .gte("created_at", completedSession.start_date)
-        .lte("created_at", completedSession.completed_at || new Date().toISOString());
+        .gte("created_at", lastSession.start_date)
+        .lte("created_at", lastSession.completed_at || endDatePlusDays.toISOString());
       
       if (error) throw error;
       return data?.reduce((sum, log) => sum + log.amount, 0) || 0;
     },
-    enabled: !!completedSession,
+    enabled: !!lastSession,
   });
 
   // Fetch promises during session
   const { data: promiseStats } = useQuery({
-    queryKey: ["session-promises", completedSession?.id],
+    queryKey: ["session-promises", lastSession?.id],
     queryFn: async () => {
-      if (!completedSession) return { made: 0, kept: 0 };
+      if (!lastSession) return { made: 0, kept: 0 };
+      const endDatePlusDays = new Date(lastSession.start_date + "T00:00:00");
+      endDatePlusDays.setDate(endDatePlusDays.getDate() + 7);
+      
       const { data, error } = await supabase
         .from("integrity_logs")
         .select("kept")
         .eq("user_id", userId)
-        .gte("promised_at", completedSession.start_date)
-        .lte("promised_at", completedSession.completed_at || new Date().toISOString());
+        .gte("promised_at", lastSession.start_date)
+        .lte("promised_at", lastSession.completed_at || endDatePlusDays.toISOString());
       
       if (error) throw error;
       const made = data?.length || 0;
       const kept = data?.filter(p => p.kept === true).length || 0;
       return { made, kept };
     },
-    enabled: !!completedSession,
+    enabled: !!lastSession,
   });
 
   // Fetch days completed with reflections and commitments
   const { data: completedDays = [] } = useQuery({
-    queryKey: ["session-completed-days", completedSession?.id],
+    queryKey: ["session-completed-days", lastSession?.id],
     queryFn: async () => {
-      if (!completedSession) return [];
+      if (!lastSession) return [];
       const { data, error } = await supabase
         .from("daily_resets")
         .select("day_number, reflection, commitment, completed_at")
-        .eq("session_id", completedSession.id)
+        .eq("session_id", lastSession.id)
         .order("day_number", { ascending: true });
       
       if (error) throw error;
       return data || [];
     },
-    enabled: !!completedSession,
+    enabled: !!lastSession,
   });
 
   // Extract reflections and commitments for personalized narrative
@@ -169,36 +180,43 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot }: Snaps
   // Get snapshot-specific AI insight (only looks at this snapshot's data)
   const { data: snapshotInsight, isLoading: insightLoading } = useSnapshotInsight(
     userId,
-    completedSession?.id,
+    lastSession?.id,
     isPaid,
     snapshot ? { id: snapshot.id, name: snapshot.name, focus: snapshot.focus } : undefined
   );
 
-  // Calculate days since completion
-  const daysSinceCompletion = useMemo(() => {
-    if (!completedSession?.completed_at) return Infinity;
-    const completedDate = new Date(completedSession.completed_at);
+  // Calculate days since session ended
+  const daysSinceEnded = useMemo(() => {
+    if (!lastSession) return Infinity;
+    // Use completed_at if available, otherwise calculate from start_date + 7 days
+    const endDate = lastSession.completed_at 
+      ? new Date(lastSession.completed_at)
+      : (() => {
+          const start = new Date(lastSession.start_date + "T00:00:00");
+          start.setDate(start.getDate() + 7);
+          return start;
+        })();
     const today = new Date();
-    const diffTime = today.getTime() - completedDate.getTime();
+    const diffTime = today.getTime() - endDate.getTime();
     return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  }, [completedSession?.completed_at]);
+  }, [lastSession]);
 
-  // Don't show if no completed session or if it's been more than 7 days
-  if (!completedSession || daysSinceCompletion > 7) {
+  // Don't show if no ended session
+  if (!lastSession) {
     return null;
   }
 
   // Calculate end date (7 days from start)
   const getEndDate = () => {
-    if (!completedSession.start_date) return "";
-    const start = new Date(completedSession.start_date + "T00:00:00");
+    if (!lastSession.start_date) return "";
+    const start = new Date(lastSession.start_date + "T00:00:00");
     start.setDate(start.getDate() + 6);
     return start.toISOString().split("T")[0];
   };
 
   const formatDateRange = () => {
-    if (!completedSession.start_date) return "";
-    const start = new Date(completedSession.start_date + "T00:00:00");
+    if (!lastSession.start_date) return "";
+    const start = new Date(lastSession.start_date + "T00:00:00");
     const end = new Date(getEndDate() + "T00:00:00");
     return `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
   };
@@ -253,14 +271,21 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot }: Snaps
             transition={{ type: "spring", stiffness: 200 }}
             className="text-6xl mb-4"
           >
-            🏆
+            {isCompleted ? "🏆" : "📋"}
           </motion.div>
           <h3 className="text-xl font-bold text-foreground mb-2">
-            You Completed a 7-Day Snapshot
+            {isCompleted 
+              ? "You Completed a 7-Day Snapshot" 
+              : `Your ${completedDays.length}/7 Day Snapshot`}
           </h3>
           <p className="text-muted-foreground text-sm">
             {formatDateRange()}
           </p>
+          {!isCompleted && (
+            <p className="text-xs text-muted-foreground mt-2 italic">
+              An honest record. Sometimes we don't show up—and that's still data.
+            </p>
+          )}
           {snapshot && (
             <div className="mt-3 p-3 bg-primary/10 rounded-lg">
               <p className="text-primary flex items-center justify-center gap-2 font-medium">
@@ -390,7 +415,7 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot }: Snaps
   };
 
   const handleViewCelebration = () => {
-    navigate(`/reset?sessionId=${completedSession.id}&celebration=true`);
+    navigate(`/reset?sessionId=${lastSession.id}&celebration=true`);
   };
 
   if (sessionLoading) {
@@ -484,32 +509,81 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot }: Snaps
                   >
                     Next →
                   </Button>
+                ) : isCompleted ? (
+                  isPaid ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleViewCelebration}
+                      className="text-primary"
+                    >
+                      <Award className="w-4 h-4 mr-1" />
+                      Certificate
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onUpgrade}
+                      className="text-amber-600 dark:text-amber-400"
+                    >
+                      <Lock className="w-4 h-4 mr-1" />
+                      Upgrade for Certificate
+                    </Button>
+                  )
                 ) : (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleViewCelebration}
-                    className="text-primary"
+                    className="text-muted-foreground"
                   >
-                    <Award className="w-4 h-4 mr-1" />
-                    Certificate
+                    View Details
                   </Button>
                 )}
               </div>
 
               {/* Action buttons */}
               <div className="p-4 pt-2 border-t border-border/50 space-y-2">
-                <Button
-                  onClick={handleViewCelebration}
-                  variant="outline"
-                  className="w-full justify-between"
-                >
-                  <span className="flex items-center gap-2">
-                    <Eye className="w-4 h-4" />
-                    View Full Achievement
-                  </span>
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+                {isCompleted ? (
+                  isPaid ? (
+                    <Button
+                      onClick={handleViewCelebration}
+                      variant="outline"
+                      className="w-full justify-between"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Award className="w-4 h-4" />
+                        View Certificate
+                      </span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={onUpgrade}
+                      variant="outline"
+                      className="w-full justify-between border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Lock className="w-4 h-4" />
+                        Upgrade to Download Certificate
+                      </span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  )
+                ) : (
+                  <Button
+                    onClick={handleViewCelebration}
+                    variant="outline"
+                    className="w-full justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Eye className="w-4 h-4" />
+                      View Snapshot Details
+                    </span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                )}
                 
                 {onStartNewSnapshot && (
                   <Button
