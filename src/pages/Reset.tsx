@@ -113,7 +113,13 @@ const Reset = () => {
   }
 
   // Show historical celebration (viewing past completed snapshot)
-  if (isHistoricalCelebration && historicalSession) {
+  // IMPORTANT: Wait for historical session data before falling through to other screens
+  if (isHistoricalCelebration) {
+    if (!historicalSession) {
+      // Still loading historical session data
+      return <SplashScreen />;
+    }
+    
     const historicalEndDate = new Date(historicalSession.start_date);
     historicalEndDate.setDate(historicalEndDate.getDate() + 6);
     
