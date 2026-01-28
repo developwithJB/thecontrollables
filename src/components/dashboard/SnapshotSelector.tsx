@@ -1,28 +1,22 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Check, 
-  ChevronRight, 
+import {
+  Check,
+  ChevronRight,
   ChevronDown,
-  Sparkles, 
-  RotateCcw, 
+  Sparkles,
+  RotateCcw,
   TrendingDown,
   Compass,
   ArrowLeft,
-  Plus, 
+  Plus,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { 
+import {
   SNAPSHOTS,
   BUCKETS,
   getRecommendedSnapshot,
@@ -42,11 +36,7 @@ import { useActionTracking } from "@/hooks/useActionTracking";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { BuildAssessmentModal } from "./BuildAssessmentModal";
 import { CustomSnapshotCreator } from "./CustomSnapshotCreator";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface SnapshotSelectorProps {
   currentSnapshotId?: string | null;
@@ -117,7 +107,7 @@ export function SnapshotSelector({
       { key: "wellness" as Controllable, value: Number(currentBuild.wellness) || 0 },
       { key: "environment" as Controllable, value: Number(currentBuild.environment) || 0 },
     ];
-    return scores.reduce((min, curr) => curr.value < min.value ? curr : min).key;
+    return scores.reduce((min, curr) => (curr.value < min.value ? curr : min)).key;
   }, [currentBuild]);
 
   // Helper to get snapshot from both standard and custom lists
@@ -145,9 +135,9 @@ export function SnapshotSelector({
   const handleCustomSnapshotCreated = (snapshot: Snapshot) => {
     setCustomSnapshots((prev) => [...prev, snapshot]);
     setSelectedSnapshot(snapshot.id);
-    trackFeatureUse("snapshot_selector", "custom_created", { 
-      bucket: snapshot.bucketId, 
-      focus: snapshot.focus 
+    trackFeatureUse("snapshot_selector", "custom_created", {
+      bucket: snapshot.bucketId,
+      focus: snapshot.focus,
     });
   };
 
@@ -188,15 +178,13 @@ export function SnapshotSelector({
 
     try {
       // Log the change
-      await supabase
-        .from("journey_changes" as any)
-        .insert({
-          user_id: userId,
-          session_id: sessionId,
-          previous_journey_id: currentSnapshotId,
-          new_journey_id: selectedSnapshot,
-          changed_on_day: currentDay,
-        } as any);
+      await supabase.from("journey_changes" as any).insert({
+        user_id: userId,
+        session_id: sessionId,
+        previous_journey_id: currentSnapshotId,
+        new_journey_id: selectedSnapshot,
+        changed_on_day: currentDay,
+      } as any);
 
       // Update reset_sessions
       const { error: sessionError } = await supabase
@@ -265,8 +253,8 @@ export function SnapshotSelector({
               ? "border-amber-500 bg-amber-500/10"
               : "border-primary bg-primary/5"
             : snapshot.isCustom
-            ? "border-amber-500/30 bg-amber-500/5 hover:border-amber-500/50"
-            : "border-border bg-card hover:border-primary/30"
+              ? "border-amber-500/30 bg-amber-500/5 hover:border-amber-500/50"
+              : "border-border bg-card hover:border-primary/30"
         }`}
       >
         {/* Selection indicator - positioned absolute top-right, below badges */}
@@ -286,7 +274,10 @@ export function SnapshotSelector({
         {(snapshot.isCustom || isRecommended || isCurrent) && (
           <div className="flex items-center gap-1.5 mb-3 flex-wrap">
             {snapshot.isCustom && (
-              <Badge variant="outline" className="bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30 text-xs px-1.5">
+              <Badge
+                variant="outline"
+                className="bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30 text-xs px-1.5"
+              >
                 <Sparkles className="w-3 h-3 mr-1" />
                 For You
               </Badge>
@@ -298,17 +289,21 @@ export function SnapshotSelector({
               </Badge>
             )}
             {isCurrent && (
-              <Badge variant="secondary" className="text-xs px-1.5">Current</Badge>
+              <Badge variant="secondary" className="text-xs px-1.5">
+                Current
+              </Badge>
             )}
           </div>
         )}
 
         <div className="flex items-start gap-3 pr-8">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0 ${
-            snapshot.isCustom 
-              ? "bg-gradient-to-br from-amber-500/20 to-orange-500/20"
-              : "bg-gradient-to-br from-primary/10 to-accent/10"
-          }`}>
+          <div
+            className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0 ${
+              snapshot.isCustom
+                ? "bg-gradient-to-br from-amber-500/20 to-orange-500/20"
+                : "bg-gradient-to-br from-primary/10 to-accent/10"
+            }`}
+          >
             {snapshot.emoji}
           </div>
           <div className="flex-1 min-w-0">
@@ -381,13 +376,12 @@ export function SnapshotSelector({
         <DialogContent className="max-w-md max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="font-display">
-              {viewMode === "recommendation" ? "What Kind of Week Is This?" : "Browse All Snapshots"}
+              {viewMode === "recommendation" ? "What Kind of Week Is This?" : "Browse Snapshots"}
             </DialogTitle>
             <DialogDescription>
-              {viewMode === "recommendation" 
+              {viewMode === "recommendation"
                 ? "A Snapshot is your focus for the next 7 days. One theme. No perfection."
-                : "Explore all 36 Snapshots across 6 life themes."
-              }
+                : "Explore all 36 Snapshots across 6 life themes."}
             </DialogDescription>
           </DialogHeader>
 
@@ -418,27 +412,31 @@ export function SnapshotSelector({
                         </Button>
                       </div>
                       <div className="grid grid-cols-5 gap-1">
-                        {(["awareness", "perspective", "habit", "wellness", "environment"] as Controllable[]).map((key) => {
-                          const config = CONTROLLABLE_CONFIG[key];
-                          const value = Number(currentBuild[key as keyof typeof currentBuild]) || 0;
-                          const isLowest = key === lowestControllable;
-                          return (
-                            <div 
-                              key={key} 
-                              className={`text-center p-1.5 rounded-lg ${
-                                isLowest ? "bg-amber-500/10 border border-amber-500/30" : "bg-background"
-                              }`}
-                            >
-                              <span className="text-sm block">{config.emoji}</span>
-                              <span className={`text-xs font-medium block ${
-                                isLowest ? "text-amber-600 dark:text-amber-400" : "text-foreground"
-                              }`}>
-                                {value.toFixed(1)}
-                              </span>
-                              {isLowest && <TrendingDown className="w-2.5 h-2.5 mx-auto text-amber-500 mt-0.5" />}
-                            </div>
-                          );
-                        })}
+                        {(["awareness", "perspective", "habit", "wellness", "environment"] as Controllable[]).map(
+                          (key) => {
+                            const config = CONTROLLABLE_CONFIG[key];
+                            const value = Number(currentBuild[key as keyof typeof currentBuild]) || 0;
+                            const isLowest = key === lowestControllable;
+                            return (
+                              <div
+                                key={key}
+                                className={`text-center p-1.5 rounded-lg ${
+                                  isLowest ? "bg-amber-500/10 border border-amber-500/30" : "bg-background"
+                                }`}
+                              >
+                                <span className="text-sm block">{config.emoji}</span>
+                                <span
+                                  className={`text-xs font-medium block ${
+                                    isLowest ? "text-amber-600 dark:text-amber-400" : "text-foreground"
+                                  }`}
+                                >
+                                  {value.toFixed(1)}
+                                </span>
+                                {isLowest && <TrendingDown className="w-2.5 h-2.5 mx-auto text-amber-500 mt-0.5" />}
+                              </div>
+                            );
+                          },
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -470,11 +468,7 @@ export function SnapshotSelector({
                 </div>
 
                 {/* Browse All Button */}
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setViewMode("browse")}
-                >
+                <Button variant="outline" className="w-full" onClick={() => setViewMode("browse")}>
                   Browse All 36 Snapshots
                   <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>
@@ -482,12 +476,7 @@ export function SnapshotSelector({
             ) : (
               <>
                 {/* Back Button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mb-2"
-                  onClick={() => setViewMode("recommendation")}
-                >
+                <Button variant="ghost" size="sm" className="mb-2" onClick={() => setViewMode("recommendation")}>
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Recommendation
                 </Button>
@@ -508,9 +497,7 @@ export function SnapshotSelector({
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                       Your Custom Snapshots
                     </p>
-                    <div className="space-y-2">
-                      {customSnapshots.map((snapshot) => renderSnapshotCard(snapshot))}
-                    </div>
+                    <div className="space-y-2">{customSnapshots.map((snapshot) => renderSnapshotCard(snapshot))}</div>
                   </div>
                 )}
 
@@ -568,7 +555,11 @@ export function SnapshotSelector({
               disabled={!selectedSnapshot || selectedSnapshot === currentSnapshotId || isChanging}
               className="w-full"
             >
-              {isChanging ? "Changing..." : selectedSnapshot === currentSnapshotId ? "Keep Current" : "Start This Snapshot"}
+              {isChanging
+                ? "Changing..."
+                : selectedSnapshot === currentSnapshotId
+                  ? "Keep Current"
+                  : "Start This Snapshot"}
             </Button>
           </div>
         </DialogContent>
