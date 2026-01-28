@@ -353,9 +353,20 @@ export default function Dashboard() {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user?.id && activeTab === "experience",
+    // We also need session history on the Dashboard tab to:
+    // - show the Snapshot Review card for post-trial users
+    // - enforce post-trial lockdown consistently
+    enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  // Free trial is considered "ended" once the user has ANY ended session.
+  // (They may still have an "active" row due to older data/loopholes; UI should still
+  // prioritize the ended snapshot for review.)
+  const hasEndedTrial = useMemo(() => {
+    if (isPaid) return false;
+    return allSessions.some((s) => s.status === "completed" || s.status === "expired" || s.status === "paused");
+  }, [allSessions, isPaid]);
 
   // Fetch completed days per session for history - defer until Experience tab is active
   const { data: allCompletedDays = [] } = useQuery({
@@ -752,7 +763,7 @@ export default function Dashboard() {
                   1. No active session but user has any completed/expired sessions, OR
                   2. Active session that is completed/expired 
               */}
-              {(((!activeSession) && allSessions.some(s => s.status === "completed" || s.status === "expired")) || 
+              {(((hasEndedTrial && !isPaid) || (!activeSession && allSessions.some(s => s.status === "completed" || s.status === "expired" || s.status === "paused"))) ||
                 (activeSession && (isCompleted || isExpired))) && 
                user?.id && !resetLoading && !dashboardLoading && (
                 <SnapshotReviewCard
@@ -1094,7 +1105,7 @@ export default function Dashboard() {
               {!isSimplifiedMode && user?.id && (isPaid || allSessions.some(s => s.status === "completed" || s.status === "expired")) && (
                 <SuspenseExperienceComponent>
                   <LazySnapshotHistory
-                    sessions={allSessions.map((s) => ({
+                    sessions={(isPaid ? allSessions : allSessions.filter((s) => s.status !== "active")).map((s) => ({
                       id: s.id,
                       snapshotId: s.journey_id,
                       startDate: s.start_date,
