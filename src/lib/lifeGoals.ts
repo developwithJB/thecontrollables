@@ -119,8 +119,8 @@ export const LIFE_GOALS: LifeGoal[] = [
   // Mindset Shifts (5)
   {
     id: "shift-mindset",
-    label: "Shift mindset",
-    emoji: "🔄",
+    label: "Always Get Better",
+    emoji: "👑",
     category: "mindset",
     relatedSnapshots: ["rebuild-confidence-agb", "zoom-out", "see-it-clearly", "what-actually-matters", "consistency-over-intensity"],
     tagline: "Change how you see yourself and what's possible"
