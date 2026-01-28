@@ -1022,6 +1022,8 @@ export default function Dashboard() {
                       xpEarned: allCompletedDays.filter((d) => d.session_id === s.id).length * 25 + 
                         (s.status === "completed" ? 25 : 0), // Day 7 bonus
                     }))}
+                    userId={user.id}
+                    isPaid={isPaid}
                   />
                 </SuspenseExperienceComponent>
               )}
@@ -1043,6 +1045,8 @@ export default function Dashboard() {
                           xpEarned: allCompletedDays.filter((d) => d.session_id === s.id).length * 25 + 
                             (s.status === "completed" ? 25 : 0),
                         }))}
+                        userId={user?.id}
+                        isPaid={false}
                       />
                     </SuspenseExperienceComponent>
                     <SuspenseExperienceComponent>

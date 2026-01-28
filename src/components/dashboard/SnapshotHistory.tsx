@@ -42,6 +42,7 @@ interface SnapshotHistoryProps {
   sessions: SnapshotRecord[];
   className?: string;
   isPaid?: boolean;
+  userId?: string;
   onStartNew?: () => void;
 }
 
@@ -555,7 +556,7 @@ function LockedView({ viewType, requiredCount }: { viewType: string; requiredCou
   );
 }
 
-export function SnapshotHistory({ sessions, className, isPaid = false, onStartNew }: SnapshotHistoryProps) {
+export function SnapshotHistory({ sessions, className, isPaid = false, userId, onStartNew }: SnapshotHistoryProps) {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [selectedRecord, setSelectedRecord] = useState<SnapshotRecord | null>(null);
@@ -744,7 +745,7 @@ export function SnapshotHistory({ sessions, className, isPaid = false, onStartNe
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <WeeklyPatternView snapshots={validSessions} />
+              <WeeklyPatternView snapshots={validSessions} userId={userId} isPaid={isPaid} />
             </motion.div>
           )}
 
