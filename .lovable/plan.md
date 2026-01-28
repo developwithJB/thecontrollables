@@ -1,169 +1,300 @@
 
-# Integrate Build Score into Time Cycles Modal
+# Connect Snapshots to Real-World Habits & Life Goals
 
 ## Overview
-Add the user's Build score and current archetype to the Time Cycles card in the Experience tab. This provides free users (and paid users) with contextual awareness of "where they are" beyond just time—their mental/behavioral state alongside temporal cycles.
+Transform the Snapshot browsing experience from abstract "Controllables" to relatable real-world habits and life changes people actually search for—like quitting vaping, reducing drinking, eating healthier, or managing spending. This creates an immediate "oh, this can help me with THAT" moment.
 
-## Design Philosophy
-The Time Cycles card already answers "Where you are right now" from a time perspective. Adding Build creates a holistic "state of being" view:
-- **Time Cycles** = external markers (day phase, week progress, snapshot progress)
-- **Build State** = internal markers (awareness, perspective, habit, wellness, environment)
+## The Problem Today
+Current Snapshot browsing is organized by:
+- Abstract buckets: "Reset & Re-Entry", "Momentum & Consistency"
+- Internal states: "I fell off", "My head is loud"
+- Framework language: "Controllables", "Awareness", "Habit"
 
-This adds mental value by showing users their current "operating mode" without requiring them to dig into a separate modal.
+While philosophically sound, this requires users to translate their real goals into the framework. A user thinking "I want to stop impulse buying" has to figure out that's a Habit + Environment issue.
+
+## The Solution: Intent-Based Navigation
+Add a layer that connects user intentions to the right Snapshots:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ "What do you want to work on?"                           │
+├──────────────────────────────────────────────────────────┤
+│ 🚭 Stop vaping/smoking     🍷 Drink less                 │
+│ 💸 Stop impulse spending   🍔 Eat healthier              │
+│ 📱 Reduce screen time      🏃 Move more                  │
+│ 😴 Sleep better            🧘 Reduce stress              │
+│ ⏰ Stop procrastinating    💬 Better relationships       │
+│ 🎯 Stay focused            🔄 Start fresh                │
+└──────────────────────────────────────────────────────────┘
+                              ↓
+        Filtered Snapshots that address this goal
+```
 
 ---
 
-## Implementation Plan
+## Implementation Strategy
 
-### 1. Update TimeCycleCard Props Interface
-Accept optional Build data to display when available:
+### 1. Create Goal-to-Snapshot Mappings
+Map real-world habits to relevant Snapshots:
 
 ```typescript
-interface TimeCycleCardProps {
-  activeQuest?: { ... } | null;
-  currentResetDay?: number;
-  hasActiveReset?: boolean;
-  // NEW: Build data
-  currentBuild?: {
-    overall: number;
-    awareness: number;
-    perspective: number;
-    habit: number;
-    wellness: number;
-    environment: number;
-    build_archetype_key: string | null;
-    updated_at: string;
-  } | null;
+interface LifeGoal {
+  id: string;
+  label: string;
+  emoji: string;
+  category: "break-habit" | "build-habit" | "mindset" | "wellness";
+  relatedSnapshots: string[]; // Snapshot IDs
+  tagline: string;
+}
+
+const LIFE_GOALS: LifeGoal[] = [
+  {
+    id: "stop-vaping",
+    label: "Stop vaping/smoking",
+    emoji: "🚭",
+    category: "break-habit",
+    relatedSnapshots: ["build-the-chain", "show-up-anyway", "one-day-at-time", "replace-the-trigger"],
+    tagline: "Break the cycle, one day at a time"
+  },
+  {
+    id: "drink-less",
+    label: "Drink less alcohol",
+    emoji: "🍷",
+    category: "break-habit",
+    relatedSnapshots: ["stabilize-basics", "replace-the-trigger", "back-to-zero", "protect-your-energy"],
+    tagline: "Reclaim your evenings and energy"
+  },
+  {
+    id: "stop-spending",
+    label: "Stop impulse spending",
+    emoji: "💸",
+    category: "break-habit",
+    relatedSnapshots: ["pause-before-reacting", "see-it-clearly", "word-equals-bond", "environment-reset"],
+    tagline: "Build awareness before you buy"
+  },
+  {
+    id: "eat-healthier",
+    label: "Eat healthier",
+    emoji: "🥗",
+    category: "build-habit",
+    relatedSnapshots: ["fuel-the-body", "stabilize-basics", "one-thing-a-day", "back-to-basics"],
+    tagline: "Small food wins that stick"
+  },
+  {
+    id: "less-screen",
+    label: "Reduce screen time",
+    emoji: "📱",
+    category: "break-habit",
+    relatedSnapshots: ["quiet-the-noise", "get-grounded", "protect-your-energy", "design-environment"],
+    tagline: "Take back your attention"
+  },
+  {
+    id: "exercise-more",
+    label: "Move more",
+    emoji: "🏃",
+    category: "build-habit",
+    relatedSnapshots: ["just-show-up", "tiny-wins", "build-the-chain", "back-to-basics"],
+    tagline: "Start small, show up daily"
+  },
+  // ... more goals
+];
+```
+
+### 2. Add Goal Filter to Journey Switcher
+Enhance the existing JourneySwitcher with a goal-first view:
+
+**New UI Flow:**
+```
+┌──────────────────────────────────────────────────────────┐
+│ What Kind of Week Is This?                               │
+├──────────────────────────────────────────────────────────┤
+│ ┌─────────────────┐  ┌─────────────────┐                │
+│ │  By Goal        │  │  By State       │                │
+│ │  (What I want)  │  │  (How I feel)   │                │
+│ └─────────────────┘  └─────────────────┘                │
+├──────────────────────────────────────────────────────────┤
+│ [When "By Goal" selected:]                               │
+│                                                          │
+│ "What do you want to work on this week?"                 │
+│                                                          │
+│ ┌────────────────┐ ┌────────────────┐                   │
+│ │ 🚭 Stop        │ │ 💸 Stop impulse│                   │
+│ │   vaping       │ │   spending     │                   │
+│ └────────────────┘ └────────────────┘                   │
+│                                                          │
+│ [Then show filtered snapshots relevant to that goal]     │
+└──────────────────────────────────────────────────────────┘
+```
+
+### 3. Create New Snapshots for Common Habits
+Add 4-6 new Snapshots specifically designed for common "break a habit" goals:
+
+```typescript
+// New Snapshot: Replace the Trigger
+{
+  id: "replace-the-trigger",
+  name: "Replace the Trigger",
+  bucketId: "momentum-consistency",
+  focus: "habit",
+  tagline: "Swap the urge, keep the routine",
+  emoji: "🔄",
+  dailyActions: [
+    { day: 1, task: "Identify one trigger for your unwanted habit", description: "What situation or feeling precedes it?" },
+    { day: 2, task: "Plan one alternative response", description: "When I feel X, I'll do Y instead" },
+    { day: 3, task: "Use your replacement once today", description: "Even if you slip, try the replacement first" },
+    { day: 4, task: "Notice what the habit actually gives you", description: "Relief? Distraction? Connection?" },
+    { day: 5, task: "Find another way to get that need met", description: "Address the root, not just the surface" },
+    { day: 6, task: "Make the replacement easier than the habit", description: "Reduce friction for the good choice" },
+    { day: 7, task: "Reflect: which replacement worked best?", description: "Data for next week" },
+  ],
+}
+
+// New Snapshot: Delay the Impulse
+{
+  id: "delay-the-impulse",
+  name: "Delay the Impulse",
+  bucketId: "clarity-perspective",
+  focus: "awareness",
+  tagline: "10 minutes changes everything",
+  emoji: "⏳",
+  dailyActions: [
+    { day: 1, task: "When you want to [habit], wait 10 minutes", description: "Just delay, don't decide" },
+    { day: 2, task: "During the wait, do one deep breath", description: "Interrupt the autopilot" },
+    { day: 3, task: "Ask: 'Will I regret this in an hour?'", description: "Future you knows" },
+    { day: 4, task: "If you still want it after waiting, notice that", description: "Data, not failure" },
+    { day: 5, task: "Extend the wait to 15 minutes", description: "Build the muscle" },
+    { day: 6, task: "Journal about what you notice during waits", description: "Patterns emerge" },
+    { day: 7, task: "Celebrate every delay, even imperfect ones", description: "Delay is progress" },
+  ],
 }
 ```
 
-### 2. Add Build State Section to TimeCycleCard
-Add a new collapsible section below the existing cycles:
-
-**UI Structure:**
-```
-┌──────────────────────────────────────────┐
-│ 📅 Time Cycles                           │
-│    Where you are right now               │
-├──────────────────────────────────────────┤
-│ [Day Cycle - Execute Phase, etc.]        │
-│ [Week Progress - M T W T F S S]          │
-│ [7-Day Snapshot Progress - if active]    │
-├──────────────────────────────────────────┤
-│ 🧬 Your Build                            │  ← NEW SECTION
-│ ┌────────────────────────────────────┐   │
-│ │ ⚡ Stable Build     Overall: 3.2   │   │
-│ │ Focus: 🦈 Habit (lowest)           │   │
-│ └────────────────────────────────────┘   │
-│ [View Full Build →] (optional link)      │
-└──────────────────────────────────────────┘
-```
-
-### 3. Visual Design Details
-- **Archetype Badge**: Show the emoji + label in a themed chip (uses existing `getArchetypeThemeColors`)
-- **Overall Score**: Simple `X.X/4` display
-- **Focus Indicator**: Highlight the lowest controllable with its emoji + "Focus area"
-- **Subdued Styling**: Use `bg-muted/30` to keep it secondary to time cycles
-- **No Build State**: Show "Take the Build Assessment" prompt with muted styling
-
-### 4. Pass Build Data from Dashboard.tsx
-Update the TimeCycleCard usage in Experience tab:
-
-```tsx
-<TimeCycleCard
-  activeQuest={activeQuest}
-  currentResetDay={currentDay}
-  hasActiveReset={!!activeSession && !isCompleted}
-  currentBuild={currentBuild}  // ← Add this
-/>
-```
-
 ---
 
-## Technical Details
+## Technical Implementation
 
-### Files to Modify
+### Files to Create/Modify
 
-**1. `src/components/experience/TimeCycleCard.tsx`**
-- Import `getArchetypeInfo`, `getArchetypeThemeColors`, `getLowestControllable` from `@/lib/build`
-- Add `currentBuild` prop
-- Add new "Your Build" section after Snapshot Cycle
-- Compute lowest controllable for "Focus area" display
-- Handle null/undefined build gracefully
+**1. New File: `src/lib/lifeGoals.ts`**
+- Define `LifeGoal` interface
+- Create `LIFE_GOALS` constant with 12-15 common goals
+- Create `getSnapshotsForGoal(goalId)` function
+- Create `getGoalsForSnapshot(snapshotId)` function (reverse lookup)
 
-**2. `src/pages/Dashboard.tsx`**
-- Pass `currentBuild` to TimeCycleCard component (data already available via `useBuildAssessment`)
+**2. Modify: `src/lib/snapshots.ts`**
+- Add 4-6 new Snapshots designed for habit-breaking:
+  - "Replace the Trigger" (habit)
+  - "Delay the Impulse" (awareness)
+  - "Environment Reset" (environment)
+  - "The Urge Surfing Week" (awareness)
 
-### New UI Elements in TimeCycleCard
+**3. Modify: `src/components/dashboard/JourneySwitcher.tsx`**
+- Add tab toggle: "By Goal" | "By State"
+- Add goal chip grid when "By Goal" is selected
+- Filter snapshots based on selected goal
+- Show goal-specific context when viewing filtered results
 
-**Build Section (when user has build data):**
-```tsx
-<div className="p-3 rounded-xl bg-muted/30 border border-border/30">
-  <div className="flex items-center gap-2 mb-2">
-    <Dna className="w-4 h-4 text-purple-500" />
-    <span className="text-xs font-medium text-muted-foreground">Your Build</span>
-  </div>
-  <div className={`flex items-center justify-between p-2 rounded-lg ${themeColors.bg} border ${themeColors.border}`}>
-    <div className="flex items-center gap-2">
-      <span className="text-base">{archetypeInfo.emoji}</span>
-      <span className={`text-sm font-medium ${themeColors.text}`}>{archetypeInfo.label}</span>
-    </div>
-    <span className="text-sm font-semibold text-foreground">{overall.toFixed(1)}/4</span>
-  </div>
-  <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-    <span>Focus:</span>
-    <span>{lowestEmoji}</span>
-    <span className="text-amber-600 dark:text-amber-400">{lowestLabel}</span>
-  </div>
-</div>
-```
-
-**No Build State:**
-```tsx
-<div className="p-3 rounded-xl bg-muted/20 border border-dashed border-border/30">
-  <div className="flex items-center gap-2">
-    <Dna className="w-4 h-4 text-muted-foreground/50" />
-    <span className="text-xs text-muted-foreground">Build not scanned yet</span>
-  </div>
-</div>
-```
-
-### Controllable Emoji Mapping (from existing code)
-```typescript
-const CONTROLLABLE_EMOJIS: Record<string, { emoji: string; label: string }> = {
-  awareness: { emoji: "🦉", label: "Awareness" },
-  perspective: { emoji: "🐢", label: "Perspective" },
-  habit: { emoji: "🦈", label: "Habit" },
-  wellness: { emoji: "🛰️", label: "Wellness" },
-  environment: { emoji: "🚀", label: "Environment" },
-};
-```
+**4. Modify: `src/components/onboarding/OnboardingJourneySelection.tsx`**
+- Add optional "What brought you here?" goal selection before showing snapshots
+- Pre-filter recommendations based on goal
 
 ---
 
 ## User Experience
 
-### For Free Users
-- See their current Build state at a glance in the free Time Cycles section
-- Understand which Controllable needs attention ("Focus: 🛰️ Wellness")
-- No unlock required—this reinforces the value of the Build assessment
+### Landing Page Hook
+Add a new section showing relatable goals:
 
-### For All Users
-- Contextual awareness: "It's Wednesday afternoon, I'm in Execute Phase, and my Build shows I'm 'Capable but Inconsistent' with a focus on Habit"
-- Quick reference without opening the full Build module
-- Encourages periodic re-assessment when they notice their state feels off
+```
+"The Dashboard helps with real changes like..."
 
-### Mental Value (Not Confusion)
-- **Simple**: Archetype label + overall score + focus area
-- **No stats bars**: Keep it glanceable, not analytical
-- **Themed colors**: Use existing archetype themes for immediate recognition
-- **Non-overwhelming**: Tucks naturally below time cycles as secondary context
+🚭 Quitting vaping       💸 Spending less
+📱 Less phone time       🍷 Drinking less
+🏃 Moving more           😴 Sleeping better
+```
+
+This immediately signals: "This isn't just another productivity app—it helps with the habits I actually struggle with."
+
+### Browse Flow
+1. User opens "Browse Snapshots"
+2. Sees toggle: "By Goal" (default) | "By State"
+3. Taps a goal chip like "🍷 Drink less"
+4. Sees 3-5 relevant Snapshots with context:
+   - "Replace the Trigger" - Swap the evening drink ritual
+   - "Protect Your Energy" - Understand what you're escaping from
+   - "One Day at a Time" - Focus only on today
+5. Picks one, starts 7-day week with daily actions
+
+### Goal-Specific Messaging
+When a user selects a goal, show contextual framing:
+
+```
+You selected: 🍷 Drink less
+
+"This isn't about willpower. It's about understanding 
+what the drink gives you, and finding other ways to get it.
+
+These Snapshots help you build awareness around triggers,
+replace automatic patterns, and take it one day at a time."
+```
+
+---
+
+## Life Goals to Include (Initial Set)
+
+**Break a Habit (6):**
+- 🚭 Stop smoking/vaping
+- 🍷 Drink less
+- 💸 Stop impulse spending
+- 📱 Reduce screen time
+- 🍔 Stop stress eating
+- 🎮 Less gaming/scrolling
+
+**Build a Habit (6):**
+- 🏃 Exercise more
+- 😴 Sleep better
+- 🥗 Eat healthier
+- 💧 Drink more water
+- 📖 Read more
+- 🧘 Meditate daily
+
+**Mindset Shifts (4):**
+- ⏰ Stop procrastinating
+- 😰 Reduce anxiety
+- 🎯 Stay focused
+- 💬 Better relationships
+
+---
+
+## Philosophy Alignment
+
+This connects to "The Controllables" philosophy:
+- **Awareness**: Notice your triggers
+- **Perspective**: See the bigger picture of why you do this
+- **Habit**: Build the replacement pattern
+- **Wellness**: Restore the foundation so you don't need the crutch
+- **Environment**: Design your space to make the good choice easier
+
+The user doesn't need to know the framework—they just know "I want to stop vaping" and the system guides them to the right lens.
+
+---
+
+## Phased Rollout
+
+**Phase 1 (This Implementation):**
+- Add `lifeGoals.ts` with 16 goals
+- Add goal filter to JourneySwitcher
+- Add 4 new habit-breaking Snapshots
+
+**Phase 2 (Future):**
+- Landing page goal showcase
+- Goal selection in onboarding
+- Goal-specific AI guidance from The Controllables
 
 ---
 
 ## Non-Goals
-- No full stat bars or detailed breakdown (that's in BuildOverviewModule)
-- No assessment trigger from this card (just awareness)
-- No additional animations or complexity
-- No changes to Build logic or data fetching
-
+- Not creating "programs" or multi-week curricula—still 7-day Snapshots
+- Not tracking specific habit metrics (e.g., "days sober")—that's external
+- Not changing the Controllables framework—just adding an accessible entry point
+- Not removing the current "By State" view—adding alongside it
