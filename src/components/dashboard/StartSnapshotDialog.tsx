@@ -12,6 +12,8 @@ import {
   Target,
   Lightbulb,
   TrendingDown,
+  Plus,
+  Crown,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -26,7 +28,27 @@ import {
 import { LIFE_GOALS, getSnapshotsForGoal, GOAL_CATEGORIES, type GoalCategory } from "@/lib/lifeGoals";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { BuildAssessmentModal } from "./BuildAssessmentModal";
+import { CustomSnapshotCreator } from "./CustomSnapshotCreator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
+// AGB Signature Snapshot - Rebuild Your Confidence Challenge
+const AGB_SIGNATURE_SNAPSHOT: Snapshot = {
+  id: "rebuild-confidence-agb",
+  name: "Rebuild Your Confidence",
+  bucketId: "integrity-trust",
+  focus: "habit",
+  tagline: "Confidence comes from kept promises",
+  emoji: "👑",
+  dailyActions: [
+    { day: 1, task: "Care for yourself today", description: "Confidence begins with caring." },
+    { day: 2, task: "Face one thing holding you back", description: "Name it. Take one step toward it." },
+    { day: 3, task: "Do one thing consistently today", description: "Confidence is a streak, not a spike." },
+    { day: 4, task: "Let go of one thing holding you down", description: "Release what isn't serving you." },
+    { day: 5, task: "Improve one skill by 1%", description: "Confidence grows when skills grow." },
+    { day: 6, task: "Focus only on what you can control", description: "Put energy where your power is." },
+    { day: 7, task: "Reflect and rise", description: "Confidence comes from kept promises." },
+  ],
+};
 
 interface StartSnapshotDialogProps {
   isOpen: boolean;
@@ -53,9 +75,11 @@ export function StartSnapshotDialog({
 }: StartSnapshotDialogProps) {
   const [selectedSnapshot, setSelectedSnapshot] = useState<string | null>(null);
   const [showBuildModal, setShowBuildModal] = useState(false);
+  const [showCustomCreator, setShowCustomCreator] = useState(false);
   const [viewMode, setViewMode] = useState<"goal" | "state">("goal");
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [expandedBuckets, setExpandedBuckets] = useState<Set<BucketId>>(new Set());
+  const [customSnapshots, setCustomSnapshots] = useState<Snapshot[]>([]);
 
   const { currentBuild, questions, submitAssessment, isSubmitting } = useBuildAssessment();
   
@@ -103,6 +127,14 @@ export function StartSnapshotDialog({
   const handleBuildComplete = async (answers: Record<string, number>) => {
     return await submitAssessment(answers);
   };
+
+  const handleCustomSnapshotCreated = (snapshot: Snapshot) => {
+    setCustomSnapshots((prev) => [...prev, snapshot]);
+    setSelectedSnapshot(snapshot.id);
+  };
+
+  // All available snapshots including AGB signature and custom ones
+  const allSnapshots = [AGB_SIGNATURE_SNAPSHOT, ...SNAPSHOTS, ...customSnapshots];
 
   const renderSnapshotCard = (snapshot: Snapshot, showRecommended = false) => {
     const isSelected = selectedSnapshot === snapshot.id;
@@ -182,6 +214,18 @@ export function StartSnapshotDialog({
 
             {/* By Goal Tab */}
             <TabsContent value="goal" className="mt-0 space-y-4">
+              {/* AGB Signature Section */}
+              <div className="p-3 rounded-xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-amber-500/10 border border-amber-500/30 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-amber-500/20 to-transparent rounded-bl-full" />
+                <div className="flex items-center gap-2 mb-2">
+                  <Crown className="w-4 h-4 text-amber-500" />
+                  <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
+                    AGB Signature Challenge
+                  </p>
+                </div>
+                {renderSnapshotCard(AGB_SIGNATURE_SNAPSHOT)}
+              </div>
+
               {/* Goal Selection */}
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-xs font-medium text-foreground mb-3">What do you want to work on?</p>
@@ -231,6 +275,25 @@ export function StartSnapshotDialog({
                   {filteredSnapshots.map((snapshot) => renderSnapshotCard(snapshot))}
                 </div>
               )}
+
+              {/* Build Your Own */}
+              <motion.button
+                onClick={() => setShowCustomCreator(true)}
+                whileTap={{ scale: 0.98 }}
+                className="w-full p-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
+                    <Plus className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-foreground">Build Your Own</h3>
+                    <p className="text-xs text-muted-foreground italic">
+                      Create a custom 7-day snapshot
+                    </p>
+                  </div>
+                </div>
+              </motion.button>
             </TabsContent>
 
             {/* By State Tab */}
@@ -353,6 +416,12 @@ export function StartSnapshotDialog({
         questions={questions}
         onSubmit={handleBuildComplete}
         isSubmitting={isSubmitting}
+      />
+
+      <CustomSnapshotCreator
+        open={showCustomCreator}
+        onOpenChange={setShowCustomCreator}
+        onSnapshotCreated={handleCustomSnapshotCreated}
       />
     </>
   );
