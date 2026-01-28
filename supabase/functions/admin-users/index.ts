@@ -502,6 +502,49 @@ Deno.serve(async (req) => {
           .slice(0, 5)
           .map(([path, count]) => ({ path, count, percentage: Math.round((count / sessionPaths.size) * 100) }));
 
+        // === FREE TRIAL FUNNEL METRICS ===
+        // Get all reset sessions to track free trial usage
+        const { data: allResetSessions } = await adminClient
+          .from("reset_sessions")
+          .select("user_id, status, created_at, completed_at");
+
+        const { data: allEntitlements } = await adminClient
+          .from("user_entitlements")
+          .select("user_id");
+
+        const paidUserIds = new Set(allEntitlements?.map(e => e.user_id) || []);
+
+        // Users who started a free trial (have at least 1 reset session, no entitlement)
+        const freeTrialStartedUserIds = new Set(
+          allResetSessions
+            ?.filter(s => !paidUserIds.has(s.user_id))
+            .map(s => s.user_id) || []
+        );
+
+        // Users who completed a free trial (completed status, no entitlement)
+        const freeTrialCompletedUserIds = new Set(
+          allResetSessions
+            ?.filter(s => s.status === "completed" && !paidUserIds.has(s.user_id))
+            .map(s => s.user_id) || []
+        );
+
+        // Conversion: free trial → paid (users who have both a reset session AND an entitlement)
+        const convertedUserIds = new Set(
+          allResetSessions
+            ?.filter(s => paidUserIds.has(s.user_id))
+            .map(s => s.user_id) || []
+        );
+
+        const freeTrialMetrics = {
+          started: freeTrialStartedUserIds.size,
+          completed: freeTrialCompletedUserIds.size,
+          converted: convertedUserIds.size,
+          conversionRate: freeTrialCompletedUserIds.size > 0 
+            ? Math.round((convertedUserIds.size / freeTrialCompletedUserIds.size) * 100) 
+            : 0,
+          activeFreeTrial: freeTrialStartedUserIds.size - freeTrialCompletedUserIds.size,
+        };
+
         return new Response(JSON.stringify({
           summary: {
             pageViews24h: pageViews24h || 0,
@@ -526,6 +569,8 @@ Deno.serve(async (req) => {
             conversionFunnel,
             onboardingFunnel,
             dropOffPoints,
+            // Free trial funnel
+            freeTrialMetrics,
           }
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },

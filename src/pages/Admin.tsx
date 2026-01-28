@@ -161,6 +161,14 @@ interface AnalyticsSummary {
     day1: number;
   };
   dropOffPoints: { path: string; count: number; percentage: number }[];
+  // Free trial funnel
+  freeTrialMetrics?: {
+    started: number;
+    completed: number;
+    converted: number;
+    conversionRate: number;
+    activeFreeTrial: number;
+  };
 }
 
 interface NudgeLog {
@@ -865,6 +873,42 @@ export default function Admin() {
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Free Trial Funnel */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  🎁 Free Trial Funnel
+                </CardTitle>
+                <CardDescription>Track free trial users and conversion to paid</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Started Free Trial</span>
+                    <span className="font-bold">{summary?.freeTrialMetrics?.started || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Completed 7-Day Snapshot</span>
+                    <span className="font-bold">{summary?.freeTrialMetrics?.completed || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Currently Active (In Trial)</span>
+                    <span className="font-bold text-blue-500">{summary?.freeTrialMetrics?.activeFreeTrial || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Converted to Paid</span>
+                    <span className="font-bold text-emerald-500">{summary?.freeTrialMetrics?.converted || 0}</span>
+                  </div>
+                  <div className="pt-2 border-t">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Trial → Paid Conversion Rate</span>
+                      <span className="font-bold text-primary">{summary?.freeTrialMetrics?.conversionRate || 0}%</span>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

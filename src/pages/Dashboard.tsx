@@ -752,7 +752,7 @@ export default function Dashboard() {
                 <SnapshotReviewCard
                   userId={user.id}
                   isPaid={isPaid}
-                  onStartNewSnapshot={() => setShowJourneySwitcher(true)}
+                  onStartNewSnapshot={isPaid ? () => setShowJourneySwitcher(true) : undefined}
                   onUpgrade={() => initiateCheckout("monthly")}
                 />
               )}
@@ -855,6 +855,9 @@ export default function Dashboard() {
                   sessionId={activeSession.id}
                   currentDay={currentDay}
                   userId={user.id}
+                  isPaid={isPaid}
+                  hasUsedFreeTrial={!isPaid && allSessions.length >= 1}
+                  onUpgrade={() => initiateCheckout("monthly")}
                   onSnapshotChanged={() => {
                     queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
                     queryClient.invalidateQueries({ queryKey: ["reset-session"], exact: false });
