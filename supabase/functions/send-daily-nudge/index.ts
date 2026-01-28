@@ -161,6 +161,15 @@ async function getUserContext(
   return context;
 }
 
+// Permission-giving lines — rotate, never stack
+const PERMISSION_LINES = [
+  "You don't need to do anything more right now unless you want to.",
+  "This is here for you whenever you're ready.",
+  "No pressure. Just a reminder that this exists.",
+  "You're allowed to pause or continue at your own pace.",
+  "Nothing is required today.",
+];
+
 // Generate personalized email content — calm, grounded tone
 function generateEmailContent(
   context: UserContext,
@@ -170,6 +179,7 @@ function generateEmailContent(
   const isMorning = nudgeTime === "morning";
 
   // Build personalized message based on available context
+  let subjectLine = "";
   let mainMessage = "";
   let emoji = CALM_ICONS.default;
 
@@ -178,10 +188,12 @@ function generateEmailContent(
     const dayNum = context.currentSnapshotDay;
 
     if (dayNum === 7) {
-      mainMessage = "Day 7 of 7.";
+      subjectLine = "Day 7. Proof recorded.";
+      mainMessage = "Day 7 of 7. This counts.";
       emoji = CALM_ICONS.default;
     } else {
-      // Simple day count, no "almost there" or urgency
+      // Simple day count with calm framing
+      subjectLine = `Day ${dayNum}. Still counts.`;
       mainMessage = `Day ${dayNum} of 7.`;
       emoji = CALM_ICONS.default;
     }
@@ -190,14 +202,20 @@ function generateEmailContent(
   else if (context.focusControllable) {
     const focusIcon = CALM_ICONS[context.focusControllable as keyof typeof CALM_ICONS] || CALM_ICONS.default;
     emoji = focusIcon;
+    subjectLine = "Today's check-in. No rush.";
     mainMessage = "Your Snapshot is ready.";
   }
   // Fallback: Generic grounded message
   else {
-    const genericMessages = isMorning
+    const subjectOptions = isMorning
+      ? ["Today's check-in. No rush.", "Just checking in.", "Coming back matters."]
+      : ["You showed up. That matters.", "Just checking in.", "This counts."];
+    subjectLine = subjectOptions[Math.floor(Math.random() * subjectOptions.length)];
+    
+    const messageOptions = isMorning
       ? ["Just today.", "Ready when you are.", "One small step."]
       : ["Just today.", "This still counts.", "No rush."];
-    mainMessage = genericMessages[Math.floor(Math.random() * genericMessages.length)];
+    mainMessage = messageOptions[Math.floor(Math.random() * messageOptions.length)];
     emoji = CALM_ICONS.default;
   }
 
@@ -215,10 +233,10 @@ function generateEmailContent(
       ];
   const groundingLine = groundingLines[Math.floor(Math.random() * groundingLines.length)];
 
-  // Simple subject line — calm
-  const subject = mainMessage;
+  // Permission-giving line — mandatory, placed before CTA
+  const permissionLine = PERMISSION_LINES[Math.floor(Math.random() * PERMISSION_LINES.length)];
 
-  // Build HTML body — standardized structure
+  // Build HTML body — standardized structure with permission line
   const body = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 440px; margin: 0 auto; padding: 40px 20px; text-align: center; background: #fafafa;">
       <div style="font-size: 36px; margin-bottom: 24px;">${emoji}</div>
@@ -231,13 +249,17 @@ function generateEmailContent(
         ${mainMessage}
       </p>
       
-      <p style="font-size: 15px; color: #666; margin: 0 0 28px 0;">
+      <p style="font-size: 15px; color: #666; margin: 0 0 20px 0;">
         ${groundingLine}
+      </p>
+      
+      <p style="font-size: 13px; color: #888; margin: 0 0 24px 0; font-style: italic;">
+        ${permissionLine}
       </p>
       
       <a href="https://thedashboard.agbcoaching.com/dashboard" 
          style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 15px;">
-        Open Today's Actions →
+        Open Today's Actions
       </a>
       
       <p style="font-size: 11px; color: #aaa; margin-top: 40px;">
@@ -248,7 +270,7 @@ function generateEmailContent(
     </div>
   `;
 
-  return { subject, body };
+  return { subject: subjectLine, body };
 }
 
 Deno.serve(async (req) => {
