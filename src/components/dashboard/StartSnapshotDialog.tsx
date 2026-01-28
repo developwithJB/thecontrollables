@@ -13,7 +13,6 @@ import {
   Lightbulb,
   TrendingDown,
   Plus,
-  Crown,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -219,18 +218,6 @@ export function StartSnapshotDialog({
 
             {/* By Goal Tab */}
             <TabsContent value="goal" className="mt-0 space-y-4">
-              {/* AGB Signature Section */}
-              <div className="p-3 rounded-xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-amber-500/10 border border-amber-500/30 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-amber-500/20 to-transparent rounded-bl-full" />
-                <div className="flex items-center gap-2 mb-2">
-                  <Crown className="w-4 h-4 text-amber-500" />
-                  <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
-                    AGB Signature Challenge
-                  </p>
-                </div>
-                {renderSnapshotCard(AGB_SIGNATURE_SNAPSHOT)}
-              </div>
-
               {/* Goal Selection */}
               <div className="p-3 rounded-lg bg-muted/30 border border-border">
                 <p className="text-xs font-medium text-foreground mb-3">What do you want to work on?</p>
@@ -303,18 +290,6 @@ export function StartSnapshotDialog({
 
             {/* By State Tab */}
             <TabsContent value="state" className="mt-0 space-y-4">
-              {/* AGB Signature Section - Also in By State */}
-              <div className="p-3 rounded-xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-amber-500/10 border border-amber-500/30 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-amber-500/20 to-transparent rounded-bl-full" />
-                <div className="flex items-center gap-2 mb-2">
-                  <Crown className="w-4 h-4 text-amber-500" />
-                  <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
-                    AGB Signature Challenge
-                  </p>
-                </div>
-                {renderSnapshotCard(AGB_SIGNATURE_SNAPSHOT)}
-              </div>
-
               {/* Build Scores */}
               {currentBuild && (
                 <div className="p-3 rounded-lg bg-muted/50 border border-border">
