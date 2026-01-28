@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Download, Share2, Loader2, Eye, Lock, ChevronRight, Sparkles, Coffee } from "lucide-react";
+import { Download, Share2, Loader2, Eye, Lock, ChevronRight, Sparkles, Coffee, Gift } from "lucide-react";
 import { useCertificate } from "@/hooks/useCertificate";
 import {
   Dialog,
@@ -20,6 +20,7 @@ import {
   getRecommendedNextSnapshot, 
   getJourneyById,
 } from "@/lib/guidedJourneys";
+import { WrappedSlideModal } from "@/components/experience/WrappedSlideModal";
 
 interface Day7CompleteProps {
   displayName: string;
@@ -40,6 +41,7 @@ export const Day7Complete = ({
 }: Day7CompleteProps) => {
   const navigate = useNavigate();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isWrappedOpen, setIsWrappedOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [showWhatsNext, setShowWhatsNext] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<PlanType | undefined>();
@@ -200,6 +202,25 @@ export const Day7Complete = ({
               </p>
             )}
           </motion.div>
+
+          {/* View Week Wrapped Button */}
+          {userId && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.55 }}
+              className="mb-6"
+            >
+              <Button
+                onClick={() => setIsWrappedOpen(true)}
+                variant="outline"
+                className="w-full h-12 border-primary/30 hover:bg-primary/5"
+              >
+                <Gift className="w-4 h-4 mr-2 text-primary" />
+                View Your Week Wrapped
+              </Button>
+            </motion.div>
+          )}
 
           {/* Affirmation */}
           <motion.p
@@ -491,6 +512,18 @@ export const Day7Complete = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Wrapped Slide Modal */}
+      <AnimatePresence>
+        {isWrappedOpen && userId && (
+          <WrappedSlideModal
+            sessionId={resetSessionId}
+            userId={userId}
+            isPaid={isPaid}
+            onClose={() => setIsWrappedOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 };
