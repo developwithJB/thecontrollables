@@ -29,26 +29,6 @@ import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { BuildAssessmentModal } from "./BuildAssessmentModal";
 import { CustomSnapshotCreator } from "./CustomSnapshotCreator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-
-// AGB Signature Snapshot - Rebuild Your Confidence Challenge
-const AGB_SIGNATURE_SNAPSHOT: Snapshot = {
-  id: "rebuild-confidence-agb",
-  name: "Rebuild Your Confidence",
-  bucketId: "integrity-trust",
-  focus: "habit",
-  tagline: "Confidence comes from kept promises",
-  emoji: "👑",
-  dailyActions: [
-    { day: 1, task: "Care for yourself today", description: "Confidence begins with caring." },
-    { day: 2, task: "Face one thing holding you back", description: "Name it. Take one step toward it." },
-    { day: 3, task: "Do one thing consistently today", description: "Confidence is a streak, not a spike." },
-    { day: 4, task: "Let go of one thing holding you down", description: "Release what isn't serving you." },
-    { day: 5, task: "Improve one skill by 1%", description: "Confidence grows when skills grow." },
-    { day: 6, task: "Focus only on what you can control", description: "Put energy where your power is." },
-    { day: 7, task: "Reflect and rise", description: "Confidence comes from kept promises." },
-  ],
-};
-
 interface StartSnapshotDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -95,16 +75,11 @@ export function StartSnapshotDialog({
 
   const recommendedSnapshot = currentBuild ? getRecommendedSnapshot(currentBuild) : SNAPSHOTS[0];
 
-  // Filter snapshots by selected goal, including AGB signature if in related snapshots
+  // Filter snapshots by selected goal
   const getFilteredSnapshots = () => {
     if (viewMode === "goal" && selectedGoal) {
       const snapshotIds = getSnapshotsForGoal(selectedGoal);
-      const filtered = SNAPSHOTS.filter(s => snapshotIds.includes(s.id));
-      // Include AGB Signature if it's in the related snapshots list
-      if (snapshotIds.includes("rebuild-confidence-agb")) {
-        return [AGB_SIGNATURE_SNAPSHOT, ...filtered];
-      }
-      return filtered;
+      return SNAPSHOTS.filter(s => snapshotIds.includes(s.id));
     }
     return SNAPSHOTS;
   };
@@ -137,8 +112,8 @@ export function StartSnapshotDialog({
     setSelectedSnapshot(snapshot.id);
   };
 
-  // All available snapshots including AGB signature and custom ones
-  const allSnapshots = [AGB_SIGNATURE_SNAPSHOT, ...SNAPSHOTS, ...customSnapshots];
+  // All available snapshots including custom ones
+  const allSnapshots = [...SNAPSHOTS, ...customSnapshots];
 
   const renderSnapshotCard = (snapshot: Snapshot, showRecommended = false) => {
     const isSelected = selectedSnapshot === snapshot.id;
