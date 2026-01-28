@@ -729,6 +729,78 @@ export const SNAPSHOTS: Snapshot[] = [
       { day: 7, task: "Commit to one bigger move for next week", description: "Keep the momentum." },
     ],
   },
+
+  // ============= HABIT-BREAKING SNAPSHOTS =============
+  // New snapshots designed for common real-world habit goals
+  
+  {
+    id: "replace-the-trigger",
+    name: "Replace the Trigger",
+    bucketId: "momentum-consistency",
+    focus: "habit",
+    tagline: "Swap the urge, keep the routine",
+    emoji: "🔄",
+    dailyActions: [
+      { day: 1, task: "Identify one trigger for your unwanted habit", description: "What situation or feeling precedes it?" },
+      { day: 2, task: "Plan one alternative response", description: "When I feel X, I'll do Y instead" },
+      { day: 3, task: "Use your replacement once today", description: "Even if you slip, try the replacement first" },
+      { day: 4, task: "Notice what the habit actually gives you", description: "Relief? Distraction? Connection?" },
+      { day: 5, task: "Find another way to get that need met", description: "Address the root, not just the surface" },
+      { day: 6, task: "Make the replacement easier than the habit", description: "Reduce friction for the good choice" },
+      { day: 7, task: "Reflect: which replacement worked best?", description: "Data for next week" },
+    ],
+  },
+  {
+    id: "delay-the-impulse",
+    name: "Delay the Impulse",
+    bucketId: "clarity-perspective",
+    focus: "awareness",
+    tagline: "10 minutes changes everything",
+    emoji: "⏳",
+    dailyActions: [
+      { day: 1, task: "When you want to [habit], wait 10 minutes", description: "Just delay, don't decide" },
+      { day: 2, task: "During the wait, do one deep breath", description: "Interrupt the autopilot" },
+      { day: 3, task: "Ask: 'Will I regret this in an hour?'", description: "Future you knows" },
+      { day: 4, task: "If you still want it after waiting, notice that", description: "Data, not failure" },
+      { day: 5, task: "Extend the wait to 15 minutes", description: "Build the muscle" },
+      { day: 6, task: "Journal about what you notice during waits", description: "Patterns emerge" },
+      { day: 7, task: "Celebrate every delay, even imperfect ones", description: "Delay is progress" },
+    ],
+  },
+  {
+    id: "environment-reset",
+    name: "Environment Reset",
+    bucketId: "reset-reentry",
+    focus: "environment",
+    tagline: "Design your space for success",
+    emoji: "🏗️",
+    dailyActions: [
+      { day: 1, task: "Remove one visible cue for your bad habit", description: "Out of sight, out of mind" },
+      { day: 2, task: "Add one visible cue for the good alternative", description: "Make the right choice obvious" },
+      { day: 3, task: "Increase friction for the unwanted behavior", description: "Make it harder to do" },
+      { day: 4, task: "Decrease friction for the desired behavior", description: "Make it easier to do" },
+      { day: 5, task: "Identify your danger zones and times", description: "When and where do you slip?" },
+      { day: 6, task: "Redesign one danger zone", description: "Change the environment, not yourself" },
+      { day: 7, task: "Audit: is your space working for or against you?", description: "Environment shapes behavior" },
+    ],
+  },
+  {
+    id: "urge-surfing",
+    name: "Urge Surfing Week",
+    bucketId: "clarity-perspective",
+    focus: "awareness",
+    tagline: "Ride the wave without acting",
+    emoji: "🌊",
+    dailyActions: [
+      { day: 1, task: "Notice an urge without acting on it", description: "Just observe" },
+      { day: 2, task: "Describe the urge physically", description: "Where in your body? How intense (1-10)?" },
+      { day: 3, task: "Set a timer for 10 minutes when an urge hits", description: "Watch it rise and fall" },
+      { day: 4, task: "Practice 'urge surfing': breathe through the peak", description: "Urges pass if you let them" },
+      { day: 5, task: "Name the urge out loud: 'I'm having the urge to...'", description: "Distance from the feeling" },
+      { day: 6, task: "Notice what happened after the urge passed", description: "Did you survive? Of course." },
+      { day: 7, task: "Reflect: are urges less scary now?", description: "They're just waves" },
+    ],
+  },
 ];
 
 // ============= HELPER FUNCTIONS =============
