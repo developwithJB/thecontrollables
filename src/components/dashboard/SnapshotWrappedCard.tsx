@@ -1,13 +1,14 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Sparkles, ChevronRight, Award, Target, Eye, Repeat } from "lucide-react";
+import { Trophy, ChevronRight, Award, Eye, Repeat, Share2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getJourneyById } from "@/lib/guidedJourneys";
-import { useInsights } from "@/hooks/useInsights";
+import { getSnapshotById, BUCKETS } from "@/lib/snapshots";
+import { useSnapshotInsight } from "@/hooks/useSnapshotInsight";
+import { toast } from "sonner";
 
 interface SnapshotWrappedCardProps {
   userId: string;
@@ -15,25 +16,13 @@ interface SnapshotWrappedCardProps {
   onStartNewSnapshot?: () => void;
 }
 
-interface CompletedSnapshotData {
-  sessionId: string;
-  journeyId: string | null;
-  startDate: string;
-  endDate: string;
-  completedAt: string;
-  daysCompleted: number;
-  xpEarned: number;
-  promisesKept: number;
-  promisesMade: number;
-}
-
 // Controllable icons and personalities for the "guide voice"
 const CONTROLLABLE_GUIDES = [
-  { emoji: "🦉", name: "Awareness Owl", voice: "observational" },
-  { emoji: "🐢", name: "Perspective Turtle", voice: "patient" },
-  { emoji: "🦈", name: "Habit Shark", voice: "direct" },
-  { emoji: "🛰️", name: "Wellness Satellite", voice: "nurturing" },
-  { emoji: "🚀", name: "Environment Rocket", voice: "energetic" },
+  { emoji: "🦉", name: "Awareness Owl", controllable: "awareness" },
+  { emoji: "🐢", name: "Perspective Turtle", controllable: "perspective" },
+  { emoji: "🦈", name: "Habit Shark", controllable: "habit" },
+  { emoji: "🛰️", name: "Wellness Satellite", controllable: "wellness" },
+  { emoji: "🚀", name: "Environment Rocket", controllable: "environment" },
 ];
 
 export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: SnapshotWrappedCardProps) {
@@ -59,6 +48,23 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
     },
     enabled: !!userId,
   });
+
+  // Get journey/snapshot info
+  const snapshot = completedSession?.journey_id ? getSnapshotById(completedSession.journey_id) : null;
+  const bucket = snapshot ? BUCKETS[snapshot.bucketId] : null;
+
+  // Choose guide based on journey focus or session ID
+  const guide = useMemo(() => {
+    if (snapshot?.focus) {
+      const focusGuide = CONTROLLABLE_GUIDES.find(g => g.controllable === snapshot.focus);
+      if (focusGuide) return focusGuide;
+    }
+    // Fallback: cycle based on session ID
+    const guideIndex = completedSession?.id 
+      ? completedSession.id.charCodeAt(0) % CONTROLLABLE_GUIDES.length 
+      : 0;
+    return CONTROLLABLE_GUIDES[guideIndex];
+  }, [completedSession?.id, snapshot?.focus]);
 
   // Fetch XP earned during this session's date range
   const { data: sessionXp = 0 } = useQuery({
@@ -115,11 +121,13 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
     enabled: !!completedSession,
   });
 
-  // Get AI insights for premium users
-  const { data: insightData } = useInsights(userId, isPaid);
-
-  // Journey info
-  const journey = completedSession?.journey_id ? getJourneyById(completedSession.journey_id) : null;
+  // Get snapshot-specific AI insight (only looks at this snapshot's data)
+  const { data: snapshotInsight, isLoading: insightLoading } = useSnapshotInsight(
+    userId,
+    completedSession?.id,
+    isPaid,
+    snapshot ? { id: snapshot.id, name: snapshot.name, focus: snapshot.focus } : undefined
+  );
 
   // Calculate days since completion
   const daysSinceCompletion = useMemo(() => {
@@ -129,12 +137,6 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
     const diffTime = today.getTime() - completedDate.getTime();
     return Math.floor(diffTime / (1000 * 60 * 60 * 24));
   }, [completedSession?.completed_at]);
-
-  // Choose a guide - cycle through them based on session ID
-  const guideIndex = completedSession?.id 
-    ? completedSession.id.charCodeAt(0) % CONTROLLABLE_GUIDES.length 
-    : 0;
-  const guide = CONTROLLABLE_GUIDES[guideIndex];
 
   // Don't show if no completed session or if it's been more than 7 days
   if (!completedSession || daysSinceCompletion > 7) {
@@ -156,9 +158,46 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
     return `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
   };
 
+  // Share Wrapped summary
+  const handleShareWrapped = async () => {
+    const journeyText = snapshot ? `Journey: ${snapshot.name}` : "";
+    const promiseText = promiseStats && promiseStats.made > 0 
+      ? `🛡️ ${Math.round((promiseStats.kept / promiseStats.made) * 100)}% promises kept\n`
+      : "";
+    
+    const shareText = 
+      `🏆 7-Day Snapshot Complete\n` +
+      `${formatDateRange()}\n\n` +
+      (journeyText ? `${snapshot?.emoji || "📅"} ${journeyText}\n\n` : "") +
+      `✅ ${completedDays.length}/7 days checked in\n` +
+      `⚡ ${sessionXp} XP earned\n` +
+      promiseText +
+      `\nBuilding proof, one week at a time.\n` +
+      `thedashboard.agbcoaching.com\n\n` +
+      `#TheDashboard #TheControllables`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "My 7-Day Snapshot Complete",
+          text: shareText,
+        });
+        toast.success("Shared! Thanks for spreading the word 🙏");
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          await navigator.clipboard.writeText(shareText);
+          toast.success("Copied to clipboard — ready to share!");
+        }
+      }
+    } else {
+      await navigator.clipboard.writeText(shareText);
+      toast.success("Copied to clipboard — ready to share!");
+    }
+  };
+
   // Build narrative slides (Spotify Wrapped style)
   const slides = [
-    // Slide 1: Celebration moment
+    // Slide 1: Celebration moment with journey context
     {
       id: "celebration",
       content: (
@@ -177,22 +216,33 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
           <p className="text-muted-foreground text-sm">
             {formatDateRange()}
           </p>
-          {journey && (
+          {snapshot && (
+            <div className="mt-3 p-3 bg-primary/10 rounded-lg">
+              <p className="text-primary flex items-center justify-center gap-2 font-medium">
+                <span className="text-xl">{snapshot.emoji}</span>
+                <span>{snapshot.name}</span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Focus: {snapshot.focus.charAt(0).toUpperCase() + snapshot.focus.slice(1)}
+              </p>
+            </div>
+          )}
+          {bucket && !snapshot && (
             <p className="text-primary mt-2 flex items-center justify-center gap-1">
-              <span>{journey.emoji}</span>
-              <span>{journey.title}</span>
+              <span>{bucket.emoji}</span>
+              <span>{bucket.name}</span>
             </p>
           )}
         </div>
       ),
     },
-    // Slide 2: The numbers
+    // Slide 2: The numbers with journey-specific framing
     {
       id: "stats",
       content: (
         <div className="py-4">
           <p className="text-sm text-muted-foreground text-center mb-4">
-            <span className="text-xl mr-1">{guide.emoji}</span> Let's look at what you built...
+            <span className="text-xl mr-1">{guide.emoji}</span> Here's what you built this week...
           </p>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-primary/10 rounded-xl p-4 text-center">
@@ -214,10 +264,15 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
               </div>
             )}
           </div>
+          {snapshot && (
+            <p className="text-xs text-muted-foreground text-center mt-4 italic">
+              Your {snapshot.focus} focus helped guide your week.
+            </p>
+          )}
         </div>
       ),
     },
-    // Slide 3: The proof/meaning
+    // Slide 3: The proof/meaning with AI insight
     {
       id: "proof",
       content: (
@@ -231,13 +286,29 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
             <br /><br />
             <em>That's not nothing. That's evidence of who you're becoming.</em>
           </p>
-          {insightData?.insight && (
+          {isPaid && snapshotInsight?.insight && (
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mt-4">
               <p className="text-sm text-foreground italic">
-                "{insightData.insight}"
+                "{snapshotInsight.insight}"
               </p>
-              <p className="text-xs text-muted-foreground mt-2">— The Controllables</p>
+              <p className="text-xs text-muted-foreground mt-2 flex items-center justify-center gap-1">
+                <span>{guide.emoji}</span>
+                <span>— {guide.name}</span>
+              </p>
             </div>
+          )}
+          {isPaid && insightLoading && (
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mt-4">
+              <div className="flex items-center justify-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                <span className="text-sm text-muted-foreground">Generating your insight...</span>
+              </div>
+            </div>
+          )}
+          {!isPaid && (
+            <p className="text-xs text-muted-foreground mt-4">
+              ✨ Upgrade for personalized AI insights from The Controllables
+            </p>
           )}
         </div>
       ),
@@ -274,12 +345,21 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
               <Trophy className="w-5 h-5 text-primary" />
               <span className="font-semibold text-foreground">Your Week Wrapped</span>
             </div>
-            <button 
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {isExpanded ? "Minimize" : "View"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleShareWrapped}
+                className="text-muted-foreground hover:text-primary transition-colors p-1"
+                title="Share your Wrapped"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {isExpanded ? "Minimize" : "View"}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -292,7 +372,7 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
               transition={{ duration: 0.3 }}
             >
               {/* Slide content */}
-              <div className="px-4 min-h-[260px]">
+              <div className="px-4 min-h-[280px]">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={slides[currentSlide].id}
