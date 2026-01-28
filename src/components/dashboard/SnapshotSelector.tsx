@@ -17,6 +17,7 @@ import {
   Plus,
   Target,
   Lightbulb,
+  Lock,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -50,6 +51,9 @@ interface SnapshotSelectorProps {
   onSnapshotChanged?: () => void;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  isPaid?: boolean;
+  hasUsedFreeTrial?: boolean;
+  onUpgrade?: () => void;
 }
 
 const CONTROLLABLE_CONFIG: Record<Controllable, { emoji: string; label: string }> = {
@@ -68,6 +72,9 @@ export function SnapshotSelector({
   onSnapshotChanged,
   isOpen: controlledIsOpen,
   onOpenChange,
+  isPaid = false,
+  hasUsedFreeTrial = false,
+  onUpgrade,
 }: SnapshotSelectorProps) {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [selectedSnapshot, setSelectedSnapshot] = useState<string | null>(null);
@@ -447,11 +454,23 @@ export function SnapshotSelector({
                   </Card>
                 )}
 
-                {/* Change Snapshot Button */}
-                <Button variant="outline" className="w-full" onClick={() => setViewMode("browse")}>
-                  Change Focus
-                  <ChevronRight className="w-4 h-4 ml-2" />
-                </Button>
+                {/* Change Snapshot Button - locked for post-trial free users */}
+                {isPaid || !hasUsedFreeTrial ? (
+                  <Button variant="outline" className="w-full" onClick={() => setViewMode("browse")}>
+                    Change Focus
+                    <ChevronRight className="w-4 h-4 ml-2" />
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    className="w-full border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                    onClick={onUpgrade}
+                  >
+                    <Lock className="w-4 h-4 mr-2" />
+                    Upgrade to Change Focus
+                    <ChevronRight className="w-4 h-4 ml-2" />
+                  </Button>
+                )}
               </>
             ) : (
               <>

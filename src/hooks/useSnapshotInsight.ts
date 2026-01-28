@@ -48,7 +48,8 @@ export function useSnapshotInsight(
 
       return data as SnapshotInsight;
     },
-    enabled: !!userId && !!sessionId && isPaid,
+    // Generate insight for ALL users (free and paid) - it's stored per session so only once
+    enabled: !!userId && !!sessionId,
     staleTime: 7 * 24 * 60 * 60 * 1000, // Cache for 7 days (completed snapshot won't change)
     gcTime: 7 * 24 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,

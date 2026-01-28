@@ -74,3 +74,29 @@ export const isValidEntitlement = (entitlement: unknown): entitlement is {
   return typeof ent.isPaid === 'boolean' && 
          (ent.purchasedAt === null || typeof ent.purchasedAt === 'string');
 };
+
+/**
+ * Check if free user has consumed their trial
+ * A free trial is "used" when a user has ANY reset session (started, completed, expired, or paused)
+ */
+export const hasUsedFreeTrial = (isPaid: boolean, sessionCount: number): boolean => {
+  if (isPaid) return false;
+  return sessionCount >= 1;
+};
+
+/**
+ * Check if free user can start a new snapshot
+ */
+export const canStartNewSnapshot = (isPaid: boolean, sessionCount: number): boolean => {
+  if (isPaid) return true;
+  return sessionCount < 1;
+};
+
+/**
+ * Check if free user can modify their current snapshot (change focus)
+ * Free users with a used trial cannot modify - they're in review-only mode
+ */
+export const canModifySnapshot = (isPaid: boolean, hasUsedTrial: boolean): boolean => {
+  if (isPaid) return true;
+  return !hasUsedTrial;
+};

@@ -372,8 +372,8 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
             </div>
           )}
           
-          {/* AI insight from The Controllables */}
-          {isPaid && snapshotInsight?.insight && (
+          {/* AI insight from The Controllables - now available for ALL users (one-time) */}
+          {snapshotInsight?.insight && (
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
               <p className="text-sm text-foreground italic">
                 "{snapshotInsight.insight}"
@@ -382,20 +382,20 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
                 <span>{guide.emoji}</span>
                 <span>— {guide.name}</span>
               </p>
+              {!isPaid && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 text-center">
+                  Your complimentary insight from The Controllables
+                </p>
+              )}
             </div>
           )}
-          {isPaid && insightLoading && (
+          {insightLoading && (
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
               <div className="flex items-center justify-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary animate-pulse" />
                 <span className="text-sm text-muted-foreground">Generating your insight...</span>
               </div>
             </div>
-          )}
-          {!isPaid && (
-            <p className="text-xs text-muted-foreground mt-4">
-              ✨ Upgrade for personalized AI insights from The Controllables
-            </p>
           )}
         </div>
       ),

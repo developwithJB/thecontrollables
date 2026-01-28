@@ -581,7 +581,7 @@ export function TodayActions({
             {/* Upgrade prompt */}
             <div className="p-4 space-y-3">
               <p className="text-sm text-muted-foreground">
-                You've completed your free reset. Upgrade to continue with unlimited resets.
+                Your free 7-day snapshot is complete. Upgrade to continue building proof with unlimited snapshots.
               </p>
               <Button className="w-full" size="sm" onClick={() => onUpgrade?.()}>
                 <Sparkles className="w-4 h-4 mr-2" />
