@@ -104,14 +104,14 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
     enabled: !!completedSession,
   });
 
-  // Fetch days completed
+  // Fetch days completed with reflections and commitments
   const { data: completedDays = [] } = useQuery({
     queryKey: ["session-completed-days", completedSession?.id],
     queryFn: async () => {
       if (!completedSession) return [];
       const { data, error } = await supabase
         .from("daily_resets")
-        .select("day_number, reflection, completed_at")
+        .select("day_number, reflection, commitment, completed_at")
         .eq("session_id", completedSession.id)
         .order("day_number", { ascending: true });
       
@@ -120,6 +120,51 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
     },
     enabled: !!completedSession,
   });
+
+  // Extract reflections and commitments for personalized narrative
+  const userReflections = completedDays
+    .filter(d => d.reflection && d.reflection.trim().length > 10)
+    .map(d => d.reflection as string)
+    .slice(0, 2);
+  
+  const userCommitments = completedDays
+    .filter(d => d.commitment && d.commitment.trim().length > 10)
+    .map(d => d.commitment as string)
+    .slice(0, 2);
+
+  // Generate personalized proof narrative based on actual data
+  const generateProofNarrative = () => {
+    const narratives: string[] = [];
+    
+    // Opening based on completion
+    if (completedDays.length === 7) {
+      narratives.push("You showed up every single day.");
+    } else if (completedDays.length >= 5) {
+      narratives.push(`You showed up ${completedDays.length} of 7 days—that's consistency.`);
+    } else {
+      narratives.push("You started. You tried. That matters.");
+    }
+    
+    // Promise keeping
+    if (promiseStats && promiseStats.made > 0) {
+      const rate = Math.round((promiseStats.kept / promiseStats.made) * 100);
+      if (rate >= 80) {
+        narratives.push(`You kept ${rate}% of your promises to yourself.`);
+      } else if (rate >= 50) {
+        narratives.push(`You kept more than half your promises—that's progress.`);
+      }
+    }
+    
+    // XP earned through actions
+    if (sessionXp > 0 && completedDays.length > 0) {
+      const avgXp = Math.round(sessionXp / completedDays.length);
+      if (avgXp > 30) {
+        narratives.push("Your daily actions added up to real momentum.");
+      }
+    }
+    
+    return narratives.slice(0, 2).join(" ");
+  };
 
   // Get snapshot-specific AI insight (only looks at this snapshot's data)
   const { data: snapshotInsight, isLoading: insightLoading } = useSnapshotInsight(
@@ -272,7 +317,7 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
         </div>
       ),
     },
-    // Slide 3: The proof/meaning with AI insight
+    // Slide 3: The proof/meaning with personalized narrative + AI insight
     {
       id: "proof",
       content: (
@@ -281,13 +326,30 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
           <h3 className="text-lg font-semibold text-foreground mb-3">
             This Is Your Proof
           </h3>
-          <p className="text-muted-foreground text-sm leading-relaxed mb-4">
-            You set an intention. You showed up. You kept your word to yourself.
-            <br /><br />
-            <em>That's not nothing. That's evidence of who you're becoming.</em>
+          
+          {/* Personalized narrative from actual data */}
+          <p className="text-foreground text-sm leading-relaxed mb-4 font-medium">
+            {generateProofNarrative()}
           </p>
+          
+          {/* Show user's own words if available */}
+          {userReflections.length > 0 && (
+            <div className="bg-muted/50 rounded-lg p-3 mb-4 text-left">
+              <p className="text-xs text-muted-foreground mb-1">Your reflection this week:</p>
+              <p className="text-sm text-foreground italic">"{userReflections[0]}"</p>
+            </div>
+          )}
+          
+          {userCommitments.length > 0 && !userReflections.length && (
+            <div className="bg-muted/50 rounded-lg p-3 mb-4 text-left">
+              <p className="text-xs text-muted-foreground mb-1">What you committed to:</p>
+              <p className="text-sm text-foreground italic">"{userCommitments[0]}"</p>
+            </div>
+          )}
+          
+          {/* AI insight from The Controllables */}
           {isPaid && snapshotInsight?.insight && (
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mt-4">
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
               <p className="text-sm text-foreground italic">
                 "{snapshotInsight.insight}"
               </p>
@@ -298,7 +360,7 @@ export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: Snap
             </div>
           )}
           {isPaid && insightLoading && (
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mt-4">
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
               <div className="flex items-center justify-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary animate-pulse" />
                 <span className="text-sm text-muted-foreground">Generating your insight...</span>

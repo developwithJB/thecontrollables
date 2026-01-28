@@ -27,7 +27,7 @@ import { BUCKETS, getSnapshotById, type BucketId } from "@/lib/snapshots";
 import { useNavigate } from "react-router-dom";
 import { SnapshotDetailView } from "@/components/experience/SnapshotDetailView";
 import { WeeklyPatternView } from "@/components/experience/WeeklyPatternView";
-import { WrappedHistoryView } from "@/components/experience/WrappedHistoryView";
+import { WrappedSlideModal } from "@/components/experience/WrappedSlideModal";
 
 interface SnapshotRecord {
   id: string;
@@ -48,7 +48,7 @@ interface SnapshotHistoryProps {
   onStartNew?: () => void;
 }
 
-type ViewMode = "week" | "month" | "year" | "patterns" | "wrapped";
+type ViewMode = "week" | "month" | "year" | "patterns";
 
 // Get status info - enhanced with proof language for completed
 function getStatusInfo(status: string, daysCompleted: number): { label: string; colorClass: string; isProof?: boolean } {
@@ -186,10 +186,12 @@ function WeekCard({
   record,
   index = 0,
   onClick,
+  onViewWrapped,
 }: {
   record: SnapshotRecord;
   index?: number;
   onClick?: () => void;
+  onViewWrapped?: () => void;
 }) {
   const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
   const bucket = snapshot ? BUCKETS[snapshot.bucketId] : null;
@@ -208,8 +210,7 @@ function WeekCard({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      onClick={onClick}
-      className={`p-4 rounded-xl border transition-all cursor-pointer hover:border-primary/50 hover:bg-primary/5 active:scale-[0.98] ${
+      className={`p-4 rounded-xl border transition-all ${
         isActive 
           ? "bg-primary/5 border-primary/30" 
           : isFullyCompleted
@@ -217,8 +218,11 @@ function WeekCard({
           : "bg-card border-border"
       }`}
     >
-      {/* Header */}
-      <div className="flex items-start gap-3 mb-3">
+      {/* Header - clickable for details */}
+      <div 
+        className="flex items-start gap-3 mb-3 cursor-pointer hover:opacity-80"
+        onClick={onClick}
+      >
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center relative ${
           isActive ? "bg-primary/20" : isFullyCompleted ? "bg-emerald-500/20" : "bg-muted"
         }`}>
@@ -280,7 +284,7 @@ function WeekCard({
         ))}
       </div>
 
-      {/* Footer: Days + XP + Tap hint */}
+      {/* Footer: Days + XP + Actions */}
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">
           {record.daysCompleted}/7 days
@@ -292,10 +296,25 @@ function WeekCard({
               +{record.xpEarned}
             </span>
           )}
-          {isFullyCompleted ? (
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">View achievement →</span>
-          ) : (
-            <span className="text-xs text-primary/70">View details →</span>
+          {isFullyCompleted && onViewWrapped && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewWrapped();
+              }}
+              className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium hover:underline"
+            >
+              <Gift className="w-3 h-3" />
+              View Wrapped
+            </button>
+          )}
+          {!isFullyCompleted && (
+            <span 
+              className="text-xs text-primary/70 cursor-pointer hover:underline"
+              onClick={onClick}
+            >
+              View details →
+            </span>
           )}
         </div>
       </div>
@@ -563,6 +582,7 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [selectedRecord, setSelectedRecord] = useState<SnapshotRecord | null>(null);
   const [showOlderWeeks, setShowOlderWeeks] = useState(false);
+  const [wrappedSessionId, setWrappedSessionId] = useState<string | null>(null);
 
   // Filter to only show sessions with meaningful data
   const validSessions = useMemo(() => 
@@ -654,13 +674,6 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
                 >
                   Patterns
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="wrapped" 
-                  className="text-xs px-2 h-6"
-                >
-                  <Gift className="w-3 h-3 mr-1" />
-                  Wrapped
-                </TabsTrigger>
                 <TabsTrigger value="week" className="text-xs px-2 h-6">
                   Week
                 </TabsTrigger>
@@ -701,6 +714,10 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
                   record={record}
                   index={index}
                   onClick={() => setSelectedRecord(record)}
+                  onViewWrapped={record.status === "completed" && record.daysCompleted === 7 && userId
+                    ? () => setWrappedSessionId(record.id)
+                    : undefined
+                  }
                 />
               ))}
 
@@ -737,6 +754,10 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
                             record={record}
                             index={index + 1}
                             onClick={() => setSelectedRecord(record)}
+                            onViewWrapped={record.status === "completed" && record.daysCompleted === 7 && userId
+                              ? () => setWrappedSessionId(record.id)
+                              : undefined
+                            }
                           />
                         ))}
                       </motion.div>
@@ -758,16 +779,6 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
             </motion.div>
           )}
 
-          {viewMode === "wrapped" && (
-            <motion.div
-              key="wrapped"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <WrappedHistoryView sessions={validSessions} userId={userId} isPaid={isPaid} />
-            </motion.div>
-          )}
 
           {viewMode === "month" && (
             <motion.div
@@ -823,6 +834,18 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
           <SnapshotDetailView
             record={selectedRecord}
             onClose={() => setSelectedRecord(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Wrapped Slide Modal */}
+      <AnimatePresence>
+        {wrappedSessionId && userId && (
+          <WrappedSlideModal
+            sessionId={wrappedSessionId}
+            userId={userId}
+            isPaid={isPaid}
+            onClose={() => setWrappedSessionId(null)}
           />
         )}
       </AnimatePresence>
