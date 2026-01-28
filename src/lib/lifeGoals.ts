@@ -116,7 +116,15 @@ export const LIFE_GOALS: LifeGoal[] = [
     tagline: "Stillness as practice"
   },
 
-  // Mindset Shifts (4)
+  // Mindset Shifts (5)
+  {
+    id: "shift-mindset",
+    label: "Shift mindset",
+    emoji: "🔄",
+    category: "mindset",
+    relatedSnapshots: ["rebuild-confidence-agb", "zoom-out", "see-it-clearly", "what-actually-matters", "consistency-over-intensity"],
+    tagline: "Change how you see yourself and what's possible"
+  },
   {
     id: "stop-procrastinating",
     label: "Stop procrastinating",
@@ -212,6 +220,7 @@ export function getGoalById(goalId: string): LifeGoal | undefined {
  */
 export function getGoalContextMessage(goalId: string): string {
   const messages: Record<string, string> = {
+    "shift-mindset": "How you see yourself matters. These Snapshots help you rebuild confidence through kept promises and shift your perspective on what's possible.",
     "stop-vaping": "This isn't about willpower. It's about understanding what the habit gives you, and finding other ways to get it. These Snapshots help you build awareness around triggers and replace automatic patterns.",
     "drink-less": "You don't need to quit forever—just take it one day at a time. These Snapshots help you understand what you're escaping from and build new evening rituals.",
     "stop-spending": "Impulse spending is often about the feeling, not the thing. These Snapshots help you pause, see clearly, and design your environment to reduce temptation.",
