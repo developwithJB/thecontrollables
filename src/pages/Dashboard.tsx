@@ -701,12 +701,13 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Snapshot Review Card - shows after completing a 7-day snapshot */}
+              {/* Snapshot Review Card - shows after any ended snapshot (completed or expired) */}
               {!activeSession && user?.id && !resetLoading && !dashboardLoading && (
                 <SnapshotReviewCard
                   userId={user.id}
                   isPaid={isPaid}
                   onStartNewSnapshot={() => setShowJourneySwitcher(true)}
+                  onUpgrade={() => initiateCheckout("monthly")}
                 />
               )}
 
