@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,11 +26,14 @@ import {
   Loader2,
   Trophy,
   PartyPopper,
+  Gift,
 } from "lucide-react";
 import { format, addDays, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKETS, getSnapshotById } from "@/lib/snapshots";
 import { toast } from "sonner";
+import { WrappedSlideModal } from "./WrappedSlideModal";
+import { useEntitlements } from "@/hooks/useEntitlements";
 
 interface SnapshotRecord {
   id: string;
@@ -127,7 +130,11 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
   const [data, setData] = useState<SnapshotDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [isWrappedOpen, setIsWrappedOpen] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  
+  const { isPaid } = useEntitlements(userId);
 
   const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
   const bucket = snapshot ? BUCKETS[snapshot.bucketId] : null;
@@ -137,6 +144,13 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
   
   // Check if this is a fully completed 7/7 snapshot
   const isFullyCompleted = record.status === "completed" && record.daysCompleted === 7;
+
+  // Get user ID on mount
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUserId(data.user?.id ?? null);
+    });
+  }, []);
 
   useEffect(() => {
     async function fetchSnapshotData() {
@@ -459,14 +473,23 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
                         </p>
                       </div>
                     </div>
-                    <Button
-                      onClick={() => navigate(`/reset?sessionId=${record.id}&celebration=true`)}
-                      className="w-full mt-4"
-                      variant="default"
-                    >
-                      <PartyPopper className="w-4 h-4 mr-2" />
-                      View Your Achievement
-                    </Button>
+                    <div className="flex flex-col gap-2 mt-4">
+                      <Button
+                        onClick={() => navigate(`/reset?sessionId=${record.id}&celebration=true`)}
+                        variant="default"
+                      >
+                        <PartyPopper className="w-4 h-4 mr-2" />
+                        View Your Achievement
+                      </Button>
+                      <Button
+                        onClick={() => setIsWrappedOpen(true)}
+                        variant="outline"
+                        className="border-primary/30"
+                      >
+                        <Gift className="w-4 h-4 mr-2 text-primary" />
+                        View Week Wrapped
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -766,6 +789,18 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
           </div>
         </ScrollArea>
       </div>
+
+      {/* Wrapped Slide Modal */}
+      <AnimatePresence>
+        {isWrappedOpen && userId && (
+          <WrappedSlideModal
+            sessionId={record.id}
+            userId={userId}
+            isPaid={isPaid}
+            onClose={() => setIsWrappedOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
