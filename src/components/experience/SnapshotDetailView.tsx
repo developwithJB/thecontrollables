@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,8 @@ import {
   Download,
   Share2,
   Loader2,
+  Trophy,
+  PartyPopper,
 } from "lucide-react";
 import { format, addDays, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -120,6 +123,7 @@ function getIntentionalityLabel(invested: number | null): string {
 }
 
 export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps) {
+  const navigate = useNavigate();
   const [data, setData] = useState<SnapshotDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -130,6 +134,9 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
   const startDate = parseISO(record.startDate);
   const endDate = addDays(startDate, 6);
   const dateRange = `${format(startDate, "MMM d")} - ${format(endDate, "d, yyyy")}`;
+  
+  // Check if this is a fully completed 7/7 snapshot
+  const isFullyCompleted = record.status === "completed" && record.daysCompleted === 7;
 
   useEffect(() => {
     async function fetchSnapshotData() {
@@ -432,7 +439,38 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
               </CardContent>
             </Card>
 
-            {/* Quick Stats - Simplified */}
+            {/* View Achievement Button - for fully completed 7/7 snapshots */}
+            {isFullyCompleted && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Card className="border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5">
+                  <CardContent className="py-5">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
+                        <Trophy className="w-6 h-6 text-emerald-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground">🎉 Proof Recorded</h3>
+                        <p className="text-sm text-muted-foreground">
+                          7 days of showing up. That's proof.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => navigate(`/reset?sessionId=${record.id}&celebration=true`)}
+                      className="w-full mt-4"
+                      variant="default"
+                    >
+                      <PartyPopper className="w-4 h-4 mr-2" />
+                      View Your Achievement
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
             <div className="grid grid-cols-3 gap-3">
               <Card>
                 <CardContent className="py-3 text-center">

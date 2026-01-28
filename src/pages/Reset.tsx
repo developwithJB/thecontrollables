@@ -11,6 +11,7 @@ import { WelcomeBack } from "@/components/WelcomeBack";
 import { Day7Complete } from "@/components/Day7Complete";
 import { ResetComplete } from "@/components/ResetComplete";
 import { getJourneyById } from "@/lib/guidedJourneys";
+import { supabase } from "@/integrations/supabase/client";
 
 const Reset = () => {
   const navigate = useNavigate();
@@ -43,6 +44,37 @@ const Reset = () => {
   
   // Check if we should show Day 7 celebration (triggered from Dashboard when all tasks done)
   const showDay7Celebration = searchParams.get("day7complete") === "true";
+  
+  // Check if viewing historical celebration via sessionId
+  const historicalSessionId = searchParams.get("sessionId");
+  const isHistoricalCelebration = searchParams.get("celebration") === "true" && historicalSessionId;
+  
+  // State for historical session data
+  const [historicalSession, setHistoricalSession] = useState<{
+    id: string;
+    start_date: string;
+    journey_id: string | null;
+    completed_at: string | null;
+  } | null>(null);
+
+  // Fetch historical session data if viewing a past celebration
+  useEffect(() => {
+    if (!isHistoricalCelebration || !historicalSessionId) return;
+    
+    async function fetchHistoricalSession() {
+      const { data } = await supabase
+        .from("reset_sessions")
+        .select("id, start_date, journey_id, completed_at")
+        .eq("id", historicalSessionId)
+        .single();
+      
+      if (data) {
+        setHistoricalSession(data);
+      }
+    }
+    
+    fetchHistoricalSession();
+  }, [isHistoricalCelebration, historicalSessionId]);
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -52,13 +84,12 @@ const Reset = () => {
   }, [userId, isLoading, navigate]);
 
   // If user is logged in but has no active reset session, send them back to the dashboard
-  // (they can start a reset whenever they want from there).
-  // IMPORTANT: Don't redirect if we're showing the Day 7 celebration!
+  // IMPORTANT: Don't redirect if we're showing the Day 7 celebration or historical celebration!
   useEffect(() => {
-    if (!isLoading && userId && !activeSession && !showDay7Celebration) {
+    if (!isLoading && userId && !activeSession && !showDay7Celebration && !isHistoricalCelebration) {
       navigate("/dashboard");
     }
-  }, [isLoading, userId, activeSession, navigate, showDay7Celebration]);
+  }, [isLoading, userId, activeSession, navigate, showDay7Celebration, isHistoricalCelebration]);
 
   // Handle day completion
   const handleComplete = (data: { userInput?: string }) => {
@@ -67,8 +98,9 @@ const Reset = () => {
     completeDay(data, {
       onSuccess: () => {
         if (isDay7) {
-          // Day 7: Navigate to dashboard - celebration will show when ALL tasks are done
-          navigate("/dashboard");
+          // Day 7: Navigate to dashboard with signal that Day 7 reading just completed
+          // Dashboard will then check if all other tasks are done and show celebration
+          navigate("/dashboard?day7reading=done");
         } else {
           setShowDayComplete(true);
         }
@@ -78,6 +110,23 @@ const Reset = () => {
 
   if (isLoading) {
     return <SplashScreen />;
+  }
+
+  // Show historical celebration (viewing past completed snapshot)
+  if (isHistoricalCelebration && historicalSession) {
+    const historicalEndDate = new Date(historicalSession.start_date);
+    historicalEndDate.setDate(historicalEndDate.getDate() + 6);
+    
+    return (
+      <Day7Complete
+        displayName={displayName}
+        startDate={historicalSession.start_date}
+        endDate={historicalEndDate.toISOString().split("T")[0]}
+        resetSessionId={historicalSession.id}
+        completedJourneyId={historicalSession.journey_id || undefined}
+        isHistoricalView
+      />
+    );
   }
 
   // Show Day 7 celebration when triggered from Dashboard (all tasks complete)
@@ -98,7 +147,7 @@ const Reset = () => {
     return <ResetComplete isFullReset={false} />;
   }
 
-  if (!activeSession) {
+  if (!activeSession && !isHistoricalCelebration) {
     return <SplashScreen />;
   }
 
