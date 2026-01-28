@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 
 /**
  * Hook to manage the weekly TGIM (Thank God It's Monday) threshold display.
- * Shows the TGIM microcopy once per calendar week on the first app open.
+ * Shows the TGIM microcopy ONLY on actual Mondays, once per week.
  * 
  * TGIM is a subtle brand ritual - calm, optional, never pushy.
+ * It should feel like a quiet reset at the start of the week, not random.
  */
 export function useTGIMWeeklyThreshold(userId?: string) {
   const [showTGIM, setShowTGIM] = useState(false);
@@ -13,8 +14,16 @@ export function useTGIMWeeklyThreshold(userId?: string) {
   useEffect(() => {
     if (!userId) return;
 
-    // Get current week identifier (ISO week number + year)
     const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ...
+    
+    // TGIM only appears on Monday (day 1)
+    if (dayOfWeek !== 1) {
+      setShowTGIM(false);
+      return;
+    }
+
+    // Get current week identifier (ISO week number + year)
     const startOfYear = new Date(now.getFullYear(), 0, 1);
     const days = Math.floor((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
     const weekNumber = Math.ceil((days + startOfYear.getDay() + 1) / 7);
@@ -25,7 +34,7 @@ export function useTGIMWeeklyThreshold(userId?: string) {
     try {
       const wasShown = localStorage.getItem(storageKey);
       if (!wasShown) {
-        // First visit this week - show TGIM
+        // First visit on Monday this week - show TGIM
         setShowTGIM(true);
         // Mark as shown for this week
         localStorage.setItem(storageKey, "1");
