@@ -469,7 +469,7 @@ export function SnapshotSelector({
 
                 {/* Browse All Button */}
                 <Button variant="outline" className="w-full" onClick={() => setViewMode("browse")}>
-                  Browse All 36 Snapshots
+                  Browse All Snapshots
                   <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>
               </>
