@@ -161,6 +161,44 @@ export default function Dashboard() {
     isAcceptingCovenant,
   } = useReset();
 
+  // Prevent Day 7 celebration redirect loops by remembering if this session's celebration was already shown.
+  const day7CelebrationSeenKey = useMemo(() => {
+    if (!user?.id || !activeSession?.id) return null;
+    return `day7_celebration_seen_${user.id}_${activeSession.id}`;
+  }, [user?.id, activeSession?.id]);
+
+  const triggerDay7Celebration = useCallback(() => {
+    if (day7CelebrationSeenKey) {
+      let alreadySeen = false;
+      try {
+        alreadySeen = localStorage.getItem(day7CelebrationSeenKey) === "1";
+      } catch {
+        // ignore
+      }
+      if (!alreadySeen) {
+        try {
+          alreadySeen = sessionStorage.getItem(day7CelebrationSeenKey) === "1";
+        } catch {
+          // ignore
+        }
+      }
+      if (alreadySeen) return;
+
+      // Mark as seen (best effort)
+      try {
+        localStorage.setItem(day7CelebrationSeenKey, "1");
+      } catch {
+        try {
+          sessionStorage.setItem(day7CelebrationSeenKey, "1");
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    navigate("/reset?day7complete=true", { replace: true });
+  }, [day7CelebrationSeenKey, navigate]);
+
   // Life dashboard data - single optimized query
   const {
     isLoading: dashboardLoading,
@@ -407,12 +445,18 @@ export default function Dashboard() {
   // Check for Day 7 reading completion signal - immediately trigger celebration
   // This handles the case where user just completed Day 7 reading from Reset page
   useEffect(() => {
-    if (searchParams.get("day7reading") === "done" && currentDay === 7) {
-      // Day 7 reading was just completed - navigate to celebration immediately
-      // The celebration page handles showing certificates and next steps
-      navigate("/reset?day7complete=true");
+    if (searchParams.get("day7reading") !== "done") return;
+
+    // Always clear the query param so it can't re-trigger (e.g., via back/forward navigation).
+    const next = new URLSearchParams(searchParams);
+    next.delete("day7reading");
+    setSearchParams(next, { replace: true });
+
+    if (currentDay === 7) {
+      // Day 7 reading was just completed - navigate to celebration immediately.
+      triggerDay7Celebration();
     }
-  }, [searchParams, currentDay, navigate]);
+  }, [searchParams, currentDay, setSearchParams, triggerDay7Celebration]);
 
   // Handle quest creation - award badge and complete onboarding
   const handleCreateQuest = useCallback(
@@ -772,7 +816,7 @@ export default function Dashboard() {
                   }}
                   onOpenBuild={() => buildRef.current?.openDetailDialog()}
                   askGuideCompleted={askGuideCompletedToday}
-                  onDay7AllComplete={() => navigate("/reset?day7complete=true")}
+                  onDay7AllComplete={triggerDay7Celebration}
                 />
               )}
 
