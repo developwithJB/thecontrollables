@@ -718,7 +718,7 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
                   record={record}
                   index={index}
                   onClick={() => setSelectedRecord(record)}
-                  onViewSnapshot={record.status === "completed" && record.daysCompleted === 7 && userId
+                  onViewSnapshot={record.status !== "active" && userId
                     ? () => setReviewSessionId(record.id)
                     : undefined
                   }
@@ -758,7 +758,7 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
                             record={record}
                             index={index + 1}
                             onClick={() => setSelectedRecord(record)}
-                            onViewSnapshot={record.status === "completed" && record.daysCompleted === 7 && userId
+                            onViewSnapshot={record.status !== "active" && userId
                               ? () => setReviewSessionId(record.id)
                               : undefined
                             }
