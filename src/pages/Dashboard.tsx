@@ -748,8 +748,12 @@ export default function Dashboard() {
               )}
 
               {/* Snapshot Review Card - shows after any ended snapshot (completed or expired) */}
-              {/* Show when: no active session, OR active session is completed/expired */}
-              {((!activeSession) || (activeSession && (isCompleted || isExpired))) && 
+              {/* Show when: 
+                  1. No active session but user has any completed/expired sessions, OR
+                  2. Active session that is completed/expired 
+              */}
+              {(((!activeSession) && allSessions.some(s => s.status === "completed" || s.status === "expired")) || 
+                (activeSession && (isCompleted || isExpired))) && 
                user?.id && !resetLoading && !dashboardLoading && (
                 <SnapshotReviewCard
                   userId={user.id}
