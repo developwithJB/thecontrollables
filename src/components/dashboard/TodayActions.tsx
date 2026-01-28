@@ -70,6 +70,9 @@ interface TodayActionsProps {
   
   // External signal that user sent a message to The Controllables
   askGuideCompleted?: boolean;
+  
+  // Day 7 celebration callback - triggered when all tasks are done on Day 7
+  onDay7AllComplete?: () => void;
 }
 
 interface ActionItem {
@@ -113,6 +116,7 @@ export function TodayActions({
   onOpenAIGuide,
   onOpenBuild,
   askGuideCompleted,
+  onDay7AllComplete,
 }: TodayActionsProps) {
   const navigate = useNavigate();
   const { trackButtonClick, trackModalAction } = useActionTracking();
@@ -410,16 +414,30 @@ export function TodayActions({
     .reduce((sum, a) => sum + parseInt(a.timeEstimate), 0);
 
   // Auto-collapse when all completed and show confetti
+  // On Day 7, trigger the celebration callback
   useEffect(() => {
     if (allCompleted && !prevAllCompletedRef.current) {
       // Just became all completed - show celebration
       setShowConfetti(true);
       setIsListCollapsed(true);
       const timer = setTimeout(() => setShowConfetti(false), 2000);
+      
+      // Day 7 special: trigger the full celebration screen
+      if (currentDay === 7 && hasActiveSession && !isResetCompleted && onDay7AllComplete) {
+        // Small delay to let the confetti show briefly before navigation
+        const celebrationTimer = setTimeout(() => {
+          onDay7AllComplete();
+        }, 1500);
+        return () => {
+          clearTimeout(timer);
+          clearTimeout(celebrationTimer);
+        };
+      }
+      
       return () => clearTimeout(timer);
     }
     prevAllCompletedRef.current = allCompleted;
-  }, [allCompleted]);
+  }, [allCompleted, currentDay, hasActiveSession, isResetCompleted, onDay7AllComplete]);
 
   // Covenant Dialog component - includes TGIM confirmation moment
   const CovenantDialog = () => (
