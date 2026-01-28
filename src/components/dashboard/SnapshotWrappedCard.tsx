@@ -18,11 +18,11 @@ interface SnapshotWrappedCardProps {
 
 // Controllable icons and personalities for the "guide voice"
 const CONTROLLABLE_GUIDES = [
-  { emoji: "🦉", name: "Awareness Owl", controllable: "awareness" },
-  { emoji: "🐢", name: "Perspective Turtle", controllable: "perspective" },
-  { emoji: "🦈", name: "Habit Shark", controllable: "habit" },
-  { emoji: "🛰️", name: "Wellness Satellite", controllable: "wellness" },
-  { emoji: "🚀", name: "Environment Rocket", controllable: "environment" },
+  { emoji: "🦉", name: "Awareness", controllable: "awareness" },
+  { emoji: "🐢", name: "Perspective", controllable: "perspective" },
+  { emoji: "🦈", name: "Habit", controllable: "habit" },
+  { emoji: "🛰️", name: "Wellness", controllable: "wellness" },
+  { emoji: "🚀", name: "Environment", controllable: "environment" },
 ];
 
 export function SnapshotWrappedCard({ userId, isPaid, onStartNewSnapshot }: SnapshotWrappedCardProps) {
