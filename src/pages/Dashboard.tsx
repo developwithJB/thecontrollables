@@ -2,7 +2,7 @@ import { useEffect, useCallback, useMemo, lazy, Suspense, useState, useRef } fro
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { SplashScreen } from "@/components/SplashScreen";
 import { motion, AnimatePresence } from "framer-motion";
-import { Book, BookOpen, Sparkles, RefreshCw, User as UserIcon, Target, Pencil, Check, X, ChevronDown } from "lucide-react";
+import { Book, BookOpen, Sparkles, RefreshCw, Settings, Target, Pencil, Check, X, ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -605,7 +605,7 @@ export default function Dashboard() {
               className="text-muted-foreground hover:text-foreground"
               title="Profile Settings"
             >
-              <UserIcon className="w-4 h-4" />
+              <Settings className="w-4 h-4" />
             </Button>
           </div>
         </div>
