@@ -748,7 +748,9 @@ export default function Dashboard() {
               )}
 
               {/* Snapshot Review Card - shows after any ended snapshot (completed or expired) */}
-              {!activeSession && user?.id && !resetLoading && !dashboardLoading && (
+              {/* Show when: no active session, OR active session is completed/expired */}
+              {((!activeSession) || (activeSession && (isCompleted || isExpired))) && 
+               user?.id && !resetLoading && !dashboardLoading && (
                 <SnapshotReviewCard
                   userId={user.id}
                   isPaid={isPaid}
@@ -1084,7 +1086,8 @@ export default function Dashboard() {
 
 
               {/* Snapshot History - Visual Brick Stacking View */}
-              {!isSimplifiedMode && user?.id && isPaid && (
+              {/* Show for ALL users who have completed their free trial (or paid users) */}
+              {!isSimplifiedMode && user?.id && (isPaid || allSessions.some(s => s.status === "completed" || s.status === "expired")) && (
                 <SuspenseExperienceComponent>
                   <LazySnapshotHistory
                     sessions={allSessions.map((s) => ({
@@ -1103,8 +1106,9 @@ export default function Dashboard() {
                 </SuspenseExperienceComponent>
               )}
 
-              {/* ===== LOCKED CONTENT (Premium) - Single consolidated lock for free users ===== */}
-              {!isPaid && !isSimplifiedMode && (
+              {/* ===== LOCKED CONTENT (Premium) - Show for free users without any completed/expired snapshots ===== */}
+              {/* Free users who completed their trial already see their real snapshot history above */}
+              {!isPaid && !isSimplifiedMode && !allSessions.some(s => s.status === "completed" || s.status === "expired") && (
                 <div className="relative">
                   {/* Blurred preview of locked content */}
                   <div className="space-y-4 opacity-40 blur-[2px] pointer-events-none">
@@ -1129,6 +1133,24 @@ export default function Dashboard() {
                     </SuspenseExperienceComponent>
                   </div>
                   {/* Single consolidated lock overlay */}
+                  <LockedOverlay
+                    variant="experience-history"
+                    onUpgrade={(plan) => initiateCheckout(plan)}
+                    isLoading={isCheckingOut}
+                  />
+                </div>
+              )}
+
+              {/* Badges/Certificates lock overlay for free users who completed trial */}
+              {!isPaid && !isSimplifiedMode && allSessions.some(s => s.status === "completed" || s.status === "expired") && (
+                <div className="relative">
+                  {/* Blurred preview of locked content */}
+                  <div className="space-y-4 opacity-40 blur-[2px] pointer-events-none">
+                    <SuspenseExperienceComponent>
+                      <LazyBadgesEarned earnedBadges={earnedBadges} isLoading={false} />
+                    </SuspenseExperienceComponent>
+                  </div>
+                  {/* Lock overlay for premium features */}
                   <LockedOverlay
                     variant="experience-history"
                     onUpgrade={(plan) => initiateCheckout(plan)}
