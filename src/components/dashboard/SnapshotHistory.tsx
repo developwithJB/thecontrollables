@@ -20,12 +20,14 @@ import {
   TrendingUp,
   Trophy,
   Award,
+  Gift,
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { BUCKETS, getSnapshotById, type BucketId } from "@/lib/snapshots";
 import { useNavigate } from "react-router-dom";
 import { SnapshotDetailView } from "@/components/experience/SnapshotDetailView";
 import { WeeklyPatternView } from "@/components/experience/WeeklyPatternView";
+import { WrappedHistoryView } from "@/components/experience/WrappedHistoryView";
 
 interface SnapshotRecord {
   id: string;
@@ -46,7 +48,7 @@ interface SnapshotHistoryProps {
   onStartNew?: () => void;
 }
 
-type ViewMode = "week" | "month" | "year" | "patterns";
+type ViewMode = "week" | "month" | "year" | "patterns" | "wrapped";
 
 // Get status info - enhanced with proof language for completed
 function getStatusInfo(status: string, daysCompleted: number): { label: string; colorClass: string; isProof?: boolean } {
@@ -652,6 +654,13 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
                 >
                   Patterns
                 </TabsTrigger>
+                <TabsTrigger 
+                  value="wrapped" 
+                  className="text-xs px-2 h-6"
+                >
+                  <Gift className="w-3 h-3 mr-1" />
+                  Wrapped
+                </TabsTrigger>
                 <TabsTrigger value="week" className="text-xs px-2 h-6">
                   Week
                 </TabsTrigger>
@@ -746,6 +755,17 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
               exit={{ opacity: 0 }}
             >
               <WeeklyPatternView snapshots={validSessions} userId={userId} isPaid={isPaid} />
+            </motion.div>
+          )}
+
+          {viewMode === "wrapped" && (
+            <motion.div
+              key="wrapped"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <WrappedHistoryView sessions={validSessions} userId={userId} isPaid={isPaid} />
             </motion.div>
           )}
 
