@@ -208,7 +208,7 @@ Guidelines:
 - If they had a journey focus, connect their actions to that theme
 - Be warm and grounded, no toxic positivity
 - End with a subtle acknowledgment of their growth, not a command to do more
-- This is a "Spotify Wrapped" moment - make them feel good about their record
+- This is a private Snapshot Review moment - make them feel good about their record
 
 Example tone:
 - "You showed up 7 of 7 days—not because it was easy, but because you decided to. ${promiseRate !== null && promiseRate >= 80 ? `Your ${promiseRate}% promise-keeping rate says something about who you're becoming.` : ""}"

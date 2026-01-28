@@ -32,7 +32,7 @@ import { format, addDays, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKETS, getSnapshotById } from "@/lib/snapshots";
 import { toast } from "sonner";
-import { WrappedSlideModal } from "./WrappedSlideModal";
+import { SnapshotReviewModal } from "./SnapshotReviewModal";
 import { useEntitlements } from "@/hooks/useEntitlements";
 
 interface SnapshotRecord {
@@ -130,7 +130,7 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
   const [data, setData] = useState<SnapshotDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
-  const [isWrappedOpen, setIsWrappedOpen] = useState(false);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   
@@ -482,12 +482,12 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
                         View Your Achievement
                       </Button>
                       <Button
-                        onClick={() => setIsWrappedOpen(true)}
+                        onClick={() => setIsReviewOpen(true)}
                         variant="outline"
                         className="border-primary/30"
                       >
                         <Gift className="w-4 h-4 mr-2 text-primary" />
-                        View Week Wrapped
+                        Review This Week
                       </Button>
                     </div>
                   </CardContent>
@@ -790,14 +790,14 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
         </ScrollArea>
       </div>
 
-      {/* Wrapped Slide Modal */}
+      {/* Snapshot Review Modal */}
       <AnimatePresence>
-        {isWrappedOpen && userId && (
-          <WrappedSlideModal
+        {isReviewOpen && userId && (
+          <SnapshotReviewModal
             sessionId={record.id}
             userId={userId}
             isPaid={isPaid}
-            onClose={() => setIsWrappedOpen(false)}
+            onClose={() => setIsReviewOpen(false)}
           />
         )}
       </AnimatePresence>

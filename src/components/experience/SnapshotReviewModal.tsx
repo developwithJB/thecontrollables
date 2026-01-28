@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
-interface WrappedSlideModalProps {
+interface SnapshotReviewModalProps {
   sessionId: string;
   userId: string;
   isPaid: boolean;
@@ -25,13 +25,13 @@ const CONTROLLABLE_GUIDES = [
   { emoji: "🚀", name: "Environment", controllable: "environment" },
 ];
 
-export function WrappedSlideModal({ sessionId, userId, isPaid, onClose }: WrappedSlideModalProps) {
+export function SnapshotReviewModal({ sessionId, userId, isPaid, onClose }: SnapshotReviewModalProps) {
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
 
   // Fetch session data
   const { data: session } = useQuery({
-    queryKey: ["wrapped-session", sessionId],
+    queryKey: ["snapshot-review-session", sessionId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reset_sessions")
@@ -57,7 +57,7 @@ export function WrappedSlideModal({ sessionId, userId, isPaid, onClose }: Wrappe
 
   // Fetch XP
   const { data: sessionXp = 0 } = useQuery({
-    queryKey: ["wrapped-xp", sessionId],
+    queryKey: ["snapshot-review-xp", sessionId],
     queryFn: async () => {
       if (!session) return 0;
       const { data, error } = await supabase
@@ -74,7 +74,7 @@ export function WrappedSlideModal({ sessionId, userId, isPaid, onClose }: Wrappe
 
   // Fetch promises
   const { data: promiseStats } = useQuery({
-    queryKey: ["wrapped-promises", sessionId],
+    queryKey: ["snapshot-review-promises", sessionId],
     queryFn: async () => {
       if (!session) return { made: 0, kept: 0 };
       const { data, error } = await supabase
@@ -93,7 +93,7 @@ export function WrappedSlideModal({ sessionId, userId, isPaid, onClose }: Wrappe
 
   // Fetch completed days with reflections
   const { data: completedDays = [] } = useQuery({
-    queryKey: ["wrapped-days", sessionId],
+    queryKey: ["snapshot-review-days", sessionId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("daily_resets")
@@ -183,6 +183,29 @@ export function WrappedSlideModal({ sessionId, userId, isPaid, onClose }: Wrappe
   };
 
   const slides = [
+    // Intro slide - sets the tone
+    {
+      id: "intro",
+      content: (
+        <div className="text-center py-6">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-5xl mb-4"
+          >
+            📸
+          </motion.div>
+          <h3 className="text-xl font-bold text-foreground mb-3">
+            This Is Your Snapshot
+          </h3>
+          <p className="text-muted-foreground text-sm leading-relaxed max-w-xs mx-auto">
+            This is a private record of how you showed up.<br />
+            No comparison. No judgment. Just proof.
+          </p>
+        </div>
+      ),
+    },
     {
       id: "celebration",
       content: (
@@ -196,7 +219,7 @@ export function WrappedSlideModal({ sessionId, userId, isPaid, onClose }: Wrappe
             🏆
           </motion.div>
           <h3 className="text-xl font-bold text-foreground mb-2">
-            You Completed a 7-Day Snapshot
+            Snapshot Complete
           </h3>
           <p className="text-muted-foreground text-sm">{formatDateRange()}</p>
           {snapshot && (
@@ -305,7 +328,7 @@ export function WrappedSlideModal({ sessionId, userId, isPaid, onClose }: Wrappe
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Trophy className="w-5 h-5 text-primary" />
-            <span className="font-semibold">Week Wrapped</span>
+            <span className="font-semibold">Your Snapshot</span>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={handleShare} className="p-2 hover:bg-muted rounded-lg">

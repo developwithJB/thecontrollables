@@ -20,7 +20,7 @@ import {
   getRecommendedNextSnapshot, 
   getJourneyById,
 } from "@/lib/guidedJourneys";
-import { WrappedSlideModal } from "@/components/experience/WrappedSlideModal";
+import { SnapshotReviewModal } from "@/components/experience/SnapshotReviewModal";
 
 interface Day7CompleteProps {
   displayName: string;
@@ -41,7 +41,7 @@ export const Day7Complete = ({
 }: Day7CompleteProps) => {
   const navigate = useNavigate();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [isWrappedOpen, setIsWrappedOpen] = useState(false);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [showWhatsNext, setShowWhatsNext] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<PlanType | undefined>();
@@ -203,7 +203,7 @@ export const Day7Complete = ({
             )}
           </motion.div>
 
-          {/* View Week Wrapped Button */}
+          {/* View Your Snapshot Button */}
           {userId && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -212,12 +212,12 @@ export const Day7Complete = ({
               className="mb-6"
             >
               <Button
-                onClick={() => setIsWrappedOpen(true)}
+                onClick={() => setIsReviewOpen(true)}
                 variant="outline"
                 className="w-full h-12 border-primary/30 hover:bg-primary/5"
               >
                 <Gift className="w-4 h-4 mr-2 text-primary" />
-                View Your Week Wrapped
+                View Your Snapshot
               </Button>
             </motion.div>
           )}
@@ -513,14 +513,14 @@ export const Day7Complete = ({
         </DialogContent>
       </Dialog>
 
-      {/* Wrapped Slide Modal */}
+      {/* Snapshot Review Modal */}
       <AnimatePresence>
-        {isWrappedOpen && userId && (
-          <WrappedSlideModal
+        {isReviewOpen && userId && (
+          <SnapshotReviewModal
             sessionId={resetSessionId}
             userId={userId}
             isPaid={isPaid}
-            onClose={() => setIsWrappedOpen(false)}
+            onClose={() => setIsReviewOpen(false)}
           />
         )}
       </AnimatePresence>
