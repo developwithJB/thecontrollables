@@ -455,8 +455,8 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
               </CardContent>
             </Card>
 
-            {/* Snapshot Review Section - available for all ended snapshots with activity */}
-            {isEnded && hasAnyActivity && (
+            {/* Snapshot Review Section - available for ALL ended snapshots */}
+            {isEnded && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -497,7 +497,7 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
                     </CardContent>
                   </Card>
                 ) : (
-                  // Partial completion - neutral, honest styling
+                  // Partial or no completion - honest, neutral styling
                   <Card className="border border-border">
                     <CardContent className="py-5">
                       <div className="flex items-center gap-4">
@@ -506,10 +506,14 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-foreground">
-                            {record.daysCompleted}/7 Days Recorded
+                            {record.daysCompleted === 0 
+                              ? "0/7 Days Recorded" 
+                              : `${record.daysCompleted}/7 Days Recorded`}
                           </h3>
                           <p className="text-sm text-muted-foreground">
-                            This is still data. Still worth seeing.
+                            {record.daysCompleted === 0 
+                              ? "An honest record. Sometimes we don't show up."
+                              : "This is still data. Still worth seeing."}
                           </p>
                         </div>
                       </div>

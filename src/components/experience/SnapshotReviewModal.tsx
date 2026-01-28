@@ -222,13 +222,22 @@ export function SnapshotReviewModal({ sessionId, userId, isPaid, onClose }: Snap
             transition={{ type: "spring", stiffness: 200 }}
             className="text-6xl mb-4"
           >
-            {completedDays.length === 7 ? "🏆" : "📊"}
+            {completedDays.length === 7 ? "🏆" : completedDays.length === 0 ? "📋" : "📊"}
           </motion.div>
           <h3 className="text-xl font-bold text-foreground mb-2">
-            {completedDays.length === 7 ? "Snapshot Complete" : `${completedDays.length}/7 Days`}
+            {completedDays.length === 7 
+              ? "Snapshot Complete" 
+              : completedDays.length === 0 
+              ? "0/7 Days"
+              : `${completedDays.length}/7 Days`}
           </h3>
           <p className="text-muted-foreground text-sm">{formatDateRange()}</p>
-          {completedDays.length < 7 && completedDays.length > 0 && (
+          {completedDays.length === 0 && (
+            <p className="text-sm text-muted-foreground mt-3 max-w-xs mx-auto">
+              You didn't check in this week. That's honest data about where you are.
+            </p>
+          )}
+          {completedDays.length > 0 && completedDays.length < 7 && (
             <p className="text-xs text-muted-foreground mt-2">
               This is still a record. Still counts.
             </p>
@@ -252,15 +261,24 @@ export function SnapshotReviewModal({ sessionId, userId, isPaid, onClose }: Snap
       content: (
         <div className="py-6">
           <p className="text-sm text-muted-foreground text-center mb-4">
-            <span className="text-xl mr-1">{guide.emoji}</span> Here's what you built...
+            <span className="text-xl mr-1">{guide.emoji}</span> 
+            {completedDays.length === 0 ? "The numbers tell a story..." : "Here's what you built..."}
           </p>
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-primary/10 rounded-xl p-4 text-center">
-              <p className="text-3xl font-bold text-primary">{completedDays.length}/7</p>
+            <div className={`rounded-xl p-4 text-center ${
+              completedDays.length === 0 ? "bg-muted/50" : "bg-primary/10"
+            }`}>
+              <p className={`text-3xl font-bold ${
+                completedDays.length === 0 ? "text-muted-foreground" : "text-primary"
+              }`}>{completedDays.length}/7</p>
               <p className="text-xs text-muted-foreground">Days Checked In</p>
             </div>
-            <div className="bg-primary/10 rounded-xl p-4 text-center">
-              <p className="text-3xl font-bold text-primary">{sessionXp}</p>
+            <div className={`rounded-xl p-4 text-center ${
+              sessionXp === 0 ? "bg-muted/50" : "bg-primary/10"
+            }`}>
+              <p className={`text-3xl font-bold ${
+                sessionXp === 0 ? "text-muted-foreground" : "text-primary"
+              }`}>{sessionXp}</p>
               <p className="text-xs text-muted-foreground">XP Earned</p>
             </div>
             {promiseStats && promiseStats.made > 0 && (
@@ -273,6 +291,13 @@ export function SnapshotReviewModal({ sessionId, userId, isPaid, onClose }: Snap
                 </p>
               </div>
             )}
+            {completedDays.length === 0 && (!promiseStats || promiseStats.made === 0) && (
+              <div className="col-span-2 bg-muted/30 rounded-xl p-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  No activity recorded this week.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       ),
@@ -281,11 +306,21 @@ export function SnapshotReviewModal({ sessionId, userId, isPaid, onClose }: Snap
       id: "proof",
       content: (
         <div className="py-6 text-center">
-          <p className="text-4xl mb-4">📜</p>
-          <h3 className="text-lg font-semibold text-foreground mb-3">This Is Your Proof</h3>
+          <p className="text-4xl mb-4">{completedDays.length === 0 ? "🪞" : "📜"}</p>
+          <h3 className="text-lg font-semibold text-foreground mb-3">
+            {completedDays.length === 0 ? "This Is Still Data" : "This Is Your Proof"}
+          </h3>
           <p className="text-foreground text-sm leading-relaxed mb-4 font-medium">
             {generateProofNarrative()}
           </p>
+          {completedDays.length === 0 && (
+            <div className="bg-muted/30 rounded-lg p-4 mb-4 text-left">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Seeing this matters. Now you know what a week of not showing up looks like. 
+                That awareness is the first step back.
+              </p>
+            </div>
+          )}
           {userReflections.length > 0 && (
             <div className="bg-muted/50 rounded-lg p-3 mb-4 text-left">
               <p className="text-xs text-muted-foreground mb-1">Your reflection:</p>
