@@ -40,7 +40,7 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
         .select("*")
         .eq("user_id", userId)
         .in("status", ["completed", "expired", "paused"])
-        .order("created_at", { ascending: false })
+        .order("start_date", { ascending: false })
         .limit(1)
         .maybeSingle();
 
