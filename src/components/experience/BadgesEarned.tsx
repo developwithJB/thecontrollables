@@ -91,7 +91,7 @@ export function BadgesEarned({ earnedBadges, isLoading }: BadgesEarnedProps) {
       </div>
 
       {/* Subtle locked badges hint (optional) */}
-      {earnedBadges.length > 0 && earnedBadges.length < 8 && (
+      {earnedBadges.length > 0 && earnedBadges.length < 9 && (
         <div className="px-4 pb-4">
           <div className="flex items-center gap-2 opacity-40">
             {Object.values(BADGES)
@@ -107,7 +107,7 @@ export function BadgesEarned({ earnedBadges, isLoading }: BadgesEarnedProps) {
               ))}
             {earnedBadges.length < 4 && (
               <span className="text-[10px] text-muted-foreground">
-                +{8 - earnedBadges.length} more to discover
+                +{9 - earnedBadges.length} more to discover
               </span>
             )}
           </div>

@@ -9,18 +9,6 @@ interface CertificateRequest {
   reset_session_id: string;
 }
 
-// Badge definitions - matches src/lib/badges.ts
-const ALL_BADGES = [
-  { key: "chose_quest", emoji: "🧭", name: "Chose a Quest" },
-  { key: "returned", emoji: "🔄", name: "Returned" },
-  { key: "kept_promise", emoji: "🧱", name: "Kept a Promise" },
-  { key: "respecd", emoji: "🛠️", name: "Respec'd" },
-  { key: "paused_reacting", emoji: "🧘", name: "Paused Before Reacting" },
-  { key: "completed_reset", emoji: "🌱", name: "Completed a Snapshot" },
-  { key: "protected_time", emoji: "⏳", name: "Protected My Time" },
-  { key: "asked_guidance", emoji: "🧠", name: "Asked for Guidance" },
-];
-
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -161,7 +149,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch badges earned by this user (snapshot at completion time)
+    // Fetch badges earned (for record, not displayed on certificate)
     const { data: userBadges } = await supabaseAdmin
       .from("user_badges")
       .select("badge_key, earned_at")
@@ -169,9 +157,8 @@ Deno.serve(async (req) => {
       .order("earned_at", { ascending: true });
 
     const earnedBadgeKeys = userBadges?.map(b => b.badge_key) || [];
-    console.log(`User has ${earnedBadgeKeys.length} badges earned`);
 
-    // Fetch total XP (snapshot at completion time)
+    // Fetch total XP (for record, not displayed on certificate)
     const { data: xpLogs } = await supabaseAdmin
       .from("xp_logs")
       .select("amount")
@@ -179,7 +166,6 @@ Deno.serve(async (req) => {
 
     const totalXp = xpLogs?.reduce((sum, log) => sum + log.amount, 0) || 0;
     const level = Math.floor(totalXp / 500) + 1;
-    console.log(`User has ${totalXp} XP (Level ${level})`);
 
     // Upsert certificate record with snapshot data
     const { data: certRecord, error: upsertError } = await supabaseAdmin
@@ -224,7 +210,7 @@ Deno.serve(async (req) => {
     const startFormatted = formatDate(startDate);
     const endFormatted = formatDate(endDate);
 
-    // Generate premium dark certificate SVG with badges and XP
+    // Generate premium dark certificate SVG - clean, name-focused design
     const svgWidth = 1200;
     const svgHeight = 900;
 
@@ -236,29 +222,6 @@ Deno.serve(async (req) => {
       { name: "Wellness", emoji: "🛰️" },
       { name: "Environment", emoji: "🚀" },
     ];
-
-    // Build badges section (left side) - 2 columns x 4 rows, moved up to align with title
-    const badgesSvg = ALL_BADGES.map((badge, i) => {
-      const isEarned = earnedBadgeKeys.includes(badge.key);
-      const col = i % 2;
-      const row = Math.floor(i / 2);
-      const x = 80 + col * 90;
-      const y = 310 + row * 75; // Moved up to start at y=310
-      
-      if (isEarned) {
-        return `
-          <g transform="translate(${x}, ${y})">
-            <circle cx="0" cy="0" r="28" fill="#f59e0b" fill-opacity="0.2" stroke="#f59e0b" stroke-opacity="0.5"/>
-            <text x="0" y="6" text-anchor="middle" font-size="22">${badge.emoji}</text>
-          </g>`;
-      } else {
-        return `
-          <g transform="translate(${x}, ${y})">
-            <circle cx="0" cy="0" r="28" fill="none" stroke="#475569" stroke-opacity="0.3" stroke-dasharray="4 2"/>
-            <text x="0" y="6" text-anchor="middle" font-size="18" opacity="0.2">${badge.emoji}</text>
-          </g>`;
-      }
-    }).join("");
 
     const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">
@@ -325,90 +288,41 @@ Deno.serve(async (req) => {
         fill="#f59e0b" letter-spacing="3">THE CONTROLLABLES</text>
   
   <!-- Completion badge -->
-  <text x="${svgWidth/2}" y="120" text-anchor="middle" 
+  <text x="${svgWidth/2}" y="130" text-anchor="middle" 
         font-family="Georgia, 'Times New Roman', serif" font-size="14" font-style="italic" 
         fill="#94a3b8" letter-spacing="1">Certificate of Completion</text>
   
   <!-- Decorative line -->
-  <line x1="${svgWidth/2 - 80}" y1="140" x2="${svgWidth/2 + 80}" y2="140" 
+  <line x1="${svgWidth/2 - 100}" y1="155" x2="${svgWidth/2 + 100}" y2="155" 
         stroke="#f59e0b" stroke-opacity="0.3" stroke-width="1"/>
   
   <!-- Trophy emoji -->
-  <text x="${svgWidth/2}" y="195" text-anchor="middle" font-size="48">🏆</text>
+  <text x="${svgWidth/2}" y="220" text-anchor="middle" font-size="56">🏆</text>
   
   <!-- Main title -->
-  <text x="${svgWidth/2}" y="250" text-anchor="middle" 
-        font-family="Georgia, 'Times New Roman', serif" font-size="22" font-weight="600" 
-        fill="#ffffff" letter-spacing="2">7-DAY SNAPSHOT COMPLETE</text>
+  <text x="${svgWidth/2}" y="290" text-anchor="middle" 
+        font-family="Georgia, 'Times New Roman', serif" font-size="26" font-weight="600" 
+        fill="#ffffff" letter-spacing="3">7-DAY SNAPSHOT COMPLETE</text>
   
-  <!-- User name -->
-  <text x="${svgWidth/2}" y="310" text-anchor="middle" 
-        font-family="Georgia, 'Times New Roman', serif" font-size="42" font-style="italic" 
+  <!-- User name - PROMINENT -->
+  <text x="${svgWidth/2}" y="370" text-anchor="middle" 
+        font-family="Georgia, 'Times New Roman', serif" font-size="52" font-style="italic" 
         fill="url(#goldGradient)">${escapeXml(displayName)}</text>
   
-  <!-- Commitment statement - bigger and wrapped -->
-  <text x="${svgWidth/2}" y="360" text-anchor="middle" 
-        font-family="Georgia, 'Times New Roman', serif" font-size="18" 
+  <!-- Commitment statement - PROMINENT -->
+  <text x="${svgWidth/2}" y="440" text-anchor="middle" 
+        font-family="Georgia, 'Times New Roman', serif" font-size="20" 
         fill="#e2e8f0" font-style="italic">"I committed to controlling what I could</text>
-  <text x="${svgWidth/2}" y="388" text-anchor="middle" 
-        font-family="Georgia, 'Times New Roman', serif" font-size="18" 
+  <text x="${svgWidth/2}" y="472" text-anchor="middle" 
+        font-family="Georgia, 'Times New Roman', serif" font-size="20" 
         fill="#e2e8f0" font-style="italic">and surrendering what I could not."</text>
   
-  <!-- ============ LEFT SIDE: BADGES EARNED ============ -->
-  <g transform="translate(0, 0)">
-    <!-- Badges section header - moved up to align with title -->
-    <text x="125" y="250" text-anchor="middle" 
-          font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" 
-          fill="#64748b" letter-spacing="1">BADGES EARNED</text>
-    <text x="125" y="266" text-anchor="middle" 
-          font-family="system-ui, -apple-system, sans-serif" font-size="10" 
-          fill="#475569">${earnedBadgeKeys.length} of 8</text>
-    
-    <!-- Badge circles -->
-    ${badgesSvg}
-  </g>
-  
-  <!-- ============ RIGHT SIDE: MOMENTUM (XP & LEVEL in one box) ============ -->
-  <g transform="translate(${svgWidth - 200}, 0)">
-    <!-- Momentum section header - aligned with badges header -->
-    <text x="75" y="250" text-anchor="middle" 
-          font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" 
-          fill="#64748b" letter-spacing="1">MOMENTUM</text>
-    
-    <!-- Combined XP + Level Display in one outlined box -->
-    <rect x="15" y="270" width="120" height="155" rx="12" ry="12" 
-          fill="#ffffff" fill-opacity="0.05" stroke="#f59e0b" stroke-opacity="0.3"/>
-    
-    <!-- Lightning emoji -->
-    <text x="75" y="310" text-anchor="middle" font-size="28">⚡</text>
-    
-    <!-- XP Value -->
-    <text x="75" y="345" text-anchor="middle" 
-          font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" 
-          fill="#f59e0b">${totalXp.toLocaleString()}</text>
-    <text x="75" y="362" text-anchor="middle" 
-          font-family="system-ui, -apple-system, sans-serif" font-size="10" 
-          fill="#94a3b8">XP</text>
-    
-    <!-- Divider line -->
-    <line x1="35" y1="378" x2="115" y2="378" stroke="#475569" stroke-opacity="0.3" stroke-width="1"/>
-    
-    <!-- Level -->
-    <text x="75" y="400" text-anchor="middle" 
-          font-family="system-ui, -apple-system, sans-serif" font-size="10" 
-          fill="#64748b">LEVEL</text>
-    <text x="75" y="420" text-anchor="middle" 
-          font-family="Georgia, 'Times New Roman', serif" font-size="18" font-weight="600" 
-          fill="#ffffff">${level}</text>
-  </g>
-  
-  <!-- ============ CENTER: 5 CONTROLLABLES ============ -->
   <!-- Decorative line before controllables -->
-  <line x1="${svgWidth/2 - 180}" y1="520" x2="${svgWidth/2 + 180}" y2="520" 
+  <line x1="${svgWidth/2 - 200}" y1="520" x2="${svgWidth/2 + 200}" y2="520" 
         stroke="#f59e0b" stroke-opacity="0.2" stroke-width="1"/>
   
   <!-- 5 Controllables Section -->
-  <text x="${svgWidth/2}" y="560" text-anchor="middle" 
+  <text x="${svgWidth/2}" y="565" text-anchor="middle" 
         font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" 
         fill="#64748b" letter-spacing="2">CONTROLLED THE 5 CONTROLLABLES</text>
   
@@ -418,7 +332,7 @@ Deno.serve(async (req) => {
     const startX = (svgWidth - (controllables.length - 1) * spacing) / 2;
     const x = startX + i * spacing;
     return `
-  <g transform="translate(${x}, 630)">
+  <g transform="translate(${x}, 640)">
     <rect x="-60" y="-35" width="120" height="70" rx="12" ry="12" 
           fill="#ffffff" fill-opacity="0.05" stroke="#f59e0b" stroke-opacity="0.3"/>
     <text x="0" y="-3" text-anchor="middle" font-size="24">${c.emoji}</text>
@@ -429,17 +343,17 @@ Deno.serve(async (req) => {
   }).join('')}
   
   <!-- Decorative line after controllables -->
-  <line x1="${svgWidth/2 - 180}" y1="700" x2="${svgWidth/2 + 180}" y2="700" 
+  <line x1="${svgWidth/2 - 200}" y1="710" x2="${svgWidth/2 + 200}" y2="710" 
         stroke="#f59e0b" stroke-opacity="0.2" stroke-width="1"/>
   
   <!-- Date range box -->
-  <rect x="${svgWidth/2 - 180}" y="720" width="360" height="50" rx="12" ry="12" 
+  <rect x="${svgWidth/2 - 180}" y="730" width="360" height="50" rx="12" ry="12" 
         fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.1"/>
-  <text x="${svgWidth/2}" y="752" text-anchor="middle" 
+  <text x="${svgWidth/2}" y="762" text-anchor="middle" 
         font-family="system-ui, -apple-system, sans-serif" font-size="15" 
         fill="#94a3b8">${escapeXml(startFormatted)} — ${escapeXml(endFormatted)}</text>
   
-  <!-- ============ CENTERED VERIFICATION ============ -->
+  <!-- Verification badge -->
   <g transform="translate(${svgWidth/2}, 820)">
     <circle cx="0" cy="0" r="16" fill="#22c55e" fill-opacity="0.2"/>
     <text x="0" y="5" text-anchor="middle" font-size="16">✓</text>

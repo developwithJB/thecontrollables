@@ -10,10 +10,7 @@ export type BadgeKey =
   | "completed_reset"
   | "protected_time"
   | "asked_guidance"
-  | "snapshot_explorer"
-  | "foundation_streak_2"
-  | "foundation_streak_3"
-  | "foundation_streak_5";
+  | "snapshot_explorer";
 
 export interface Badge {
   key: BadgeKey;
@@ -86,27 +83,6 @@ export const BADGES: Record<BadgeKey, Badge> = {
     name: "Snapshot Explorer",
     meaning: "You learned the tools to build your life.",
     trigger: "Completed the Welcome 7-Day Snapshot",
-  },
-  foundation_streak_2: {
-    key: "foundation_streak_2",
-    emoji: "🔥",
-    name: "Double Down",
-    meaning: "Two Snapshots. Real momentum.",
-    trigger: "Completed 2 consecutive Snapshots",
-  },
-  foundation_streak_3: {
-    key: "foundation_streak_3",
-    emoji: "⚡",
-    name: "Triple Threat",
-    meaning: "Three Snapshots. You're building something.",
-    trigger: "Completed 3 consecutive Snapshots",
-  },
-  foundation_streak_5: {
-    key: "foundation_streak_5",
-    emoji: "🏆",
-    name: "Snapshot Master",
-    meaning: "Five Snapshots. You've proven consistency.",
-    trigger: "Completed 5 consecutive Snapshots",
   },
 };
 

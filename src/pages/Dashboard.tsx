@@ -70,7 +70,6 @@ import { LazyAIGuidePanelWrapper } from "@/components/dashboard/LazyAIGuidePanel
 import type { AIGuidePanelHandle } from "@/components/dashboard/AIGuidePanel";
 import {
   LazyActivityHistory,
-  LazyMomentumDecay,
   LazyBadgesEarned,
   LazyCertificates,
   LazySnapshotHistory,
@@ -341,7 +340,7 @@ export default function Dashboard() {
     checkAskedGuidanceBadge();
   }, [queryClient, user?.id, checkAskedGuidanceBadge]);
 
-  // Fetch all reset sessions for history
+  // Fetch all reset sessions for history - defer until Experience tab is active
   const { data: allSessions = [], isLoading: sessionsLoading } = useQuery({
     queryKey: ["all-reset-sessions", user?.id],
     queryFn: async () => {
@@ -350,14 +349,15 @@ export default function Dashboard() {
         .from("reset_sessions")
         .select("*")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("start_date", { ascending: false });
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && activeTab === "experience",
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Fetch completed days per session for history
+  // Fetch completed days per session for history - defer until Experience tab is active
   const { data: allCompletedDays = [] } = useQuery({
     queryKey: ["all-completed-days", user?.id],
     queryFn: async () => {
@@ -369,7 +369,8 @@ export default function Dashboard() {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && activeTab === "experience",
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   useEffect(() => {
@@ -1156,30 +1157,6 @@ export default function Dashboard() {
               {user?.id && isPaid && (
                 <SuspenseExperienceComponent>
                   <LazyCertificates resetSessions={allSessions} userId={user.id} dailyResets={allCompletedDays} />
-                </SuspenseExperienceComponent>
-              )}
-
-              {/* Momentum Decay - Lazy loaded, for paid users */}
-              {!isSimplifiedMode && isPaid && (
-                <SuspenseExperienceComponent>
-                  <LazyMomentumDecay
-                    lastActivity={(() => {
-                      // Get the most recent activity from multiple sources
-                      const dates: Date[] = [];
-                      if (xpLogs[0]?.created_at) dates.push(new Date(xpLogs[0].created_at));
-                      const latestSession = allSessions[0];
-                      if (latestSession?.completed_at) dates.push(new Date(latestSession.completed_at));
-                      if (latestSession?.created_at) dates.push(new Date(latestSession.created_at));
-                      const latestCompletedDay = completedDays[0];
-                      if (latestCompletedDay?.completed_at) dates.push(new Date(latestCompletedDay.completed_at));
-                      if (dates.length === 0) return null;
-                      return dates.sort((a, b) => b.getTime() - a.getTime())[0].toISOString();
-                    })()}
-                    currentStreak={completedDays.length}
-                    hasActiveQuest={!!activeQuest}
-                    hasActiveReset={!!activeSession && !isCompleted}
-                    onStartReset={() => navigate("/reset")}
-                  />
                 </SuspenseExperienceComponent>
               )}
 

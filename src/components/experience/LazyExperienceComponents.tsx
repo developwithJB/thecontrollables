@@ -6,10 +6,6 @@ export const LazyActivityHistory = lazy(() =>
   import("./ActivityHistory").then((m) => ({ default: m.ActivityHistory }))
 );
 
-export const LazyMomentumDecay = lazy(() =>
-  import("./MomentumDecay").then((m) => ({ default: m.MomentumDecay }))
-);
-
 export const LazyBadgesEarned = lazy(() =>
   import("./BadgesEarned").then((m) => ({ default: m.BadgesEarned }))
 );
