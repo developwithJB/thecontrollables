@@ -751,6 +751,7 @@ export default function Dashboard() {
                   }}
                   onOpenBuild={() => buildRef.current?.openDetailDialog()}
                   askGuideCompleted={askGuideCompletedToday}
+                  onDay7AllComplete={() => navigate("/reset?day7complete=true")}
                 />
               )}
 

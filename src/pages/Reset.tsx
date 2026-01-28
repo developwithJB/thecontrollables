@@ -39,8 +39,10 @@ const Reset = () => {
   const { activeQuest } = useDashboardSummary();
 
   const [showDayComplete, setShowDayComplete] = useState(false);
-  const [showDay7Complete, setShowDay7Complete] = useState(false);
   const [acknowledgedMissedDays, setAcknowledgedMissedDays] = useState(false);
+  
+  // Check if we should show Day 7 celebration (triggered from Dashboard when all tasks done)
+  const showDay7Celebration = searchParams.get("day7complete") === "true";
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -53,39 +55,20 @@ const Reset = () => {
   // (they can start a reset whenever they want from there).
   // IMPORTANT: Don't redirect if we're showing the Day 7 celebration!
   useEffect(() => {
-    if (!isLoading && userId && !activeSession && !showDay7Complete) {
+    if (!isLoading && userId && !activeSession && !showDay7Celebration) {
       navigate("/dashboard");
     }
-  }, [isLoading, userId, activeSession, navigate, showDay7Complete]);
-
-  // Store session data for Day 7 celebration (before it becomes null)
-  const [completedSessionData, setCompletedSessionData] = useState<{
-    displayName: string;
-    startDate: string;
-    endDate: string;
-    sessionId: string;
-    journeyId?: string;
-  } | null>(null);
+  }, [isLoading, userId, activeSession, navigate, showDay7Celebration]);
 
   // Handle day completion
   const handleComplete = (data: { userInput?: string }) => {
     const isDay7 = currentDay >= 7;
     
-    // Capture session data BEFORE completion (for Day 7 celebration)
-    if (isDay7 && activeSession) {
-      setCompletedSessionData({
-        displayName,
-        startDate: activeSession.start_date,
-        endDate,
-        sessionId: activeSession.id,
-        journeyId: activeSession.journey_id || undefined,
-      });
-    }
-    
     completeDay(data, {
       onSuccess: () => {
         if (isDay7) {
-          setShowDay7Complete(true);
+          // Day 7: Navigate to dashboard - celebration will show when ALL tasks are done
+          navigate("/dashboard");
         } else {
           setShowDayComplete(true);
         }
@@ -97,28 +80,17 @@ const Reset = () => {
     return <SplashScreen />;
   }
 
-  // Show Day 7 complete with certificate
-  // Use completedSessionData when activeSession becomes null after completion
-  if (showDay7Complete) {
-    const sessionData = completedSessionData || (activeSession ? {
-      displayName,
-      startDate: activeSession.start_date,
-      endDate,
-      sessionId: activeSession.id,
-      journeyId: activeSession.journey_id || undefined,
-    } : null);
-    
-    if (sessionData) {
-      return (
-        <Day7Complete
-          displayName={sessionData.displayName}
-          startDate={sessionData.startDate}
-          endDate={sessionData.endDate}
-          resetSessionId={sessionData.sessionId}
-          completedJourneyId={sessionData.journeyId}
-        />
-      );
-    }
+  // Show Day 7 celebration when triggered from Dashboard (all tasks complete)
+  if (showDay7Celebration && activeSession) {
+    return (
+      <Day7Complete
+        displayName={displayName}
+        startDate={activeSession.start_date}
+        endDate={endDate}
+        resetSessionId={activeSession.id}
+        completedJourneyId={activeSession.journey_id || undefined}
+      />
+    );
   }
 
   // Show day completion (non-Day 7)
