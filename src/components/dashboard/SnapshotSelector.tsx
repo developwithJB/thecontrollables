@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Check,
   ChevronRight,
@@ -14,6 +15,8 @@ import {
   Compass,
   ArrowLeft,
   Plus,
+  Target,
+  Lightbulb,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -28,6 +31,7 @@ import {
   type BucketId,
   type Controllable,
 } from "@/lib/snapshots";
+import { LIFE_GOALS, getSnapshotsForGoal, GOAL_CATEGORIES, type GoalCategory } from "@/lib/lifeGoals";
 import type { UserBuildCurrent, BuildScore } from "@/lib/build";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -71,7 +75,10 @@ export function SnapshotSelector({
   const [showBuildModal, setShowBuildModal] = useState(false);
   const [showCustomCreator, setShowCustomCreator] = useState(false);
   const [customSnapshots, setCustomSnapshots] = useState<Snapshot[]>([]);
-  const [viewMode, setViewMode] = useState<"recommendation" | "browse">("recommendation");
+  // View modes: "current" (show current focus), "browse" (show goal/state tabs)
+  const [viewMode, setViewMode] = useState<"current" | "browse">("current");
+  const [browseTab, setBrowseTab] = useState<"goal" | "state">("goal");
+  const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [expandedBuckets, setExpandedBuckets] = useState<Set<BucketId>>(new Set());
 
   const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
@@ -124,9 +131,23 @@ export function SnapshotSelector({
 
   const currentSnapshot = getSnapshot(currentSnapshotId);
 
+  // Get filtered snapshots by selected goal
+  const getFilteredSnapshots = () => {
+    if (selectedGoal) {
+      const snapshotIds = getSnapshotsForGoal(selectedGoal);
+      return SNAPSHOTS.filter(s => snapshotIds.includes(s.id));
+    }
+    return SNAPSHOTS;
+  };
+
+  const filteredSnapshots = getFilteredSnapshots();
+  const goalCategories: GoalCategory[] = ["break-habit", "build-habit", "mindset"];
+
   const handleOpen = () => {
     setSelectedSnapshot(currentSnapshotId || null);
-    setViewMode("recommendation");
+    // Show current focus if user has one, otherwise go to browse
+    setViewMode(currentSnapshotId ? "current" : "browse");
+    setSelectedGoal(null);
     setExpandedBuckets(new Set());
     setIsOpen(true);
     trackFeatureUse("snapshot_selector", "open");
@@ -376,174 +397,296 @@ export function SnapshotSelector({
         <DialogContent className="max-w-md max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="font-display">
-              {viewMode === "recommendation" ? "What Kind of Week Is This?" : "Browse Snapshots"}
+              {viewMode === "current" ? "Your Current Focus" : "Browse Snapshots"}
             </DialogTitle>
             <DialogDescription>
-              {viewMode === "recommendation"
-                ? "A Snapshot is your focus for the next 7 days. One theme. No perfection."
-                : "Explore 36 pre-built Snapshots across 6 life themes."}
+              {viewMode === "current"
+                ? "This is your focus for the week."
+                : "Pick a 7-day focus that resonates with what you want to work on."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-            {viewMode === "recommendation" ? (
+            {viewMode === "current" ? (
               <>
-                {/* Build Scores Summary */}
-                {currentBuild ? (
-                  <Card className="bg-muted/50 border-border">
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs font-medium text-foreground">Your Build</p>
-                          {currentBuild.updated_at && (
-                            <span className="text-[10px] text-muted-foreground">
-                              • {formatDistanceToNow(new Date(currentBuild.updated_at), { addSuffix: true })}
-                            </span>
-                          )}
+                {/* Current Snapshot Display */}
+                {currentSnapshot && (
+                  <Card className="bg-gradient-to-br from-primary/5 to-accent/5 border-primary/30">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl shrink-0 bg-gradient-to-br from-primary/20 to-accent/20">
+                          {currentSnapshot.emoji}
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 text-xs"
-                          onClick={() => setShowBuildModal(true)}
-                        >
-                          <RotateCcw className="w-3 h-3 mr-1" />
-                          Re-scan
-                        </Button>
+                        <div className="flex-1 min-w-0">
+                          <Badge variant="secondary" className="text-[10px] mb-1">Active Focus</Badge>
+                          <h3 className="font-medium text-foreground text-lg">{currentSnapshot.name}</h3>
+                          <p className="text-sm text-muted-foreground mt-0.5 italic">
+                            {currentSnapshot.tagline}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-2">
+                            <span className="text-sm">{CONTROLLABLE_CONFIG[currentSnapshot.focus].emoji}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {CONTROLLABLE_CONFIG[currentSnapshot.focus].label} Focus
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-5 gap-1">
-                        {(["awareness", "perspective", "habit", "wellness", "environment"] as Controllable[]).map(
-                          (key) => {
-                            const config = CONTROLLABLE_CONFIG[key];
-                            const value = Number(currentBuild[key as keyof typeof currentBuild]) || 0;
-                            const isLowest = key === lowestControllable;
-                            return (
-                              <div
-                                key={key}
-                                className={`text-center p-1.5 rounded-lg ${
-                                  isLowest ? "bg-amber-500/10 border border-amber-500/30" : "bg-background"
-                                }`}
-                              >
-                                <span className="text-sm block">{config.emoji}</span>
-                                <span
-                                  className={`text-xs font-medium block ${
-                                    isLowest ? "text-amber-600 dark:text-amber-400" : "text-foreground"
-                                  }`}
-                                >
-                                  {value.toFixed(1)}
-                                </span>
-                                {isLowest && <TrendingDown className="w-2.5 h-2.5 mx-auto text-amber-500 mt-0.5" />}
-                              </div>
-                            );
-                          },
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Card className="bg-amber-500/10 border-amber-500/20">
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-muted-foreground">
-                          Scan your Build for personalized recommendations
-                        </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 text-xs"
-                          onClick={() => setShowBuildModal(true)}
-                        >
-                          <RotateCcw className="w-3 h-3 mr-1" />
-                          Scan
-                        </Button>
+                      
+                      {/* Daily Actions Preview */}
+                      <div className="mt-4 pt-3 border-t border-border/50">
+                        <p className="text-xs font-medium text-foreground mb-2">Your 7-Day Actions:</p>
+                        <div className="space-y-1.5">
+                          {currentSnapshot.dailyActions.map((action, idx) => (
+                            <div key={action.day} className={`text-xs ${idx < currentDay ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                              <span className="font-medium">Day {action.day}:</span> {action.task}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
                 )}
 
-                {/* Recommended Snapshot */}
-                <div className="space-y-3">
-                  {customSnapshot && renderSnapshotCard(customSnapshot, false)}
-                  {renderSnapshotCard(recommendedSnapshot, !customSnapshot)}
-                </div>
-
-                {/* Browse All Button */}
+                {/* Change Snapshot Button */}
                 <Button variant="outline" className="w-full" onClick={() => setViewMode("browse")}>
-                  Browse All Snapshots
+                  Change Focus
                   <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>
               </>
             ) : (
               <>
-                {/* Back Button */}
-                <Button variant="ghost" size="sm" className="mb-2" onClick={() => setViewMode("recommendation")}>
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Recommendation
-                </Button>
-
-                {/* Create Custom Button */}
-                <Button
-                  variant="outline"
-                  className="w-full mb-3 border-dashed border-amber-500/50 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
-                  onClick={() => setShowCustomCreator(true)}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Custom Snapshot
-                </Button>
-
-                {/* Custom Snapshots Section (if any) */}
-                {customSnapshots.length > 0 && (
-                  <div className="mb-3">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                      Your Custom Snapshots
-                    </p>
-                    <div className="space-y-2">{customSnapshots.map((snapshot) => renderSnapshotCard(snapshot))}</div>
-                  </div>
+                {/* Back Button (if user has a current snapshot) */}
+                {currentSnapshotId && (
+                  <Button variant="ghost" size="sm" className="mb-2" onClick={() => setViewMode("current")}>
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Current Focus
+                  </Button>
                 )}
 
-                {/* Buckets with Snapshots */}
-                <div className="space-y-2">
-                  {(Object.keys(BUCKETS) as BucketId[]).map((bucketId) => {
-                    const bucket = BUCKETS[bucketId];
-                    const bucketSnapshots = getSnapshotsByBucket(bucketId);
-                    const isExpanded = expandedBuckets.has(bucketId);
+                {/* Goal/State Tabs */}
+                <Tabs value={browseTab} onValueChange={(v) => {
+                  setBrowseTab(v as "goal" | "state");
+                  setSelectedGoal(null);
+                }} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="goal" className="flex items-center gap-1.5">
+                      <Target className="w-3.5 h-3.5" />
+                      By Goal
+                    </TabsTrigger>
+                    <TabsTrigger value="state" className="flex items-center gap-1.5">
+                      <Lightbulb className="w-3.5 h-3.5" />
+                      By State
+                    </TabsTrigger>
+                  </TabsList>
 
-                    return (
-                      <Collapsible key={bucketId} open={isExpanded} onOpenChange={() => toggleBucket(bucketId)}>
-                        <CollapsibleTrigger className="w-full">
-                          <Card className="hover:border-primary/30 transition-colors cursor-pointer">
-                            <CardContent className="p-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <span className="text-xl">{bucket.emoji}</span>
-                                  <div className="text-left">
-                                    <p className="font-medium text-sm text-foreground">{bucket.name}</p>
-                                    <p className="text-xs text-muted-foreground italic">{bucket.question}</p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="secondary" className="text-xs">
-                                    {bucketSnapshots.length}
-                                  </Badge>
-                                  {isExpanded ? (
-                                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                                  ) : (
-                                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                  )}
-                                </div>
+                  {/* By Goal Tab */}
+                  <TabsContent value="goal" className="mt-0 space-y-4">
+                    {/* Goal Selection */}
+                    <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                      <p className="text-xs font-medium text-foreground mb-3">What do you want to work on?</p>
+                      <div className="space-y-3">
+                        {goalCategories.map((category) => {
+                          const categoryInfo = GOAL_CATEGORIES[category];
+                          const categoryGoals = LIFE_GOALS.filter(g => g.category === category);
+                          
+                          return (
+                            <div key={category} className="space-y-2">
+                              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                                <span>{categoryInfo.emoji}</span>
+                                {categoryInfo.label}
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {categoryGoals.map((goal) => {
+                                  const isSelected = selectedGoal === goal.id;
+                                  return (
+                                    <motion.button
+                                      key={goal.id}
+                                      onClick={() => setSelectedGoal(isSelected ? null : goal.id)}
+                                      whileTap={{ scale: 0.95 }}
+                                      className={`px-3 py-1.5 rounded-full text-sm transition-all flex items-center gap-1.5 ${
+                                        isSelected
+                                          ? "bg-primary text-primary-foreground shadow-md"
+                                          : "bg-muted hover:bg-muted/80 text-foreground"
+                                      }`}
+                                    >
+                                      <span>{goal.emoji}</span>
+                                      <span className="truncate max-w-[120px]">{goal.label}</span>
+                                    </motion.button>
+                                  );
+                                })}
                               </div>
-                            </CardContent>
-                          </Card>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <div className="pl-4 pt-2 space-y-2">
-                            {bucketSnapshots.map((snapshot) => renderSnapshotCard(snapshot))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Filtered Snapshots */}
+                    {selectedGoal && (
+                      <div className="space-y-3">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          Recommended Snapshots ({filteredSnapshots.length})
+                        </p>
+                        {filteredSnapshots.map((snapshot) => renderSnapshotCard(snapshot))}
+                      </div>
+                    )}
+
+                    {/* Build Your Own */}
+                    <motion.button
+                      onClick={() => setShowCustomCreator(true)}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full p-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
+                          <Plus className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-foreground">Build Your Own</h3>
+                          <p className="text-xs text-muted-foreground italic">
+                            Create a custom 7-day snapshot
+                          </p>
+                        </div>
+                      </div>
+                    </motion.button>
+                  </TabsContent>
+
+                  {/* By State Tab */}
+                  <TabsContent value="state" className="mt-0 space-y-4">
+                    {/* Build Scores */}
+                    {currentBuild ? (
+                      <Card className="bg-muted/50 border-border">
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs font-medium text-foreground">Your Build</p>
+                              {currentBuild.updated_at && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  • {formatDistanceToNow(new Date(currentBuild.updated_at), { addSuffix: true })}
+                                </span>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs"
+                              onClick={() => setShowBuildModal(true)}
+                            >
+                              <RotateCcw className="w-3 h-3 mr-1" />
+                              Re-scan
+                            </Button>
                           </div>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    );
-                  })}
-                </div>
+                          <div className="grid grid-cols-5 gap-1">
+                            {(["awareness", "perspective", "habit", "wellness", "environment"] as Controllable[]).map(
+                              (key) => {
+                                const config = CONTROLLABLE_CONFIG[key];
+                                const value = Number(currentBuild[key as keyof typeof currentBuild]) || 0;
+                                const isLowest = key === lowestControllable;
+                                return (
+                                  <div
+                                    key={key}
+                                    className={`text-center p-1.5 rounded-lg ${
+                                      isLowest ? "bg-amber-500/10 border border-amber-500/30" : "bg-background"
+                                    }`}
+                                  >
+                                    <span className="text-sm block">{config.emoji}</span>
+                                    <span
+                                      className={`text-xs font-medium block ${
+                                        isLowest ? "text-amber-600 dark:text-amber-400" : "text-foreground"
+                                      }`}
+                                    >
+                                      {value.toFixed(1)}
+                                    </span>
+                                    {isLowest && <TrendingDown className="w-2.5 h-2.5 mx-auto text-amber-500 mt-0.5" />}
+                                  </div>
+                                );
+                              },
+                            )}
+                          </div>
+                          {lowestControllable && (
+                            <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
+                              <TrendingDown className="w-3 h-3" />
+                              Focus area: {CONTROLLABLE_CONFIG[lowestControllable].label}
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="bg-amber-500/10 border-amber-500/20">
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-muted-foreground">
+                              Scan your Build for personalized recommendations
+                            </p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => setShowBuildModal(true)}
+                            >
+                              <RotateCcw className="w-3 h-3 mr-1" />
+                              Scan
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Primary Recommendation */}
+                    {recommendedSnapshot && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground">Based on your Build</p>
+                        {customSnapshot && renderSnapshotCard(customSnapshot, false)}
+                        {renderSnapshotCard(recommendedSnapshot, !customSnapshot)}
+                      </div>
+                    )}
+
+                    {/* Browse by Bucket */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground">Browse by Category</p>
+                      {(Object.keys(BUCKETS) as BucketId[]).map((bucketId) => {
+                        const bucket = BUCKETS[bucketId];
+                        const bucketSnapshots = getSnapshotsByBucket(bucketId);
+                        const isExpanded = expandedBuckets.has(bucketId);
+
+                        return (
+                          <Collapsible key={bucketId} open={isExpanded} onOpenChange={() => toggleBucket(bucketId)}>
+                            <CollapsibleTrigger className="w-full">
+                              <Card className="hover:border-primary/30 transition-colors cursor-pointer">
+                                <CardContent className="p-3">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-xl">{bucket.emoji}</span>
+                                      <div className="text-left">
+                                        <p className="font-medium text-sm text-foreground">{bucket.name}</p>
+                                        <p className="text-xs text-muted-foreground italic">{bucket.question}</p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="secondary" className="text-xs">
+                                        {bucketSnapshots.length}
+                                      </Badge>
+                                      {isExpanded ? (
+                                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                                      ) : (
+                                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                      )}
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <div className="pl-4 pt-2 space-y-2">
+                                {bucketSnapshots.map((snapshot) => renderSnapshotCard(snapshot))}
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        );
+                      })}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </>
             )}
           </div>
