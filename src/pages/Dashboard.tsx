@@ -270,6 +270,7 @@ export default function Dashboard() {
   } = useWelcomeBack({
     userId: user?.id || null,
     hasActiveSession: !!activeSession,
+    activeSessionCreatedAt: activeSession?.created_at || null,
     todayActionsCompleted,
   });
 

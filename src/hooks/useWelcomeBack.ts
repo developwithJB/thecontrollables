@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface UseWelcomeBackOptions {
   userId: string | null;
   hasActiveSession: boolean;
+  activeSessionCreatedAt: string | null; // To detect fresh sessions (just onboarded)
   todayActionsCompleted: boolean;
 }
 
@@ -43,9 +44,19 @@ const daysBetween = (date1: Date, date2: Date): number => {
 export function useWelcomeBack({
   userId,
   hasActiveSession,
+  activeSessionCreatedAt,
   todayActionsCompleted,
 }: UseWelcomeBackOptions): UseWelcomeBackReturn {
   const today = getLocalDateString();
+  
+  // Detect if this is a fresh session (created < 10 minutes ago)
+  // Fresh sessions = user just finished onboarding, should NOT see welcome back
+  const sessionIsStale = useMemo(() => {
+    if (!activeSessionCreatedAt) return true;
+    const createdTime = new Date(activeSessionCreatedAt).getTime();
+    const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
+    return createdTime < tenMinutesAgo;
+  }, [activeSessionCreatedAt]);
   
   // Keys for localStorage persistence
   const lastWelcomeBackDateKey = userId ? `welcome_back_shown_${userId}` : null;
@@ -170,8 +181,9 @@ export function useWelcomeBack({
     // Also show if no action history at all (returning after long break)
     if (daysSinceLastAction >= 3) return true;
     
-    // Show if user has no recorded actions but has an active session (stale return)
-    if (!lastActionDate && hasActiveSession) return true;
+    // Show if user has no recorded actions but has an active STALE session (stale return)
+    // Fresh sessions (< 10 min old) = user just finished onboarding, skip welcome back
+    if (!lastActionDate && hasActiveSession && sessionIsStale) return true;
     
     return false;
   }, [
@@ -183,6 +195,7 @@ export function useWelcomeBack({
     daysSinceLastAction,
     lastActionDate,
     hasActiveSession,
+    sessionIsStale,
   ]);
 
   // Show follow-up only after welcome back is dismissed but before entering dashboard
