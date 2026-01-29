@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
       integrityLogsResult,
       todayTimeLogResult,
       userBuildResult,
+      dailyResetsResult,
     ] = await Promise.all([
       // Active quest
       supabase
@@ -101,6 +102,13 @@ Deno.serve(async (req) => {
         .select("*")
         .eq("user_id", userId)
         .maybeSingle(),
+
+      // All daily resets for streak calculation
+      supabase
+        .from("daily_resets")
+        .select("completed_at")
+        .eq("user_id", userId)
+        .order("completed_at", { ascending: false }),
     ]);
 
     // Calculate derived values server-side
@@ -137,6 +145,56 @@ Deno.serve(async (req) => {
       return toLocalDateString(log.promised_at) !== today;
     });
 
+    // Calculate consecutive streak from all daily_resets
+    const calculateConsecutiveStreak = (completedDates: string[], todayStr: string): number => {
+      // Get unique dates in client's timezone, sorted descending
+      const uniqueDates = [...new Set(
+        completedDates.map(dateStr => toLocalDateString(dateStr))
+      )].sort().reverse();
+      
+      if (uniqueDates.length === 0) return 0;
+      
+      // Check if user checked in today or yesterday (grace period)
+      const todayDate = new Date(todayStr + "T12:00:00"); // Use noon to avoid DST issues
+      const firstDate = new Date(uniqueDates[0] + "T12:00:00");
+      const daysDiff = Math.round((todayDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // If last check-in was more than 1 day ago, streak is broken
+      if (daysDiff > 1) return 0;
+      
+      // If checked in today, start streak at 1. If yesterday, start at 0 (grace period).
+      let streak = daysDiff === 0 ? 1 : 0;
+      let expectedPrevDateStr = uniqueDates[0];
+      
+      // Count consecutive days going backwards
+      for (let i = 1; i < uniqueDates.length; i++) {
+        const prevExpected = new Date(expectedPrevDateStr + "T12:00:00");
+        prevExpected.setDate(prevExpected.getDate() - 1);
+        const prevExpectedStr = prevExpected.toISOString().split('T')[0];
+        
+        if (uniqueDates[i] === prevExpectedStr) {
+          streak++;
+          expectedPrevDateStr = prevExpectedStr;
+        } else {
+          break;
+        }
+      }
+      
+      // If we started with yesterday (grace period), add 1 for today's potential
+      // Actually, if daysDiff === 1, the streak is what they had up to yesterday
+      if (daysDiff === 1 && streak > 0) {
+        streak++; // Include yesterday's check-in in the count
+      }
+      
+      return streak;
+    };
+
+    const dailyResets = dailyResetsResult.data || [];
+    const consecutiveStreak = calculateConsecutiveStreak(
+      dailyResets.map((r: { completed_at: string }) => r.completed_at),
+      today
+    );
+
     return new Response(
       JSON.stringify({
         activeQuest: activeQuestResult.data,
@@ -144,6 +202,7 @@ Deno.serve(async (req) => {
         integrityScore,
         pendingPromises,
         todayPromiseMade, // NEW: timezone-aware "made promise today" flag
+        consecutiveStreak, // NEW: actual consecutive days checked in
         todayTimeLog: todayTimeLogResult.data,
         userBuild: userBuildResult.data,
         // Include raw logs for components that need them

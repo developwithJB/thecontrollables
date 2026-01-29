@@ -36,6 +36,7 @@ interface DashboardSummary {
     kept_at: string | null;
   }>;
   todayPromiseMade: boolean; // NEW: timezone-aware flag from server
+  consecutiveStreak: number; // NEW: actual consecutive days checked in
   todayTimeLog: {
     id: string;
     user_id: string;
@@ -172,6 +173,7 @@ export const useDashboardSummary = () => {
   const integrityScore = summary?.integrityScore ?? null;
   const pendingPromises = summary?.pendingPromises ?? [];
   const todayPromiseMade = summary?.todayPromiseMade ?? false;
+  const consecutiveStreak = summary?.consecutiveStreak ?? 0;
   const todayTimeLog = summary?.todayTimeLog ?? null;
   const userBuild = summary?.userBuild ?? null;
   const xpLogs = summary?.xpLogs ?? [];
@@ -506,6 +508,7 @@ export const useDashboardSummary = () => {
     integrityLogs,
     pendingPromises,
     todayPromiseMade, // NEW: timezone-aware flag from server
+    consecutiveStreak, // NEW: actual consecutive days checked in
     createPromise: createPromiseMutation.mutateAsync,
     resolvePromise: resolvePromiseMutation.mutateAsync,
     
