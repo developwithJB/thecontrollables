@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Target, AlertTriangle, Pencil, Check, X, CheckCircle } from "lucide-react";
+import { Target, AlertTriangle, Pencil, Check, X, ChevronDown, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,8 +10,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { useActionTracking } from "@/hooks/useActionTracking";
-
+import { HierarchyExplainer } from "@/components/dashboard/HierarchyExplainer";
 interface MainQuest {
   id: string;
   title: string;
@@ -126,14 +131,20 @@ export function MainQuestModule({
               {disabled ? "Loading..." : "Set Your Mission"}
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-sm">
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="font-display">Set Your Direction</DialogTitle>
               <p className="text-xs text-muted-foreground mt-1">
-                This can evolve. You're just choosing where to point right now.
+                Your Mission is the big-picture goal. It doesn't change daily.
               </p>
             </DialogHeader>
-            <div className="space-y-4 pt-4">
+            
+            {/* Hierarchy Visual */}
+            <div className="py-2 border-b border-border">
+              <HierarchyExplainer variant="compact" highlighted="mission" />
+            </div>
+            
+            <div className="space-y-4 pt-2">
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">
                   What area of life are you investing in?
@@ -157,6 +168,37 @@ export function MainQuestModule({
                   ))}
                 </div>
               </div>
+
+              {/* Philosophy Section */}
+              <Collapsible>
+                <CollapsibleTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  <span>Why set a Mission?</span>
+                  <ChevronDown className="w-3 h-3 ml-auto" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3">
+                  <div className="text-xs text-muted-foreground space-y-2 p-3 rounded-lg bg-muted/50">
+                    <p>
+                      Your Mission is where you're pointing your life right now. 
+                      It's not a task to complete — it's a direction to live under.
+                    </p>
+                    <ul className="space-y-1.5 pl-3">
+                      <li className="flex items-start gap-2">
+                        <span className="text-primary">•</span>
+                        <span><strong>Snapshots serve your Mission</strong> — weekly focus themes</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-primary">•</span>
+                        <span><strong>Daily check-ins serve your Snapshot</strong> — just today</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-primary">•</span>
+                        <span><strong>Missions evolve</strong> — you're not locked in forever</span>
+                      </li>
+                    </ul>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
 
               <Button 
                 onClick={handleSubmit} 
