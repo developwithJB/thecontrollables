@@ -1,197 +1,231 @@
 
-# Fix Onboarding → Welcome Back Flow Bug
+# Enhance Mission Clarity and Value
 
-## Problem Identified
+## Problem Analysis
 
-When a brand new user completes onboarding and picks their first snapshot, they incorrectly see the "Welcome Back" screen. This happens due to a **race condition** between onboarding completion and the welcome back detection logic.
+The current Mission feature has several UX gaps that make it confusing for users:
 
-### Root Cause Analysis
+1. **Minimal Context in Modals**: When users click Mission, they see a bare-bones edit modal with just "Direction, not a task" — no explanation of the psychology or hierarchy
+2. **No Hierarchy Education**: The Mission → Snapshot → Daily Check-In framework is only explained in the "Dashboard Manual" section (buried, requires scrolling)
+3. **No Examples for New Users**: First-time users don't understand how Mission relates to their daily activity
+4. **Missing from Emails**: Daily nudges mention Snapshot day but never reinforce the Mission as the overarching direction
+5. **Auto-Created Mission Hidden**: During onboarding, a Mission is auto-created from the Snapshot name, but users never see this explained
 
-The flow goes:
-1. User picks snapshot → `handleOrientationComplete()` runs
-2. `acceptCovenant()` creates a reset_session (active session now exists)
-3. `onUpdateOnboarding({ step: "completed" })` marks onboarding done
-4. After 2-second delay, `onComplete()` is called
-5. `queryClient.invalidateQueries({ queryKey: ["user-onboarding"] })` runs
-6. Dashboard re-renders with `needsOnboarding = false`
-7. **Now the Welcome Back logic kicks in...**
+## Psychology of the Hierarchy
 
-The bug is in `useWelcomeBack` at line 173-174:
-```typescript
-// Show if user has no recorded actions but has an active session (stale return)
-if (!lastActionDate && hasActiveSession) return true;
+```text
+┌─────────────────────────────────────────────────────────┐
+│  MISSION (Direction)                                    │
+│  "Reclaim Energy" — Your north star. Doesn't change     │
+│  daily. You live under it; you don't complete it.       │
+├─────────────────────────────────────────────────────────┤
+│  SNAPSHOT (This Week)                                   │
+│  "Rest & Recovery Week" — 7-day focused lens.           │
+│  One theme at a time. Weekly reset.                     │
+├─────────────────────────────────────────────────────────┤
+│  DAILY CHECK-IN (Today)                                 │
+│  "Rate yesterday's focus. Complete today's action."     │
+│  Just today. Nothing more.                              │
+└─────────────────────────────────────────────────────────┘
 ```
 
-A brand new user who just completed onboarding will have:
-- `lastActionDate = null` (no actions yet recorded in `daily_checkins`, `daily_resets`, `completed_actions`, or `time_logs`)
-- `hasActiveSession = true` (just created by `acceptCovenant`)
+## Solution Overview
 
-This condition was designed to catch users who started a snapshot long ago and are returning, but it **incorrectly triggers for brand new users** who just completed onboarding.
+### 1. Enhanced Mission Modal with Education + Examples
 
----
+**Current State**: Empty modal with input field and example chips
 
-## Solution
+**Proposed State**: 
+- Add visual hierarchy diagram at top of modal
+- Show contextual relationship: "Mission guides your Snapshots. Snapshots structure your days."
+- For new users (first 2 weeks), show rotating examples with explanations
+- Add "Learn More" expandable section explaining the philosophy
 
-Add onboarding awareness to the Welcome Back hook. A user who **just completed onboarding** should never see the Welcome Back screen—they should go straight to Day 1.
+### 2. Mission Tooltip on Dashboard
 
-### Key Changes
+**Current State**: Clicking Mission in GreetingBanner opens edit modal immediately
 
-| File | Change |
-|------|--------|
-| `src/hooks/useWelcomeBack.ts` | Add `justCompletedOnboarding` check to skip welcome back for new users |
-| `src/pages/Dashboard.tsx` | Pass `justCompletedOnboarding` from onboarding data to useWelcomeBack |
+**Proposed State**:
+- First click shows an info popover with hierarchy explanation
+- "Edit" button in popover opens the edit modal
+- After 5 dashboard visits, default to edit modal directly
 
----
+### 3. Onboarding Mission Moment
 
-## Detailed Implementation
+**Current State**: Mission auto-created silently from Snapshot name
 
-### 1. Update useWelcomeBack Hook
+**Proposed State**:
+- After Day 0 Orientation, show brief "Your Direction" screen explaining:
+  - "This is your Mission: [Mission Title]"
+  - "It was created from your Snapshot to give you a north star"
+  - "You can change it anytime — it's meant to evolve"
+- Quick "Got it" button proceeds to Day 1
 
-**File**: `src/hooks/useWelcomeBack.ts`
+### 4. Email Nudge Enhancement
 
-Add a new parameter to the hook:
-```typescript
-interface UseWelcomeBackOptions {
-  userId: string | null;
-  hasActiveSession: boolean;
-  todayActionsCompleted: boolean;
-  justCompletedOnboarding: boolean; // NEW: user just finished onboarding
-}
-```
+**Current State**: Emails mention Snapshot day but not Mission
 
-Update the `showWelcomeBack` logic to add an early exit for new users:
-```typescript
-const showWelcomeBack = useMemo(() => {
-  // Don't show if still loading
-  if (isLoadingLastAction) return false;
-  
-  // Don't show if no user
-  if (!userId) return false;
-  
-  // NEW: Don't show if user just completed onboarding (they're brand new)
-  if (justCompletedOnboarding) return false;
-  
-  // Don't show if already completed today's actions
-  if (todayActionsCompleted) return false;
-  
-  // ... rest of logic
-}, [...dependencies, justCompletedOnboarding]);
-```
+**Proposed State**:
+- Include Mission in morning nudges: "Your Direction: [Mission Title]"
+- Weekly nudges (Monday) specifically reinforce: "This week you're focused on [Snapshot]. Your north star: [Mission]."
+- Create relationship messaging that connects the three levels
 
-### 2. Update Dashboard.tsx
+### 5. Dashboard Hierarchy Card (New Users)
 
-**File**: `src/pages/Dashboard.tsx`
+**Current State**: Hierarchy only shown in "Dashboard Manual" section
 
-Calculate whether user just completed onboarding based on `onboarding` data:
-```typescript
-// User "just completed" onboarding if:
-// 1. onboarding_step === "completed"
-// 2. first_action_completed_at is within the last 5 minutes
-const justCompletedOnboarding = useMemo(() => {
-  if (!onboarding) return false;
-  if (onboarding.onboarding_step !== "completed") return false;
-  
-  // Check if first_action_completed_at is within last 5 minutes
-  if (!onboarding.first_action_completed_at) return false;
-  
-  const completedAt = new Date(onboarding.first_action_completed_at);
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-  return completedAt > fiveMinutesAgo;
-}, [onboarding]);
-```
-
-Pass this to `useWelcomeBack`:
-```typescript
-const {
-  showWelcomeBack,
-  showFollowUp,
-  // ...
-} = useWelcomeBack({
-  userId: user?.id || null,
-  hasActiveSession: !!activeSession,
-  todayActionsCompleted,
-  justCompletedOnboarding, // NEW
-});
-```
-
-### 3. Alternative Simpler Fix
-
-Instead of the time-based check, we can use a simpler heuristic:
-
-**If user has no action history AND session was created less than 10 minutes ago, skip welcome back.**
-
-This requires checking `activeSession.created_at`:
-```typescript
-// In useWelcomeBack, update the problematic condition:
-// Show if user has no recorded actions but has an active session (stale return)
-// But NOT if the session is fresh (created recently = just finished onboarding)
-const sessionIsStale = activeSessionCreatedAt 
-  ? (Date.now() - new Date(activeSessionCreatedAt).getTime()) > 10 * 60 * 1000 // 10 minutes
-  : true;
-
-if (!lastActionDate && hasActiveSession && sessionIsStale) return true;
-```
-
-This approach requires passing `activeSessionCreatedAt` to the hook.
-
----
-
-## Recommended Approach
-
-I recommend **Option 3 (session freshness check)** because:
-1. It's more robust—doesn't rely on onboarding-specific data
-2. It handles edge cases like app crashes during onboarding
-3. It's self-contained within the useWelcomeBack hook
-
-### Updated useWelcomeBack Interface
-```typescript
-interface UseWelcomeBackOptions {
-  userId: string | null;
-  hasActiveSession: boolean;
-  activeSessionCreatedAt: string | null; // NEW
-  todayActionsCompleted: boolean;
-}
-```
-
-### Key Logic Change
-```typescript
-// Calculate if this is a fresh session (just started, not a stale return)
-const sessionIsStale = useMemo(() => {
-  if (!activeSessionCreatedAt) return true;
-  const createdTime = new Date(activeSessionCreatedAt).getTime();
-  const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
-  return createdTime < tenMinutesAgo;
-}, [activeSessionCreatedAt]);
-
-// In showWelcomeBack logic:
-// Show if user has no recorded actions but has an active STALE session
-if (!lastActionDate && hasActiveSession && sessionIsStale) return true;
-```
+**Proposed State**:
+- For first 7 dashboard visits, show a collapsible "How This Works" mini-card above Today's Actions
+- Visual: Mission → Snapshot → Daily (stacked cards with arrows)
+- Dismissible with "Got it, don't show again"
 
 ---
 
 ## Files to Modify
 
 | File | Changes |
-|------|--------|
-| `src/hooks/useWelcomeBack.ts` | Add `activeSessionCreatedAt` param; add session freshness check |
-| `src/pages/Dashboard.tsx` | Pass `activeSession?.created_at` to useWelcomeBack |
+|------|---------|
+| `src/components/dashboard/MainQuestModule.tsx` | Add hierarchy diagram, enhanced examples, philosophy explanation |
+| `src/components/dashboard/GreetingBanner.tsx` | Add popover for Mission with hierarchy explanation (first clicks) |
+| `src/pages/Dashboard.tsx` | Pass visit count to GreetingBanner; add "How This Works" card for new users; enhance Mission edit modal |
+| `src/components/onboarding/OnboardingFlow.tsx` | Add "Your Direction" transitional screen after orientation |
+| `src/components/onboarding/OnboardingMissionReveal.tsx` | **NEW** — Mission reveal component for onboarding |
+| `src/components/dashboard/HierarchyExplainer.tsx` | **NEW** — Reusable hierarchy diagram component |
+| `supabase/functions/send-daily-nudge/index.ts` | Include Mission title in email context and content |
+
+---
+
+## Detailed Implementation
+
+### New Component: HierarchyExplainer
+
+A reusable visual that shows the three-level structure:
+- Can be compact (for modals) or expanded (for onboarding)
+- Uses the existing icons (Target, Camera, CheckCircle)
+- Includes subtle animations for emphasis
+
+```tsx
+// Compact mode: horizontal flow with arrows
+Mission → Snapshot → Daily
+
+// Expanded mode: vertical cards with descriptions
+[Mission Card]
+    ↓
+[Snapshot Card]
+    ↓
+[Daily Card]
+```
+
+### Enhanced Mission Modal Content
+
+```tsx
+<DialogContent>
+  <DialogHeader>
+    <DialogTitle>Set Your Direction</DialogTitle>
+    <p>Your Mission is the big-picture goal. It doesn't change daily.</p>
+  </DialogHeader>
+  
+  {/* NEW: Compact hierarchy visual */}
+  <HierarchyExplainer variant="compact" highlighted="mission" />
+  
+  {/* Input with examples */}
+  <Input placeholder="e.g., Reclaim Energy" />
+  
+  {/* Clickable example chips */}
+  <div className="flex flex-wrap gap-2">
+    {["Build discipline", "Reclaim energy", ...].map(...)}
+  </div>
+  
+  {/* NEW: Expandable philosophy section */}
+  <Collapsible>
+    <CollapsibleTrigger>Why set a Mission?</CollapsibleTrigger>
+    <CollapsibleContent>
+      <p>Your Mission is where you're pointing your life right now...</p>
+      <ul>
+        <li>Snapshots serve your Mission (weekly focus)</li>
+        <li>Daily check-ins serve your Snapshot (today only)</li>
+        <li>Missions can evolve — you're not locked in</li>
+      </ul>
+    </CollapsibleContent>
+  </Collapsible>
+</DialogContent>
+```
+
+### Email Enhancement
+
+Add Mission fetching to `getUserContext()`:
+```typescript
+// In send-daily-nudge/index.ts
+async function getUserContext(...): Promise<UserContext> {
+  // ... existing context fetching
+  
+  // NEW: Fetch active quest (Mission)
+  const questResult = await supabase
+    .from("quests")
+    .select("title")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+    
+  context.missionTitle = questResult.data?.title || null;
+}
+```
+
+Update email content generation:
+```typescript
+function generateEmailContent(context, nudgeTime) {
+  // ... existing logic
+  
+  // NEW: Include Mission in personalization
+  if (context.missionTitle) {
+    mainMessage = `Day ${dayNum} of 7 — Your direction: ${context.missionTitle}`;
+  }
+}
+```
+
+### Onboarding Mission Reveal Screen
+
+New transitional screen after orientation:
+```tsx
+export function OnboardingMissionReveal({ 
+  missionTitle, 
+  snapshotName, 
+  onContinue 
+}: Props) {
+  return (
+    <motion.div className="min-h-screen flex flex-col items-center justify-center">
+      <Target className="w-12 h-12 text-primary mb-6" />
+      
+      <h1>Your Direction</h1>
+      <p className="text-2xl font-semibold">{missionTitle}</p>
+      
+      <p className="text-muted-foreground mt-4">
+        This is your north star. Your Snapshot "{snapshotName}" 
+        serves this direction. You can change it anytime.
+      </p>
+      
+      <Button onClick={onContinue}>Got it → Start Day 1</Button>
+    </motion.div>
+  );
+}
+```
 
 ---
 
 ## Testing Checklist
 
-After implementation, verify:
-1. **New user flow**: Create new account → complete onboarding → select snapshot → should go directly to Day 1 dashboard (NO welcome back)
-2. **Returning user flow**: User with existing session who hasn't acted in 3+ days → should see Welcome Back
-3. **Same-day return**: User who acted today but refreshes page → should NOT see Welcome Back
-4. **Stale session return**: User who started a session 2 weeks ago, never acted → should see Welcome Back
+1. **New User Onboarding**: Complete full onboarding → verify Mission reveal screen appears → verify Mission is set
+2. **Dashboard (New User)**: First 7 visits show hierarchy explainer card → dismissible → doesn't reappear
+3. **Mission Edit Modal**: Click Mission in header → see enhanced modal with hierarchy + examples + philosophy
+4. **Email Nudges**: Receive morning nudge → verify Mission title appears in email body
+5. **Existing Users**: Hierarchy card doesn't appear for users with 7+ visits
 
 ---
 
 ## Technical Notes
 
-- The 10-minute freshness window is generous enough to handle slow networks or delays
-- `activeSession.created_at` is already available in the Dashboard from `useReset`
-- This fix doesn't require any database changes
-- The fix is backwards compatible—existing returning users will still see Welcome Back correctly
+- `dashboardVisitCount` is already tracked via `useDashboardVisitCount` hook
+- Mission (Quest) data is already loaded in `useDashboardSummary`
+- Email nudge function already has `UserContext` pattern for extensibility
+- HierarchyExplainer can reuse existing `HIERARCHY_ITEMS` from DashboardManualSection
+- Visit-based gating can use localStorage to track "seen_hierarchy_explainer" dismissal
