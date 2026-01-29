@@ -145,23 +145,25 @@ export const useReset = () => {
     };
   }, []);
 
-  // Get active reset session
+  // Get active reset session (handle case where user has multiple active sessions)
   const { data: activeSession, isLoading: isLoadingSession } = useQuery({
     queryKey: ["reset-session", userId],
     queryFn: async () => {
       if (!userId) return null;
       
+      // Use .limit(1) without .maybeSingle() to avoid errors when multiple active sessions exist
       const { data, error } = await supabase
         .from("reset_sessions")
         .select("*")
         .eq("user_id", userId)
         .eq("status", "active")
         .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
 
       if (error) throw error;
-      return data as ResetSession | null;
+      
+      // Return the most recent active session, or null if none exist
+      return (data && data.length > 0 ? data[0] : null) as ResetSession | null;
     },
     enabled: !!userId,
   });
