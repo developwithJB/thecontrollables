@@ -4,7 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SplashScreen } from "@/components/SplashScreen";
+import { useAppResume } from "@/hooks/useAppResume";
 import { lazy, Suspense, useState, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 
@@ -19,18 +21,58 @@ const Billing = lazy(() => import("./pages/Billing"));
 const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
+// Production-hardened query client configuration
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000, // 1 minute - reduces unnecessary refetches
-      refetchOnWindowFocus: false, // Don't refetch on tab focus
+      staleTime: 60 * 1000, // 1 minute
+      gcTime: 5 * 60 * 1000, // Garbage collect after 5 mins
+      refetchOnWindowFocus: false, // Don't refetch on tab focus (handled by useAppResume)
+      refetchOnReconnect: true, // Refetch when connection restored
       retry: 1, // Only retry once on failure
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+      networkMode: "offlineFirst", // Better offline handling
+    },
+    mutations: {
+      retry: 0, // Don't auto-retry mutations to prevent duplicate submissions
+      networkMode: "online", // Mutations require network
     },
   },
 });
 
+// Store query client globally for error boundary access
+if (typeof window !== "undefined") {
+  (window as any).__REACT_QUERY_CLIENT__ = queryClient;
+}
+
 // Page loader using splash screen style
 const PageLoader = () => <SplashScreen />;
+
+// Inner app component that uses hooks
+const AppContent = () => {
+  // Handle app resume from background
+  useAppResume();
+
+  return (
+    <>
+      <OfflineIndicator />
+      <Toaster />
+      <Sonner />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/reset" element={<Reset />} />
+          <Route path="/billing" element={<Billing />} />
+          <Route path="/admin" element={<Admin />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </>
+  );
+};
 
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
@@ -57,30 +99,18 @@ const App = () => {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <TooltipProvider>
-          <AnimatePresence mode="wait">
-            {showSplash && <SplashScreen key="splash" />}
-          </AnimatePresence>
-          <OfflineIndicator />
-          <Toaster />
-          <Sonner />
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/reset" element={<Reset />} />
-              <Route path="/billing" element={<Billing />} />
-              <Route path="/admin" element={<Admin />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </TooltipProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <TooltipProvider>
+            <AnimatePresence mode="wait">
+              {showSplash && <SplashScreen key="splash" />}
+            </AnimatePresence>
+            <AppContent />
+          </TooltipProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 

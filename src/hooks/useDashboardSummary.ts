@@ -2,6 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useMemo } from "react";
+import { withTimeout } from "@/lib/withTimeout";
+
+// Timeout for mutations (10 seconds)
+const MUTATION_TIMEOUT_MS = 10000;
 
 // XP values for different actions
 export const XP_VALUES = {
@@ -142,7 +146,7 @@ export const useDashboardSummary = () => {
     };
   }, []);
 
-  // Fetch all dashboard data in a single optimized request
+  // Fetch all dashboard data in a single optimized request with timeout
   const { data: summary, isLoading: isLoadingSummary, error } = useQuery({
     queryKey: ["dashboard-summary", userId],
     queryFn: async (): Promise<DashboardSummary> => {
@@ -153,12 +157,17 @@ export const useDashboardSummary = () => {
       const localDate = getLocalDateString();
       const timezone = getBrowserTimezone();
 
-      const response = await supabase.functions.invoke("dashboard-summary", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: { localDate, timezone },
-      });
+      // Wrap the edge function call with a timeout
+      const response = await withTimeout(
+        supabase.functions.invoke("dashboard-summary", {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: { localDate, timezone },
+        }),
+        15000, // 15 second timeout for initial data fetch
+        "Dashboard data request timed out. Please check your connection."
+      );
 
       if (response.error) throw response.error;
       return response.data as DashboardSummary;
@@ -326,21 +335,27 @@ export const useDashboardSummary = () => {
     },
   });
 
-  // Create promise
+  // Create promise with timeout protection
   const createPromiseMutation = useMutation({
     mutationFn: async ({ promiseText, dueDate }: { promiseText: string; dueDate?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.id) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase
-        .from("integrity_logs")
-        .insert({
-          user_id: user.id,
-          promise_text: promiseText,
-          due_date: dueDate,
-        })
-        .select()
-        .single();
+      // Create a proper promise from the Supabase query
+      const queryPromise = new Promise<{ data: any; error: any }>(async (resolve) => {
+        const result = await supabase
+          .from("integrity_logs")
+          .insert({
+            user_id: user.id,
+            promise_text: promiseText,
+            due_date: dueDate,
+          })
+          .select()
+          .single();
+        resolve(result);
+      });
+
+      const { data, error } = await withTimeout(queryPromise, MUTATION_TIMEOUT_MS);
 
       if (error) throw error;
       return data;
@@ -350,6 +365,15 @@ export const useDashboardSummary = () => {
       toast({
         title: "Promise made",
         description: "Keep your word.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Couldn't save promise",
+        description: error.message.includes("timed out") 
+          ? "Connection slow. Please try again." 
+          : "Please try again.",
+        variant: "destructive",
       });
     },
   });
@@ -393,7 +417,7 @@ export const useDashboardSummary = () => {
     },
   });
 
-  // Log time reflection
+  // Log time reflection with timeout protection
   const logTimeMutation = useMutation({
     mutationFn: async ({ invested, wasted, notes }: { invested: number; wasted: number; notes?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -403,19 +427,25 @@ export const useDashboardSummary = () => {
       const today = getLocalDateString();
       console.log("Logging time for date:", today, { invested, wasted });
 
-      const { data, error } = await supabase
-        .from("time_logs")
-        .upsert({
-          user_id: user.id,
-          log_date: today,
-          time_invested_minutes: invested,
-          time_wasted_minutes: wasted,
-          notes,
-        }, {
-          onConflict: "user_id,log_date",
-        })
-        .select()
-        .single();
+      // Create a proper promise from the Supabase query
+      const queryPromise = new Promise<{ data: any; error: any }>(async (resolve) => {
+        const result = await supabase
+          .from("time_logs")
+          .upsert({
+            user_id: user.id,
+            log_date: today,
+            time_invested_minutes: invested,
+            time_wasted_minutes: wasted,
+            notes,
+          }, {
+            onConflict: "user_id,log_date",
+          })
+          .select()
+          .single();
+        resolve(result);
+      });
+
+      const { data, error } = await withTimeout(queryPromise, MUTATION_TIMEOUT_MS);
 
       if (error) {
         console.error("Time log error:", error);
@@ -448,7 +478,9 @@ export const useDashboardSummary = () => {
       console.error("Time log mutation error:", error);
       toast({
         title: "Couldn't save reflection",
-        description: "Please try again.",
+        description: error.message.includes("timed out") 
+          ? "Connection slow. Please try again." 
+          : "Please try again.",
         variant: "destructive",
       });
     },
