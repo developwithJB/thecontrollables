@@ -1,255 +1,179 @@
 
-# Harden App for Production-Quality SaaS Experience
 
-## Problem Summary
+# Harden Stripe Production Purchase Flow
 
-Based on the codebase analysis and user reports, there are three main categories of issues:
+## Current State Assessment
 
-1. **Saving operations hang or feel slow** - Mutations may get stuck without proper timeout handling or user feedback
-2. **App becomes buggy when returning after being open** - Stale state accumulates without proper visibility change handling
-3. **Pull-to-refresh on iOS PWA locks the page** - The touch handling doesn't properly release scroll control after refresh completes
+After thorough analysis of the payment flow, the core infrastructure is **solid**:
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Stripe Products/Prices | ✅ Correct | Monthly `price_1Sty37...` ($9.99), Yearly `price_1Sty3R...` ($79.99) |
+| create-checkout | ✅ Working | Tested via API call, returns valid Stripe URL |
+| check-payment | ✅ Working | Returns correct paid/unpaid status |
+| customer-portal | ✅ Working | Handles manual entitlements gracefully |
+| Unit Tests | ✅ Complete | Pricing and entitlement logic covered |
+| E2E Tests | ✅ Good | Checkout, payment success, paywall flows |
+
+## Issues to Fix
+
+### 1. CORS Headers Incomplete
+The current CORS headers are missing Supabase SDK-specific headers that can cause failures on some browsers/devices:
+
+```typescript
+// Current (incomplete)
+"authorization, x-client-info, apikey, content-type"
+
+// Required (complete)
+"authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version"
+```
+
+### 2. Missing Timeout on Payment Edge Functions
+The `useEntitlements` hook doesn't wrap edge function calls with the `withTimeout` utility, risking hanging UI during network issues.
+
+### 3. Missing customer-portal in config.toml
+The `customer-portal` function is not listed in `supabase/config.toml`, which could cause JWT verification issues.
+
+### 4. No Retry Logic for check-payment on Initial Load
+If the initial payment check fails due to network, the user might appear as "free" when they're actually paid.
+
+### 5. Race Condition on Payment Success
+When redirecting back from Stripe with `?payment=success`, the check-payment call races with Stripe's subscription activation. Need a short delay or retry mechanism.
 
 ---
 
-## Root Cause Analysis
+## Technical Changes
 
-### Issue 1: Saving Hangs
-- The app has good timeout warnings (5-second `useAutoLoadingTimeout`) but they're only visual feedback
-- No automatic retry or recovery mechanism exists
-- The edge function `dashboard-summary` and mutations have no client-side timeout limits
-- React Query mutations don't have abort controllers or timeout configuration
+### 1. Update CORS Headers (All Payment Edge Functions)
 
-### Issue 2: Stale State on Resume
-- No `visibilitychange` event handling anywhere in the codebase
-- When app is backgrounded and resumed, cached data can be many hours old
-- Multiple auth state listeners may accumulate without proper cleanup
-- React Query's `refetchOnWindowFocus: false` prevents automatic refresh when returning
+**Files:**
+- `supabase/functions/create-checkout/index.ts`
+- `supabase/functions/check-payment/index.ts`
+- `supabase/functions/customer-portal/index.ts`
 
-### Issue 3: Pull-to-Refresh Locks Page
-- The `usePullToRefresh` hook uses `e.preventDefault()` during touch move (line 77)
-- After refresh completes, scroll isn't explicitly re-enabled
-- The `isRefreshing` state may not properly clear in all edge cases on iOS Safari
-- iOS PWA has unique touch event handling quirks that require special consideration
+```typescript
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+```
 
 ---
 
-## Technical Solution
+### 2. Add customer-portal to config.toml
 
-### 1. Add Visibility Change Handler for App Resume
+**File:** `supabase/config.toml`
 
-**Files:** `src/App.tsx`, new `src/hooks/useAppResume.ts`
-
-Create a hook that detects when the app comes back into focus after being backgrounded and:
-- Invalidates stale queries (older than 5 minutes)
-- Refreshes auth session to prevent expired token issues
-- Tracks the resume event for debugging
-
-```typescript
-// src/hooks/useAppResume.ts
-export function useAppResume() {
-  const queryClient = useQueryClient();
-  const lastVisibleRef = useRef(Date.now());
-  
-  useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.hidden) {
-        // App backgrounded - record time
-        lastVisibleRef.current = Date.now();
-      } else {
-        // App resumed - check staleness
-        const hiddenDuration = Date.now() - lastVisibleRef.current;
-        const STALE_THRESHOLD = 5 * 60 * 1000; // 5 minutes
-        
-        if (hiddenDuration > STALE_THRESHOLD) {
-          // Refresh auth session
-          await supabase.auth.getSession();
-          // Invalidate all active queries
-          queryClient.invalidateQueries({ type: 'active' });
-        }
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [queryClient]);
-}
+```toml
+[functions.customer-portal]
+verify_jwt = false
 ```
 
-### 2. Fix Pull-to-Refresh for iOS PWA
+---
 
-**File:** `src/hooks/usePullToRefresh.ts`
+### 3. Add Timeout Wrapper to useEntitlements
 
-The current implementation has issues with iOS Safari's overscroll behavior. Fixes:
+**File:** `src/hooks/useEntitlements.ts`
 
-- Add explicit scroll restoration after refresh
-- Use `touch-action: none` on the pulling element during pull
-- Force reset all states with a cleanup mechanism
-- Add iOS-specific detection and handling
-- Ensure `e.preventDefault()` is only called when actively pulling
+Wrap edge function calls with `withTimeout` to prevent hanging:
 
 ```typescript
-// Key changes to usePullToRefresh.ts
+import { withTimeout } from "@/lib/withTimeout";
 
-// Add cleanup function that forcefully resets all state
-const forceCleanup = useCallback(() => {
-  setIsRefreshing(false);
-  setPullDistance(0);
-  setIsPulling(false);
-  // Force restore scrolling on iOS
-  if (containerRef.current) {
-    containerRef.current.style.overflow = '';
-    containerRef.current.style.touchAction = '';
-  }
-}, []);
+// In queryFn:
+const { data: result, error } = await withTimeout(
+  supabase.functions.invoke("check-payment"),
+  15000, // 15 second timeout
+  "Payment check timed out. Please refresh."
+);
 
-// In handleTouchEnd - add explicit cleanup
-const handleTouchEnd = () => {
-  // Always restore touch action
-  if (containerRef.current) {
-    containerRef.current.style.touchAction = '';
-  }
-  
-  if (pullDistance >= threshold) {
-    handleRefresh();
-  } else {
-    setPullDistance(0);
-  }
-  setIsPulling(false);
-};
+// In initiateCheckout:
+const { data: result, error } = await withTimeout(
+  supabase.functions.invoke("create-checkout", { body: { plan } }),
+  15000,
+  "Checkout request timed out. Please try again."
+);
 
-// After refresh completes - force cleanup
-try {
-  await onRefresh();
-} finally {
-  clearTimeout(safetyTimeout);
-  // Use requestAnimationFrame for smoother iOS behavior
-  requestAnimationFrame(() => {
-    setIsRefreshing(false);
-    setPullDistance(0);
-    // Restore scroll on iOS
-    if (containerRef.current) {
-      containerRef.current.style.overflow = '';
-    }
-  });
-}
-```
-
-### 3. Add Mutation Timeout and Retry Logic
-
-**File:** `src/hooks/useDashboardSummary.ts`
-
-Wrap mutations with a timeout wrapper that:
-- Aborts requests after 10 seconds
-- Provides clear error feedback
-- Prevents duplicate submissions
-
-```typescript
-// Add timeout wrapper for mutations
-const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error('Request timed out')), ms)
-    )
-  ]);
-};
-
-// In mutations, wrap the Supabase calls:
-const { data, error } = await withTimeout(
-  supabase.from("integrity_logs").insert({...}),
-  10000 // 10 second timeout
+// In openCustomerPortal:
+const { data: result, error } = await withTimeout(
+  supabase.functions.invoke("customer-portal"),
+  15000,
+  "Portal request timed out. Please try again."
 );
 ```
 
-### 4. Add React Error Boundary
+---
 
-**New file:** `src/components/ErrorBoundary.tsx`
+### 4. Add Payment Success Retry Logic
 
-Create a proper React error boundary that:
-- Catches rendering errors
-- Shows a recovery UI
-- Logs errors to analytics
-- Provides a "Refresh" action
+**File:** `src/hooks/useEntitlements.ts`
+
+When returning from Stripe with `?payment=success`, retry the check up to 3 times with delays to handle Stripe webhook timing:
 
 ```typescript
-// src/components/ErrorBoundary.tsx
-export class ErrorBoundary extends React.Component<Props, State> {
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Track error
-    supabase.from("app_errors").insert({
-      error_message: error.message,
-      error_stack: error.stack,
-      error_type: "react_boundary",
-      component_name: errorInfo.componentStack,
-    });
-  }
+// In the useEffect for payment URL params:
+if (paymentStatus === "success") {
+  toast.success("Welcome to Full Access! 🎉", {
+    description: "The Controllables and Experience History are now unlocked.",
+    duration: 5000,
+  });
   
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-6">
-          <h1>Something went wrong</h1>
-          <p>Your progress is saved. Please refresh to continue.</p>
-          <Button onClick={() => window.location.reload()}>
-            Refresh
-          </Button>
-        </div>
-      );
+  // Retry check-payment with delays to handle Stripe webhook timing
+  const retryCheck = async (attempts = 3) => {
+    for (let i = 0; i < attempts; i++) {
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      const result = await refetch();
+      if (result.data?.isPaid) break;
     }
-    return this.props.children;
-  }
+  };
+  retryCheck();
+  
+  window.history.replaceState({}, "", window.location.pathname);
 }
 ```
 
-### 5. Improve Query Client Configuration
+---
 
-**File:** `src/App.tsx`
+### 5. Add Error Recovery for check-payment
 
-Enhance the query client with better defaults for production stability:
+**File:** `src/hooks/useEntitlements.ts`
+
+Add retry configuration to React Query for resilience:
 
 ```typescript
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60 * 1000,
-      gcTime: 5 * 60 * 1000, // Garbage collect after 5 mins
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: true, // Enable reconnect refetch
-      retry: 1,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
-      networkMode: 'offlineFirst', // Better offline handling
-    },
-    mutations: {
-      retry: 0, // Don't auto-retry mutations
-      networkMode: 'online', // Mutations require network
-    },
+const { data, isLoading, refetch } = useQuery({
+  queryKey: ["payment-status", userId],
+  queryFn: async (): Promise<SubscriptionInfo> => {
+    // ... existing logic
   },
+  enabled: !!userId,
+  staleTime: 1000 * 60 * 5,
+  refetchOnWindowFocus: true,
+  retry: 2, // Retry failed requests twice
+  retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
 });
 ```
 
-### 6. Add Connection Status Indicator
+---
 
-**File:** `src/components/OfflineIndicator.tsx`
+### 6. Add Edge Function Test for Production Validation
 
-Enhance to also detect slow/unstable connections:
+**File:** `tests/e2e/stripe-production.spec.ts` (new)
+
+Create a production-focused test that validates edge functions respond correctly:
 
 ```typescript
-// Add slow connection detection
-const [isSlowConnection, setIsSlowConnection] = useState(false);
-
-useEffect(() => {
-  const connection = (navigator as any).connection;
-  if (connection) {
-    const updateConnection = () => {
-      setIsSlowConnection(
-        connection.effectiveType === 'slow-2g' || 
-        connection.effectiveType === '2g'
-      );
-    };
-    connection.addEventListener('change', updateConnection);
-    updateConnection();
-  }
-}, []);
+test.describe('Production Stripe Edge Functions', () => {
+  test('check-payment responds without error', async ({ page }) => {
+    // Test that function responds (not mocked)
+    await page.goto('/dashboard');
+    // ... validate no payment check errors in console
+  });
+  
+  test('create-checkout accepts both plans', async ({ page }) => {
+    // Validate monthly and yearly plan parameters work
+  });
+});
 ```
 
 ---
@@ -258,29 +182,53 @@ useEffect(() => {
 
 | File | Changes |
 |------|---------|
-| `src/App.tsx` | Add ErrorBoundary wrapper, enhance QueryClient config, add useAppResume |
-| `src/hooks/usePullToRefresh.ts` | Fix iOS scroll lock, add force cleanup, improve touch handling |
-| `src/hooks/useDashboardSummary.ts` | Add mutation timeout wrapper |
-| `src/hooks/useAppResume.ts` (new) | Visibility change handler for stale state recovery |
-| `src/components/ErrorBoundary.tsx` (new) | React error boundary with recovery UI |
-| `src/components/OfflineIndicator.tsx` | Add slow connection detection |
-
----
-
-## Expected Outcomes
-
-1. **Saving reliability**: Clear timeout feedback and automatic error recovery
-2. **App resume stability**: Automatic data refresh when returning after 5+ minutes
-3. **Pull-to-refresh on iOS**: Proper scroll restoration after refresh completes
-4. **Error recovery**: Graceful handling of React crashes with user-friendly recovery
-5. **Connection awareness**: Better feedback for slow/unstable network conditions
+| `supabase/functions/create-checkout/index.ts` | Expand CORS headers |
+| `supabase/functions/check-payment/index.ts` | Expand CORS headers |
+| `supabase/functions/customer-portal/index.ts` | Expand CORS headers |
+| `supabase/config.toml` | Add customer-portal function config |
+| `src/hooks/useEntitlements.ts` | Add timeouts, retry logic, error recovery |
+| `tests/e2e/stripe-production.spec.ts` | New production validation tests |
 
 ---
 
 ## Testing Checklist
 
-1. Open app, background it for 10+ minutes, return and verify data refreshes
-2. Start a save operation, kill network, verify timeout feedback appears
-3. Use pull-to-refresh on iOS, verify page scrolls normally after refresh
-4. Trigger a React error, verify error boundary shows recovery UI
-5. Test on slow 3G network, verify appropriate feedback is shown
+After implementation, verify:
+
+1. **Monthly Checkout Flow**
+   - Click upgrade with Monthly plan
+   - Complete Stripe checkout with test card
+   - Verify redirect to `/dashboard?payment=success`
+   - Verify success toast appears
+   - Verify isPaid = true immediately or within 3 seconds
+
+2. **Yearly Checkout Flow**
+   - Same as monthly but with Yearly plan
+   - Verify correct price shown in Stripe ($79.99)
+
+3. **Network Resilience**
+   - Slow 3G network - verify timeout message appears
+   - Airplane mode during checkout - verify error toast
+   - Resume from background - verify payment status refreshes
+
+4. **Paid User Experience**
+   - AI Operators unlocked (no blur/overlay)
+   - Experience History unlocked
+   - Billing page shows correct plan/price
+   - Customer Portal opens correctly
+
+5. **Edge Cases**
+   - Double-click checkout button (should not create multiple sessions)
+   - Back button during checkout (should not break flow)
+   - Already-paid user clicks upgrade (should show info message)
+
+---
+
+## Expected Outcomes
+
+1. **Reliability**: Checkout never hangs - always resolves or times out with clear feedback
+2. **Resilience**: Network issues don't break payment flow - retries handle transient failures
+3. **Consistency**: CORS headers work on all browsers/devices
+4. **Confidence**: Post-payment state is correctly detected within seconds
+5. **Production-ready**: All edge functions properly configured and tested
+
