@@ -19,11 +19,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get client's local date from request body if provided
+    // Get client's local date and timezone from request body if provided
     let clientDate: string | null = null;
+    let clientTimezone: string = "UTC";
     try {
       const body = await req.json();
       clientDate = body?.localDate || null;
+      clientTimezone = body?.timezone || "UTC";
     } catch {
       // No body or invalid JSON, use server date as fallback
     }
@@ -112,11 +114,23 @@ Deno.serve(async (req) => {
       ? Math.round((keptPromises.length / resolvedPromises.length) * 100) 
       : null;
     // Filter pending promises: exclude promises made TODAY (save for tomorrow's review)
+    // Use timezone-aware comparison to handle late-night promises correctly
     const pendingPromises = integrityLogs.filter((log: { kept: boolean | null; promised_at: string }) => {
       if (log.kept !== null) return false; // Already resolved
-      // Exclude promises made today - they should be reviewed tomorrow
-      const promisedDate = log.promised_at.split('T')[0];
-      return promisedDate !== today;
+      
+      try {
+        // Convert UTC promised_at to client's local date for accurate comparison
+        const promisedAt = new Date(log.promised_at);
+        const promisedDateLocal = promisedAt.toLocaleDateString("sv-SE", { 
+          timeZone: clientTimezone 
+        });
+        // Exclude promises made today (in client's timezone) - they should be reviewed tomorrow
+        return promisedDateLocal !== today;
+      } catch {
+        // If timezone conversion fails, use simple UTC date comparison as fallback
+        const promisedDate = log.promised_at.split('T')[0];
+        return promisedDate !== today;
+      }
     });
 
     return new Response(

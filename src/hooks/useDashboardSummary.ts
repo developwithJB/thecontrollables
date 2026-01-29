@@ -85,6 +85,15 @@ const getLocalDateString = (): string => {
   return `${year}-${month}-${day}`;
 };
 
+// Helper to get browser's timezone
+const getBrowserTimezone = (): string => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return "UTC";
+  }
+};
+
 export const useDashboardSummary = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -138,14 +147,15 @@ export const useDashboardSummary = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      // Pass client's local date to ensure timezone consistency
+      // Pass client's local date and timezone to ensure timezone consistency
       const localDate = getLocalDateString();
+      const timezone = getBrowserTimezone();
 
       const response = await supabase.functions.invoke("dashboard-summary", {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: { localDate },
+        body: { localDate, timezone },
       });
 
       if (response.error) throw response.error;
