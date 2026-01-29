@@ -1,223 +1,286 @@
 
+# Harden App for Production-Quality SaaS Experience
 
-# Email Nudges System Update
+## Problem Summary
 
-## Overview
+Based on the codebase analysis and user reports, there are three main categories of issues:
 
-This update will completely rewrite the email nudges system to align with the new specifications. The goal is a calm, contextual reminder system that respects user autonomy and reinforces self-trust - not engagement maximization.
-
-## Current State Analysis
-
-The existing system:
-- Has daily and weekly frequency options (correct)
-- Uses morning/evening time preferences (partially correct)
-- Generates generic subject lines like "Day 3. Still counts." (needs update)
-- Has permission lines (correct pattern, needs exact copy update)
-- Weekly emails currently send Monday morning only (correct trigger, wrong content)
-- Missing: Snapshot name, theme, focus area, day-specific context lines, proper weekly reflection format
-
-## Changes Required
-
-### 1. Profile Settings Modal (UI Copy Update)
-
-**File:** `src/components/ProfileSettingsModal.tsx`
-
-Update the Email Nudges section copy to match specification:
-
-| Current | Updated |
-|---------|---------|
-| "Gentle Email Nudges" | "Email Nudges (Optional)" |
-| "The Dashboard checks in for you — without pressure..." | "A calm reminder to return to your Snapshot. No streaks. No guilt. Turn off anytime." |
-| Radio: "Daily" / "Weekly (Monday)" | "Daily" / "Weekly" / "Off" |
-| Default: Switch off | Default: "Off" selected |
-
-**UI Flow Change:** Replace Switch + Radio pattern with a single RadioGroup:
-- `off` (default)
-- `daily` 
-- `weekly`
-
-Remove the separate Switch toggle since "Off" is now a radio option.
+1. **Saving operations hang or feel slow** - Mutations may get stuck without proper timeout handling or user feedback
+2. **App becomes buggy when returning after being open** - Stale state accumulates without proper visibility change handling
+3. **Pull-to-refresh on iOS PWA locks the page** - The touch handling doesn't properly release scroll control after refresh completes
 
 ---
 
-### 2. Edge Function Complete Rewrite
+## Root Cause Analysis
 
-**File:** `supabase/functions/send-daily-nudge/index.ts`
+### Issue 1: Saving Hangs
+- The app has good timeout warnings (5-second `useAutoLoadingTimeout`) but they're only visual feedback
+- No automatic retry or recovery mechanism exists
+- The edge function `dashboard-summary` and mutations have no client-side timeout limits
+- React Query mutations don't have abort controllers or timeout configuration
 
-#### A. Data Fetching Updates
+### Issue 2: Stale State on Resume
+- No `visibilitychange` event handling anywhere in the codebase
+- When app is backgrounded and resumed, cached data can be many hours old
+- Multiple auth state listeners may accumulate without proper cleanup
+- React Query's `refetchOnWindowFocus: false` prevents automatic refresh when returning
 
-Expand `getUserContext` to fetch:
-- Snapshot name (from journey_id mapping)
-- Snapshot theme/tagline (from Snapshot data)
-- Snapshot focus (Controllable)
-- Days completed in current snapshot (count of daily_resets for current session)
-- Total days completed for weekly email (7 days total view)
+### Issue 3: Pull-to-Refresh Locks Page
+- The `usePullToRefresh` hook uses `e.preventDefault()` during touch move (line 77)
+- After refresh completes, scroll isn't explicitly re-enabled
+- The `isRefreshing` state may not properly clear in all edge cases on iOS Safari
+- iOS PWA has unique touch event handling quirks that require special consideration
 
-#### B. Daily Email Template
+---
 
-**Subject Line Format:**
-```
-{{snapshot_name}}. Day {{day_number}}.
-```
-Example: `Back to Zero. Day 3.`
+## Technical Solution
 
-**Body Template:**
-```
-🌱
+### 1. Add Visibility Change Handler for App Resume
 
-Hey {{user_name}},
+**Files:** `src/App.tsx`, new `src/hooks/useAppResume.ts`
 
-You're on Day {{day_number}} of your {{snapshot_name}} Snapshot.
-
-This week's focus: {{snapshot_theme}}
-Focus area: {{focus_area}}
-
-{{context_line}}
-
-If you want to check in, your next small action is waiting.
-
-[Open Today's Actions →]
-
-{{permission_line}}
-
-Turn off anytime in settings.
-```
-
-#### C. Day-Based Context Lines
-
-| Day | Context Line |
-|-----|--------------|
-| 1 | "Starting fresh. No pressure to be perfect." |
-| 4 | "Day 4 — the wobble is normal. It's part of the process." |
-| 7 | "This is what proof looks like. One week of showing up." |
-| Other | Neutral context like "Still here. That matters." |
-
-#### D. Weekly Email Template (New)
-
-**Trigger:** Once per Snapshot completion OR end of week
-
-**Subject Line Format:**
-```
-Your {{snapshot_name}} Snapshot.
-```
-Example: `Your Back to Zero Snapshot.`
-
-**Body Template:**
-```
-🏁
-
-Hey {{user_name}},
-
-Here's your Snapshot from this past week.
-
-Snapshot: {{snapshot_name}}
-Focus: {{snapshot_theme}}
-Days shown up: {{days_completed}} / 7
-
-This week still counts.
-What matters most is that you showed up at least once.
-
-If you want to review or start another Snapshot, it's ready.
-
-[View Your Snapshot →]
-
-{{permission_line}}
-
-You're always allowed to pause or return later.
-```
-
-#### E. Permission Lines (Exact Rotation)
+Create a hook that detects when the app comes back into focus after being backgrounded and:
+- Invalidates stale queries (older than 5 minutes)
+- Refreshes auth session to prevent expired token issues
+- Tracks the resume event for debugging
 
 ```typescript
-const PERMISSION_LINES = [
-  "Nothing is required today.",
-  "This is here whenever you're ready.",
-  "No pressure. Just a quiet check-in.",
-  "You're allowed to pause or continue at your own pace.",
-  "You don't need to do anything more unless you want to.",
-];
+// src/hooks/useAppResume.ts
+export function useAppResume() {
+  const queryClient = useQueryClient();
+  const lastVisibleRef = useRef(Date.now());
+  
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.hidden) {
+        // App backgrounded - record time
+        lastVisibleRef.current = Date.now();
+      } else {
+        // App resumed - check staleness
+        const hiddenDuration = Date.now() - lastVisibleRef.current;
+        const STALE_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+        
+        if (hiddenDuration > STALE_THRESHOLD) {
+          // Refresh auth session
+          await supabase.auth.getSession();
+          // Invalidate all active queries
+          queryClient.invalidateQueries({ type: 'active' });
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [queryClient]);
+}
 ```
 
-#### F. CTA Standardization
+### 2. Fix Pull-to-Refresh for iOS PWA
 
-- Daily emails: `Open Today's Actions →` (never vary)
-- Weekly emails: `View Your Snapshot →` (never vary)
+**File:** `src/hooks/usePullToRefresh.ts`
 
----
+The current implementation has issues with iOS Safari's overscroll behavior. Fixes:
 
-### 3. Database Consideration
+- Add explicit scroll restoration after refresh
+- Use `touch-action: none` on the pulling element during pull
+- Force reset all states with a cleanup mechanism
+- Add iOS-specific detection and handling
+- Ensure `e.preventDefault()` is only called when actively pulling
 
-The `nudge_frequency` column already exists with values `daily` | `weekly`. Add support for `off` as a value (or use `null` / remove `email_nudge_enabled` flag).
+```typescript
+// Key changes to usePullToRefresh.ts
 
-**Option A (Cleaner):** Keep `email_nudge_enabled` but treat `nudge_frequency = 'off'` as equivalent to disabled
-**Option B:** Remove the separate enabled flag and use frequency alone
+// Add cleanup function that forcefully resets all state
+const forceCleanup = useCallback(() => {
+  setIsRefreshing(false);
+  setPullDistance(0);
+  setIsPulling(false);
+  // Force restore scrolling on iOS
+  if (containerRef.current) {
+    containerRef.current.style.overflow = '';
+    containerRef.current.style.touchAction = '';
+  }
+}, []);
 
-Recommendation: **Option A** - minimal migration, just update UI logic.
+// In handleTouchEnd - add explicit cleanup
+const handleTouchEnd = () => {
+  // Always restore touch action
+  if (containerRef.current) {
+    containerRef.current.style.touchAction = '';
+  }
+  
+  if (pullDistance >= threshold) {
+    handleRefresh();
+  } else {
+    setPullDistance(0);
+  }
+  setIsPulling(false);
+};
 
----
-
-## Implementation Summary
-
-| File | Changes |
-|------|---------|
-| `src/components/ProfileSettingsModal.tsx` | Replace Switch + Radio with single RadioGroup (Off/Daily/Weekly), update copy |
-| `supabase/functions/send-daily-nudge/index.ts` | Complete rewrite of email templates, add snapshot data fetching, implement day-based context, separate daily vs weekly logic |
-| Database | Add `'off'` as valid `nudge_frequency` value (or use existing `email_nudge_enabled = false`) |
-
----
-
-## Technical Details
-
-### Edge Function Data Flow
-
-```text
-1. Fetch user profile (timezone, nudge settings)
-2. Determine if user qualifies for nudge (time match, frequency match)
-3. Fetch user context:
-   - reset_sessions → current_day, journey_id
-   - daily_resets → count completed days for this session
-   - profiles → display_name
-4. Map journey_id to Snapshot data (inline SNAPSHOTS lookup)
-5. Generate appropriate email (daily vs weekly)
-6. Send via Resend, log to email_nudge_logs
+// After refresh completes - force cleanup
+try {
+  await onRefresh();
+} finally {
+  clearTimeout(safetyTimeout);
+  // Use requestAnimationFrame for smoother iOS behavior
+  requestAnimationFrame(() => {
+    setIsRefreshing(false);
+    setPullDistance(0);
+    // Restore scroll on iOS
+    if (containerRef.current) {
+      containerRef.current.style.overflow = '';
+    }
+  });
+}
 ```
 
-### Snapshot Data in Edge Function
+### 3. Add Mutation Timeout and Retry Logic
 
-Since the edge function cannot import from `src/lib/snapshots.ts`, we need to either:
-- **Option A:** Inline a minimal snapshot lookup map in the edge function
-- **Option B:** Query from database (would require new table)
+**File:** `src/hooks/useDashboardSummary.ts`
 
-Recommendation: **Option A** - Inline a `SNAPSHOT_DATA` map with just `{ name, tagline, focus }` for each snapshot ID.
+Wrap mutations with a timeout wrapper that:
+- Aborts requests after 10 seconds
+- Provides clear error feedback
+- Prevents duplicate submissions
 
-### Weekly Email Trigger Logic
+```typescript
+// Add timeout wrapper for mutations
+const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('Request timed out')), ms)
+    )
+  ]);
+};
 
-Current: Weekly sends only on Monday at 7am
-Updated: Weekly sends:
-- At end of Day 7 (completion)
-- OR on Monday morning for incomplete snapshots
+// In mutations, wrap the Supabase calls:
+const { data, error } = await withTimeout(
+  supabase.from("integrity_logs").insert({...}),
+  10000 // 10 second timeout
+);
+```
 
-This requires tracking whether weekly email was already sent for the current snapshot.
+### 4. Add React Error Boundary
+
+**New file:** `src/components/ErrorBoundary.tsx`
+
+Create a proper React error boundary that:
+- Catches rendering errors
+- Shows a recovery UI
+- Logs errors to analytics
+- Provides a "Refresh" action
+
+```typescript
+// src/components/ErrorBoundary.tsx
+export class ErrorBoundary extends React.Component<Props, State> {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Track error
+    supabase.from("app_errors").insert({
+      error_message: error.message,
+      error_stack: error.stack,
+      error_type: "react_boundary",
+      component_name: errorInfo.componentStack,
+    });
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen p-6">
+          <h1>Something went wrong</h1>
+          <p>Your progress is saved. Please refresh to continue.</p>
+          <Button onClick={() => window.location.reload()}>
+            Refresh
+          </Button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+```
+
+### 5. Improve Query Client Configuration
+
+**File:** `src/App.tsx`
+
+Enhance the query client with better defaults for production stability:
+
+```typescript
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000,
+      gcTime: 5 * 60 * 1000, // Garbage collect after 5 mins
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true, // Enable reconnect refetch
+      retry: 1,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+      networkMode: 'offlineFirst', // Better offline handling
+    },
+    mutations: {
+      retry: 0, // Don't auto-retry mutations
+      networkMode: 'online', // Mutations require network
+    },
+  },
+});
+```
+
+### 6. Add Connection Status Indicator
+
+**File:** `src/components/OfflineIndicator.tsx`
+
+Enhance to also detect slow/unstable connections:
+
+```typescript
+// Add slow connection detection
+const [isSlowConnection, setIsSlowConnection] = useState(false);
+
+useEffect(() => {
+  const connection = (navigator as any).connection;
+  if (connection) {
+    const updateConnection = () => {
+      setIsSlowConnection(
+        connection.effectiveType === 'slow-2g' || 
+        connection.effectiveType === '2g'
+      );
+    };
+    connection.addEventListener('change', updateConnection);
+    updateConnection();
+  }
+}, []);
+```
 
 ---
 
 ## Files to Modify
 
-1. `src/components/ProfileSettingsModal.tsx` - UI and copy updates
-2. `supabase/functions/send-daily-nudge/index.ts` - Complete email generation rewrite
+| File | Changes |
+|------|---------|
+| `src/App.tsx` | Add ErrorBoundary wrapper, enhance QueryClient config, add useAppResume |
+| `src/hooks/usePullToRefresh.ts` | Fix iOS scroll lock, add force cleanup, improve touch handling |
+| `src/hooks/useDashboardSummary.ts` | Add mutation timeout wrapper |
+| `src/hooks/useAppResume.ts` (new) | Visibility change handler for stale state recovery |
+| `src/components/ErrorBoundary.tsx` (new) | React error boundary with recovery UI |
+| `src/components/OfflineIndicator.tsx` | Add slow connection detection |
 
 ---
 
-## Acceptance Criteria Verification
+## Expected Outcomes
 
-| Requirement | Implementation |
-|-------------|----------------|
-| Opt-in only, off by default | UI defaults to "Off" radio selection |
-| No shame, rush, or pressure | All copy reviewed for calm tone |
-| Reinforce context (Snapshot + Focus) | Subject and body include snapshot name, theme, focus |
-| Permission-giving line in every email | Mandatory rotation from 5 approved lines |
-| Consistent CTA | "Open Today's Actions →" / "View Your Snapshot →" only |
-| Daily: light orientation | Day-based micro-variation with context |
-| Weekly: reflection, closure | Summary format with days shown up |
-| Turning off feels safe | "Turn off anytime in settings" footer |
+1. **Saving reliability**: Clear timeout feedback and automatic error recovery
+2. **App resume stability**: Automatic data refresh when returning after 5+ minutes
+3. **Pull-to-refresh on iOS**: Proper scroll restoration after refresh completes
+4. **Error recovery**: Graceful handling of React crashes with user-friendly recovery
+5. **Connection awareness**: Better feedback for slow/unstable network conditions
 
+---
+
+## Testing Checklist
+
+1. Open app, background it for 10+ minutes, return and verify data refreshes
+2. Start a save operation, kill network, verify timeout feedback appears
+3. Use pull-to-refresh on iOS, verify page scrolls normally after refresh
+4. Trigger a React error, verify error boundary shows recovery UI
+5. Test on slow 3G network, verify appropriate feedback is shown
