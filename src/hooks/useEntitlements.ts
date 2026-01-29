@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { getPricing, type PlanType } from "@/lib/pricing";
+import { type PlanType } from "@/lib/pricing";
+import { withTimeout } from "@/lib/withTimeout";
 
 interface SubscriptionInfo {
   isPaid: boolean;
@@ -26,6 +27,9 @@ interface EntitlementStatus {
   isOpeningPortal: boolean;
 }
 
+// Timeout for edge function calls (15 seconds)
+const EDGE_FUNCTION_TIMEOUT = 15000;
+
 /**
  * Hook to check user entitlement status (free vs paid subscription).
  * 
@@ -41,7 +45,6 @@ interface EntitlementStatus {
  * - AI Companions (AI Operators panel)
  */
 export function useEntitlements(userId: string | null): EntitlementStatus {
-  const queryClient = useQueryClient();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
 
@@ -58,7 +61,11 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
       };
       
       try {
-        const { data: result, error } = await supabase.functions.invoke("check-payment");
+        const { data: result, error } = await withTimeout(
+          supabase.functions.invoke("check-payment"),
+          EDGE_FUNCTION_TIMEOUT,
+          "Payment check timed out. Please refresh the page."
+        );
         
         if (error) {
           console.error("Error checking payment status:", error);
@@ -92,6 +99,8 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
     enabled: !!userId,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnWindowFocus: true,
+    retry: 2, // Retry failed requests twice
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 
   // Check for payment success/cancel URL params
@@ -104,9 +113,23 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
         description: "The Controllables and Experience History are now unlocked.",
         duration: 5000,
       });
-      // Refetch payment status
-      refetch();
-      // Clean up URL
+      
+      // Retry check-payment with delays to handle Stripe webhook timing
+      // This addresses the race condition where Stripe may not have processed the payment yet
+      const retryCheck = async (attempts = 3) => {
+        for (let i = 0; i < attempts; i++) {
+          // Incremental delay: 1s, 2s, 3s
+          await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+          const result = await refetch();
+          if (result.data?.isPaid) {
+            console.log("[useEntitlements] Payment verified on attempt", i + 1);
+            break;
+          }
+        }
+      };
+      retryCheck();
+      
+      // Clean up URL immediately
       window.history.replaceState({}, "", window.location.pathname);
     } else if (paymentStatus === "canceled") {
       toast("Checkout canceled", {
@@ -131,9 +154,13 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
     setIsCheckingOut(true);
     
     try {
-      const { data: result, error } = await supabase.functions.invoke("create-checkout", {
-        body: { plan }
-      });
+      const { data: result, error } = await withTimeout(
+        supabase.functions.invoke("create-checkout", {
+          body: { plan }
+        }),
+        EDGE_FUNCTION_TIMEOUT,
+        "Checkout request timed out. Please try again."
+      );
       
       if (error) {
         throw new Error(error.message || "Failed to create checkout session");
@@ -169,7 +196,11 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
     setIsOpeningPortal(true);
     
     try {
-      const { data: result, error } = await supabase.functions.invoke("customer-portal");
+      const { data: result, error } = await withTimeout(
+        supabase.functions.invoke("customer-portal"),
+        EDGE_FUNCTION_TIMEOUT,
+        "Portal request timed out. Please try again."
+      );
       
       if (error) {
         throw new Error(error.message || "Failed to open customer portal");
