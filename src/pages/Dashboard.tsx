@@ -1272,6 +1272,7 @@ export default function Dashboard() {
         onOpenChange={setShowProfileSettings}
         userId={user?.id ?? ""}
         userEmail={user?.email ?? ""}
+        isPaid={isPaid}
         onSignOut={handleSignOut}
       />
 

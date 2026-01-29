@@ -28,6 +28,7 @@ interface ProfileSettingsModalProps {
   onOpenChange: (open: boolean) => void;
   userId: string;
   userEmail: string;
+  isPaid: boolean;
   onSignOut: () => void;
 }
 
@@ -54,6 +55,7 @@ export function ProfileSettingsModal({
   onOpenChange,
   userId,
   userEmail,
+  isPaid,
 }: ProfileSettingsModalProps) {
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState("");
@@ -252,12 +254,12 @@ export function ProfileSettingsModal({
               </div>
 
               {/* Premium Option: Email Nudges */}
-              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border border-border">
+              <div className={`space-y-3 p-4 rounded-lg border ${isPaid ? 'bg-muted/50 border-border' : 'bg-muted/20 border-border/50'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <Mail className="w-4 h-4 text-muted-foreground" />
-                      <Label htmlFor="nudge-toggle" className="cursor-pointer font-medium">
+                      <Label htmlFor="nudge-toggle" className={`font-medium ${!isPaid ? 'text-muted-foreground' : 'cursor-pointer'}`}>
                         Gentle Email Nudges
                       </Label>
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
@@ -265,17 +267,22 @@ export function ProfileSettingsModal({
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1 pr-4">
-                      The Dashboard checks in for you — without pressure, streaks, or guilt.
+                      {isPaid 
+                        ? "The Dashboard checks in for you — without pressure, streaks, or guilt."
+                        : "A quiet nudge to return to what matters. Available with Premium."
+                      }
                     </p>
                   </div>
                   <Switch
                     id="nudge-toggle"
-                    checked={emailNudgeEnabled}
-                    onCheckedChange={setEmailNudgeEnabled}
+                    checked={isPaid ? emailNudgeEnabled : false}
+                    onCheckedChange={isPaid ? setEmailNudgeEnabled : undefined}
+                    disabled={!isPaid}
+                    className={!isPaid ? 'opacity-50' : ''}
                   />
                 </div>
                 
-                {emailNudgeEnabled && (
+                {isPaid && emailNudgeEnabled && (
                   <div className="space-y-4 pt-3 border-t border-border/50">
                     {/* Frequency selector */}
                     <div className="space-y-2">
