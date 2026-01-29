@@ -35,6 +35,7 @@ interface DashboardSummary {
     kept: boolean | null;
     kept_at: string | null;
   }>;
+  todayPromiseMade: boolean; // NEW: timezone-aware flag from server
   todayTimeLog: {
     id: string;
     user_id: string;
@@ -170,6 +171,7 @@ export const useDashboardSummary = () => {
   const totalXp = summary?.totalXp ?? 0;
   const integrityScore = summary?.integrityScore ?? null;
   const pendingPromises = summary?.pendingPromises ?? [];
+  const todayPromiseMade = summary?.todayPromiseMade ?? false;
   const todayTimeLog = summary?.todayTimeLog ?? null;
   const userBuild = summary?.userBuild ?? null;
   const xpLogs = summary?.xpLogs ?? [];
@@ -503,6 +505,7 @@ export const useDashboardSummary = () => {
     integrityScore,
     integrityLogs,
     pendingPromises,
+    todayPromiseMade, // NEW: timezone-aware flag from server
     createPromise: createPromiseMutation.mutateAsync,
     resolvePromise: resolvePromiseMutation.mutateAsync,
     

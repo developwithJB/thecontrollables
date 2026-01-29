@@ -215,6 +215,7 @@ export default function Dashboard() {
     integrityScore,
     integrityLogs,
     pendingPromises,
+    todayPromiseMade, // NEW: timezone-aware flag from server
     createPromise,
     resolvePromise,
     todayTimeLog,
@@ -795,7 +796,7 @@ export default function Dashboard() {
                   hasActiveQuest={!!activeQuest}
                   todayTimeLogged={!!todayTimeLog}
                   pendingPromisesCount={pendingPromises.length}
-                  todayPromiseMade={integrityLogs.some((log) => log.promised_at.startsWith(todayLocal))}
+                  todayPromiseMade={todayPromiseMade}
                   todayXpEarned={xpLogs
                     .filter((log) => log.created_at.startsWith(todayLocal))
                     .reduce((sum, log) => sum + log.amount, 0)}
@@ -969,7 +970,7 @@ export default function Dashboard() {
                               integrityScore={integrityScore}
                               pendingPromises={pendingPromises}
                               hasAnyPromises={integrityLogs.length > 0}
-                              todayPromiseMade={integrityLogs.some((log) => log.promised_at.startsWith(todayLocal))}
+                              todayPromiseMade={todayPromiseMade}
                               onCreatePromise={createPromise}
                               onResolvePromise={handleResolvePromise}
                               compact

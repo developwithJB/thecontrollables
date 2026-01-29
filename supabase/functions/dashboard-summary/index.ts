@@ -113,24 +113,28 @@ Deno.serve(async (req) => {
     const integrityScore = resolvedPromises.length > 0 
       ? Math.round((keptPromises.length / resolvedPromises.length) * 100) 
       : null;
+    // Helper function to convert UTC date to client's local date string
+    const toLocalDateString = (utcDateString: string): string => {
+      try {
+        const date = new Date(utcDateString);
+        return date.toLocaleDateString("sv-SE", { timeZone: clientTimezone });
+      } catch {
+        // Fallback to UTC date extraction
+        return utcDateString.split('T')[0];
+      }
+    };
+
+    // Check if any promise was made TODAY (in client's timezone)
+    const todayPromiseMade = integrityLogs.some((log: { promised_at: string }) => {
+      return toLocalDateString(log.promised_at) === today;
+    });
+
     // Filter pending promises: exclude promises made TODAY (save for tomorrow's review)
     // Use timezone-aware comparison to handle late-night promises correctly
     const pendingPromises = integrityLogs.filter((log: { kept: boolean | null; promised_at: string }) => {
       if (log.kept !== null) return false; // Already resolved
-      
-      try {
-        // Convert UTC promised_at to client's local date for accurate comparison
-        const promisedAt = new Date(log.promised_at);
-        const promisedDateLocal = promisedAt.toLocaleDateString("sv-SE", { 
-          timeZone: clientTimezone 
-        });
-        // Exclude promises made today (in client's timezone) - they should be reviewed tomorrow
-        return promisedDateLocal !== today;
-      } catch {
-        // If timezone conversion fails, use simple UTC date comparison as fallback
-        const promisedDate = log.promised_at.split('T')[0];
-        return promisedDate !== today;
-      }
+      // Exclude promises made today (in client's timezone) - they should be reviewed tomorrow
+      return toLocalDateString(log.promised_at) !== today;
     });
 
     return new Response(
@@ -139,6 +143,7 @@ Deno.serve(async (req) => {
         totalXp,
         integrityScore,
         pendingPromises,
+        todayPromiseMade, // NEW: timezone-aware "made promise today" flag
         todayTimeLog: todayTimeLogResult.data,
         userBuild: userBuildResult.data,
         // Include raw logs for components that need them
