@@ -14,6 +14,8 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // Prevent duplicate React instances (causes "null is not an object" errors on mobile)
+    dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   build: {
     // Chunk splitting for better caching
