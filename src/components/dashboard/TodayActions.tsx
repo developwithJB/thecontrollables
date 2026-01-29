@@ -331,14 +331,13 @@ export function TodayActions({
   if (hasActiveSession && !isResetCompleted && !isResetExpired) {
     // Day 1: Encourage making a promise (show completed if they made one today)
     if (currentDay === 1) {
-      // Show the task if they haven't made a promise today, OR show it as completed if they have
-      const promiseCompleted = todayPromiseMade || pendingPromisesCount > 0;
+      // Only mark complete if user made a promise TODAY (not based on pending old promises)
       actions.push({
         id: "make-promise",
         label: "Make your first promise",
-        sublabel: promiseCompleted ? "Completed" : "Build integrity through kept commitments",
+        sublabel: todayPromiseMade ? "Completed" : "Build integrity through kept commitments",
         icon: <Scale className="w-4 h-4" />,
-        completed: promiseCompleted,
+        completed: todayPromiseMade,
         timeEstimate: "1 min",
         action: onOpenPromises,
       });
@@ -371,13 +370,13 @@ export function TodayActions({
         });
       } else {
         // Free users: suggest making a promise instead
-        const promiseCompleted = todayPromiseMade || pendingPromisesCount > 0;
+        // Only mark complete if user made a promise TODAY (not based on pending old promises)
         actions.push({
           id: "make-promise",
           label: "Make a promise to yourself",
-          sublabel: promiseCompleted ? "Completed" : "Build integrity through kept commitments",
+          sublabel: todayPromiseMade ? "Completed" : "Build integrity through kept commitments",
           icon: <Scale className="w-4 h-4" />,
-          completed: promiseCompleted,
+          completed: todayPromiseMade,
           timeEstimate: "1 min",
           action: onOpenPromises,
         });
