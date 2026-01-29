@@ -216,6 +216,7 @@ export default function Dashboard() {
     integrityLogs,
     pendingPromises,
     todayPromiseMade, // NEW: timezone-aware flag from server
+    consecutiveStreak, // NEW: actual consecutive days checked in
     createPromise,
     resolvePromise,
     todayTimeLog,
@@ -726,7 +727,7 @@ export default function Dashboard() {
               <GreetingBanner
                 userId={user?.id}
                 totalXp={totalXp}
-                streakDays={completedDays.length}
+                streakDays={consecutiveStreak}
                 visitCount={dashboardVisitCount}
                 missionTitle={activeQuest?.title}
                 onMissionClick={() => {
