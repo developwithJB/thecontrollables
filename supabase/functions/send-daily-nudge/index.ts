@@ -27,6 +27,7 @@ interface UserContext {
   focusControllable: string | null;
   displayName: string | null;
   todayActionsCompleted: boolean;
+  missionTitle: string | null;
 }
 
 interface NudgeRequest {
@@ -82,11 +83,12 @@ async function getUserContext(
     focusControllable: null,
     displayName: null,
     todayActionsCompleted: false,
+    missionTitle: null,
   };
 
   try {
     // Fetch in parallel
-    const [buildResult, sessionResult, profileResult, actionsCompleted] = await Promise.all([
+    const [buildResult, sessionResult, profileResult, actionsCompleted, questResult] = await Promise.all([
       supabase
         .from("user_build_current")
         .select("awareness, perspective, habit, wellness, environment")
@@ -104,9 +106,20 @@ async function getUserContext(
         .eq("id", userId)
         .maybeSingle(),
       checkTodayActionsCompleted(supabase, userId, localDate),
+      supabase
+        .from("main_quests")
+        .select("title")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .maybeSingle(),
     ]);
 
     context.todayActionsCompleted = actionsCompleted;
+    
+    // Mission title
+    if (questResult.data?.title) {
+      context.missionTitle = questResult.data.title;
+    }
 
     // Process build scores to find lowest
     if (buildResult.data) {
@@ -236,7 +249,12 @@ function generateEmailContent(
   // Permission-giving line — mandatory, placed before CTA
   const permissionLine = PERMISSION_LINES[Math.floor(Math.random() * PERMISSION_LINES.length)];
 
-  // Build HTML body — standardized structure with permission line
+  // Mission direction line (if available)
+  const missionLine = context.missionTitle 
+    ? `<p style="font-size: 12px; color: #999; margin: 0 0 20px 0;">Your direction: <strong style="color: #666;">${context.missionTitle}</strong></p>`
+    : "";
+
+  // Build HTML body — standardized structure with permission line and mission
   const body = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 440px; margin: 0 auto; padding: 40px 20px; text-align: center; background: #fafafa;">
       <div style="font-size: 36px; margin-bottom: 24px;">${emoji}</div>
@@ -249,9 +267,11 @@ function generateEmailContent(
         ${mainMessage}
       </p>
       
-      <p style="font-size: 15px; color: #666; margin: 0 0 20px 0;">
+      <p style="font-size: 15px; color: #666; margin: 0 0 16px 0;">
         ${groundingLine}
       </p>
+      
+      ${missionLine}
       
       <p style="font-size: 13px; color: #888; margin: 0 0 24px 0; font-style: italic;">
         ${permissionLine}
