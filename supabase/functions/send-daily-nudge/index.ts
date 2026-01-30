@@ -9,48 +9,90 @@ const corsHeaders = {
 const MORNING_HOUR = 7;
 
 // Snapshot data for email context (inline since we can't import from src)
+// IMPORTANT: Keep in sync with src/lib/snapshots.ts
 const SNAPSHOT_DATA: Record<string, { name: string; tagline: string; focus: string }> = {
+  // 🔄 Reset & Re-Entry
   "back-to-zero": { name: "Back to Zero", tagline: "Start fresh without shame", focus: "Awareness" },
   "just-show-up": { name: "Just Show Up", tagline: "Presence over performance", focus: "Habit" },
   "stabilize-basics": { name: "Stabilize the Basics", tagline: "Simple foundations first", focus: "Wellness" },
   "restart-without-shame": { name: "Restart Without Shame", tagline: "Grace over guilt", focus: "Perspective" },
   "get-grounded": { name: "Get Grounded Again", tagline: "Anchor in your space", focus: "Environment" },
   "one-day-at-time": { name: "One Day at a Time", tagline: "Today is enough", focus: "Awareness" },
+  "environment-reset": { name: "Environment Reset", tagline: "Design your space for success", focus: "Environment" },
+  
+  // ⚡ Momentum & Consistency
   "one-thing-a-day": { name: "One Thing a Day", tagline: "Simple beats complex", focus: "Habit" },
   "tiny-wins": { name: "Tiny Wins Week", tagline: "Stack small victories", focus: "Habit" },
   "finish-what-you-start": { name: "Finish What You Start", tagline: "Completion over perfection", focus: "Habit" },
   "build-the-chain": { name: "Build the Chain", tagline: "Don't break the streak", focus: "Habit" },
   "show-up-anyway": { name: "Show Up Anyway", tagline: "Action despite resistance", focus: "Habit" },
   "consistency-over-intensity": { name: "Consistency Over Intensity", tagline: "Slow is fast", focus: "Perspective" },
+  "replace-the-trigger": { name: "Replace the Trigger", tagline: "Swap the urge, keep the routine", focus: "Habit" },
+  
+  // 🧠 Clarity & Perspective
   "quiet-the-noise": { name: "Quiet the Noise", tagline: "Silence before clarity", focus: "Awareness" },
   "zoom-out": { name: "Zoom Out", tagline: "See the bigger picture", focus: "Perspective" },
   "what-actually-matters": { name: "What Actually Matters", tagline: "Cut through the noise", focus: "Perspective" },
   "pause-before-reacting": { name: "Pause Before Reacting", tagline: "Response over reaction", focus: "Awareness" },
   "see-it-clearly": { name: "See It Clearly", tagline: "Facts over feelings", focus: "Awareness" },
   "reframe-the-story": { name: "Reframe the Story", tagline: "Change the narrative", focus: "Perspective" },
+  "less-mental-weight": { name: "Less Mental Weight", tagline: "Lighten the load", focus: "Environment" },
+  "delay-the-impulse": { name: "Delay the Impulse", tagline: "10 minutes changes everything", focus: "Awareness" },
+  "urge-surfing": { name: "Urge Surfing Week", tagline: "Ride the wave", focus: "Awareness" },
+  "reduce-mental-noise": { name: "Quiet the Noise", tagline: "Silence before clarity", focus: "Awareness" },
+  "refocus-on-what-matters": { name: "What Actually Matters", tagline: "Cut through the noise", focus: "Perspective" },
+  
+  // 🛰️ Energy & Care
   "protect-your-energy": { name: "Protect Your Energy", tagline: "Guard your reserves", focus: "Wellness" },
   "slow-down-week": { name: "Slow Down Week", tagline: "Less speed, more presence", focus: "Wellness" },
   "sleep-first": { name: "Sleep First", tagline: "Foundation of everything", focus: "Wellness" },
   "body-check-in": { name: "Body Check-In", tagline: "Listen to signals", focus: "Wellness" },
-  "inputs-audit": { name: "Inputs Audit", tagline: "What you consume matters", focus: "Environment" },
-  "environment-reset": { name: "Environment Reset", tagline: "Space shapes behavior", focus: "Environment" },
+  "back-to-basics": { name: "Back to the Basics", tagline: "Simple foundations", focus: "Wellness" },
+  "care-is-not-laziness": { name: "Care Is Not Laziness", tagline: "Rest is productive", focus: "Perspective" },
+  "fuel-the-body": { name: "Fuel the Body", tagline: "Nourish to perform", focus: "Wellness" },
+  "rest-without-guilt": { name: "Rest Without Guilt", tagline: "Permission granted", focus: "Perspective" },
+  "take-care-first": { name: "Take Care First", tagline: "You before the to-do", focus: "Wellness" },
+  
+  // 🧱 Integrity & Self-Trust
   "keep-one-promise": { name: "Keep One Promise", tagline: "Build trust with yourself", focus: "Habit" },
+  "keep-small-promises": { name: "Keep Small Promises", tagline: "Trust is built in micro-moments", focus: "Habit" },
   "follow-through": { name: "Follow Through", tagline: "Do what you said", focus: "Habit" },
   "rebuild-trust": { name: "Rebuild Trust", tagline: "One kept promise at a time", focus: "Perspective" },
   "say-what-you-mean": { name: "Say What You Mean", tagline: "Clarity over comfort", focus: "Awareness" },
+  "say-less-do-more": { name: "Say Less, Do More", tagline: "Actions speak", focus: "Habit" },
+  "word-equals-bond": { name: "Word = Bond", tagline: "Mean what you say", focus: "Awareness" },
   "boundaries-week": { name: "Boundaries Week", tagline: "Protect what matters", focus: "Environment" },
   "integrity-audit": { name: "Integrity Audit", tagline: "Align words and actions", focus: "Awareness" },
+  "earn-trust-back": { name: "Earn Your Trust Back", tagline: "Rebuild through action", focus: "Perspective" },
+  "do-what-you-said": { name: "Do What You Said", tagline: "Simple but powerful", focus: "Habit" },
+  "rebuild-confidence-agb": { name: "Rebuild Your Confidence", tagline: "Confidence comes from kept promises", focus: "Habit" },
+  "rebuild-momentum": { name: "Rebuild Your Momentum", tagline: "Start small, build up", focus: "Habit" },
+  "reenter-the-game": { name: "Re-enter the Game", tagline: "Get back in action", focus: "Habit" },
+  
+  // 🌱 Growth & Expansion
   "try-something-new": { name: "Try Something New", tagline: "Expand your edges", focus: "Habit" },
   "push-one-edge": { name: "Push One Edge", tagline: "Controlled discomfort", focus: "Perspective" },
   "upgrade-one-habit": { name: "Upgrade One Habit", tagline: "Level up what works", focus: "Habit" },
   "learn-in-public": { name: "Learn in Public", tagline: "Share the journey", focus: "Perspective" },
   "ship-something": { name: "Ship Something", tagline: "Done beats perfect", focus: "Habit" },
   "reflect-and-plan": { name: "Reflect and Plan", tagline: "Review before moving forward", focus: "Awareness" },
-  // Goal-based snapshots
-  "replace-the-trigger": { name: "Replace the Trigger", tagline: "Swap the cue", focus: "Habit" },
-  "delay-the-impulse": { name: "Delay the Impulse", tagline: "Create space before action", focus: "Awareness" },
+  "raise-the-bar": { name: "Raise the Bar", tagline: "Incrementally level up", focus: "Habit" },
+  "new-level-new-rules": { name: "New Level, New Rules", tagline: "Evolve your playbook", focus: "Perspective" },
+  "build-next-version": { name: "Build the Next Version", tagline: "Intentional evolution", focus: "Awareness" },
+  "step-into-more": { name: "Step Into More", tagline: "Expand your capacity", focus: "Habit" },
+  "expand-capacity": { name: "Expand the Capacity", tagline: "Handle more without breaking", focus: "Wellness" },
+  "play-bigger-game": { name: "Play a Bigger Game", tagline: "Think bigger, act bolder", focus: "Perspective" },
+  "inputs-audit": { name: "Inputs Audit", tagline: "What you consume matters", focus: "Environment" },
+  
+  // Custom snapshots (generated from Build)
+  "custom-awareness": { name: "Sharpen Your Awareness", tagline: "See more, react less", focus: "Awareness" },
+  "custom-perspective": { name: "Reclaim Your Perspective", tagline: "Zoom out, realign", focus: "Perspective" },
+  "custom-habit": { name: "Rebuild Your Habits", tagline: "Show up, stack wins", focus: "Habit" },
+  "custom-wellness": { name: "Restore Your Foundation", tagline: "Energy first, output second", focus: "Wellness" },
+  "custom-environment": { name: "Design Your Environment", tagline: "Remove friction, add flow", focus: "Environment" },
+  
+  // Legacy/alias keys (map to the canonical snapshot)
   "environment-reset-goal": { name: "Environment Reset", tagline: "Remove friction", focus: "Environment" },
-  "urge-surfing": { name: "Urge Surfing Week", tagline: "Ride the wave", focus: "Awareness" },
 };
 
 interface UserContext {
@@ -478,16 +520,33 @@ Deno.serve(async (req) => {
 
       await Promise.all(batch.map(async ({ userId, localDate, isWeekly }) => {
         try {
-          // Check if already sent for this user's local date
-          const { data: existingLog } = await supabase
+          // ATOMIC DEDUPLICATION: Use upsert with ON CONFLICT to prevent race conditions
+          // Insert a "pending" log first - if it fails due to unique constraint, another invocation already claimed this slot
+          const { error: lockError } = await supabase
             .from("email_nudge_logs")
-            .select("id")
+            .upsert(
+              {
+                user_id: userId,
+                nudge_date: localDate,
+                status: "pending",
+              },
+              { 
+                onConflict: "user_id,nudge_date",
+                ignoreDuplicates: true, // Don't update if exists, just skip
+              }
+            );
+
+          // Check if we successfully claimed the slot by checking if a pending record exists for us
+          const { data: ourLog } = await supabase
+            .from("email_nudge_logs")
+            .select("id, status")
             .eq("user_id", userId)
             .eq("nudge_date", localDate)
             .maybeSingle();
 
-          if (existingLog) {
-            console.log(`[NUDGE] Already sent to ${userId} today, skipping`);
+          // If status is already "sent" or we couldn't claim, skip
+          if (!ourLog || ourLog.status === "sent") {
+            console.log(`[NUDGE] Already sent/claimed for ${userId} on ${localDate}, skipping`);
             skippedCount++;
             return;
           }
@@ -528,14 +587,12 @@ Deno.serve(async (req) => {
 
           console.log(`[NUDGE] Sent ${isWeekly ? "weekly" : "daily"} to ${email} with subject "${subject}":`, emailResult);
 
-          // Log the successful send using user's local date
+          // Update the pending log to "sent" status
           await supabase
             .from("email_nudge_logs")
-            .insert({
-              user_id: userId,
-              nudge_date: localDate,
-              status: "sent",
-            });
+            .update({ status: "sent", sent_at: new Date().toISOString() })
+            .eq("user_id", userId)
+            .eq("nudge_date", localDate);
 
           sentCount++;
         } catch (err: unknown) {
