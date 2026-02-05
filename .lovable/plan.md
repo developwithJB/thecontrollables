@@ -1,179 +1,81 @@
 
+# Fix Email Nudges Continuing After Snapshot End
 
-# Harden Stripe Production Purchase Flow
+## Problem Summary
 
-## Current State Assessment
+1. **Emails continue after 7-day window ends** - The "Fuel the Body" snapshot (Jan 28) should have ended Feb 3, but emails continue because the session status is still "active" (user completed 6/7 days)
+2. **Dates appear incorrect** - The displayed dates (Jan 22-28) are from the previous *completed* session, not the current expired one
 
-After thorough analysis of the payment flow, the core infrastructure is **solid**:
+## Root Cause
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Stripe Products/Prices | ✅ Correct | Monthly `price_1Sty37...` ($9.99), Yearly `price_1Sty3R...` ($79.99) |
-| create-checkout | ✅ Working | Tested via API call, returns valid Stripe URL |
-| check-payment | ✅ Working | Returns correct paid/unpaid status |
-| customer-portal | ✅ Working | Handles manual entitlements gracefully |
-| Unit Tests | ✅ Complete | Pricing and entitlement logic covered |
-| E2E Tests | ✅ Good | Checkout, payment success, paywall flows |
+The email nudge function (`send-daily-nudge`) only queries for sessions with `status: "active"` but doesn't check if the 7-day window has elapsed. When a user doesn't complete all 7 days, the session stays "active" forever - continuing to trigger emails indefinitely.
 
-## Issues to Fix
+## Technical Solution
 
-### 1. CORS Headers Incomplete
-The current CORS headers are missing Supabase SDK-specific headers that can cause failures on some browsers/devices:
+### 1. Update `send-daily-nudge` Edge Function
 
-```typescript
-// Current (incomplete)
-"authorization, x-client-info, apikey, content-type"
+Add a check to skip users whose snapshot window has expired:
 
-// Required (complete)
-"authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version"
+```text
+┌─────────────────────────────────────────────────┐
+│ Current Flow:                                    │
+│ 1. Query users with nudges enabled               │
+│ 2. Find active session                           │
+│ 3. Send email based on current_day               │
+│                                                  │
+│ Problem: No check for session expiry             │
+└─────────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────────┐
+│ Fixed Flow:                                      │
+│ 1. Query users with nudges enabled               │
+│ 2. Find active session                           │
+│ 3. ✅ Check if start_date + 7 days < today       │
+│ 4. ✅ If expired: Mark session as 'expired', skip│
+│ 5. Send email if within 7-day window             │
+└─────────────────────────────────────────────────┘
 ```
 
-### 2. Missing Timeout on Payment Edge Functions
-The `useEntitlements` hook doesn't wrap edge function calls with the `withTimeout` utility, risking hanging UI during network issues.
+**Changes to `getUserContext()` function:**
+- Calculate `snapshotEndDate` = `start_date + 6 days`
+- If `today > snapshotEndDate`, return a flag `isExpired: true`
+- Main function skips sending nudge for expired sessions
+- Optionally: Auto-update session status to "expired"
 
-### 3. Missing customer-portal in config.toml
-The `customer-portal` function is not listed in `supabase/config.toml`, which could cause JWT verification issues.
+### 2. Add Session Expiry Check in Nudge Logic
 
-### 4. No Retry Logic for check-payment on Initial Load
-If the initial payment check fails due to network, the user might appear as "free" when they're actually paid.
-
-### 5. Race Condition on Payment Success
-When redirecting back from Stripe with `?payment=success`, the check-payment call races with Stripe's subscription activation. Need a short delay or retry mechanism.
-
----
-
-## Technical Changes
-
-### 1. Update CORS Headers (All Payment Edge Functions)
-
-**Files:**
-- `supabase/functions/create-checkout/index.ts`
-- `supabase/functions/check-payment/index.ts`
-- `supabase/functions/customer-portal/index.ts`
+In the main processing loop, before sending:
 
 ```typescript
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-```
-
----
-
-### 2. Add customer-portal to config.toml
-
-**File:** `supabase/config.toml`
-
-```toml
-[functions.customer-portal]
-verify_jwt = false
-```
-
----
-
-### 3. Add Timeout Wrapper to useEntitlements
-
-**File:** `src/hooks/useEntitlements.ts`
-
-Wrap edge function calls with `withTimeout` to prevent hanging:
-
-```typescript
-import { withTimeout } from "@/lib/withTimeout";
-
-// In queryFn:
-const { data: result, error } = await withTimeout(
-  supabase.functions.invoke("check-payment"),
-  15000, // 15 second timeout
-  "Payment check timed out. Please refresh."
-);
-
-// In initiateCheckout:
-const { data: result, error } = await withTimeout(
-  supabase.functions.invoke("create-checkout", { body: { plan } }),
-  15000,
-  "Checkout request timed out. Please try again."
-);
-
-// In openCustomerPortal:
-const { data: result, error } = await withTimeout(
-  supabase.functions.invoke("customer-portal"),
-  15000,
-  "Portal request timed out. Please try again."
-);
-```
-
----
-
-### 4. Add Payment Success Retry Logic
-
-**File:** `src/hooks/useEntitlements.ts`
-
-When returning from Stripe with `?payment=success`, retry the check up to 3 times with delays to handle Stripe webhook timing:
-
-```typescript
-// In the useEffect for payment URL params:
-if (paymentStatus === "success") {
-  toast.success("Welcome to Full Access! 🎉", {
-    description: "The Controllables and Experience History are now unlocked.",
-    duration: 5000,
-  });
+// Calculate if session has expired (7-day window passed)
+if (sessionResult.data) {
+  const startDate = new Date(sessionResult.data.start_date + "T00:00:00");
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + 7);
   
-  // Retry check-payment with delays to handle Stripe webhook timing
-  const retryCheck = async (attempts = 3) => {
-    for (let i = 0; i < attempts; i++) {
-      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-      const result = await refetch();
-      if (result.data?.isPaid) break;
-    }
-  };
-  retryCheck();
+  const today = new Date(localDate + "T00:00:00");
   
-  window.history.replaceState({}, "", window.location.pathname);
+  if (today > endDate) {
+    // Session has expired - update status and skip nudge
+    await supabase
+      .from("reset_sessions")
+      .update({ status: "expired" })
+      .eq("id", sessionResult.data.id);
+    
+    console.log(`[NUDGE] Session ${sessionResult.data.id} expired, skipping`);
+    context.sessionId = null; // Clear so no daily nudge is sent
+  }
 }
 ```
 
----
+### 3. Fix JB's Current Data
 
-### 5. Add Error Recovery for check-payment
+Update the stuck session to "expired" status:
 
-**File:** `src/hooks/useEntitlements.ts`
-
-Add retry configuration to React Query for resilience:
-
-```typescript
-const { data, isLoading, refetch } = useQuery({
-  queryKey: ["payment-status", userId],
-  queryFn: async (): Promise<SubscriptionInfo> => {
-    // ... existing logic
-  },
-  enabled: !!userId,
-  staleTime: 1000 * 60 * 5,
-  refetchOnWindowFocus: true,
-  retry: 2, // Retry failed requests twice
-  retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
-});
-```
-
----
-
-### 6. Add Edge Function Test for Production Validation
-
-**File:** `tests/e2e/stripe-production.spec.ts` (new)
-
-Create a production-focused test that validates edge functions respond correctly:
-
-```typescript
-test.describe('Production Stripe Edge Functions', () => {
-  test('check-payment responds without error', async ({ page }) => {
-    // Test that function responds (not mocked)
-    await page.goto('/dashboard');
-    // ... validate no payment check errors in console
-  });
-  
-  test('create-checkout accepts both plans', async ({ page }) => {
-    // Validate monthly and yearly plan parameters work
-  });
-});
+```sql
+UPDATE reset_sessions 
+SET status = 'expired' 
+WHERE id = '33f5b12b-30a5-4ea7-8e72-50ddec3e26ce';
 ```
 
 ---
@@ -182,53 +84,80 @@ test.describe('Production Stripe Edge Functions', () => {
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/create-checkout/index.ts` | Expand CORS headers |
-| `supabase/functions/check-payment/index.ts` | Expand CORS headers |
-| `supabase/functions/customer-portal/index.ts` | Expand CORS headers |
-| `supabase/config.toml` | Add customer-portal function config |
-| `src/hooks/useEntitlements.ts` | Add timeouts, retry logic, error recovery |
-| `tests/e2e/stripe-production.spec.ts` | New production validation tests |
+| `supabase/functions/send-daily-nudge/index.ts` | Add session expiry detection and auto-update logic |
+
+---
+
+## Implementation Details
+
+### Modified `getUserContext()` Function
+
+```typescript
+async function getUserContext(
+  supabase: SupabaseClient,
+  userId: string,
+  localDate: string
+): Promise<UserContext> {
+  // ... existing setup ...
+
+  try {
+    // ... existing parallel queries ...
+
+    if (sessionResult.data) {
+      // NEW: Check if session has expired
+      const startDate = new Date(sessionResult.data.start_date + "T00:00:00");
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 7);
+      const today = new Date(localDate + "T00:00:00");
+      
+      if (today > endDate) {
+        // Auto-expire the session
+        await supabase
+          .from("reset_sessions")
+          .update({ status: "expired" })
+          .eq("id", sessionResult.data.id)
+          .eq("status", "active"); // Only if still active
+          
+        console.log(`[NUDGE] Auto-expired session ${sessionResult.data.id}`);
+        // Return context without session info - will skip daily nudge
+        return context;
+      }
+      
+      // ... rest of existing session processing ...
+    }
+  }
+}
+```
+
+### Suppression Logic in Main Processing
+
+When `context.sessionId` is null (no active non-expired session), the nudge function should:
+- For **daily frequency**: Skip entirely (no session to report on)
+- For **weekly frequency**: Still send a summary/reflection prompt
 
 ---
 
 ## Testing Checklist
 
-After implementation, verify:
+After implementation:
 
-1. **Monthly Checkout Flow**
-   - Click upgrade with Monthly plan
-   - Complete Stripe checkout with test card
-   - Verify redirect to `/dashboard?payment=success`
-   - Verify success toast appears
-   - Verify isPaid = true immediately or within 3 seconds
+1. **Verify JB's fix**
+   - Run the nudge function manually to confirm no email is sent
+   - Check database shows session status = "expired"
 
-2. **Yearly Checkout Flow**
-   - Same as monthly but with Yearly plan
-   - Verify correct price shown in Stripe ($79.99)
+2. **Test edge cases**
+   - User on Day 7 with session ending today → Should receive Day 7 email
+   - User with session ended yesterday → Should NOT receive email
+   - User who completed all 7 days → Session already "completed", no issue
 
-3. **Network Resilience**
-   - Slow 3G network - verify timeout message appears
-   - Airplane mode during checkout - verify error toast
-   - Resume from background - verify payment status refreshes
-
-4. **Paid User Experience**
-   - AI Operators unlocked (no blur/overlay)
-   - Experience History unlocked
-   - Billing page shows correct plan/price
-   - Customer Portal opens correctly
-
-5. **Edge Cases**
-   - Double-click checkout button (should not create multiple sessions)
-   - Back button during checkout (should not break flow)
-   - Already-paid user clicks upgrade (should show info message)
+3. **Monitor in Admin**
+   - Check nudge logs for any anomalies
+   - Verify coverage rate calculation still accurate
 
 ---
 
-## Expected Outcomes
+## Expected Outcome
 
-1. **Reliability**: Checkout never hangs - always resolves or times out with clear feedback
-2. **Resilience**: Network issues don't break payment flow - retries handle transient failures
-3. **Consistency**: CORS headers work on all browsers/devices
-4. **Confidence**: Post-payment state is correctly detected within seconds
-5. **Production-ready**: All edge functions properly configured and tested
-
+1. **No more emails after snapshot window ends** - The 7-day boundary is enforced
+2. **Sessions auto-expire** - Users who don't complete all 7 days get their session marked as "expired" automatically
+3. **Clean historical data** - JB's stuck session is fixed immediately
