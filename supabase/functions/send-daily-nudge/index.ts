@@ -159,7 +159,7 @@ async function getUserContext(
     const [sessionResult, profileResult, actionsCompleted, questResult] = await Promise.all([
       supabase
         .from("reset_sessions")
-        .select("id, current_day, journey_id")
+        .select("id, current_day, journey_id, start_date")
         .eq("user_id", userId)
         .eq("status", "active")
         .maybeSingle(),
@@ -191,6 +191,27 @@ async function getUserContext(
 
     // Process active session
     if (sessionResult.data) {
+      // Check if session has expired (7-day window elapsed)
+      const startDate = new Date(sessionResult.data.start_date + "T00:00:00Z");
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 7); // Session is 7 days, so Day 7 is 6 days after start
+      
+      const today = new Date(localDate + "T00:00:00Z");
+      
+      if (today >= endDate) {
+        // Session has expired - auto-complete it and skip nudge
+        console.log(`[NUDGE] Session ${sessionResult.data.id} expired (started ${sessionResult.data.start_date}, ends ${endDate.toISOString().split('T')[0]}), auto-completing`);
+        
+        await supabase
+          .from("reset_sessions")
+          .update({ status: "completed", completed_at: new Date().toISOString() })
+          .eq("id", sessionResult.data.id)
+          .eq("status", "active");
+        
+        // Return context without session - will skip daily nudge
+        return context;
+      }
+      
       context.sessionId = sessionResult.data.id;
       context.currentDay = sessionResult.data.current_day || 0;
       const journeyId = sessionResult.data.journey_id;
@@ -562,6 +583,12 @@ Deno.serve(async (req) => {
             return;
           }
 
+          // SUPPRESSION: Skip daily nudges if no active session (expired/completed/none)
+          if (!isWeekly && !context.sessionId) {
+            console.log(`[NUDGE] User ${userId} has no active session, skipping daily nudge`);
+            skippedCount++;
+            return;
+          }
           // Get user email
           const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
 
