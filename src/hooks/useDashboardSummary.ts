@@ -108,41 +108,35 @@ export const useDashboardSummary = () => {
 
   useEffect(() => {
     let isMounted = true;
-    
-    const getUser = async () => {
+
+    // Use cached session (instant) instead of getUser (network call)
+    // This prevents race conditions where multiple hooks compete for auth state
+    const initAuth = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
         if (isMounted) {
-          setUserId(user?.id || null);
+          setUserId(session?.user?.id || null);
           setIsAuthLoading(false);
         }
       } catch (error) {
         console.error("useDashboardSummary auth error:", error);
-        if (isMounted) {
-          setIsAuthLoading(false);
-        }
+        if (isMounted) setIsAuthLoading(false);
       }
     };
-    getUser();
+    initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      if (isMounted) {
+    // Listen for auth changes (e.g., token refresh, sign out)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+      // Only update userId on meaningful events, not INITIAL_SESSION (already handled above)
+      if (event !== "INITIAL_SESSION") {
         setUserId(session?.user?.id || null);
-        setIsAuthLoading(false);
       }
     });
-
-    // Safety timeout - never get stuck loading
-    const timeout = setTimeout(() => {
-      if (isMounted) {
-        setIsAuthLoading(false);
-      }
-    }, 5000);
 
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      clearTimeout(timeout);
     };
   }, []);
 

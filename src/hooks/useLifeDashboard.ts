@@ -88,41 +88,30 @@ export const useLifeDashboard = () => {
 
   useEffect(() => {
     let isMounted = true;
-    
-    const getUser = async () => {
+
+    // Use cached session (instant) instead of getUser (network call)
+    const initAuth = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
         if (isMounted) {
-          setUserId(user?.id || null);
+          setUserId(session?.user?.id || null);
           setIsAuthLoading(false);
         }
       } catch (error) {
         console.error("useLifeDashboard auth error:", error);
-        if (isMounted) {
-          setIsAuthLoading(false);
-        }
+        if (isMounted) setIsAuthLoading(false);
       }
     };
-    getUser();
+    initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      if (isMounted) {
-        setUserId(session?.user?.id || null);
-        setIsAuthLoading(false);
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted || event === "INITIAL_SESSION") return;
+      setUserId(session?.user?.id || null);
     });
-
-    // Safety timeout - never get stuck loading
-    const timeout = setTimeout(() => {
-      if (isMounted) {
-        setIsAuthLoading(false);
-      }
-    }, 5000);
 
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      clearTimeout(timeout);
     };
   }, []);
 

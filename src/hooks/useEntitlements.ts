@@ -89,12 +89,11 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
       };
       
       try {
-        // Ensure we have a fresh token before checking payment
-        // This prevents stale token issues on iOS PWA resume
+        // Use cached session (instant, no network call) to check auth
         const { data: sessionData } = await supabase.auth.getSession();
         if (!sessionData.session) {
-          // Try refreshing
-          await supabase.auth.refreshSession();
+          // No session at all - return cached or default
+          return getCachedEntitlement(userId);
         }
 
         const { data: result, error } = await withTimeout(
@@ -105,7 +104,6 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
         
         if (error) {
           console.error("Error checking payment status:", error);
-          // On error, check localStorage cache to avoid flashing upgrade prompts
           return getCachedEntitlement(userId);
         }
         
@@ -121,9 +119,13 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
         cacheEntitlement(userId, info);
         
         return info;
-      } catch (error) {
-        console.error("Error checking payment status:", error);
-        // On error, return cached value to avoid flashing upgrade prompts
+      } catch (error: any) {
+        // Handle AbortError gracefully (React Query query cancellation)
+        if (error?.name === "AbortError") {
+          console.log("[useEntitlements] Query aborted, using cache");
+        } else {
+          console.error("Error checking payment status:", error);
+        }
         return getCachedEntitlement(userId);
       }
     },

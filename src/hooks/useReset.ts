@@ -80,68 +80,59 @@ export const useReset = () => {
 
   useEffect(() => {
     let isMounted = true;
-    
-    const getUser = async () => {
+
+    // Use cached session (instant) instead of getUser (network call)
+    const initAuth = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (isMounted) {
-          setUserId(user?.id || null);
-          setIsAuthLoading(false);
-          
-          // Fetch display name from profile
-          if (user?.id) {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("display_name")
-              .eq("id", user.id)
-              .single();
-            if (isMounted) {
-              setDisplayName(profile?.display_name || user.email?.split("@")[0] || "");
-            }
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        
+        const uid = session?.user?.id || null;
+        setUserId(uid);
+        setIsAuthLoading(false);
+
+        // Fetch display name from profile
+        if (uid) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("display_name")
+            .eq("id", uid)
+            .maybeSingle();
+          if (isMounted) {
+            setDisplayName(profile?.display_name || session?.user?.email?.split("@")[0] || "");
           }
         }
       } catch (error) {
         console.error("useReset auth error:", error);
-        if (isMounted) {
-          setIsAuthLoading(false);
-        }
+        if (isMounted) setIsAuthLoading(false);
       }
     };
-    getUser();
+    initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_, session) => {
-      if (isMounted) {
-        setUserId(session?.user?.id || null);
-        setIsAuthLoading(false);
-        
-        if (session?.user?.id) {
-          try {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("display_name")
-              .eq("id", session.user.id)
-              .single();
-            if (isMounted) {
-              setDisplayName(profile?.display_name || session.user.email?.split("@")[0] || "");
-            }
-          } catch (error) {
-            console.error("Profile fetch error:", error);
+    // Listen for auth changes (skip INITIAL_SESSION to prevent double-fire)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted || event === "INITIAL_SESSION") return;
+      setUserId(session?.user?.id || null);
+
+      if (session?.user?.id) {
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("display_name")
+            .eq("id", session.user.id)
+            .maybeSingle();
+          if (isMounted) {
+            setDisplayName(profile?.display_name || session.user.email?.split("@")[0] || "");
           }
+        } catch (error) {
+          console.error("Profile fetch error:", error);
         }
       }
     });
 
-    // Safety timeout - never get stuck loading
-    const timeout = setTimeout(() => {
-      if (isMounted) {
-        setIsAuthLoading(false);
-      }
-    }, 5000);
-
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      clearTimeout(timeout);
     };
   }, []);
 
