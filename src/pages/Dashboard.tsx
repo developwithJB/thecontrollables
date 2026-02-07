@@ -390,63 +390,55 @@ export default function Dashboard() {
   useEffect(() => {
     let isMounted = true;
 
-    const initAuth = async () => {
+    // 1. Set up listener FIRST for ongoing auth changes (does NOT control isLoading)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+      setUser(session?.user ?? null);
+      if (!session && event !== "INITIAL_SESSION") {
+        navigate("/auth");
+      }
+      // Don't set isAuthLoading here - let initializeAuth control it
+    });
+
+    // 2. INITIAL load (controls isLoading)
+    const initializeAuth = async () => {
       try {
-        // First try to get cached session
         const { data: { session } } = await supabase.auth.getSession();
-        
+        if (!isMounted) return;
+
         if (session) {
-          if (isMounted) {
-            setUser(session.user);
-          }
-          // Proactively refresh to ensure token is valid (non-blocking for UI)
+          setUser(session.user);
+          // Fire-and-forget refresh to validate token (non-blocking)
           supabase.auth.refreshSession().then(({ data, error }) => {
             if (!isMounted) return;
             if (error) {
               console.warn("Session refresh failed on init:", error.message);
-              // Don't redirect - the cached session may still work
             } else if (data.session) {
               setUser(data.session.user);
             }
           });
-          if (isMounted) setIsAuthLoading(false);
         } else {
-          // No cached session at all - redirect to auth
-          if (isMounted) {
-            setIsAuthLoading(false);
-            navigate("/auth");
-          }
+          navigate("/auth");
         }
       } catch (error) {
         console.error("Auth init error:", error);
-        if (isMounted) {
-          setIsAuthLoading(false);
-          navigate("/auth");
-        }
+        if (isMounted) navigate("/auth");
+      } finally {
+        if (isMounted) setIsAuthLoading(false);
       }
     };
 
-    initAuth();
+    initializeAuth();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (isMounted) {
-        setUser(session?.user ?? null);
-        if (!session) {
-          navigate("/auth");
-        }
-        setIsAuthLoading(false);
-      }
-    });
-
-    // Safety timeout - never get stuck loading
+    // Safety timeout - never get stuck loading (3s for mobile PWA)
     const timeout = setTimeout(() => {
       if (isMounted && isAuthLoading) {
         console.warn("Auth loading timeout - forcing completion");
         setIsAuthLoading(false);
       }
-    }, 5000);
+    }, 3000);
 
     return () => {
       isMounted = false;
