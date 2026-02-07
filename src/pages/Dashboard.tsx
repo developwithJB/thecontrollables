@@ -392,15 +392,30 @@ export default function Dashboard() {
 
     const initAuth = async () => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (isMounted) {
-          setUser(session?.user ?? null);
-          if (!session) {
+        // First try to get cached session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          if (isMounted) {
+            setUser(session.user);
+          }
+          // Proactively refresh to ensure token is valid (non-blocking for UI)
+          supabase.auth.refreshSession().then(({ data, error }) => {
+            if (!isMounted) return;
+            if (error) {
+              console.warn("Session refresh failed on init:", error.message);
+              // Don't redirect - the cached session may still work
+            } else if (data.session) {
+              setUser(data.session.user);
+            }
+          });
+          if (isMounted) setIsAuthLoading(false);
+        } else {
+          // No cached session at all - redirect to auth
+          if (isMounted) {
+            setIsAuthLoading(false);
             navigate("/auth");
           }
-          setIsAuthLoading(false);
         }
       } catch (error) {
         console.error("Auth init error:", error);
