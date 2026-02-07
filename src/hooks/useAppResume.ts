@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-const STALE_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+const STALE_THRESHOLD = 2 * 60 * 1000; // 2 minutes (shorter for iOS PWA reliability)
 
 /**
  * Hook that handles app resume from background state.
@@ -22,10 +22,17 @@ export function useAppResume() {
     try {
       console.log("[useAppResume] Refreshing session and data after resume");
       
-      // Refresh auth session to prevent expired token issues
-      const { error } = await supabase.auth.getSession();
+      // Actually refresh the auth token (getSession only returns cached token)
+      const { data, error } = await supabase.auth.refreshSession();
       if (error) {
         console.error("[useAppResume] Session refresh error:", error);
+        // If refresh fails, try getSession as fallback
+        const { error: fallbackError } = await supabase.auth.getSession();
+        if (fallbackError) {
+          console.error("[useAppResume] Fallback session error:", fallbackError);
+        }
+      } else {
+        console.log("[useAppResume] Session refreshed successfully", { userId: data.session?.user?.id });
       }
       
       // Invalidate all active queries to get fresh data

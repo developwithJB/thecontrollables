@@ -30,6 +30,34 @@ interface EntitlementStatus {
 // Timeout for edge function calls (15 seconds)
 const EDGE_FUNCTION_TIMEOUT = 15000;
 
+// LocalStorage key for caching entitlement status
+const ENTITLEMENT_CACHE_KEY = 'entitlement_cache_';
+
+function cacheEntitlement(userId: string, info: SubscriptionInfo): void {
+  try {
+    localStorage.setItem(ENTITLEMENT_CACHE_KEY + userId, JSON.stringify(info));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function getCachedEntitlement(userId: string): SubscriptionInfo {
+  try {
+    const cached = localStorage.getItem(ENTITLEMENT_CACHE_KEY + userId);
+    if (cached) {
+      const parsed = JSON.parse(cached) as SubscriptionInfo;
+      // Only trust cache if user was paid (prevents false upgrades)
+      if (parsed.isPaid) {
+        console.log("[useEntitlements] Using cached paid status for", userId);
+        return parsed;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return { isPaid: false, purchasedAt: null, plan: null, subscriptionStatus: null, currentPeriodEnd: null };
+}
+
 /**
  * Hook to check user entitlement status (free vs paid subscription).
  * 
@@ -61,6 +89,14 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
       };
       
       try {
+        // Ensure we have a fresh token before checking payment
+        // This prevents stale token issues on iOS PWA resume
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) {
+          // Try refreshing
+          await supabase.auth.refreshSession();
+        }
+
         const { data: result, error } = await withTimeout(
           supabase.functions.invoke("check-payment"),
           EDGE_FUNCTION_TIMEOUT,
@@ -69,37 +105,32 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
         
         if (error) {
           console.error("Error checking payment status:", error);
-          return { 
-            isPaid: false, 
-            purchasedAt: null, 
-            plan: null, 
-            subscriptionStatus: null, 
-            currentPeriodEnd: null 
-          };
+          // On error, check localStorage cache to avoid flashing upgrade prompts
+          return getCachedEntitlement(userId);
         }
         
-        return {
+        const info: SubscriptionInfo = {
           isPaid: result?.isPaid ?? false,
           purchasedAt: result?.purchasedAt ?? null,
           plan: result?.plan ?? null,
           subscriptionStatus: result?.subscriptionStatus ?? null,
           currentPeriodEnd: result?.currentPeriodEnd ?? null,
         };
+        
+        // Cache successful result to localStorage
+        cacheEntitlement(userId, info);
+        
+        return info;
       } catch (error) {
         console.error("Error checking payment status:", error);
-        return { 
-          isPaid: false, 
-          purchasedAt: null, 
-          plan: null, 
-          subscriptionStatus: null, 
-          currentPeriodEnd: null 
-        };
+        // On error, return cached value to avoid flashing upgrade prompts
+        return getCachedEntitlement(userId);
       }
     },
     enabled: !!userId,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnWindowFocus: true,
-    retry: 2, // Retry failed requests twice
+    retry: 3, // Retry failed requests 3 times (important for iOS PWA resume)
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 
