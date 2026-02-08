@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { withTimeout } from "@/lib/withTimeout";
 
 // Timeout for mutations (10 seconds)
@@ -100,45 +100,9 @@ const getBrowserTimezone = (): string => {
   }
 };
 
-export const useDashboardSummary = () => {
+export const useDashboardSummary = (userId: string | null = null) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [userId, setUserId] = useState<string | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    // Use cached session (instant) instead of getUser (network call)
-    // This prevents race conditions where multiple hooks compete for auth state
-    const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (isMounted) {
-          setUserId(session?.user?.id || null);
-          setIsAuthLoading(false);
-        }
-      } catch (error) {
-        console.error("useDashboardSummary auth error:", error);
-        if (isMounted) setIsAuthLoading(false);
-      }
-    };
-    initAuth();
-
-    // Listen for auth changes (e.g., token refresh, sign out)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!isMounted) return;
-      // Only update userId on meaningful events, not INITIAL_SESSION (already handled above)
-      if (event !== "INITIAL_SESSION") {
-        setUserId(session?.user?.id || null);
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
 
   // Fetch all dashboard data in a single optimized request with timeout
   const { data: summary, isLoading: isLoadingSummary, error } = useQuery({
@@ -511,8 +475,8 @@ export const useDashboardSummary = () => {
 
   return {
     userId,
-    isLoading: isAuthLoading || isLoadingSummary,
-    isAuthReady: !isAuthLoading && !!userId,
+    isLoading: isLoadingSummary,
+    isAuthReady: !!userId,
     error,
     
     // Quest

@@ -159,7 +159,7 @@ export default function Dashboard() {
     completedDays,
     acceptCovenant,
     isAcceptingCovenant,
-  } = useReset();
+  } = useReset(user?.id || null);
 
   // Prevent Day 7 celebration redirect loops by remembering if this session's celebration was already shown.
   const day7CelebrationSeenKey = useMemo(() => {
@@ -222,7 +222,7 @@ export default function Dashboard() {
     todayTimeLog,
     logTime,
     isLoggingTime,
-  } = useDashboardSummary();
+  } = useDashboardSummary(user?.id || null);
 
 
   // Build data for The Controllables

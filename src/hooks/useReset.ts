@@ -71,27 +71,31 @@ const isSessionExpired = (startDate: string, completedDaysCount: number): boolea
   return elapsedDay > 7 && completedDaysCount < 7;
 };
 
-export const useReset = () => {
+export const useReset = (externalUserId?: string | null) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [userId, setUserId] = useState<string | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [internalUserId, setInternalUserId] = useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(externalUserId === undefined);
   const [displayName, setDisplayName] = useState<string>("");
 
+  // Use external userId if provided, otherwise manage internally
+  const userId = externalUserId !== undefined ? externalUserId : internalUserId;
+
+  // Only run internal auth when no external userId is provided
   useEffect(() => {
+    if (externalUserId !== undefined) return; // Skip when userId is provided externally
+    
     let isMounted = true;
 
-    // Use cached session (instant) instead of getUser (network call)
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!isMounted) return;
         
         const uid = session?.user?.id || null;
-        setUserId(uid);
+        setInternalUserId(uid);
         setIsAuthLoading(false);
 
-        // Fetch display name from profile
         if (uid) {
           const { data: profile } = await supabase
             .from("profiles")
@@ -109,10 +113,9 @@ export const useReset = () => {
     };
     initAuth();
 
-    // Listen for auth changes (skip INITIAL_SESSION to prevent double-fire)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted || event === "INITIAL_SESSION") return;
-      setUserId(session?.user?.id || null);
+      setInternalUserId(session?.user?.id || null);
 
       if (session?.user?.id) {
         try {
@@ -134,7 +137,30 @@ export const useReset = () => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [externalUserId]);
+
+  // Fetch display name when external userId is provided
+  useEffect(() => {
+    if (externalUserId === undefined || !userId) return;
+    let isMounted = true;
+
+    const fetchDisplayName = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("id", userId)
+          .maybeSingle();
+        if (isMounted) {
+          setDisplayName(profile?.display_name || session?.user?.email?.split("@")[0] || "");
+        }
+      } catch {}
+    };
+    fetchDisplayName();
+
+    return () => { isMounted = false; };
+  }, [externalUserId, userId]);
 
   // Get active reset session (handle case where user has multiple active sessions)
   const { data: activeSession, isLoading: isLoadingSession } = useQuery({
