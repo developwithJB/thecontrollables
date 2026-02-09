@@ -9,10 +9,16 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { usePageViewTracking, useAnalytics } from "@/hooks/useAnalytics";
+import { useOnboardingAnalytics } from "@/hooks/useOnboardingAnalytics";
 
 type AuthMode = "signin" | "signup" | "forgot" | "reset";
 
 export default function Auth() {
+  usePageViewTracking("Auth");
+  const { trackEvent } = useAnalytics();
+  const { trackAccountCreated } = useOnboardingAnalytics();
+  
   const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<AuthMode>(() => {
     const urlMode = searchParams.get("mode");
@@ -162,7 +168,7 @@ export default function Auth() {
 
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -184,10 +190,21 @@ export default function Auth() {
             throw error;
           }
         } else {
-          toast({
-            title: "Welcome aboard!",
-            description: "Your account has been created. Redirecting to your dashboard...",
-          });
+          // Track account creation
+          trackAccountCreated("signup_form");
+          
+          // Check if email confirmation is required
+          if (signUpData?.session) {
+            toast({
+              title: "Welcome aboard!",
+              description: "Your account has been created. Redirecting to your dashboard...",
+            });
+          } else {
+            toast({
+              title: "Check your email",
+              description: "We've sent you a confirmation link. Please check your email to activate your account.",
+            });
+          }
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({

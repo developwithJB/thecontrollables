@@ -115,13 +115,24 @@ export const useAnalytics = () => {
 export const setupGlobalErrorTracking = () => {
   const sessionId = getSessionId();
 
+  // Helper to check if an error is a benign abort (React Query cancellation etc.)
+  const isAbortError = (message: string, error?: Error | unknown): boolean => {
+    const msg = message.toLowerCase();
+    if (msg.includes("signal is aborted") || msg.includes("the operation was aborted")) return true;
+    if (error instanceof DOMException && error.name === "AbortError") return true;
+    if (error instanceof Error && error.name === "AbortError") return true;
+    return false;
+  };
+
   window.onerror = async (message, source, lineno, colno, error) => {
+    const msgStr = String(message);
+    if (isAbortError(msgStr, error)) return;
+    
     try {
-      // Get current user if authenticated
       const { data: { user } } = await supabase.auth.getUser();
       
       await supabase.from("app_errors").insert({
-        error_message: String(message),
+        error_message: msgStr,
         error_stack: error?.stack || `at ${source}:${lineno}:${colno}`,
         error_type: "uncaught",
         component_name: null,
@@ -137,15 +148,17 @@ export const setupGlobalErrorTracking = () => {
   };
 
   window.onunhandledrejection = async (event) => {
+    const errorMessage =
+      event.reason instanceof Error
+        ? event.reason.message
+        : String(event.reason);
+    
+    if (isAbortError(errorMessage, event.reason)) return;
+    
     try {
-      const errorMessage =
-        event.reason instanceof Error
-          ? event.reason.message
-          : String(event.reason);
       const errorStack =
         event.reason instanceof Error ? event.reason.stack : undefined;
 
-      // Get current user if authenticated
       const { data: { user } } = await supabase.auth.getUser();
 
       await supabase.from("app_errors").insert({

@@ -3,7 +3,7 @@ import { ArrowRight, Book } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { usePageViewTracking } from "@/hooks/useAnalytics";
+import { usePageViewTracking, useAnalytics } from "@/hooks/useAnalytics";
 import { ControllableGuideCard, type ControllableType } from "@/components/landing/ControllableGuideCard";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { FeatureGrid } from "@/components/landing/FeatureGrid";
@@ -36,6 +36,7 @@ const controllables: Array<{
 
 export default function Landing() {
   usePageViewTracking("Landing");
+  const { trackEvent } = useAnalytics();
 
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
@@ -103,7 +104,7 @@ export default function Landing() {
             transition={{ duration: 0.5, delay: 0.6 }}
             className="space-y-3"
           >
-            <Link to="/auth?mode=signup">
+            <Link to="/auth?mode=signup" onClick={() => trackEvent("cta", "cta_click", { cta_label: "Start with a 7-Day Snapshot", position: "hero" })}>
               <Button size="lg" className="w-full h-14 text-base font-medium group">
                 Start with a 7-Day Snapshot
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -136,7 +137,7 @@ export default function Landing() {
             </div>
 
             <div className="space-y-3">
-              <Link to="/auth?mode=signup">
+              <Link to="/auth?mode=signup" onClick={() => trackEvent("cta", "cta_click", { cta_label: "Start free", position: "bottom" })}>
                 <Button size="lg" className="w-full h-12 text-base font-medium group">
                   Start free
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
