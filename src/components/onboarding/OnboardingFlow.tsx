@@ -37,6 +37,9 @@ interface OnboardingFlowProps {
 // Timeout for stuck states (10 seconds)
 const STUCK_TIMEOUT_MS = 10000;
 
+// Stale onboarding threshold (24 hours)
+const STALE_ONBOARDING_MS = 24 * 60 * 60 * 1000;
+
 // Get default snapshot for skip flow
 function getDefaultSnapshot(): Snapshot {
   return SNAPSHOTS.find(s => s.id === "rebuild-confidence-agb") || SNAPSHOTS[0];
@@ -55,7 +58,15 @@ export function OnboardingFlow({
   isPaid = false,
   createQuest,
 }: OnboardingFlowProps) {
-  const [currentStep, setCurrentStep] = useState<InternalOnboardingStep>(initialStep);
+  // Check if onboarding record is stale (older than 24 hours) — auto-skip to recovery
+  const [checkedStale, setCheckedStale] = useState(false);
+  
+  const getEffectiveInitialStep = (): InternalOnboardingStep => {
+    // If we haven't checked stale yet, return a temporary value - will be overridden in useEffect
+    return initialStep;
+  };
+  
+  const [currentStep, setCurrentStep] = useState<InternalOnboardingStep>(getEffectiveInitialStep);
   const [buildResult, setBuildResult] = useState<BuildScore | null>(null);
   const [selectedSnapshot, setSelectedSnapshot] = useState<Snapshot | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -84,6 +95,35 @@ export function OnboardingFlow({
       }
     };
   }, []);
+
+  // Check for stale onboarding (>24 hours old, still not completed)
+  useEffect(() => {
+    if (checkedStale) return;
+    
+    const checkStale = async () => {
+      try {
+        const { data } = await (await import("@/integrations/supabase/client")).supabase
+          .from("user_onboarding")
+          .select("created_at, onboarding_step")
+          .eq("user_id", userId)
+          .maybeSingle();
+        
+        if (data && data.onboarding_step !== "completed") {
+          const createdAt = new Date(data.created_at).getTime();
+          const age = Date.now() - createdAt;
+          if (age > STALE_ONBOARDING_MS) {
+            console.log("Stale onboarding detected, auto-showing skip confirmation");
+            setCurrentStep("skip_confirmation");
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to check stale onboarding:", e);
+      }
+      setCheckedStale(true);
+    };
+    
+    checkStale();
+  }, [userId, checkedStale]);
 
   // Start stuck timeout when in "starting" step
   useEffect(() => {
