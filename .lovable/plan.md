@@ -1,163 +1,100 @@
 
-# Fix Email Nudges Continuing After Snapshot End
 
-## Problem Summary
+# Launch Hardening and Analytics Plan
 
-1. **Emails continue after 7-day window ends** - The "Fuel the Body" snapshot (Jan 28) should have ended Feb 3, but emails continue because the session status is still "active" (user completed 6/7 days)
-2. **Dates appear incorrect** - The displayed dates (Jan 22-28) are from the previous *completed* session, not the current expired one
+## Summary
 
-## Root Cause
-
-The email nudge function (`send-daily-nudge`) only queries for sessions with `status: "active"` but doesn't check if the 7-day window has elapsed. When a user doesn't complete all 7 days, the session stays "active" forever - continuing to trigger emails indefinitely.
-
-## Technical Solution
-
-### 1. Update `send-daily-nudge` Edge Function
-
-Add a check to skip users whose snapshot window has expired:
-
-```text
-┌─────────────────────────────────────────────────┐
-│ Current Flow:                                    │
-│ 1. Query users with nudges enabled               │
-│ 2. Find active session                           │
-│ 3. Send email based on current_day               │
-│                                                  │
-│ Problem: No check for session expiry             │
-└─────────────────────────────────────────────────┘
-                    ↓
-┌─────────────────────────────────────────────────┐
-│ Fixed Flow:                                      │
-│ 1. Query users with nudges enabled               │
-│ 2. Find active session                           │
-│ 3. ✅ Check if start_date + 7 days < today       │
-│ 4. ✅ If expired: Mark session as 'expired', skip│
-│ 5. Send email if within 7-day window             │
-└─────────────────────────────────────────────────┘
-```
-
-**Changes to `getUserContext()` function:**
-- Calculate `snapshotEndDate` = `start_date + 6 days`
-- If `today > snapshotEndDate`, return a flag `isExpired: true`
-- Main function skips sending nudge for expired sessions
-- Optionally: Auto-update session status to "expired"
-
-### 2. Add Session Expiry Check in Nudge Logic
-
-In the main processing loop, before sending:
-
-```typescript
-// Calculate if session has expired (7-day window passed)
-if (sessionResult.data) {
-  const startDate = new Date(sessionResult.data.start_date + "T00:00:00");
-  const endDate = new Date(startDate);
-  endDate.setDate(endDate.getDate() + 7);
-  
-  const today = new Date(localDate + "T00:00:00");
-  
-  if (today > endDate) {
-    // Session has expired - update status and skip nudge
-    await supabase
-      .from("reset_sessions")
-      .update({ status: "expired" })
-      .eq("id", sessionResult.data.id);
-    
-    console.log(`[NUDGE] Session ${sessionResult.data.id} expired, skipping`);
-    context.sessionId = null; // Clear so no daily nudge is sent
-  }
-}
-```
-
-### 3. Fix JB's Current Data
-
-Update the stuck session to "expired" status:
-
-```sql
-UPDATE reset_sessions 
-SET status = 'expired' 
-WHERE id = '33f5b12b-30a5-4ea7-8e72-50ddec3e26ce';
-```
+You're promoting the app today with 24 users so far. After reviewing the full codebase, database, error logs, and analytics data, I've found several gaps that could hurt the first-time user experience. Here's what needs fixing:
 
 ---
 
-## Files to Modify
+## 1. Resolve All Remaining Unresolved Errors
 
-| File | Changes |
-|------|---------|
-| `supabase/functions/send-daily-nudge/index.ts` | Add session expiry detection and auto-update logic |
+**Problem:** 28 unresolved errors still sitting in the database -- all are stale artifacts from the auth race condition that was already fixed.
 
----
+- 9x "signal is aborted without reason" (from your own admin account, Feb 7)
+- 8x "null is not an object (evaluating 's.id')" (anonymous, Jan 29)
+- 5x "Failed to fetch dynamically imported module" (Jan 28 -- stale build cache)
+- 3x "TGIMWeeklyBanner is not defined" (Jan 27 -- removed component)
+- 2x "The operation was aborted" (Jan 29)
+- 1x "Importing a module script failed" (Jan 27)
 
-## Implementation Details
-
-### Modified `getUserContext()` Function
-
-```typescript
-async function getUserContext(
-  supabase: SupabaseClient,
-  userId: string,
-  localDate: string
-): Promise<UserContext> {
-  // ... existing setup ...
-
-  try {
-    // ... existing parallel queries ...
-
-    if (sessionResult.data) {
-      // NEW: Check if session has expired
-      const startDate = new Date(sessionResult.data.start_date + "T00:00:00");
-      const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + 7);
-      const today = new Date(localDate + "T00:00:00");
-      
-      if (today > endDate) {
-        // Auto-expire the session
-        await supabase
-          .from("reset_sessions")
-          .update({ status: "expired" })
-          .eq("id", sessionResult.data.id)
-          .eq("status", "active"); // Only if still active
-          
-        console.log(`[NUDGE] Auto-expired session ${sessionResult.data.id}`);
-        // Return context without session info - will skip daily nudge
-        return context;
-      }
-      
-      // ... rest of existing session processing ...
-    }
-  }
-}
-```
-
-### Suppression Logic in Main Processing
-
-When `context.sessionId` is null (no active non-expired session), the nudge function should:
-- For **daily frequency**: Skip entirely (no session to report on)
-- For **weekly frequency**: Still send a summary/reflection prompt
+**Fix:** Mark all as resolved in one database update. These are all historical.
 
 ---
 
-## Testing Checklist
+## 2. Track Account Creation (Missing Funnel Event)
 
-After implementation:
+**Problem:** `trackAccountCreated()` is defined in `useOnboardingAnalytics` but is **never called** anywhere. Zero "account_created" events exist in the database. This breaks the top of your onboarding funnel: you can't see how many signups convert to assessment completion.
 
-1. **Verify JB's fix**
-   - Run the nudge function manually to confirm no email is sent
-   - Check database shows session status = "expired"
-
-2. **Test edge cases**
-   - User on Day 7 with session ending today → Should receive Day 7 email
-   - User with session ended yesterday → Should NOT receive email
-   - User who completed all 7 days → Session already "completed", no issue
-
-3. **Monitor in Admin**
-   - Check nudge logs for any anomalies
-   - Verify coverage rate calculation still accurate
+**Fix:** Call `trackAccountCreated()` in `Auth.tsx` after a successful `signUp()` call.
 
 ---
 
-## Expected Outcome
+## 3. Track Auth Page Views
 
-1. **No more emails after snapshot window ends** - The 7-day boundary is enforced
-2. **Sessions auto-expire** - Users who don't complete all 7 days get their session marked as "expired" automatically
-3. **Clean historical data** - JB's stuck session is fixed immediately
+**Problem:** The Auth page (`/auth`) has no `usePageViewTracking()` call. Landing and Dashboard track page views, but Auth doesn't. You can't see how many people reach the signup/signin page.
+
+**Fix:** Add `usePageViewTracking("Auth")` to `Auth.tsx`.
+
+---
+
+## 4. Rescue Stuck Onboarding Users
+
+**Problem:** 8 users are stuck in incomplete onboarding states and will see the assessment screen every time they log in:
+- 6 stuck at `build_assessment` (never started or abandoned)
+- 1 stuck at `archetype_result` 
+- 1 stuck at `journey_selection`
+
+These users will have a broken experience when they return.
+
+**Fix:** Add a "Skip for now" escape hatch that's more prominent. Currently the skip button exists but these users either missed it or hit an error. Add a defensive check: if a user's onboarding record is older than 24 hours and they're still not at `completed`, auto-show a simplified recovery that lets them skip straight to dashboard with a default snapshot.
+
+---
+
+## 5. Suppress Abort Errors from Error Tracking
+
+**Problem:** "signal is aborted without reason" errors are React Query query cancellations -- they're normal and expected, not real bugs. They pollute the error log and make it harder to spot real issues.
+
+**Fix:** Filter out `AbortError` and "signal is aborted" messages in both `setupGlobalErrorTracking()` and the `window.onunhandledrejection` handler so they never hit the database.
+
+---
+
+## 6. Add Landing Page CTA Click Tracking
+
+**Problem:** You can see landing page views (70 in the last week) but you can't see how many people click the "Start with a 7-Day Snapshot" CTA or the secondary "Start free" CTA. This is critical for measuring landing page effectiveness.
+
+**Fix:** Add click tracking to both CTA buttons on the Landing page.
+
+---
+
+## 7. Harden the Signup Success Message
+
+**Problem:** After signup, the toast says "Your account has been created. Redirecting to your dashboard..." but if email confirmation is required, the user won't be redirected -- they need to check their email first. This creates confusion.
+
+**Fix:** Check the signup response for `session` presence. If no session (email confirmation required), show "Check your email to confirm your account." If session exists (auto-confirmed), show the redirect message.
+
+---
+
+## Technical Details
+
+### Files to modify:
+1. **`src/pages/Auth.tsx`** -- Add page view tracking, account creation tracking, fix signup toast
+2. **`src/hooks/useAnalytics.ts`** -- Filter AbortError from global error handlers
+3. **`src/pages/Landing.tsx`** -- Add CTA click tracking
+4. **`src/components/onboarding/OnboardingFlow.tsx`** -- Add stale onboarding auto-recovery
+5. **Database** -- Resolve all 28 stale errors
+
+### Database changes:
+- Mark all existing unresolved errors as resolved (UPDATE, no schema change)
+
+### No new dependencies needed.
+
+### Priority order:
+1. Fix signup toast (prevents confusion for new users TODAY)
+2. Add Auth page tracking + account creation event (funnel visibility)
+3. Filter AbortErrors (clean error log for monitoring)
+4. Add Landing CTA tracking (measure promotion effectiveness)
+5. Resolve stale errors (clean admin panel)
+6. Add stale onboarding recovery (rescue stuck users)
+
