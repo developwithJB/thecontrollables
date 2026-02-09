@@ -56,7 +56,8 @@ Deno.serve(async (req) => {
     // Run all queries in parallel for maximum efficiency
     const [
       activeQuestResult,
-      xpLogsResult,
+      xpTotalResult,
+      recentXpLogsResult,
       integrityLogsResult,
       todayTimeLogResult,
       userBuildResult,
@@ -72,7 +73,13 @@ Deno.serve(async (req) => {
         .limit(1)
         .maybeSingle(),
       
-      // XP logs (last 100) - include description for component compatibility
+      // Total XP - fetch ALL logs to sum correctly (no limit)
+      supabase
+        .from("xp_logs")
+        .select("amount")
+        .eq("user_id", userId),
+      
+      // Recent XP logs for display (last 100)
       supabase
         .from("xp_logs")
         .select("id, amount, source, description, created_at")
@@ -111,9 +118,12 @@ Deno.serve(async (req) => {
         .order("completed_at", { ascending: false }),
     ]);
 
-    // Calculate derived values server-side
-    const xpLogs = xpLogsResult.data || [];
-    const totalXp = xpLogs.reduce((sum: number, log: { amount: number }) => sum + log.amount, 0);
+    // Calculate total XP from ALL logs (not limited)
+    const allXpAmounts = xpTotalResult.data || [];
+    const totalXp = allXpAmounts.reduce((sum: number, log: { amount: number }) => sum + log.amount, 0);
+    
+    // Recent logs for display
+    const xpLogs = recentXpLogsResult.data || [];
     
     const integrityLogs = integrityLogsResult.data || [];
     const resolvedPromises = integrityLogs.filter((log: { kept: boolean | null }) => log.kept !== null);
