@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { DayDetailDrawer } from "./DayDetailDrawer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -46,6 +47,7 @@ interface DayPattern {
 }
 
 export function WeeklyPatternView({ snapshots, className, userId, isPaid = false }: WeeklyPatternViewProps) {
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
   // Fetch actual activity data from DB
   const { data: activityData } = useQuery({
     queryKey: ["pattern-activity-data", userId],
@@ -262,7 +264,7 @@ export function WeeklyPatternView({ snapshots, className, userId, isPaid = false
           </div>
         )}
 
-        {/* Day-of-week heatmap */}
+        {/* Day-of-week heatmap - Interactive */}
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground uppercase tracking-wider">
             Activity by Day
@@ -271,12 +273,14 @@ export function WeeklyPatternView({ snapshots, className, userId, isPaid = false
             {patterns.map((day) => {
               const intensity = day.productivity / 100;
               return (
-                <div
+                <button
                   key={day.dayIndex}
-                  className="text-center"
+                  className="text-center group"
+                  onClick={() => userId && setSelectedDay(day.dayIndex)}
+                  title={`${DAY_NAMES_FULL[day.dayIndex]}: ${day.actionsCount} actions, ${day.xpEarned} XP`}
                 >
                   <div
-                    className="aspect-square rounded-lg flex items-center justify-center text-xs font-medium transition-colors"
+                    className="aspect-square rounded-lg flex items-center justify-center text-xs font-medium transition-all group-hover:ring-2 group-hover:ring-primary/40 group-hover:scale-105 cursor-pointer"
                     style={{
                       backgroundColor: `hsl(var(--primary) / ${0.1 + intensity * 0.7})`,
                       color: intensity > 0.5 ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))',
@@ -285,7 +289,7 @@ export function WeeklyPatternView({ snapshots, className, userId, isPaid = false
                     {day.checkInCount > 0 ? day.checkInCount : "-"}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">{day.dayName}</p>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -376,6 +380,16 @@ export function WeeklyPatternView({ snapshots, className, userId, isPaid = false
           Patterns reveal rhythm, not rules. Use them to work with your natural flow.
         </p>
       </CardContent>
+
+      {/* Day Detail Drawer */}
+      {userId && selectedDay !== null && (
+        <DayDetailDrawer
+          dayIndex={selectedDay}
+          userId={userId}
+          isOpen={selectedDay !== null}
+          onClose={() => setSelectedDay(null)}
+        />
+      )}
     </Card>
   );
 }
