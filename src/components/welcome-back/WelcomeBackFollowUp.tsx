@@ -1,10 +1,14 @@
 import { motion } from "framer-motion";
+import { Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface WelcomeBackFollowUpProps {
   currentSnapshotTitle?: string;
   onKeepCurrent: () => void;
   onChooseNew: () => void;
+  isPaid?: boolean;
+  nudgeEnabled?: boolean;
+  onEnableDailyAlignment?: () => void;
 }
 
 /**
@@ -12,17 +16,18 @@ interface WelcomeBackFollowUpProps {
  * 
  * Optional lightweight choice after the entry screen.
  * Allows user to keep current Snapshot or choose a new one.
- * 
- * Rules:
- * - Skippable (both buttons proceed forward)
- * - No explanation required
- * - No forced decision
+ * For paid users who haven't enabled Daily Alignment, shows a soft suggestion.
  */
 export function WelcomeBackFollowUp({
   currentSnapshotTitle,
   onKeepCurrent,
   onChooseNew,
+  isPaid,
+  nudgeEnabled,
+  onEnableDailyAlignment,
 }: WelcomeBackFollowUpProps) {
+  const showDASuggestion = isPaid && !nudgeEnabled && onEnableDailyAlignment;
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -31,7 +36,7 @@ export function WelcomeBackFollowUp({
       className="min-h-screen bg-background flex flex-col items-center justify-center px-6"
     >
       <div className="max-w-sm text-center space-y-8">
-        {/* Prompt - exact as specified */}
+        {/* Prompt */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -75,6 +80,34 @@ export function WelcomeBackFollowUp({
             Choose a new Snapshot
           </Button>
         </motion.div>
+
+        {/* Daily Alignment suggestion for paid users */}
+        {showDASuggestion && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-left space-y-2"
+          >
+            <div className="flex items-center gap-2">
+              <Sun className="w-4 h-4 text-primary" />
+              <p className="text-sm text-foreground font-medium">
+                Want a calm start each morning?
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Enable Daily Alignment — personalized scripture built from your progress.
+            </p>
+            <div className="flex items-center gap-2 pt-1">
+              <Button size="sm" className="text-xs" onClick={onEnableDailyAlignment}>
+                Enable
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                You can change this anytime in Settings.
+              </span>
+            </div>
+          </motion.div>
+        )}
       </div>
     </motion.div>
   );

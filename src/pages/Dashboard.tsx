@@ -55,6 +55,7 @@ import { SnapshotReviewCard } from "@/components/dashboard/SnapshotReviewCard";
 
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DailyAlignmentPromo } from "@/components/dashboard/DailyAlignmentPromo";
+import { DailyAlignmentSpotlight } from "@/components/dashboard/DailyAlignmentSpotlight";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
 import { InstallNudge } from "@/components/pwa/InstallNudge";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
@@ -256,6 +257,40 @@ export default function Dashboard() {
   // Entitlements (free vs paid)
   const { isPaid, isLoading: entitlementsLoading, initiateCheckout, isCheckingOut } = useEntitlements(user?.id || null);
 
+  // Fetch profile for nudge status (used by spotlight and welcome back)
+  const { data: userProfile, refetch: refetchProfile } = useQuery({
+    queryKey: ["profile-nudge-status", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("email_nudge_enabled, nudge_frequency")
+        .eq("id", user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const nudgeEnabled = userProfile?.email_nudge_enabled ?? false;
+
+  // Quick-enable Daily Alignment handler
+  const handleEnableDailyAlignment = useCallback(async () => {
+    if (!user?.id) return;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ email_nudge_enabled: true, nudge_frequency: "daily" })
+      .eq("id", user.id);
+    if (!error) {
+      toast({
+        title: "Daily Alignment enabled",
+        description: "Your first email arrives tomorrow morning.",
+      });
+      trackEvent("feature_activation", "daily_alignment_enabled");
+      refetchProfile();
+    }
+  }, [user?.id, toast, trackEvent, refetchProfile]);
   // Check if today's actions are completed (for welcome back trigger logic)
   const todayActionsCompleted = useMemo(() => {
     // For now, just check if they've logged time or done a checkin
@@ -654,6 +689,9 @@ export default function Dashboard() {
           dismissFollowUp();
           setShowJourneySwitcher(true);
         }}
+        isPaid={isPaid}
+        nudgeEnabled={nudgeEnabled}
+        onEnableDailyAlignment={handleEnableDailyAlignment}
       />
     );
   }
@@ -756,6 +794,17 @@ export default function Dashboard() {
               {/* Welcome Back Banner - shows on first day back */}
               {showReturnBanner && <WelcomeBackBanner />}
 
+              {/* Daily Alignment Spotlight - one-time dismissible card */}
+              {user?.id && !entitlementsLoading && (
+                <DailyAlignmentSpotlight
+                  userId={user.id}
+                  isPaid={isPaid}
+                  nudgeEnabled={nudgeEnabled}
+                  onEnable={handleEnableDailyAlignment}
+                  onUpgrade={() => initiateCheckout("monthly")}
+                  onDismiss={() => {}}
+                />
+              )}
               {/* Greeting Banner with streak/XP, mission, and snapshot focus */}
               <GreetingBanner
                 userId={user?.id}
