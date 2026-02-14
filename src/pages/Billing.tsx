@@ -329,7 +329,7 @@ export default function Billing() {
                   premium={true}
                 />
                 <FeatureRow 
-                  label="Gentle Email Nudges" 
+                  label="Daily Alignment™" 
                   included={isPaid} 
                   premium={true}
                 />
