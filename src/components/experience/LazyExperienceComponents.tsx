@@ -18,16 +18,8 @@ export const LazySnapshotHistory = lazy(() =>
   import("../dashboard/SnapshotHistory").then((m) => ({ default: m.SnapshotHistory }))
 );
 
-export const LazyPersonalInsightCard = lazy(() =>
-  import("./PersonalInsightCard").then((m) => ({ default: m.PersonalInsightCard }))
-);
-
 export const LazyInsightsAtAGlance = lazy(() =>
   import("./InsightsAtAGlance").then((m) => ({ default: m.InsightsAtAGlance }))
-);
-
-export const LazyRestDaysCard = lazy(() =>
-  import("./RestDaysCard").then((m) => ({ default: m.RestDaysCard }))
 );
 
 // Loading skeleton for experience components
