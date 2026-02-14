@@ -75,6 +75,9 @@ import {
   LazyBadgesEarned,
   LazyCertificates,
   LazySnapshotHistory,
+  LazyPersonalInsightCard,
+  LazyInsightsAtAGlance,
+  LazyRestDaysCard,
   SuspenseExperienceComponent,
   ExperienceLoadingSkeleton,
 } from "@/components/experience/LazyExperienceComponents";
@@ -1189,6 +1192,19 @@ export default function Dashboard() {
                 currentBuild={currentBuild}
               />
 
+              {/* Personal Insight Card - Paid only */}
+              {!isSimplifiedMode && isPaid && user?.id && (
+                <SuspenseExperienceComponent>
+                  <LazyPersonalInsightCard userId={user.id} />
+                </SuspenseExperienceComponent>
+              )}
+
+              {/* Insights at a Glance - Paid only */}
+              {!isSimplifiedMode && isPaid && user?.id && (
+                <SuspenseExperienceComponent>
+                  <LazyInsightsAtAGlance userId={user.id} consecutiveStreak={consecutiveStreak} />
+                </SuspenseExperienceComponent>
+              )}
 
               {/* Snapshot History - Visual Brick Stacking View */}
               {/* Show for ALL users who have completed their free trial (or paid users) */}
@@ -1287,6 +1303,13 @@ export default function Dashboard() {
               {user?.id && isPaid && (
                 <SuspenseExperienceComponent>
                   <LazyCertificates resetSessions={allSessions} userId={user.id} dailyResets={allCompletedDays} />
+                </SuspenseExperienceComponent>
+              )}
+
+              {/* Rest Days Analytics - Paid only */}
+              {!isSimplifiedMode && isPaid && user?.id && (
+                <SuspenseExperienceComponent>
+                  <LazyRestDaysCard userId={user.id} />
                 </SuspenseExperienceComponent>
               )}
 
