@@ -585,6 +585,41 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_alignment_logs: {
+        Row: {
+          created_at: string
+          generated_content: Json
+          id: string
+          nudge_date: string
+          scripture_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          generated_content?: Json
+          id?: string
+          nudge_date: string
+          scripture_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          generated_content?: Json
+          id?: string
+          nudge_date?: string
+          scripture_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_alignment_logs_scripture_id_fkey"
+            columns: ["scripture_id"]
+            isOneToOne: false
+            referencedRelation: "daily_scriptures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_checkins: {
         Row: {
           check_in_date: string
@@ -715,6 +750,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      daily_scriptures: {
+        Row: {
+          created_at: string
+          id: string
+          rotation_order: number
+          theme_tag: string
+          verse_reference: string
+          verse_text: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rotation_order: number
+          theme_tag: string
+          verse_reference: string
+          verse_text: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rotation_order?: number
+          theme_tag?: string
+          verse_reference?: string
+          verse_text?: string
+        }
+        Relationships: []
       }
       email_nudge_logs: {
         Row: {
