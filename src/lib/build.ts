@@ -151,10 +151,10 @@ export const ARCHETYPE_LABELS: Record<string, ArchetypeInfo> = {
 
   // Fallback / neutral
   unmapped_pattern: {
-    label: "Unmapped Pattern",
+    label: "Unique Pattern",
     emoji: "🧭",
     theme: "neutral",
-    description: "Your signals are mixed. One system is pulling on another. Start with the lowest controllable.",
+    description: "Your build is uniquely balanced. Focus on the area that feels most important to you right now.",
     recommendations: [
       "Focus on the lowest controllable for 7 days.",
       "Do one rep daily, no upgrades.",
