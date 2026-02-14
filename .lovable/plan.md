@@ -1,100 +1,113 @@
 
 
-# Launch Hardening and Analytics Plan
+# User Pattern Analysis and Drop-Off Hardening Plan
 
-## Summary
+## Data Summary (Last 30 Days)
 
-You're promoting the app today with 24 users so far. After reviewing the full codebase, database, error logs, and analytics data, I've found several gaps that could hurt the first-time user experience. Here's what needs fixing:
+```text
+FULL FUNNEL (25 users total)
+=======================================================
+Landing Page Views:     1,315 views / 680 sessions
+Auth Page Views:        16 views / 16 sessions         
+Signups:                25 accounts created             
+Onboarding Completed:   16 (64%)                        <<< DROP 1: 9 users stuck
+Snapshots Started:      21 users (84% of signups)
+Day 1 Completed:        18 users
+Day 2 Completed:        10 users                        <<< DROP 2: 44% gone after Day 1
+Day 3-5:                6-10 users
+Day 7 Completed:        8 users
+Snapshot Completed:     7 users (33% of starters)        <<< DROP 3: 2/3 never finish
 
----
-
-## 1. Resolve All Remaining Unresolved Errors
-
-**Problem:** 28 unresolved errors still sitting in the database -- all are stale artifacts from the auth race condition that was already fixed.
-
-- 9x "signal is aborted without reason" (from your own admin account, Feb 7)
-- 8x "null is not an object (evaluating 's.id')" (anonymous, Jan 29)
-- 5x "Failed to fetch dynamically imported module" (Jan 28 -- stale build cache)
-- 3x "TGIMWeeklyBanner is not defined" (Jan 27 -- removed component)
-- 2x "The operation was aborted" (Jan 29)
-- 1x "Importing a module script failed" (Jan 27)
-
-**Fix:** Mark all as resolved in one database update. These are all historical.
-
----
-
-## 2. Track Account Creation (Missing Funnel Event)
-
-**Problem:** `trackAccountCreated()` is defined in `useOnboardingAnalytics` but is **never called** anywhere. Zero "account_created" events exist in the database. This breaks the top of your onboarding funnel: you can't see how many signups convert to assessment completion.
-
-**Fix:** Call `trackAccountCreated()` in `Auth.tsx` after a successful `signUp()` call.
+Users with no display_name: 17 out of 25 (68%)          <<< RED FLAG
+```
 
 ---
 
-## 3. Track Auth Page Views
+## Key Drop-Off Points
 
-**Problem:** The Auth page (`/auth`) has no `usePageViewTracking()` call. Landing and Dashboard track page views, but Auth doesn't. You can't see how many people reach the signup/signin page.
+### DROP 1: Onboarding (36% never complete it)
+- 6 users stuck at `build_assessment` -- they either abandoned the 20-question quiz or hit an error
+- 1 stuck at `archetype_result`, 1 at `journey_selection`
+- The 24-hour auto-recovery we just added will help future users, but the assessment itself may be too long
 
-**Fix:** Add `usePageViewTracking("Auth")` to `Auth.tsx`.
+### DROP 2: Day 1 to Day 2 (44% never return)
+- 18 users complete Day 1, only 10 come back for Day 2
+- 8 users did Day 1 and never returned -- this is the biggest leak
+- 3 of those users only spent ~1 minute total (did the reset and left)
 
----
+### DROP 3: Snapshot completion (only 33% finish)
+- Of 21 users who started snapshots, only 7 completed one
+- Day 4-5 is where most drop off (10 users at Day 3, down to 6 by Day 5)
 
-## 4. Rescue Stuck Onboarding Users
-
-**Problem:** 8 users are stuck in incomplete onboarding states and will see the assessment screen every time they log in:
-- 6 stuck at `build_assessment` (never started or abandoned)
-- 1 stuck at `archetype_result` 
-- 1 stuck at `journey_selection`
-
-These users will have a broken experience when they return.
-
-**Fix:** Add a "Skip for now" escape hatch that's more prominent. Currently the skip button exists but these users either missed it or hit an error. Add a defensive check: if a user's onboarding record is older than 24 hours and they're still not at `completed`, auto-show a simplified recovery that lets them skip straight to dashboard with a default snapshot.
-
----
-
-## 5. Suppress Abort Errors from Error Tracking
-
-**Problem:** "signal is aborted without reason" errors are React Query query cancellations -- they're normal and expected, not real bugs. They pollute the error log and make it harder to spot real issues.
-
-**Fix:** Filter out `AbortError` and "signal is aborted" messages in both `setupGlobalErrorTracking()` and the `window.onunhandledrejection` handler so they never hit the database.
+### RED FLAG: 68% of users have no display name
+- 17 out of 25 profiles have `display_name: null`
+- This means the signup form either doesn't collect it, or the `handle_new_user` trigger isn't picking it up
+- Affects personalization (greeting banner, certificates, AI conversations)
 
 ---
 
-## 6. Add Landing Page CTA Click Tracking
+## Proposed Fixes (Priority Order)
 
-**Problem:** You can see landing page views (70 in the last week) but you can't see how many people click the "Start with a 7-Day Snapshot" CTA or the secondary "Start free" CTA. This is critical for measuring landing page effectiveness.
+### 1. Collect Display Name During Signup (Critical)
+68% of users have no name. The greeting banner says "Welcome back" with no name, certificates are blank, and AI chat has no context. The signup form needs a required "Name" field that passes to `raw_user_meta_data.display_name`.
 
-**Fix:** Add click tracking to both CTA buttons on the Landing page.
+**Files:** `src/pages/Auth.tsx`
 
----
+### 2. Add a "Quick Start" Assessment Option (High)
+The 20-question Build Assessment is the #1 onboarding blocker. 36% of users never get past it. Add a prominent "Skip assessment and start now" option at the TOP of the assessment (not buried at the bottom), with copy like "You can always take this later from your dashboard."
 
-## 7. Harden the Signup Success Message
+**Files:** `src/components/onboarding/OnboardingAssessment.tsx`
 
-**Problem:** After signup, the toast says "Your account has been created. Redirecting to your dashboard..." but if email confirmation is required, the user won't be redirected -- they need to check their email first. This creates confusion.
+### 3. Day 1 Completion Nudge Copy (High)
+After completing Day 1, users see the dashboard but there's no clear "See you tomorrow" message or hook. Add a brief completion state to the Today's Actions section when all tasks are done: "Day 1 done. Come back tomorrow -- same time, same place." with a calendar reminder CTA.
 
-**Fix:** Check the signup response for `session` presence. If no session (email confirmation required), show "Check your email to confirm your account." If session exists (auto-confirmed), show the redirect message.
+**Files:** `src/components/dashboard/TodayActions.tsx`
+
+### 4. Track Day-by-Day Retention Events (Medium)
+Currently we can count daily_resets per day_number but can't see the TIME between Day 1 and Day 2 visits, or what users do when they return. Add a `daily_return` event that fires when a user opens the dashboard, capturing `days_since_last_visit` and `current_snapshot_day`.
+
+**Files:** `src/pages/Dashboard.tsx`, `src/hooks/useAnalytics.ts`
+
+### 5. Add Onboarding Funnel Dashboard to Admin (Medium)
+The admin panel tracks "Free Trial Funnel" but doesn't show the full onboarding funnel. Add a section showing: Landing Views -> Auth Views -> Signups -> Assessment Complete -> Snapshot Started -> Day 1 Done. This lets you monitor drop-off in real time as you promote.
+
+**Files:** `src/pages/Admin.tsx`
+
+### 6. Harden Empty States (Low)
+Users with no activity data see potentially broken or confusing empty states in the Experience tab, Snapshot History, and Patterns view. Audit these components to ensure they show helpful "Start your first Snapshot" messaging rather than empty cards.
+
+**Files:** `src/components/experience/*`, `src/components/dashboard/SnapshotHistory.tsx`
 
 ---
 
 ## Technical Details
 
-### Files to modify:
-1. **`src/pages/Auth.tsx`** -- Add page view tracking, account creation tracking, fix signup toast
-2. **`src/hooks/useAnalytics.ts`** -- Filter AbortError from global error handlers
-3. **`src/pages/Landing.tsx`** -- Add CTA click tracking
-4. **`src/components/onboarding/OnboardingFlow.tsx`** -- Add stale onboarding auto-recovery
-5. **Database** -- Resolve all 28 stale errors
+### Changes by file:
 
-### Database changes:
-- Mark all existing unresolved errors as resolved (UPDATE, no schema change)
+1. **`src/pages/Auth.tsx`**
+   - Add a "Display Name" input field to the signup form
+   - Pass `display_name` in `options.data` during `signUp()`
+   - Make the field required with validation
 
-### No new dependencies needed.
+2. **`src/components/onboarding/OnboardingAssessment.tsx`**
+   - Add a prominent "Skip and start now" button at the top of the assessment, before the first question
+   - Style it as a secondary action but make it visible
 
-### Priority order:
-1. Fix signup toast (prevents confusion for new users TODAY)
-2. Add Auth page tracking + account creation event (funnel visibility)
-3. Filter AbortErrors (clean error log for monitoring)
-4. Add Landing CTA tracking (measure promotion effectiveness)
-5. Resolve stale errors (clean admin panel)
-6. Add stale onboarding recovery (rescue stuck users)
+3. **`src/components/dashboard/TodayActions.tsx`**
+   - When all today's actions are complete, show a "Day X done" celebration micro-state
+   - Include "See you tomorrow" copy and optional calendar reminder button
+
+4. **`src/pages/Dashboard.tsx`**
+   - Track `daily_return` event on mount with `days_since_last_visit` metadata
+   - Use last activity timestamp from dashboard summary
+
+5. **`src/pages/Admin.tsx`**
+   - Add "Onboarding Funnel" card querying page_views, app_events, user_onboarding, and reset_sessions
+   - Show conversion rates between each step
+
+6. **`src/components/experience/*`**
+   - Audit empty states in ActivityHistory, SnapshotHistory, BadgesEarned
+   - Replace blank/broken states with guided CTAs
+
+### No new database tables needed. No new dependencies.
 
