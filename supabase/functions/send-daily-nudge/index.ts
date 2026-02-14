@@ -896,31 +896,18 @@ Deno.serve(async (req) => {
 
       await Promise.all(batch.map(async ({ userId, localDate, isWeekly }) => {
         try {
-          // ATOMIC DEDUPLICATION: Use upsert with ON CONFLICT to prevent race conditions
-          const { error: lockError } = await supabase
+          // ATOMIC DEDUPLICATION: Insert with unique constraint — only the first invocation wins
+          const { error: claimError } = await supabase
             .from("email_nudge_logs")
-            .upsert(
-              {
-                user_id: userId,
-                nudge_date: localDate,
-                status: "pending",
-              },
-              { 
-                onConflict: "user_id,nudge_date",
-                ignoreDuplicates: true,
-              }
-            );
+            .insert({
+              user_id: userId,
+              nudge_date: localDate,
+              status: "pending",
+            });
 
-          // Check if we successfully claimed the slot
-          const { data: ourLog } = await supabase
-            .from("email_nudge_logs")
-            .select("id, status")
-            .eq("user_id", userId)
-            .eq("nudge_date", localDate)
-            .maybeSingle();
-
-          if (!ourLog || ourLog.status === "sent") {
-            console.log(`[NUDGE] Already sent/claimed for ${userId} on ${localDate}, skipping`);
+          if (claimError) {
+            // Unique constraint violation means another invocation already claimed this slot
+            console.log(`[NUDGE] Already claimed for ${userId} on ${localDate}, skipping (${claimError.code})`);
             skippedCount++;
             return;
           }
