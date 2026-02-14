@@ -27,7 +27,7 @@ export function DailyAlignmentPromo({ onUpgrade }: DailyAlignmentPromoProps) {
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-foreground">
-            Daily Alignment™
+            Daily Alignment
           </h3>
           <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
             Personalized scripture. Real-time growth reflection. One clear action per day. Built from your actual life.

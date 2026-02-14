@@ -79,7 +79,7 @@ export function DailyAlignmentSpotlight({
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h3 className="text-sm font-semibold text-foreground">New: Daily Alignment™</h3>
+              <h3 className="text-sm font-semibold text-foreground">New: Daily Alignment</h3>
               <Sparkles className="w-3.5 h-3.5 text-primary" />
             </div>
           </div>

@@ -265,7 +265,7 @@ export function ProfileSettingsModal({
                 <div className="flex items-center gap-2 mb-1">
                   <Mail className="w-4 h-4 text-muted-foreground" />
                   <Label className={`font-medium ${!isPaid ? 'text-muted-foreground' : ''}`}>
-                    Daily Alignment™
+                    Daily Alignment
                   </Label>
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
                     Premium
