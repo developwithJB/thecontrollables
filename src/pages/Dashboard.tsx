@@ -25,7 +25,7 @@ import { useBadges } from "@/hooks/useBadges";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
-import { usePageViewTracking } from "@/hooks/useAnalytics";
+import { usePageViewTracking, useAnalytics } from "@/hooks/useAnalytics";
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
@@ -87,6 +87,7 @@ type TabType = "dashboard" | "experience" | "guide";
 
 export default function Dashboard() {
   usePageViewTracking("Dashboard");
+  const { trackEvent } = useAnalytics();
 
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -454,6 +455,30 @@ export default function Dashboard() {
       checkReturnedBadge();
     }
   }, [user?.id, ensureOnboardingRecord, checkReturnedBadge]);
+
+  // Track daily return event for retention analytics
+  useEffect(() => {
+    if (!user?.id || dashboardLoading) return;
+    const lastVisitKey = `last_dashboard_visit_${user.id}`;
+    const now = new Date();
+    const todayStr = now.toLocaleDateString("sv-SE");
+    try {
+      const lastVisit = localStorage.getItem(lastVisitKey);
+      if (lastVisit !== todayStr) {
+        const daysSince = lastVisit
+          ? Math.floor((now.getTime() - new Date(lastVisit).getTime()) / (1000 * 60 * 60 * 24))
+          : null;
+        trackEvent("retention", "daily_return", {
+          days_since_last_visit: daysSince,
+          current_snapshot_day: activeSession ? currentDay : null,
+          has_active_session: !!activeSession,
+        });
+        localStorage.setItem(lastVisitKey, todayStr);
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, [user?.id, dashboardLoading, trackEvent, activeSession, currentDay]);
 
   // Check for openFocus query param (from Reset page navigation)
   useEffect(() => {

@@ -114,6 +114,34 @@ export function OnboardingAssessment({
       exit={{ opacity: 0 }}
       className="min-h-screen flex flex-col px-6 py-12"
     >
+      {/* Quick Start Option */}
+      <div className="max-w-md mx-auto w-full mb-4">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl border border-accent/30 bg-accent/5"
+        >
+          <div className="flex items-start gap-3">
+            <div className="text-2xl">🚀</div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground mb-1">
+                Want to skip ahead?
+              </p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Jump straight in. You can always take this assessment later from your dashboard.
+              </p>
+              <button
+                onClick={onSkip}
+                disabled={isSubmitting}
+                className="text-sm font-medium text-accent hover:underline disabled:opacity-50"
+              >
+                Skip and start now →
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
       {/* Header */}
       <div className="max-w-md mx-auto w-full mb-8">
         <motion.div
