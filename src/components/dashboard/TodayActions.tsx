@@ -748,8 +748,14 @@ export function TodayActions({
         {/* Done for today affirmation - shown after primary action (checkin) is completed */}
         {!isListCollapsed && (!primaryAction || primaryAction.completed) && hasActiveSession && !isResetCompleted && todayResetCompleted && (
           <div className="px-4 py-3 border-b border-border/50 bg-muted/30">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-base">✨</span>
+              <p className="text-sm font-medium text-foreground">
+                Day {currentDay} done.
+              </p>
+            </div>
             <p className="text-xs text-muted-foreground">
-              You're done for today. Everything else is optional.
+              Come back tomorrow — same time, same place. Everything else below is optional.
             </p>
           </div>
         )}

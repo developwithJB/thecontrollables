@@ -146,10 +146,12 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    if (!email || !password || (mode === "signup" && !displayName.trim())) {
       toast({
         title: "Missing fields",
-        description: "Please enter both email and password.",
+        description: mode === "signup" && !displayName.trim()
+          ? "Please enter your name so we can greet you."
+          : "Please enter both email and password.",
         variant: "destructive",
       });
       return;
@@ -409,6 +411,7 @@ export default function Auth() {
                         placeholder="How should we greet you?"
                         className="pl-10"
                         autoComplete="name"
+                        required
                         data-testid="auth-name-input"
                       />
                     </div>
