@@ -254,7 +254,260 @@ function getDayContextLine(day: number): string {
   }
 }
 
-// Generate DAILY email content
+// Check if user is a paid subscriber
+async function checkIsPaid(supabase: SupabaseClient, userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("user_entitlements")
+    .select("id, expires_at")
+    .eq("user_id", userId)
+    .order("granted_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) return false;
+  if (!data.expires_at) return true; // lifetime
+  return new Date(data.expires_at) > new Date();
+}
+
+// Map controllable names to scripture theme tags
+function getThemeForControllable(controllable: string): string {
+  const map: Record<string, string> = {
+    awareness: "awareness",
+    perspective: "perspective",
+    habit: "habit",
+    wellness: "wellness",
+    environment: "environment",
+  };
+  return map[controllable.toLowerCase()] || "awareness";
+}
+
+// Get the user's lowest controllable from their build scores
+async function getLowestControllable(supabase: SupabaseClient, userId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from("user_build_current")
+    .select("awareness, perspective, habit, wellness, environment")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!data) return null;
+
+  const scores: Record<string, number> = {
+    awareness: Number(data.awareness) || 0,
+    perspective: Number(data.perspective) || 0,
+    habit: Number(data.habit) || 0,
+    wellness: Number(data.wellness) || 0,
+    environment: Number(data.environment) || 0,
+  };
+
+  let lowest = "awareness";
+  let lowestScore = Infinity;
+  for (const [key, val] of Object.entries(scores)) {
+    if (val < lowestScore) {
+      lowestScore = val;
+      lowest = key;
+    }
+  }
+  return lowest;
+}
+
+// Select a scripture for the user, avoiding recent ones
+async function selectScripture(
+  supabase: SupabaseClient,
+  userId: string,
+  themeTag: string,
+  localDate: string
+): Promise<{ id: string; verse_reference: string; verse_text: string } | null> {
+  // Get recently sent scripture IDs (last 14 days)
+  const { data: recentLogs } = await supabase
+    .from("daily_alignment_logs")
+    .select("scripture_id")
+    .eq("user_id", userId)
+    .gte("nudge_date", new Date(new Date(localDate).getTime() - 14 * 86400000).toISOString().split("T")[0])
+    .order("nudge_date", { ascending: false });
+
+  const recentIds = (recentLogs || []).map((l: { scripture_id: string }) => l.scripture_id);
+
+  // Try to find a matching theme scripture not recently sent
+  let { data: scriptures } = await supabase
+    .from("daily_scriptures")
+    .select("id, verse_reference, verse_text")
+    .eq("theme_tag", themeTag)
+    .order("rotation_order", { ascending: true });
+
+  if (scriptures && scriptures.length > 0) {
+    const unsent = scriptures.filter((s: { id: string }) => !recentIds.includes(s.id));
+    if (unsent.length > 0) return unsent[0];
+    // All theme scriptures recently sent, use the first one (wrap around)
+    return scriptures[0];
+  }
+
+  // Fallback: any scripture by rotation_order
+  const { data: fallback } = await supabase
+    .from("daily_scriptures")
+    .select("id, verse_reference, verse_text")
+    .order("rotation_order", { ascending: true })
+    .limit(1);
+
+  return fallback?.[0] || null;
+}
+
+// Get recent reflection/journal content for AI context
+async function getRecentReflection(supabase: SupabaseClient, userId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from("daily_resets")
+    .select("reflection, commitment")
+    .eq("user_id", userId)
+    .order("completed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) return null;
+  const parts = [data.reflection, data.commitment].filter(Boolean);
+  return parts.length > 0 ? parts.join(" ") : null;
+}
+
+// Get consecutive streak count
+async function getStreakCount(supabase: SupabaseClient, userId: string): Promise<number> {
+  const { data } = await supabase
+    .from("daily_checkins")
+    .select("check_in_date")
+    .eq("user_id", userId)
+    .order("check_in_date", { ascending: false })
+    .limit(30);
+
+  if (!data || data.length === 0) return 0;
+
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i < data.length; i++) {
+    const expected = new Date(today);
+    expected.setDate(expected.getDate() - i);
+    const expectedStr = expected.toISOString().split("T")[0];
+    if (data[i].check_in_date === expectedStr) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+// Generate AI content for Daily Alignment
+async function generateAlignmentContent(
+  displayName: string,
+  lowestControllable: string,
+  missionTitle: string | null,
+  recentReflection: string | null,
+  streakCount: number,
+  verseReference: string,
+  verseText: string
+): Promise<{
+  contextReflection: string;
+  reflectionQuestion: string;
+  microAction: string;
+  eveningPrompt: string;
+} | null> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) {
+    console.error("[ALIGNMENT] LOVABLE_API_KEY not configured");
+    return null;
+  }
+
+  const userVars = [
+    `Name: ${displayName || "Friend"}`,
+    `Area needing attention: ${lowestControllable}`,
+    missionTitle ? `Current mission: ${missionTitle}` : null,
+    recentReflection ? `Recent reflection: "${recentReflection.slice(0, 200)}"` : null,
+    `Current streak: ${streakCount} day${streakCount !== 1 ? "s" : ""}`,
+  ].filter(Boolean).join("\n");
+
+  const prompt = `You are writing a concise, grounded, spiritually mature daily alignment email. Tie this scripture to the user's current growth journey using their recent activity data. Keep tone practical, not preachy. Keep total length under 250 words.
+
+Scripture: ${verseReference}
+"${verseText}"
+
+User context:
+${userVars}
+
+Generate exactly four items in this JSON format:
+{
+  "contextReflection": "1-2 sentence reflection tying the scripture to their journey",
+  "reflectionQuestion": "One thoughtful question for them to sit with today",
+  "microAction": "One clear, specific behavior-based action for today",
+  "eveningPrompt": "One sentence evening self-check question"
+}
+
+Rules:
+- No long dashes
+- No generic Christian cliches
+- Tone: grounded, wise, clear
+- No emojis
+- Address them by first name naturally
+- Reference their specific situation when possible`;
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "user", content: prompt },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "daily_alignment",
+              description: "Return daily alignment content.",
+              parameters: {
+                type: "object",
+                properties: {
+                  contextReflection: { type: "string" },
+                  reflectionQuestion: { type: "string" },
+                  microAction: { type: "string" },
+                  eveningPrompt: { type: "string" },
+                },
+                required: ["contextReflection", "reflectionQuestion", "microAction", "eveningPrompt"],
+                additionalProperties: false,
+              },
+            },
+          },
+        ],
+        tool_choice: { type: "function", function: { name: "daily_alignment" } },
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("[ALIGNMENT] AI gateway error:", response.status, errText);
+      return null;
+    }
+
+    const result = await response.json();
+    const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall) {
+      console.error("[ALIGNMENT] No tool call in response");
+      return null;
+    }
+
+    const parsed = JSON.parse(toolCall.function.arguments);
+    return {
+      contextReflection: parsed.contextReflection || "",
+      reflectionQuestion: parsed.reflectionQuestion || "",
+      microAction: parsed.microAction || "",
+      eveningPrompt: parsed.eveningPrompt || "",
+    };
+  } catch (err) {
+    console.error("[ALIGNMENT] AI generation error:", err);
+    return null;
+  }
+}
+
+// Generate DAILY email content (basic for free users)
 function generateDailyEmailContent(
   context: UserContext
 ): { subject: string; body: string } {
@@ -300,14 +553,115 @@ function generateDailyEmailContent(
       
       <a href="https://thedashboard.agbcoaching.com/dashboard" 
          style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 15px;">
-        Open Today's Actions →
+        Open Today's Actions
       </a>
+      
+      <div style="margin-top: 24px; padding: 16px; background: #f0f0ff; border-radius: 8px;">
+        <p style="font-size: 13px; color: #555; margin: 0 0 8px 0; font-weight: 500;">
+          Want personalized scripture and reflection each morning?
+        </p>
+        <a href="https://thedashboard.agbcoaching.com/billing" 
+           style="font-size: 13px; color: #6366f1; text-decoration: none; font-weight: 500;">
+          Unlock Daily Alignment
+        </a>
+      </div>
       
       <p style="font-size: 13px; color: #888; margin: 24px 0 0 0; font-style: italic;">
         ${permissionLine}
       </p>
       
       <p style="font-size: 11px; color: #aaa; margin-top: 32px;">
+        <a href="https://thedashboard.agbcoaching.com/dashboard" style="color: #888; text-decoration: none;">
+          Turn off anytime in settings
+        </a>
+      </p>
+    </div>
+  `;
+
+  return { subject, body };
+}
+
+// Generate Daily Alignment email content (premium)
+function generateDailyAlignmentEmailContent(
+  context: UserContext,
+  verseReference: string,
+  verseText: string,
+  aiContent: {
+    contextReflection: string;
+    reflectionQuestion: string;
+    microAction: string;
+    eveningPrompt: string;
+  }
+): { subject: string; body: string } {
+  const firstName = context.displayName || "Friend";
+  const subject = `${firstName}, stay aligned today.`;
+  const permissionLine = PERMISSION_LINES[Math.floor(Math.random() * PERMISSION_LINES.length)];
+
+  const body = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 440px; margin: 0 auto; padding: 40px 20px; background: #fafafa;">
+      <p style="font-size: 18px; color: #1a1a1a; margin: 0 0 24px 0;">
+        Good morning ${firstName},
+      </p>
+      
+      <div style="background: #fff; border-left: 3px solid #6366f1; padding: 16px 20px; margin: 0 0 24px 0; border-radius: 0 8px 8px 0;">
+        <p style="font-size: 12px; color: #888; margin: 0 0 8px 0; letter-spacing: 0.5px;">
+          SCRIPTURE OF THE DAY
+        </p>
+        <p style="font-size: 15px; color: #333; margin: 0 0 6px 0; font-style: italic;">
+          "${verseText}"
+        </p>
+        <p style="font-size: 13px; color: #666; margin: 0; font-weight: 500;">
+          ${verseReference}
+        </p>
+      </div>
+      
+      <p style="font-size: 15px; color: #333; margin: 0 0 20px 0; line-height: 1.6;">
+        ${aiContent.contextReflection}
+      </p>
+      
+      <div style="background: #f8f8fc; padding: 16px; border-radius: 8px; margin: 0 0 20px 0;">
+        <p style="font-size: 12px; color: #888; margin: 0 0 6px 0; letter-spacing: 0.5px;">
+          REFLECT ON THIS
+        </p>
+        <p style="font-size: 14px; color: #444; margin: 0; font-style: italic;">
+          "${aiContent.reflectionQuestion}"
+        </p>
+      </div>
+      
+      <div style="background: #f0fdf4; padding: 16px; border-radius: 8px; margin: 0 0 20px 0;">
+        <p style="font-size: 12px; color: #888; margin: 0 0 6px 0; letter-spacing: 0.5px;">
+          LIVE IT TODAY
+        </p>
+        <p style="font-size: 14px; color: #333; margin: 0;">
+          ${aiContent.microAction}
+        </p>
+      </div>
+      
+      <div style="background: #fefce8; padding: 16px; border-radius: 8px; margin: 0 0 24px 0;">
+        <p style="font-size: 12px; color: #888; margin: 0 0 6px 0; letter-spacing: 0.5px;">
+          TONIGHT
+        </p>
+        <p style="font-size: 14px; color: #444; margin: 0; font-style: italic;">
+          "${aiContent.eveningPrompt}"
+        </p>
+      </div>
+      
+      <p style="font-size: 14px; color: #666; margin: 0 0 16px 0; text-align: center;">
+        Track how you live this inside The Dashboard.
+      </p>
+      
+      <div style="text-align: center;">
+        <a href="https://thedashboard.agbcoaching.com/dashboard" 
+           style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 15px;">
+          Open My Dashboard
+        </a>
+      </div>
+      
+      <p style="font-size: 13px; color: #888; margin: 24px 0 0 0; font-style: italic; text-align: center;">
+        ${permissionLine}
+      </p>
+      
+      <p style="font-size: 11px; color: #aaa; margin-top: 32px; text-align: center;">
         <a href="https://thedashboard.agbcoaching.com/dashboard" style="color: #888; text-decoration: none;">
           Turn off anytime in settings
         </a>
@@ -368,7 +722,7 @@ function generateWeeklyEmailContent(
       
       <a href="https://thedashboard.agbcoaching.com/dashboard" 
          style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 15px;">
-        View Your Snapshot →
+        View Your Snapshot
       </a>
       
       <p style="font-size: 13px; color: #888; margin: 24px 0 0 0; font-style: italic;">
@@ -533,6 +887,7 @@ Deno.serve(async (req) => {
 
     let sentCount = 0;
     let skippedCount = 0;
+    let alignmentCount = 0;
     const errors: string[] = [];
 
     // Process in batches of 10
@@ -542,7 +897,6 @@ Deno.serve(async (req) => {
       await Promise.all(batch.map(async ({ userId, localDate, isWeekly }) => {
         try {
           // ATOMIC DEDUPLICATION: Use upsert with ON CONFLICT to prevent race conditions
-          // Insert a "pending" log first - if it fails due to unique constraint, another invocation already claimed this slot
           const { error: lockError } = await supabase
             .from("email_nudge_logs")
             .upsert(
@@ -553,11 +907,11 @@ Deno.serve(async (req) => {
               },
               { 
                 onConflict: "user_id,nudge_date",
-                ignoreDuplicates: true, // Don't update if exists, just skip
+                ignoreDuplicates: true,
               }
             );
 
-          // Check if we successfully claimed the slot by checking if a pending record exists for us
+          // Check if we successfully claimed the slot
           const { data: ourLog } = await supabase
             .from("email_nudge_logs")
             .select("id, status")
@@ -565,7 +919,6 @@ Deno.serve(async (req) => {
             .eq("nudge_date", localDate)
             .maybeSingle();
 
-          // If status is already "sent" or we couldn't claim, skip
           if (!ourLog || ourLog.status === "sent") {
             console.log(`[NUDGE] Already sent/claimed for ${userId} on ${localDate}, skipping`);
             skippedCount++;
@@ -583,12 +936,13 @@ Deno.serve(async (req) => {
             return;
           }
 
-          // SUPPRESSION: Skip daily nudges if no active session (expired/completed/none)
+          // SUPPRESSION: Skip daily nudges if no active session
           if (!isWeekly && !context.sessionId) {
             console.log(`[NUDGE] User ${userId} has no active session, skipping daily nudge`);
             skippedCount++;
             return;
           }
+
           // Get user email
           const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
 
@@ -599,10 +953,78 @@ Deno.serve(async (req) => {
 
           const email = userData.user.email;
 
-          // Generate appropriate email content
-          const { subject, body } = isWeekly 
-            ? generateWeeklyEmailContent(context)
-            : generateDailyEmailContent(context);
+          // Check if user is paid (for Daily Alignment)
+          const userIsPaid = await checkIsPaid(supabase, userId);
+          
+          let subject: string;
+          let body: string;
+
+          if (!isWeekly && userIsPaid) {
+            // PREMIUM PATH: Daily Alignment with scripture + AI
+            console.log(`[NUDGE] Generating Daily Alignment for paid user ${userId}`);
+            
+            // Gather data for personalization
+            const [lowestControllable, recentReflection, streakCount] = await Promise.all([
+              getLowestControllable(supabase, userId),
+              getRecentReflection(supabase, userId),
+              getStreakCount(supabase, userId),
+            ]);
+
+            const themeTag = getThemeForControllable(lowestControllable || context.focusArea.toLowerCase());
+            const scripture = await selectScripture(supabase, userId, themeTag, localDate);
+
+            if (scripture) {
+              const aiContent = await generateAlignmentContent(
+                context.displayName || "Friend",
+                lowestControllable || context.focusArea.toLowerCase(),
+                context.missionTitle,
+                recentReflection,
+                streakCount,
+                scripture.verse_reference,
+                scripture.verse_text
+              );
+
+              if (aiContent) {
+                const result = generateDailyAlignmentEmailContent(context, scripture.verse_reference, scripture.verse_text, aiContent);
+                subject = result.subject;
+                body = result.body;
+
+                // Log alignment data
+                await supabase.from("daily_alignment_logs").upsert({
+                  user_id: userId,
+                  scripture_id: scripture.id,
+                  nudge_date: localDate,
+                  generated_content: aiContent,
+                }, { onConflict: "user_id,nudge_date" });
+
+                alignmentCount++;
+              } else {
+                // AI failed, fall back to basic premium email with scripture only
+                const fallbackResult = generateDailyAlignmentEmailContent(context, scripture.verse_reference, scripture.verse_text, {
+                  contextReflection: `This verse speaks to your ${lowestControllable || "growth"} journey. Let it settle before you act on it.`,
+                  reflectionQuestion: "What part of this verse challenges you most right now?",
+                  microAction: "Choose one small action today that reflects what this verse is asking of you.",
+                  eveningPrompt: "Did I live closer to this verse today than yesterday?",
+                });
+                subject = fallbackResult.subject;
+                body = fallbackResult.body;
+              }
+            } else {
+              // No scripture found, fall back to basic email
+              const basicResult = generateDailyEmailContent(context);
+              subject = basicResult.subject;
+              body = basicResult.body;
+            }
+          } else if (isWeekly) {
+            const result = generateWeeklyEmailContent(context);
+            subject = result.subject;
+            body = result.body;
+          } else {
+            // FREE PATH: Basic daily nudge with upgrade CTA
+            const result = generateDailyEmailContent(context);
+            subject = result.subject;
+            body = result.body;
+          }
 
           // Send email via Resend
           const emailResult = await resend.emails.send({
@@ -612,7 +1034,7 @@ Deno.serve(async (req) => {
             html: body,
           });
 
-          console.log(`[NUDGE] Sent ${isWeekly ? "weekly" : "daily"} to ${email} with subject "${subject}":`, emailResult);
+          console.log(`[NUDGE] Sent ${isWeekly ? "weekly" : userIsPaid ? "alignment" : "daily"} to ${email} with subject "${subject}":`, emailResult);
 
           // Update the pending log to "sent" status
           await supabase
@@ -635,12 +1057,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[NUDGE] Complete. Sent: ${sentCount}, Skipped: ${skippedCount}, Errors: ${errors.length}`);
+    console.log(`[NUDGE] Complete. Sent: ${sentCount} (${alignmentCount} alignment), Skipped: ${skippedCount}, Errors: ${errors.length}`);
 
     return new Response(
       JSON.stringify({
         message: "Nudge run complete",
         sent: sentCount,
+        alignment: alignmentCount,
         skipped: skippedCount,
         errors: errors.length,
       }),
