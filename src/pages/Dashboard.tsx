@@ -54,6 +54,7 @@ import { SnapshotReviewCard } from "@/components/dashboard/SnapshotReviewCard";
 // JourneyChangesLog removed - consolidated into Activity History
 
 import { GameRulesSection } from "@/components/GameRulesSection";
+import { DailyAlignmentPromo } from "@/components/dashboard/DailyAlignmentPromo";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
 import { InstallNudge } from "@/components/pwa/InstallNudge";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
@@ -876,6 +877,11 @@ export default function Dashboard() {
 
               {/* Build Entry Point - shows if user hasn't done assessment */}
               <BuildEntryPoint />
+
+              {/* Daily Alignment promo for free users */}
+              {!isPaid && !entitlementsLoading && (
+                <DailyAlignmentPromo onUpgrade={() => initiateCheckout("monthly")} />
+              )}
 
               {/* 7-Day Foundation Progress - only show when active session */}
               {activeSession && !isCompleted && !isExpired && (

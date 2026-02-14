@@ -265,7 +265,7 @@ export function ProfileSettingsModal({
                 <div className="flex items-center gap-2 mb-1">
                   <Mail className="w-4 h-4 text-muted-foreground" />
                   <Label className={`font-medium ${!isPaid ? 'text-muted-foreground' : ''}`}>
-                    Email Nudges (Optional)
+                    Daily Alignment™
                   </Label>
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
                     Premium
@@ -273,8 +273,8 @@ export function ProfileSettingsModal({
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
                   {isPaid 
-                    ? "A calm reminder to return to your Snapshot. No streaks. No guilt. Turn off anytime."
-                    : "A quiet nudge to return to what matters. Available with Premium."
+                    ? "Personalized scripture, reflection, and one clear action each morning. No streaks. No guilt. Turn off anytime."
+                    : "Personalized scripture and growth reflection each morning. Available with Premium."
                   }
                 </p>
                 
@@ -293,7 +293,7 @@ export function ProfileSettingsModal({
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="daily" id="nudge-daily" />
                       <Label htmlFor="nudge-daily" className="cursor-pointer font-normal">
-                        Daily
+                        Daily Alignment
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
