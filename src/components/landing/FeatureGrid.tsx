@@ -57,7 +57,7 @@ const coreFeatures = [
   },
   {
     icon: Mail,
-    title: "Daily Alignment™",
+    title: "Daily Alignment",
     description: "Personalized scripture, real-time growth reflection, and one clear action each morning — built from your actual life.",
     premium: true,
   },

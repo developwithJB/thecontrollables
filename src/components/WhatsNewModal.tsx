@@ -13,7 +13,7 @@ import { APP_VERSION } from "@/lib/version";
 // Changelog entries - update this with each version
 const CHANGELOG: Record<string, { title: string; items: string[] }> = {
   "1.4.0": {
-    title: "Daily Alignment™",
+    title: "Daily Alignment",
     items: [
       "Daily Alignment — personalized scripture and reflection delivered each morning",
       "Built from your actual Snapshot data and Build scores",

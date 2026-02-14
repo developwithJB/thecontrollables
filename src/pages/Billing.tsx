@@ -329,7 +329,7 @@ export default function Billing() {
                   premium={true}
                 />
                 <FeatureRow 
-                  label="Daily Alignment™" 
+                  label="Daily Alignment" 
                   included={isPaid} 
                   premium={true}
                 />
