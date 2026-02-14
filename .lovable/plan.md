@@ -1,149 +1,109 @@
 
 
-# Daily Alignment Adoption Campaign
+# Expand Build Archetype Mapping
 
 ## Problem
 
-Daily Alignment is off by default, even for paid users. Existing users (both paid and free) have no idea this feature exists. We need to surface it without being pushy -- consistent with the app's calm, permission-based philosophy.
+The database function that computes archetypes only handles 4 specific max/min controllable combinations:
 
-## Strategy: Three Adoption Levers
+| Max | Min | Archetype |
+|-----|-----|-----------|
+| all >= 3.0 | — | stable_build |
+| habit | wellness | driven_but_depleting |
+| awareness | environment | clear_but_fighting_friction |
+| wellness | habit | capable_but_inconsistent |
+| **everything else** | — | **custom_build (unmapped)** |
 
-```text
-+---------------------------+----------------------------+----------------------------+
-|   1. AWARENESS            |   2. ACTIVATION            |   3. CONVERSION            |
-|   (All users see it)      |   (Paid users opt in)      |   (Free users upgrade)     |
-+---------------------------+----------------------------+----------------------------+
-| What's New modal on       | One-tap enable toggle      | Enriched promo card        |
-| next login (v1.4.0)       | right inside the modal     | with sample preview        |
-|                           |                            |                            |
-| Dashboard spotlight       | Welcome Back flow          | "Try a sample" CTA that    |
-| card (one-time,           | includes DA suggestion     | shows a static example     |
-| dismissible)              | for returning paid users   | alignment email            |
-+---------------------------+----------------------------+----------------------------+
-```
+There are 20 possible max/min pairings (5 controllables x 4 remaining). Only 3 are mapped, so **most users hit the fallback** and see "Unmapped Pattern" — which feels directionless and discouraging.
 
----
+Meanwhile, the frontend already defines 12 archetypes that are never assigned:
+- strong_foundation, momentum_rebooting, scattered_focus, low_battery_mode, tunnel_vision, overclocked, high_friction_zone, grind_mode
 
-## Changes
+## Solution
 
-### 1. Version bump and What's New modal update
+### 1. Expand the SQL archetype logic (database migration)
 
-**Files:** `src/lib/version.ts`, `src/components/WhatsNewModal.tsx`
+Replace the 4-rule `IF/ELSIF` block with comprehensive coverage of all 20 max/min combos, plus score-range rules for edge cases (e.g., all scores low, all scores mid-range).
 
-Bump version to `1.4.0` and add a changelog entry highlighting Daily Alignment as the headline feature. This modal auto-shows to returning users who last saw a previous version.
+**New mapping (all 20 combos covered):**
 
-Changelog entry:
-- Title: "Daily Alignment"
-- Items:
-  - "Daily Alignment -- personalized scripture and reflection delivered each morning"
-  - "Built from your actual Snapshot data and Build scores"
-  - "Enable it in Profile Settings under Reminders"
+| Max | Min | Archetype | Rationale |
+|-----|-----|-----------|-----------|
+| all >= 3.0 | — | stable_build | Everything strong |
+| all <= 1.5 | — | momentum_rebooting | Everything low, restart mode |
+| habit | wellness | driven_but_depleting | Executing but running empty |
+| habit | awareness | grind_mode | Doing reps but not reflecting |
+| habit | perspective | tunnel_vision | Heads-down, no zoom-out |
+| habit | environment | high_friction_zone | Good habits, bad setup |
+| awareness | wellness | low_battery_mode | Sees clearly but drained |
+| awareness | habit | scattered_focus | Aware but not executing |
+| awareness | perspective | tunnel_vision | Noticing but not reframing |
+| awareness | environment | clear_but_fighting_friction | Clear-eyed, messy space |
+| perspective | wellness | low_battery_mode | Good mindset, low energy |
+| perspective | habit | capable_but_inconsistent | Sees the path, doesn't walk it |
+| perspective | awareness | strong_foundation | Grounded but autopilot |
+| perspective | environment | clear_but_fighting_friction | Right frame, wrong room |
+| wellness | habit | capable_but_inconsistent | Healthy but undisciplined |
+| wellness | awareness | strong_foundation | Body good, mind on autopilot |
+| wellness | perspective | strong_foundation | Solid base, needs reframing |
+| wellness | environment | overclocked | Energy high, space chaotic |
+| environment | habit | scattered_focus | Clean space, no reps |
+| environment | awareness | grind_mode | Optimized space, no reflection |
+| environment | perspective | grind_mode | Structured but no vision |
+| environment | wellness | driven_but_depleting | Dialed-in setup, burning out |
 
-### 2. One-time Dashboard spotlight card (new component)
+### 2. Improve the fallback archetype in frontend
 
-**New file:** `src/components/dashboard/DailyAlignmentSpotlight.tsx`
+Rename the fallback from "Unmapped Pattern" to something encouraging. Change `unmapped_pattern` to use friendlier copy:
 
-A dismissible, attention-drawing card shown once to ALL authenticated users (paid and free) at the top of the dashboard (above GreetingBanner). It uses localStorage (`da_spotlight_dismissed`) to track dismissal.
+- **Label**: "Unique Pattern" (instead of "Unmapped Pattern")
+- **Emoji**: keep compass
+- **Description**: "Your build is uniquely balanced. Focus on the area that feels most important to you right now."
+- **Theme**: keep neutral
 
-For paid users:
-- Headline: "New: Daily Alignment"
-- Body: "A personalized scripture and one clear action, delivered to your inbox each morning. Built from your real progress."
-- CTA button: "Enable Daily Alignment" -- opens ProfileSettingsModal with nudge frequency pre-set to "daily" and saves immediately
-- Secondary: "Not now" dismiss link
+This way even if someone somehow hits the fallback, it feels intentional rather than broken.
 
-For free users:
-- Same headline and body
-- CTA: "Upgrade to unlock" -- triggers checkout
-- Secondary: "Learn more" -- scrolls to the existing promo card
+### 3. Add any missing archetype entries to frontend
 
-**File:** `src/pages/Dashboard.tsx`
-- Import and render `DailyAlignmentSpotlight` above `GreetingBanner`
-- Pass `isPaid`, `userId`, `onUpgrade`, and a callback to open settings with auto-enable
-
-### 3. Quick-enable from spotlight (auto opt-in)
-
-**File:** `src/pages/Dashboard.tsx`
-
-Add a `handleEnableDailyAlignment` function that:
-1. Updates the user's profile directly: `email_nudge_enabled = true`, `nudge_frequency = 'daily'`
-2. Shows a success toast: "Daily Alignment enabled. Your first email arrives tomorrow morning."
-3. Dismisses the spotlight card
-4. Tracks an analytics event: `feature_activation`, `daily_alignment_enabled`
-
-This removes friction -- users don't have to navigate to settings, find the toggle, and save.
-
-### 4. Welcome Back flow integration
-
-**File:** `src/components/welcome-back/WelcomeBackFollowUp.tsx`
-
-For paid users who haven't enabled Daily Alignment (check profile `email_nudge_enabled`), add a soft suggestion in the follow-up screen:
-
-- After the existing content, add a small card:
-  "Want a calm start each morning? Enable Daily Alignment -- personalized scripture built from your progress."
-  [Enable] [Skip]
-
-This targets the exact users who've been away and are re-engaging -- the highest-intent moment.
-
-**File:** `src/hooks/useWelcomeBack.ts` or `src/components/WelcomeBack.tsx`
-
-Fetch the user's `email_nudge_enabled` status to conditionally show the DA suggestion.
-
-### 5. Enriched free-user promo card with sample preview
-
-**File:** `src/components/dashboard/DailyAlignmentPromo.tsx`
-
-Upgrade the existing static promo card:
-- Add a "See a sample" expandable section that shows a mock Daily Alignment email preview (static content, not AI-generated)
-- Sample includes: a scripture verse, a 2-sentence reflection, a micro-action, and an evening prompt
-- This gives free users a tangible preview of what they're missing
-- Keep the "Upgrade to Premium" CTA
-
-### 6. Analytics tracking
-
-**File:** `src/hooks/useAnalytics.ts` (existing trackEvent)
-
-Track these new events through the existing analytics system:
-- `feature_awareness`: `da_spotlight_shown` -- when spotlight renders
-- `feature_activation`: `da_spotlight_enable_clicked` -- when paid user clicks enable
-- `feature_activation`: `da_welcome_back_enable_clicked` -- when paid user enables from welcome back
-- `feature_awareness`: `da_promo_sample_expanded` -- when free user views sample
-- `feature_conversion`: `da_promo_upgrade_clicked` -- when free user clicks upgrade from promo
+All archetype keys used in the new SQL mapping already exist in `ARCHETYPE_LABELS` -- no new frontend entries needed, just the fallback rename.
 
 ---
 
-## Technical Details
-
-### localStorage keys
-- `da_spotlight_dismissed` -- prevents spotlight from showing again after dismissal or enable
-- `da_spotlight_dismissed_{userId}` -- per-user to handle multi-account scenarios
-
-### Profile check for spotlight
-Query `profiles` table for `email_nudge_enabled` to determine if paid user already has it on. If already enabled, don't show spotlight.
-
-### Component rendering order (Dashboard tab)
-```text
-1. WelcomeBackBanner (if returning)
-2. DailyAlignmentSpotlight (if not dismissed and not already enabled)  <-- NEW
-3. GreetingBanner
-4. MainQuestModule
-5. SnapshotReviewCard
-6. TodayActions
-7. BuildEntryPoint
-8. DailyAlignmentPromo (free users only)  <-- ENHANCED
-9. ResetProgressModule
-...
-```
-
-### Files summary
+## Files
 
 | File | Action |
 |------|--------|
-| `src/lib/version.ts` | Bump to 1.4.0 |
-| `src/components/WhatsNewModal.tsx` | Add 1.4.0 changelog with DA headline |
-| `src/components/dashboard/DailyAlignmentSpotlight.tsx` | New -- one-time dismissible spotlight card |
-| `src/components/dashboard/DailyAlignmentPromo.tsx` | Enhance -- add sample preview section |
-| `src/pages/Dashboard.tsx` | Integrate spotlight, add quick-enable handler |
-| `src/components/welcome-back/WelcomeBackFollowUp.tsx` | Add DA suggestion for paid users |
+| Database migration (new SQL) | Replace `compute_build_scores` function with expanded archetype logic |
+| `src/lib/build.ts` | Rename `unmapped_pattern` label/description to "Unique Pattern" with encouraging copy |
 
-No new database tables or edge functions needed. No new dependencies.
+## Technical Details
 
+### SQL Migration
+
+```sql
+CREATE OR REPLACE FUNCTION public.compute_build_scores(p_assessment_id uuid)
+...
+  -- Assign archetype based on rules
+  IF v_awareness >= 3.0 AND v_perspective >= 3.0 AND v_habit >= 3.0 AND v_wellness >= 3.0 AND v_environment >= 3.0 THEN
+    v_archetype := 'stable_build';
+  ELSIF v_overall <= 1.5 THEN
+    v_archetype := 'momentum_rebooting';
+  ELSIF v_max_controllable = 'habit' AND v_min_controllable = 'wellness' THEN
+    v_archetype := 'driven_but_depleting';
+  ELSIF v_max_controllable = 'habit' AND v_min_controllable = 'awareness' THEN
+    v_archetype := 'grind_mode';
+  -- ... (all 20 combos)
+  ELSE
+    v_archetype := 'unmapped_pattern';
+  END IF;
+```
+
+### Frontend change
+
+Update the `unmapped_pattern` entry in `ARCHETYPE_LABELS`:
+- label: "Unique Pattern"
+- description: "Your build is uniquely balanced. Focus on the area that feels most important to you right now."
+
+### Existing users
+
+Users who already have `custom_build` or `unmapped_pattern` stored will get re-mapped the next time they take the assessment. No data migration needed -- existing scores stay as-is, but the frontend fallback will now show "Unique Pattern" instead of "Unmapped Pattern" immediately.
