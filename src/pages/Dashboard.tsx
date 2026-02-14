@@ -75,9 +75,7 @@ import {
   LazyBadgesEarned,
   LazyCertificates,
   LazySnapshotHistory,
-  LazyPersonalInsightCard,
   LazyInsightsAtAGlance,
-  LazyRestDaysCard,
   SuspenseExperienceComponent,
   ExperienceLoadingSkeleton,
 } from "@/components/experience/LazyExperienceComponents";
@@ -1192,13 +1190,6 @@ export default function Dashboard() {
                 currentBuild={currentBuild}
               />
 
-              {/* Personal Insight Card - Paid only */}
-              {!isSimplifiedMode && isPaid && user?.id && (
-                <SuspenseExperienceComponent>
-                  <LazyPersonalInsightCard userId={user.id} />
-                </SuspenseExperienceComponent>
-              )}
-
               {/* Insights at a Glance - Paid only */}
               {!isSimplifiedMode && isPaid && user?.id && (
                 <SuspenseExperienceComponent>
@@ -1306,12 +1297,6 @@ export default function Dashboard() {
                 </SuspenseExperienceComponent>
               )}
 
-              {/* Rest Days Analytics - Paid only */}
-              {!isSimplifiedMode && isPaid && user?.id && (
-                <SuspenseExperienceComponent>
-                  <LazyRestDaysCard userId={user.id} />
-                </SuspenseExperienceComponent>
-              )}
 
               {/* Journey Summary Footer */}
               <motion.div
