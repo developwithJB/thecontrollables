@@ -1,109 +1,139 @@
 
 
-# Expand Build Archetype Mapping
+# Experience Dashboard Enhancement -- Phase 1
 
-## Problem
+## Scope
 
-The database function that computes archetypes only handles 4 specific max/min controllable combinations:
+Four high-impact additions to the Experience tab, using only the user's own data (no cross-user benchmarks or aggregates).
 
-| Max | Min | Archetype |
-|-----|-----|-----------|
-| all >= 3.0 | — | stable_build |
-| habit | wellness | driven_but_depleting |
-| awareness | environment | clear_but_fighting_friction |
-| wellness | habit | capable_but_inconsistent |
-| **everything else** | — | **custom_build (unmapped)** |
-
-There are 20 possible max/min pairings (5 controllables x 4 remaining). Only 3 are mapped, so **most users hit the fallback** and see "Unmapped Pattern" — which feels directionless and discouraging.
-
-Meanwhile, the frontend already defines 12 archetypes that are never assigned:
-- strong_foundation, momentum_rebooting, scattered_focus, low_battery_mode, tunnel_vision, overclocked, high_friction_zone, grind_mode
-
-## Solution
-
-### 1. Expand the SQL archetype logic (database migration)
-
-Replace the 4-rule `IF/ELSIF` block with comprehensive coverage of all 20 max/min combos, plus score-range rules for edge cases (e.g., all scores low, all scores mid-range).
-
-**New mapping (all 20 combos covered):**
-
-| Max | Min | Archetype | Rationale |
-|-----|-----|-----------|-----------|
-| all >= 3.0 | — | stable_build | Everything strong |
-| all <= 1.5 | — | momentum_rebooting | Everything low, restart mode |
-| habit | wellness | driven_but_depleting | Executing but running empty |
-| habit | awareness | grind_mode | Doing reps but not reflecting |
-| habit | perspective | tunnel_vision | Heads-down, no zoom-out |
-| habit | environment | high_friction_zone | Good habits, bad setup |
-| awareness | wellness | low_battery_mode | Sees clearly but drained |
-| awareness | habit | scattered_focus | Aware but not executing |
-| awareness | perspective | tunnel_vision | Noticing but not reframing |
-| awareness | environment | clear_but_fighting_friction | Clear-eyed, messy space |
-| perspective | wellness | low_battery_mode | Good mindset, low energy |
-| perspective | habit | capable_but_inconsistent | Sees the path, doesn't walk it |
-| perspective | awareness | strong_foundation | Grounded but autopilot |
-| perspective | environment | clear_but_fighting_friction | Right frame, wrong room |
-| wellness | habit | capable_but_inconsistent | Healthy but undisciplined |
-| wellness | awareness | strong_foundation | Body good, mind on autopilot |
-| wellness | perspective | strong_foundation | Solid base, needs reframing |
-| wellness | environment | overclocked | Energy high, space chaotic |
-| environment | habit | scattered_focus | Clean space, no reps |
-| environment | awareness | grind_mode | Optimized space, no reflection |
-| environment | perspective | grind_mode | Structured but no vision |
-| environment | wellness | driven_but_depleting | Dialed-in setup, burning out |
-
-### 2. Improve the fallback archetype in frontend
-
-Rename the fallback from "Unmapped Pattern" to something encouraging. Change `unmapped_pattern` to use friendlier copy:
-
-- **Label**: "Unique Pattern" (instead of "Unmapped Pattern")
-- **Emoji**: keep compass
-- **Description**: "Your build is uniquely balanced. Focus on the area that feels most important to you right now."
-- **Theme**: keep neutral
-
-This way even if someone somehow hits the fallback, it feels intentional rather than broken.
-
-### 3. Add any missing archetype entries to frontend
-
-All archetype keys used in the new SQL mapping already exist in `ARCHETYPE_LABELS` -- no new frontend entries needed, just the fallback rename.
+```text
++------------------------------+-------------------------------+
+|  1. Personal Insight Card    |  2. Insights at a Glance      |
+|  (enhanced with gauge +      |  (new card: streak, best day, |
+|   trend + focus breakdown)   |   trend, projected weeks)     |
++------------------------------+-------------------------------+
+|  3. Interactive Activity     |  4. Rest Days Analytics       |
+|  by Day (clickable circles,  |  (new card: rest compliance,  |
+|   color intensity, drawer)   |   rest streak, next rest day) |
++------------------------------+-------------------------------+
+```
 
 ---
 
-## Files
+## 1. Enhanced Personal Insight Card
 
-| File | Action |
-|------|--------|
-| Database migration (new SQL) | Replace `compute_build_scores` function with expanded archetype logic |
-| `src/lib/build.ts` | Rename `unmapped_pattern` label/description to "Unique Pattern" with encouraging copy |
+**File:** New `src/components/experience/PersonalInsightCard.tsx`
+
+A standalone card placed at the top of the Experience tab (after Time Cycles, before Snapshot History).
+
+What it shows (all computed from the user's own `integrity_logs` data):
+
+- **Circular progress gauge** for promise-keeping rate (e.g., 79%)
+- **Trend indicator**: compare current month vs previous month ("up 8% from last month" or "down 3%")
+- **Mini sparkline**: last 6 snapshot periods' promise-keeping rates (simple SVG line)
+- **Expandable focus-area breakdown** (if `completed_actions` has controllable data):
+  - Wellness: 82%, Habit: 76%, Awareness: 71%, Environment: 85%
+- **Impact line**: "Your 79% rate earned you X XP" (calculated from integrity XP logs)
+
+Data sources:
+- `integrity_logs` table -- promised_at, kept, kept_at
+- `completed_actions` table -- controllable field for breakdown
+- `xp_logs` table -- for XP impact calculation
+
+### 2. Insights at a Glance Card
+
+**File:** New `src/components/experience/InsightsAtAGlance.tsx`
+
+A compact summary card placed between Personal Insight and Snapshot History.
+
+Metrics shown:
+- Current streak (from `consecutiveStreak` already computed by dashboard-summary edge function)
+- Longest streak (computed client-side from `daily_checkins` data)
+- Best day of the week (from existing `WeeklyPatternView` logic, extracted)
+- Trend vs last month (check-in count comparison)
+- Projected weeks this year (simple linear projection from current pace)
+
+All calculations use the user's own `daily_checkins`, `completed_actions`, and `xp_logs` data.
+
+### 3. Interactive Activity by Day
+
+**File:** Enhanced `src/components/experience/WeeklyPatternView.tsx`
+
+Updates to the existing "Activity by Day" circles in the Patterns view:
+
+- **Color-coded intensity**: circles go from light to dark based on activity level (already partially done via inline styles, will improve with better gradient steps)
+- **Clickable circles**: tapping a day opens a small drawer/dialog showing:
+  - List of actions completed on that day of the week
+  - Average XP earned on that day
+  - Number of check-ins on that day
+- **Hover tooltip** (desktop): quick preview of day stats on hover using existing Tooltip component
+
+### 4. Rest Days Analytics Card
+
+**File:** New `src/components/experience/RestDaysCard.tsx`
+
+A new card placed after Activity History in the Experience tab.
+
+What it shows:
+- Detected rest days (the 2 lowest-activity days from pattern data)
+- Rest compliance this month (days where the user had no actions on their detected rest days, shown as a progress bar)
+- Current rest streak (consecutive rest days honored)
+- Next rest day (which upcoming day is a detected rest day)
+- Whether user is currently in a "Rest Phase" (based on Time Cycles logic -- evening/night)
+
+Data sources:
+- `completed_actions` -- to detect which days have low/no activity
+- `daily_checkins` -- to see which days the user checks in
+- Pattern data already computed in `WeeklyPatternView`
+
+---
+
+## Component Rendering Order (Experience Tab)
+
+```text
+1. Header ("Experience" + subtitle)
+2. TimeCycleCard (existing, free)
+3. PersonalInsightCard (NEW -- paid only)
+4. InsightsAtAGlance (NEW -- paid only)
+5. SnapshotHistory / Your Story (existing)
+6. Locked overlay or Badges (existing)
+7. Activity History (existing, paid)
+8. RestDaysCard (NEW -- paid only)
+9. Certificates (existing, paid)
+10. Journey Summary Footer (existing)
+```
 
 ## Technical Details
 
-### SQL Migration
+### New files
 
-```sql
-CREATE OR REPLACE FUNCTION public.compute_build_scores(p_assessment_id uuid)
-...
-  -- Assign archetype based on rules
-  IF v_awareness >= 3.0 AND v_perspective >= 3.0 AND v_habit >= 3.0 AND v_wellness >= 3.0 AND v_environment >= 3.0 THEN
-    v_archetype := 'stable_build';
-  ELSIF v_overall <= 1.5 THEN
-    v_archetype := 'momentum_rebooting';
-  ELSIF v_max_controllable = 'habit' AND v_min_controllable = 'wellness' THEN
-    v_archetype := 'driven_but_depleting';
-  ELSIF v_max_controllable = 'habit' AND v_min_controllable = 'awareness' THEN
-    v_archetype := 'grind_mode';
-  -- ... (all 20 combos)
-  ELSE
-    v_archetype := 'unmapped_pattern';
-  END IF;
-```
+| File | Purpose |
+|------|---------|
+| `src/components/experience/PersonalInsightCard.tsx` | Circular gauge + trend + breakdown |
+| `src/components/experience/InsightsAtAGlance.tsx` | Compact streak/trend/projection card |
+| `src/components/experience/RestDaysCard.tsx` | Rest day analytics |
+| `src/components/experience/DayDetailDrawer.tsx` | Drawer for clicking a day circle |
 
-### Frontend change
+### Modified files
 
-Update the `unmapped_pattern` entry in `ARCHETYPE_LABELS`:
-- label: "Unique Pattern"
-- description: "Your build is uniquely balanced. Focus on the area that feels most important to you right now."
+| File | Change |
+|------|--------|
+| `src/components/experience/WeeklyPatternView.tsx` | Add click handlers, tooltips, color intensity |
+| `src/components/experience/LazyExperienceComponents.tsx` | Add lazy imports for new components |
+| `src/pages/Dashboard.tsx` | Render new cards in Experience tab |
 
-### Existing users
+### Data fetching approach
 
-Users who already have `custom_build` or `unmapped_pattern` stored will get re-mapped the next time they take the assessment. No data migration needed -- existing scores stay as-is, but the frontend fallback will now show "Unique Pattern" instead of "Unmapped Pattern" immediately.
+- PersonalInsightCard and InsightsAtAGlance will use `useQuery` hooks to fetch `integrity_logs`, `daily_checkins`, and `completed_actions` with `staleTime: 5 * 60 * 1000`
+- Queries only enabled when Experience tab is active (following existing Tier 3 deferred loading pattern)
+- RestDaysCard reuses pattern data already fetched by WeeklyPatternView via shared query keys
+- No new edge functions or database changes needed
+
+### Circular progress gauge
+
+Built with SVG -- a simple `<circle>` with `stroke-dasharray` and `stroke-dashoffset` for the animated fill. No new dependencies.
+
+### No cross-user data
+
+Per your preference, no "Top 35% of users" or "above platform average" benchmarks. All metrics are personal: your rate, your trend, your projection.
+
