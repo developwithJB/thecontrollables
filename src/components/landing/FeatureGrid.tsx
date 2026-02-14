@@ -57,8 +57,8 @@ const coreFeatures = [
   },
   {
     icon: Mail,
-    title: "Gentle Email Nudges",
-    description: "A calm daily or weekly reminder to return — without pressure, streaks, or guilt. Just a quiet check-in.",
+    title: "Daily Alignment™",
+    description: "Personalized scripture, real-time growth reflection, and one clear action each morning — built from your actual life.",
     premium: true,
   },
 ];
