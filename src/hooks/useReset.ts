@@ -290,6 +290,7 @@ export const useReset = (externalUserId?: string | null) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reset-session"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
       toast({
         title: "Your 7-Day Snapshot begins",
         description: "Day 1 awaits you.",

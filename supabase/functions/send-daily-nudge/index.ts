@@ -918,15 +918,96 @@ Deno.serve(async (req) => {
 
           // SUPPRESSION: Skip daily nudges if Today's Actions already completed
           if (!isWeekly && context.todayActionsCompleted) {
-            console.log(`[NUDGE] User ${userId} already completed Today's Actions, skipping`);
+            console.log(`[NUDGE] User ${userId} already completed Today's Actions, marking as skipped`);
+            await supabase
+              .from("email_nudge_logs")
+              .update({ status: "skipped" })
+              .eq("user_id", userId)
+              .eq("nudge_date", localDate);
             skippedCount++;
             return;
           }
 
-          // SUPPRESSION: Skip daily nudges if no active session
+          // RE-ENGAGEMENT: If no active session, send a "start your next snapshot" nudge instead of skipping
           if (!isWeekly && !context.sessionId) {
-            console.log(`[NUDGE] User ${userId} has no active session, skipping daily nudge`);
-            skippedCount++;
+            console.log(`[NUDGE] User ${userId} has no active session, sending re-engagement nudge`);
+            
+            // Get user email for re-engagement
+            const { data: reEngageUser, error: reEngageError } = await supabase.auth.admin.getUserById(userId);
+            if (reEngageError || !reEngageUser?.user?.email) {
+              console.warn(`[NUDGE] Could not get email for re-engagement user ${userId}`);
+              await supabase
+                .from("email_nudge_logs")
+                .update({ status: "skipped" })
+                .eq("user_id", userId)
+                .eq("nudge_date", localDate);
+              skippedCount++;
+              return;
+            }
+
+            const reEngageEmail = reEngageUser.user.email;
+            const firstName = context.displayName || "Friend";
+            const permissionLine = PERMISSION_LINES[Math.floor(Math.random() * PERMISSION_LINES.length)];
+
+            const reEngageSubject = "Your next Snapshot is waiting";
+            const reEngageBody = `
+              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 440px; margin: 0 auto; padding: 40px 20px; background: #fafafa;">
+                <p style="font-size: 18px; color: #1a1a1a; margin: 0 0 24px 0;">
+                  Good morning ${firstName},
+                </p>
+                
+                <p style="font-size: 15px; color: #333; margin: 0 0 20px 0; line-height: 1.6;">
+                  You've completed your last Snapshot — well done. When you're ready, a new 7-day focus is waiting for you inside The Dashboard.
+                </p>
+                
+                <p style="font-size: 15px; color: #333; margin: 0 0 24px 0; line-height: 1.6;">
+                  No pressure. Just showing up is the win.
+                </p>
+                
+                <div style="text-align: center;">
+                  <a href="https://thedashboard.agbcoaching.com/dashboard" 
+                     style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 15px;">
+                    Start Your Next Snapshot →
+                  </a>
+                </div>
+                
+                <p style="font-size: 13px; color: #888; margin: 24px 0 0 0; font-style: italic; text-align: center;">
+                  ${permissionLine}
+                </p>
+                
+                <p style="font-size: 11px; color: #aaa; margin-top: 32px; text-align: center;">
+                  <a href="https://thedashboard.agbcoaching.com/dashboard" style="color: #888; text-decoration: none;">
+                    Turn off anytime in settings
+                  </a>
+                </p>
+              </div>
+            `;
+
+            try {
+              await resend.emails.send({
+                from: "The Dashboard <noreply@thedashboard.agbcoaching.com>",
+                to: [reEngageEmail],
+                subject: reEngageSubject,
+                html: reEngageBody,
+              });
+
+              await supabase
+                .from("email_nudge_logs")
+                .update({ status: "sent", sent_at: new Date().toISOString() })
+                .eq("user_id", userId)
+                .eq("nudge_date", localDate);
+
+              console.log(`[NUDGE] Sent re-engagement nudge to ${reEngageEmail}`);
+              sentCount++;
+            } catch (reEngageErr) {
+              console.error(`[NUDGE] Failed re-engagement for ${userId}:`, reEngageErr);
+              await supabase
+                .from("email_nudge_logs")
+                .update({ status: "skipped" })
+                .eq("user_id", userId)
+                .eq("nudge_date", localDate);
+              errors.push(`${userId}: re-engagement failed`);
+            }
             return;
           }
 
