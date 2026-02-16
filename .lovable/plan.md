@@ -1,139 +1,73 @@
 
+# Fix: Nudge Suppression Leaves "Pending" Slot + Stale Dashboard Cache
 
-# Experience Dashboard Enhancement -- Phase 1
+## Problem Summary
 
-## Scope
+Two related issues affecting the user `developwithjb@gmail.com`:
 
-Four high-impact additions to the Experience tab, using only the user's own data (no cross-user benchmarks or aggregates).
+1. **No email today**: The nudge function claimed the send slot (inserted "pending" into `email_nudge_logs`) but then hit the "no active session" suppression and returned early without sending or updating the status. The slot is permanently blocked.
 
-```text
-+------------------------------+-------------------------------+
-|  1. Personal Insight Card    |  2. Insights at a Glance      |
-|  (enhanced with gauge +      |  (new card: streak, best day, |
-|   trend + focus breakdown)   |   trend, projected weeks)     |
-+------------------------------+-------------------------------+
-|  3. Interactive Activity     |  4. Rest Days Analytics       |
-|  by Day (clickable circles,  |  (new card: rest compliance,  |
-|   color intensity, drawer)   |   rest streak, next rest day) |
-+------------------------------+-------------------------------+
+2. **App stuck on yesterday**: After completing Day 1 of a new snapshot, the `current_day` column was bumped to 2 in the database, but the client's React Query cache still holds stale data from the previous session. The `useReset` hook uses `calculateCurrentDay()` (date-based) for display, which is correct, but the dashboard-summary cache may still reference the old completed session's data, making the UI feel "stuck".
+
+## Root Cause
+
+In `supabase/functions/send-daily-nudge/index.ts`, lines 919-931: when suppression conditions are met (today's actions already completed, or no active session), the function increments `skippedCount` and returns — but the `email_nudge_logs` row stays as "pending" forever. The email is never sent, and on re-invocation, the insert would fail (duplicate), so the email can never be retried.
+
+This is NOT a global issue. Other users either:
+- Were not at their target hour (7 AM local)
+- Had active sessions and received their nudge normally
+
+## Fix Plan
+
+### 1. Update nudge suppression to mark skipped slots (send-daily-nudge/index.ts)
+
+When a nudge is skipped due to suppression (lines 919-931), update the `email_nudge_logs` status from "pending" to "skipped" so:
+- The slot is properly recorded (no retry attempts)
+- Admin monitoring can distinguish "skipped" from "pending" (stuck) entries
+- The deduplication still works (row exists, no duplicate sends)
+
+Add status update before each `skippedCount++; return;` block:
+
+```typescript
+// After claiming but before skipping, mark as skipped
+await supabase
+  .from("email_nudge_logs")
+  .update({ status: "skipped" })
+  .eq("user_id", userId)
+  .eq("nudge_date", localDate);
 ```
 
----
+### 2. Fix today's missed email for this user
 
-## 1. Enhanced Personal Insight Card
+Manually update the Feb 16 nudge log from "pending" to "skipped" so the record is accurate. The email window for today (7 AM) has already passed, so no re-send is needed -- but the data should be clean.
 
-**File:** New `src/components/experience/PersonalInsightCard.tsx`
+### 3. Invalidate stale cache on session transitions (useReset.ts)
 
-A standalone card placed at the top of the Experience tab (after Time Cycles, before Snapshot History).
+In the `acceptCovenantMutation.onSuccess` callback (line 291), also invalidate the `dashboard-summary` query key so the dashboard immediately reflects the new session:
 
-What it shows (all computed from the user's own `integrity_logs` data):
-
-- **Circular progress gauge** for promise-keeping rate (e.g., 79%)
-- **Trend indicator**: compare current month vs previous month ("up 8% from last month" or "down 3%")
-- **Mini sparkline**: last 6 snapshot periods' promise-keeping rates (simple SVG line)
-- **Expandable focus-area breakdown** (if `completed_actions` has controllable data):
-  - Wellness: 82%, Habit: 76%, Awareness: 71%, Environment: 85%
-- **Impact line**: "Your 79% rate earned you X XP" (calculated from integrity XP logs)
-
-Data sources:
-- `integrity_logs` table -- promised_at, kept, kept_at
-- `completed_actions` table -- controllable field for breakdown
-- `xp_logs` table -- for XP impact calculation
-
-### 2. Insights at a Glance Card
-
-**File:** New `src/components/experience/InsightsAtAGlance.tsx`
-
-A compact summary card placed between Personal Insight and Snapshot History.
-
-Metrics shown:
-- Current streak (from `consecutiveStreak` already computed by dashboard-summary edge function)
-- Longest streak (computed client-side from `daily_checkins` data)
-- Best day of the week (from existing `WeeklyPatternView` logic, extracted)
-- Trend vs last month (check-in count comparison)
-- Projected weeks this year (simple linear projection from current pace)
-
-All calculations use the user's own `daily_checkins`, `completed_actions`, and `xp_logs` data.
-
-### 3. Interactive Activity by Day
-
-**File:** Enhanced `src/components/experience/WeeklyPatternView.tsx`
-
-Updates to the existing "Activity by Day" circles in the Patterns view:
-
-- **Color-coded intensity**: circles go from light to dark based on activity level (already partially done via inline styles, will improve with better gradient steps)
-- **Clickable circles**: tapping a day opens a small drawer/dialog showing:
-  - List of actions completed on that day of the week
-  - Average XP earned on that day
-  - Number of check-ins on that day
-- **Hover tooltip** (desktop): quick preview of day stats on hover using existing Tooltip component
-
-### 4. Rest Days Analytics Card
-
-**File:** New `src/components/experience/RestDaysCard.tsx`
-
-A new card placed after Activity History in the Experience tab.
-
-What it shows:
-- Detected rest days (the 2 lowest-activity days from pattern data)
-- Rest compliance this month (days where the user had no actions on their detected rest days, shown as a progress bar)
-- Current rest streak (consecutive rest days honored)
-- Next rest day (which upcoming day is a detected rest day)
-- Whether user is currently in a "Rest Phase" (based on Time Cycles logic -- evening/night)
-
-Data sources:
-- `completed_actions` -- to detect which days have low/no activity
-- `daily_checkins` -- to see which days the user checks in
-- Pattern data already computed in `WeeklyPatternView`
-
----
-
-## Component Rendering Order (Experience Tab)
-
-```text
-1. Header ("Experience" + subtitle)
-2. TimeCycleCard (existing, free)
-3. PersonalInsightCard (NEW -- paid only)
-4. InsightsAtAGlance (NEW -- paid only)
-5. SnapshotHistory / Your Story (existing)
-6. Locked overlay or Badges (existing)
-7. Activity History (existing, paid)
-8. RestDaysCard (NEW -- paid only)
-9. Certificates (existing, paid)
-10. Journey Summary Footer (existing)
+```typescript
+onSuccess: () => {
+  queryClient.invalidateQueries({ queryKey: ["reset-session"] });
+  queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+  // ...
+}
 ```
 
-## Technical Details
+This already partially exists but the `dashboard-summary` key is missing from the invalidation list, which can cause the dashboard to show stale data from the previous session.
 
-### New files
+### 4. Also handle the email-not-sent suppression path (no active session after auto-complete)
 
-| File | Purpose |
-|------|---------|
-| `src/components/experience/PersonalInsightCard.tsx` | Circular gauge + trend + breakdown |
-| `src/components/experience/InsightsAtAGlance.tsx` | Compact streak/trend/projection card |
-| `src/components/experience/RestDaysCard.tsx` | Rest day analytics |
-| `src/components/experience/DayDetailDrawer.tsx` | Drawer for clicking a day circle |
+The real edge case: the nudge function auto-completes an expired session at line 201-209, then returns context with `sessionId: null`. The function then skips the email at line 927. But the user still deserves a nudge -- they just need a "start a new snapshot" nudge instead of a "continue your snapshot" nudge.
 
-### Modified files
+Update the suppression logic: when there is no active session, instead of skipping entirely, send a re-engagement nudge ("Start your next snapshot").
+
+## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/experience/WeeklyPatternView.tsx` | Add click handlers, tooltips, color intensity |
-| `src/components/experience/LazyExperienceComponents.tsx` | Add lazy imports for new components |
-| `src/pages/Dashboard.tsx` | Render new cards in Experience tab |
+| `supabase/functions/send-daily-nudge/index.ts` | Mark skipped slots as "skipped" instead of leaving them "pending"; optionally send re-engagement nudge when no active session |
+| `src/hooks/useReset.ts` | Add `dashboard-summary` to invalidation in `acceptCovenantMutation.onSuccess` |
 
-### Data fetching approach
+## Not Global
 
-- PersonalInsightCard and InsightsAtAGlance will use `useQuery` hooks to fetch `integrity_logs`, `daily_checkins`, and `completed_actions` with `staleTime: 5 * 60 * 1000`
-- Queries only enabled when Experience tab is active (following existing Tier 3 deferred loading pattern)
-- RestDaysCard reuses pattern data already fetched by WeeklyPatternView via shared query keys
-- No new edge functions or database changes needed
-
-### Circular progress gauge
-
-Built with SVG -- a simple `<circle>` with `stroke-dasharray` and `stroke-dashoffset` for the animated fill. No new dependencies.
-
-### No cross-user data
-
-Per your preference, no "Top 35% of users" or "above platform average" benchmarks. All metrics are personal: your rate, your trend, your projection.
-
+Confirmed: only 1 user (JB) has a Feb 16 nudge log. Other users either aren't at their target hour yet or don't have nudges enabled. No other users are affected by the stale cache issue since no other users created a new session today.
