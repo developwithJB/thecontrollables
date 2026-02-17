@@ -321,7 +321,7 @@ export const Day7Complete = ({
                 />
                 
                 <p className="text-xs text-muted-foreground mt-3">
-                  Save {pricing.yearlySavingsPercent}% with yearly
+                  Choose Plus or Pro annual plans
                 </p>
               </div>
             </motion.div>

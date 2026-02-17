@@ -1,28 +1,28 @@
 /**
  * Entitlement gating logic
- * 
- * This module defines what features are available to free vs paid users.
- * Extracted for easy unit testing.
  */
 
-/**
- * Features that require payment
- */
+export type PlanTier = "free" | "plus" | "pro" | "lifetime";
+
+const TIER_RANK: Record<PlanTier, number> = {
+  free: 0,
+  plus: 1,
+  pro: 2,
+  lifetime: 2,
+};
+
 export const PAID_FEATURES = {
-  progressHistory: true,
-  resetHistory: true,
-  badgesEarned: true,
-  momentumDecay: true,
-  aiCompanions: true,
-  certificateDownload: true,
-  multipleResets: true,
+  progressHistory: "plus",
+  resetHistory: "plus",
+  badgesEarned: "plus",
+  momentumDecay: "plus",
+  aiCompanions: "plus",
+  certificateDownload: "plus",
+  multipleResets: "pro",
 } as const;
 
 export type PaidFeature = keyof typeof PAID_FEATURES;
 
-/**
- * Features available to all users (free tier)
- */
 export const FREE_FEATURES = {
   sevenDayReset: true,
   buildAssessment: true,
@@ -33,70 +33,58 @@ export const FREE_FEATURES = {
 
 export type FreeFeature = keyof typeof FREE_FEATURES;
 
-/**
- * Check if a feature requires payment
- */
-export const isFeatureLocked = (feature: PaidFeature, isPaid: boolean): boolean => {
-  if (isPaid) return false;
-  return PAID_FEATURES[feature] === true;
+export const isPaidTier = (tier: PlanTier | null | undefined): boolean => {
+  return !!tier && tier !== "free";
 };
 
-/**
- * Check if user can access a specific feature
- */
-export const canAccessFeature = (feature: PaidFeature | FreeFeature, isPaid: boolean): boolean => {
-  // Free features are always accessible
+const normalizeTier = (tier: PlanTier | boolean | null | undefined): PlanTier => {
+  if (tier === true) return "plus";
+  if (tier === false || tier == null) return "free";
+  return tier;
+};
+
+export const isFeatureLocked = (feature: PaidFeature, tier: PlanTier | boolean): boolean => {
+  const resolvedTier = normalizeTier(tier);
+  return TIER_RANK[resolvedTier] < TIER_RANK[PAID_FEATURES[feature]];
+};
+
+export const canAccessFeature = (feature: PaidFeature | FreeFeature, tier: PlanTier | boolean): boolean => {
   if (feature in FREE_FEATURES) return true;
-  
-  // Paid features require payment
-  if (feature in PAID_FEATURES) return isPaid;
-  
+  if (feature in PAID_FEATURES) return !isFeatureLocked(feature as PaidFeature, tier);
   return false;
 };
 
-/**
- * Get list of locked features for a free user
- */
-export const getLockedFeatures = (isPaid: boolean): PaidFeature[] => {
-  if (isPaid) return [];
-  return Object.keys(PAID_FEATURES) as PaidFeature[];
+export const getLockedFeatures = (tier: PlanTier | boolean): PaidFeature[] => {
+  const resolvedTier = normalizeTier(tier);
+  if (resolvedTier === "lifetime") return [];
+  return (Object.keys(PAID_FEATURES) as PaidFeature[]).filter((feature) => isFeatureLocked(feature, resolvedTier));
 };
 
-/**
- * Validate that entitlement data has expected shape
- */
-export const isValidEntitlement = (entitlement: unknown): entitlement is { 
-  isPaid: boolean; 
-  purchasedAt: string | null 
+export const isValidEntitlement = (entitlement: unknown): entitlement is {
+  plan_tier: PlanTier | null;
+  purchasedAt: string | null;
 } => {
-  if (typeof entitlement !== 'object' || entitlement === null) return false;
+  if (typeof entitlement !== "object" || entitlement === null) return false;
   const ent = entitlement as Record<string, unknown>;
-  return typeof ent.isPaid === 'boolean' && 
-         (ent.purchasedAt === null || typeof ent.purchasedAt === 'string');
+  const tier = ent.plan_tier;
+  const tierValid = tier === null || tier === "free" || tier === "plus" || tier === "pro" || tier === "lifetime";
+  return tierValid && (ent.purchasedAt === null || typeof ent.purchasedAt === "string");
 };
 
-/**
- * Check if free user has consumed their trial
- * A free trial is "used" when a user has ANY reset session (started, completed, expired, or paused)
- */
-export const hasUsedFreeTrial = (isPaid: boolean, sessionCount: number): boolean => {
-  if (isPaid) return false;
+export const hasUsedFreeTrial = (tier: PlanTier | boolean, sessionCount: number): boolean => {
+  const resolvedTier = normalizeTier(tier);
+  if (isPaidTier(resolvedTier)) return false;
   return sessionCount >= 1;
 };
 
-/**
- * Check if free user can start a new snapshot
- */
-export const canStartNewSnapshot = (isPaid: boolean, sessionCount: number): boolean => {
-  if (isPaid) return true;
+export const canStartNewSnapshot = (tier: PlanTier | boolean, sessionCount: number): boolean => {
+  const resolvedTier = normalizeTier(tier);
+  if (isPaidTier(resolvedTier)) return true;
   return sessionCount < 1;
 };
 
-/**
- * Check if free user can modify their current snapshot (change focus)
- * Free users with a used trial cannot modify - they're in review-only mode
- */
-export const canModifySnapshot = (isPaid: boolean, hasUsedTrial: boolean): boolean => {
-  if (isPaid) return true;
+export const canModifySnapshot = (tier: PlanTier | boolean, hasUsedTrial: boolean): boolean => {
+  const resolvedTier = normalizeTier(tier);
+  if (isPaidTier(resolvedTier)) return true;
   return !hasUsedTrial;
 };

@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Lock, Sparkles, Loader2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlanSelector } from "@/components/PlanSelector";
-import { getPricing, type PlanType } from "@/lib/pricing";
+import { getPricing, type PlanTier } from "@/lib/pricing";
 import { CalendarReminderButton } from "@/components/CalendarReminderButton";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -13,7 +13,7 @@ interface LockedOverlayProps {
   description?: string;
   buttonText?: string;
   priceLine?: string;
-  onUpgrade?: (plan?: PlanType) => void;
+  onUpgrade?: (plan?: PlanTier) => void;
   isLoading?: boolean;
   variant?: "default" | "experience-history" | "ai-companion";
 }
@@ -28,7 +28,7 @@ export function LockedOverlay({
   isLoading = false,
   variant = "default"
 }: LockedOverlayProps) {
-  const [selectedPlan, setSelectedPlan] = useState<PlanType | undefined>();
+  const [selectedPlan, setSelectedPlan] = useState<PlanTier | undefined>();
   const [timezone, setTimezone] = useState<string>(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const pricing = getPricing();
 
@@ -52,7 +52,7 @@ export function LockedOverlay({
   
   // Default copy based on variant
   const getDefaultCopy = () => {
-    const priceText = `$${pricing.monthly}/mo or $${pricing.yearly}/yr (save ${pricing.yearlySavingsPercent}%)`;
+    const priceText = `Plus $${pricing.plus.annual}/yr or Pro $${pricing.pro.annual}/yr`;
       
     switch (variant) {
       case "experience-history":
@@ -84,7 +84,7 @@ export function LockedOverlay({
   const displayDescription = description || defaultCopy.description;
   const displayPriceLine = priceLine || defaultCopy.priceLine;
 
-  const handlePlanSelect = (plan: PlanType) => {
+  const handlePlanSelect = (plan: PlanTier) => {
     setSelectedPlan(plan);
     if (onUpgrade) {
       onUpgrade(plan);  // This one is correct - we want to pass the plan

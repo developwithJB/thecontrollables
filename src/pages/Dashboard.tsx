@@ -802,7 +802,7 @@ export default function Dashboard() {
                   isPaid={isPaid}
                   nudgeEnabled={nudgeEnabled}
                   onEnable={handleEnableDailyAlignment}
-                  onUpgrade={() => initiateCheckout("monthly")}
+                  onUpgrade={() => initiateCheckout("plus")}
                   onDismiss={() => {}}
                 />
               )}
@@ -856,7 +856,7 @@ export default function Dashboard() {
                   userId={user.id}
                   isPaid={isPaid}
                   onStartNewSnapshot={isPaid ? () => setShowJourneySwitcher(true) : undefined}
-                  onUpgrade={() => initiateCheckout("monthly")}
+                  onUpgrade={() => initiateCheckout("plus")}
                 />
               )}
 
@@ -930,7 +930,7 @@ export default function Dashboard() {
 
               {/* Daily Alignment promo for free users */}
               {!isPaid && !entitlementsLoading && (
-                <DailyAlignmentPromo onUpgrade={() => initiateCheckout("monthly")} />
+                <DailyAlignmentPromo onUpgrade={() => initiateCheckout("plus")} />
               )}
 
               {/* 7-Day Foundation Progress - only show when active session */}
@@ -965,7 +965,7 @@ export default function Dashboard() {
                   userId={user.id}
                   isPaid={isPaid}
                   hasUsedFreeTrial={!isPaid && allSessions.length >= 1}
-                  onUpgrade={() => initiateCheckout("monthly")}
+                  onUpgrade={() => initiateCheckout("plus")}
                   onSnapshotChanged={() => {
                     queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
                     queryClient.invalidateQueries({ queryKey: ["reset-session"], exact: false });
