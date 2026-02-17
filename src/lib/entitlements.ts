@@ -5,6 +5,8 @@
  * Extracted for easy unit testing.
  */
 
+import { getFeatureFlags } from "@/lib/featureFlags";
+
 /**
  * Features that require payment
  */
@@ -81,7 +83,14 @@ export const isValidEntitlement = (entitlement: unknown): entitlement is {
  */
 export const hasUsedFreeTrial = (isPaid: boolean, sessionCount: number): boolean => {
   if (isPaid) return false;
-  return sessionCount >= 1;
+  const flags = getFeatureFlags();
+  const freeTierSnapshotCount = Math.max(0, flags.free_tier_snapshot_count);
+
+  if (flags.trial_type === "multi_snapshot") {
+    return sessionCount >= freeTierSnapshotCount;
+  }
+
+  return sessionCount >= Math.max(1, freeTierSnapshotCount);
 };
 
 /**
@@ -89,7 +98,7 @@ export const hasUsedFreeTrial = (isPaid: boolean, sessionCount: number): boolean
  */
 export const canStartNewSnapshot = (isPaid: boolean, sessionCount: number): boolean => {
   if (isPaid) return true;
-  return sessionCount < 1;
+  return !hasUsedFreeTrial(isPaid, sessionCount);
 };
 
 /**

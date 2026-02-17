@@ -34,6 +34,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getDayContent, RESET_DAYS } from "@/lib/resetContent";
 import { getJourneyById } from "@/lib/guidedJourneys";
 import { APP_VERSION } from "@/lib/version";
+import { getDefaultCheckoutPlan, shouldUseInlinePaywall } from "@/lib/featureFlags";
+import { hasUsedFreeTrial } from "@/lib/entitlements";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@supabase/supabase-js";
 
@@ -405,9 +407,11 @@ export default function Dashboard() {
   // (They may still have an "active" row due to older data/loopholes; UI should still
   // prioritize the ended snapshot for review.)
   const hasEndedTrial = useMemo(() => {
-    if (isPaid) return false;
-    return allSessions.some((s) => s.status === "completed" || s.status === "expired" || s.status === "paused");
-  }, [allSessions, isPaid]);
+    return hasUsedFreeTrial(isPaid, allSessions.length);
+  }, [allSessions.length, isPaid]);
+
+  const defaultCheckoutPlan = getDefaultCheckoutPlan();
+  const inlinePaywallEnabled = shouldUseInlinePaywall();
 
   // Fetch completed days per session for history - defer until Experience tab is active
   const { data: allCompletedDays = [] } = useQuery({
@@ -802,7 +806,7 @@ export default function Dashboard() {
                   isPaid={isPaid}
                   nudgeEnabled={nudgeEnabled}
                   onEnable={handleEnableDailyAlignment}
-                  onUpgrade={() => initiateCheckout("monthly")}
+                  onUpgrade={() => initiateCheckout(defaultCheckoutPlan)}
                   onDismiss={() => {}}
                 />
               )}
@@ -855,8 +859,8 @@ export default function Dashboard() {
                 <SnapshotReviewCard
                   userId={user.id}
                   isPaid={isPaid}
-                  onStartNewSnapshot={isPaid ? () => setShowJourneySwitcher(true) : undefined}
-                  onUpgrade={() => initiateCheckout("monthly")}
+                  onStartNewSnapshot={isPaid || !hasEndedTrial ? () => setShowJourneySwitcher(true) : undefined}
+                  onUpgrade={() => initiateCheckout(defaultCheckoutPlan)}
                 />
               )}
 
@@ -875,8 +879,8 @@ export default function Dashboard() {
                   onStartReset={() => acceptCovenant({ isPaid })}
                   isStartingReset={isAcceptingCovenant}
                   isPaid={isPaid}
-                  hasUsedFreeReset={!isPaid && allSessions.length >= 1}
-                  onUpgrade={() => initiateCheckout()}
+                  hasUsedFreeReset={hasUsedFreeTrial(isPaid, allSessions.length)}
+                  onUpgrade={() => initiateCheckout(defaultCheckoutPlan)}
                   hasActiveQuest={!!activeQuest}
                   todayTimeLogged={!!todayTimeLog}
                   pendingPromisesCount={pendingPromises.length}
@@ -929,8 +933,8 @@ export default function Dashboard() {
               <BuildEntryPoint />
 
               {/* Daily Alignment promo for free users */}
-              {!isPaid && !entitlementsLoading && (
-                <DailyAlignmentPromo onUpgrade={() => initiateCheckout("monthly")} />
+              {!isPaid && !entitlementsLoading && inlinePaywallEnabled && (
+                <DailyAlignmentPromo onUpgrade={() => initiateCheckout(defaultCheckoutPlan)} />
               )}
 
               {/* 7-Day Foundation Progress - only show when active session */}
@@ -947,7 +951,7 @@ export default function Dashboard() {
                   isStartingReset={isAcceptingCovenant}
                   isPaid={isPaid}
                   totalSessionCount={allSessions.length}
-                  onUpgrade={() => initiateCheckout()}
+                  onUpgrade={() => initiateCheckout(defaultCheckoutPlan)}
                   currentJourneyId={activeSession?.journey_id}
                   onSwitchJourney={() => setShowJourneySwitcher(true)}
                   lastCompletedAt={
@@ -964,8 +968,8 @@ export default function Dashboard() {
                   currentDay={currentDay}
                   userId={user.id}
                   isPaid={isPaid}
-                  hasUsedFreeTrial={!isPaid && allSessions.length >= 1}
-                  onUpgrade={() => initiateCheckout("monthly")}
+                  hasUsedFreeTrial={hasUsedFreeTrial(isPaid, allSessions.length)}
+                  onUpgrade={() => initiateCheckout(defaultCheckoutPlan)}
                   onSnapshotChanged={() => {
                     queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
                     queryClient.invalidateQueries({ queryKey: ["reset-session"], exact: false });
@@ -1115,7 +1119,7 @@ export default function Dashboard() {
                     currentBuild={currentBuild}
                     onXpEarned={handleOperatorInteraction}
                     isPaid={isPaid}
-                    onUpgrade={() => initiateCheckout()}
+                    onUpgrade={() => initiateCheckout(defaultCheckoutPlan)}
                     isCheckingOut={isCheckingOut}
                     hasActiveSnapshot={!!activeSession && !isCompleted}
                     onMessageSent={handleAskGuideMessageSent}
@@ -1246,7 +1250,7 @@ export default function Dashboard() {
                   </div>
                   {/* Single consolidated lock overlay */}
                   <LockedOverlay
-                    variant="experience-history"
+                    variant={inlinePaywallEnabled ? "experience-history" : "default"}
                     onUpgrade={(plan) => initiateCheckout(plan)}
                     isLoading={isCheckingOut}
                   />
@@ -1264,7 +1268,7 @@ export default function Dashboard() {
                   </div>
                   {/* Lock overlay for premium features */}
                   <LockedOverlay
-                    variant="experience-history"
+                    variant={inlinePaywallEnabled ? "experience-history" : "default"}
                     onUpgrade={(plan) => initiateCheckout(plan)}
                     isLoading={isCheckingOut}
                   />
