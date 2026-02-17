@@ -10,6 +10,7 @@ import { FeatureGrid } from "@/components/landing/FeatureGrid";
 import { TrustDisclosure } from "@/components/landing/TrustDisclosure";
 import { PhilosophySection } from "@/components/landing/PhilosophySection";
 import { WhyStartSection } from "@/components/landing/WhyStartSection";
+import { onboardingQuickStartEnabled } from "@/lib/featureFlags";
 
 const controllables: Array<{
   type: ControllableType;
@@ -37,6 +38,8 @@ const controllables: Array<{
 export default function Landing() {
   usePageViewTracking("Landing");
   const { trackEvent } = useAnalytics();
+
+  const quickStartEnabled = onboardingQuickStartEnabled();
 
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
@@ -104,7 +107,7 @@ export default function Landing() {
             transition={{ duration: 0.5, delay: 0.6 }}
             className="space-y-3"
           >
-            <Link to="/auth?mode=signup" onClick={() => trackEvent("cta", "cta_click", { cta_label: "Start with a 7-Day Snapshot", position: "hero" })}>
+            <Link to={quickStartEnabled ? "/quick-start" : "/auth?mode=signup"} onClick={() => trackEvent("cta", "cta_click", { cta_label: "Start with a 7-Day Snapshot", position: "hero" })}>
               <Button size="lg" className="w-full h-14 text-base font-medium group">
                 Start with a 7-Day Snapshot
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -137,7 +140,7 @@ export default function Landing() {
             </div>
 
             <div className="space-y-3">
-              <Link to="/auth?mode=signup" onClick={() => trackEvent("cta", "cta_click", { cta_label: "Start free", position: "bottom" })}>
+              <Link to={quickStartEnabled ? "/quick-start" : "/auth?mode=signup"} onClick={() => trackEvent("cta", "cta_click", { cta_label: "Start free", position: "bottom" })}>
                 <Button size="lg" className="w-full h-12 text-base font-medium group">
                   Start free
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />

@@ -6,3 +6,7 @@ export { OnboardingStarting } from "./OnboardingStarting";
 export { OnboardingSkipConfirmation } from "./OnboardingSkipConfirmation";
 export { OnboardingRecovery } from "./OnboardingRecovery";
 export { OnboardingOrientation } from "./OnboardingOrientation";
+
+export { OnboardingMissionFirstStep } from "./OnboardingMissionFirstStep";
+export { OnboardingSnapshotRecommendationStep } from "./OnboardingSnapshotRecommendationStep";
+export { OnboardingQuickStartFlow } from "./OnboardingQuickStartFlow";

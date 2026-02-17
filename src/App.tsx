@@ -2,13 +2,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SplashScreen } from "@/components/SplashScreen";
 import { useAppResume } from "@/hooks/useAppResume";
 import { lazy, Suspense, useState, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
+import { onboardingQuickStartEnabled } from "@/lib/featureFlags";
 
 // Eagerly load Landing for fastest FCP
 import Landing from "./pages/Landing";
@@ -20,6 +21,7 @@ const Reset = lazy(() => import("./pages/Reset"));
 const Billing = lazy(() => import("./pages/Billing"));
 const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const QuickStart = lazy(() => import("./pages/QuickStart"));
 
 // Production-hardened query client configuration
 const queryClient = new QueryClient({
@@ -62,6 +64,10 @@ const AppContent = () => {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
+          <Route
+            path="/quick-start"
+            element={onboardingQuickStartEnabled() ? <QuickStart /> : <Navigate to="/auth?mode=signup" replace />}
+          />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/reset" element={<Reset />} />
           <Route path="/billing" element={<Billing />} />
