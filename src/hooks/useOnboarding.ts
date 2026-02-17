@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getFeatureFlag } from "@/lib/featureFlags";
 
 export type FirstActionType = "quest" | "operator" | "rep";
 export type OnboardingStep = "build_assessment" | "archetype_result" | "journey_selection" | "completed";
@@ -21,6 +22,7 @@ export interface UserOnboarding {
 
 export const useOnboarding = (userId: string | null) => {
   const queryClient = useQueryClient();
+  const quickStartEnabled = getFeatureFlag("onboarding_quick_start_enabled");
 
   // Fetch user's onboarding status
   const { data: onboarding, isLoading } = useQuery({
@@ -44,7 +46,11 @@ export const useOnboarding = (userId: string | null) => {
   const isSimplifiedMode = !onboarding?.simplified_mode_completed;
   
   // Check if user needs to complete onboarding flow (new guided onboarding)
-  const needsOnboarding = onboarding && onboarding.onboarding_step !== "completed" && onboarding.onboarding_step !== null;
+  const needsOnboarding =
+    quickStartEnabled &&
+    onboarding &&
+    onboarding.onboarding_step !== "completed" &&
+    onboarding.onboarding_step !== null;
 
   // Create onboarding record if it doesn't exist (for new users, starts onboarding flow)
   const ensureOnboardingRecord = async () => {
@@ -60,7 +66,7 @@ export const useOnboarding = (userId: string | null) => {
       await supabase.from("user_onboarding" as any).insert({
         user_id: userId,
         simplified_mode_completed: false,
-        onboarding_step: "build_assessment", // Start new onboarding flow
+        onboarding_step: quickStartEnabled ? "build_assessment" : null,
         build_assessment_completed: false,
       } as any);
       queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
@@ -149,7 +155,7 @@ export const useOnboarding = (userId: string | null) => {
     isLoading,
     isSimplifiedMode,
     needsOnboarding,
-    currentOnboardingStep: onboarding?.onboarding_step || null,
+    currentOnboardingStep: quickStartEnabled ? onboarding?.onboarding_step || null : null,
     journeyControllable: onboarding?.journey_controllable || null,
     ensureOnboardingRecord,
     updateOnboardingProgress: updateOnboardingProgressMutation.mutateAsync,

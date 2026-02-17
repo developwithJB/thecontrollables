@@ -1,257 +1,107 @@
-/**
- * Unit tests for entitlement gating logic
- * 
- * Run with: npm run test:unit
- */
-
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, expect, it } from "vitest";
 import {
   PAID_FEATURES,
   FREE_FEATURES,
-  isFeatureLocked,
   canAccessFeature,
+  canModifySnapshot,
+  canStartNewSnapshot,
   getLockedFeatures,
+  hasUsedFreeTrial,
+  isFeatureLocked,
   isValidEntitlement,
-  type PaidFeature,
-  type FreeFeature,
-} from '../../src/lib/entitlements';
+} from "../../src/lib/entitlements";
+import {
+  setFeatureFlagProvider,
+  type FeatureFlagKey,
+  type FeatureFlagProvider,
+} from "../../src/lib/featureFlags";
 
-describe('Entitlement Gating Logic', () => {
-  describe('PAID_FEATURES', () => {
-    it('includes AI companions', () => {
-      expect(PAID_FEATURES.aiCompanions).toBe(true);
-    });
-
-    it('includes progress history', () => {
-      expect(PAID_FEATURES.progressHistory).toBe(true);
-    });
-
-    it('includes badges earned', () => {
-      expect(PAID_FEATURES.badgesEarned).toBe(true);
-    });
-
-    it('includes momentum decay', () => {
-      expect(PAID_FEATURES.momentumDecay).toBe(true);
-    });
-
-    it('includes reset history', () => {
-      expect(PAID_FEATURES.resetHistory).toBe(true);
-    });
-
-    it('includes certificate download', () => {
-      expect(PAID_FEATURES.certificateDownload).toBe(true);
-    });
-
-    it('includes multiple resets', () => {
-      expect(PAID_FEATURES.multipleResets).toBe(true);
-    });
-  });
-
-  describe('FREE_FEATURES', () => {
-    it('includes 7-day reset', () => {
-      expect(FREE_FEATURES.sevenDayReset).toBe(true);
-    });
-
-    it('includes build assessment', () => {
-      expect(FREE_FEATURES.buildAssessment).toBe(true);
-    });
-
-    it('includes XP tracking', () => {
-      expect(FREE_FEATURES.xpTracking).toBe(true);
-    });
-
-    it('includes time currency', () => {
-      expect(FREE_FEATURES.timeCurrency).toBe(true);
-    });
-
-    it('includes integrity meter', () => {
-      expect(FREE_FEATURES.integrityMeter).toBe(true);
-    });
-  });
-
-  describe('isFeatureLocked', () => {
-    const paidFeatures: PaidFeature[] = [
-      'progressHistory',
-      'resetHistory', 
-      'badgesEarned',
-      'momentumDecay',
-      'aiCompanions',
-      'certificateDownload',
-      'multipleResets',
-    ];
-
-    paidFeatures.forEach(feature => {
-      it(`locks ${feature} for free users`, () => {
-        expect(isFeatureLocked(feature, false)).toBe(true);
-      });
-
-      it(`unlocks ${feature} for paid users`, () => {
-        expect(isFeatureLocked(feature, true)).toBe(false);
-      });
-    });
-  });
-
-  describe('canAccessFeature', () => {
-    // Free features accessible to all
-    const freeFeatures: FreeFeature[] = [
-      'sevenDayReset',
-      'buildAssessment',
-      'xpTracking',
-      'timeCurrency',
-      'integrityMeter',
-    ];
-
-    freeFeatures.forEach(feature => {
-      it(`allows free users to access ${feature}`, () => {
-        expect(canAccessFeature(feature, false)).toBe(true);
-      });
-
-      it(`allows paid users to access ${feature}`, () => {
-        expect(canAccessFeature(feature, true)).toBe(true);
-      });
-    });
-
-    // Paid features only for paid users
-    const paidFeatures: PaidFeature[] = [
-      'progressHistory',
-      'aiCompanions',
-    ];
-
-    paidFeatures.forEach(feature => {
-      it(`blocks free users from ${feature}`, () => {
-        expect(canAccessFeature(feature, false)).toBe(false);
-      });
-
-      it(`allows paid users to access ${feature}`, () => {
-        expect(canAccessFeature(feature, true)).toBe(true);
-      });
-    });
-  });
-
-  describe('getLockedFeatures', () => {
-    it('returns all paid features for free users', () => {
-      const locked = getLockedFeatures(false);
-      expect(locked).toContain('aiCompanions');
-      expect(locked).toContain('progressHistory');
-      expect(locked).toContain('badgesEarned');
-      expect(locked).toContain('momentumDecay');
-      expect(locked).toContain('resetHistory');
-      expect(locked).toContain('certificateDownload');
-      expect(locked).toContain('multipleResets');
-      expect(locked.length).toBe(7);
-    });
-
-    it('returns empty array for paid users', () => {
-      const locked = getLockedFeatures(true);
-      expect(locked).toEqual([]);
-    });
-  });
-
-  describe('isValidEntitlement', () => {
-    it('returns true for valid entitlement with purchasedAt', () => {
-      expect(isValidEntitlement({
-        isPaid: true,
-        purchasedAt: '2025-01-15T12:00:00Z',
-      })).toBe(true);
-    });
-
-    it('returns true for valid entitlement with null purchasedAt', () => {
-      expect(isValidEntitlement({
-        isPaid: false,
-        purchasedAt: null,
-      })).toBe(true);
-    });
-
-    it('returns false for null', () => {
-      expect(isValidEntitlement(null)).toBe(false);
-    });
-
-    it('returns false for undefined', () => {
-      expect(isValidEntitlement(undefined)).toBe(false);
-    });
-
-    it('returns false for missing isPaid', () => {
-      expect(isValidEntitlement({
-        purchasedAt: null,
-      })).toBe(false);
-    });
-
-    it('returns false for wrong isPaid type', () => {
-      expect(isValidEntitlement({
-        isPaid: 'true',
-        purchasedAt: null,
-      })).toBe(false);
-    });
-
-    it('returns false for wrong purchasedAt type', () => {
-      expect(isValidEntitlement({
-        isPaid: true,
-        purchasedAt: 12345,
-      })).toBe(false);
-    });
-  });
+const buildProvider = (
+  values: Partial<Record<FeatureFlagKey, unknown>>
+): FeatureFlagProvider => ({
+  getFlag: (key) => values[key],
 });
 
-describe('Gating Rules - Business Logic', () => {
-  describe('Free User Capabilities', () => {
-    const isPaid = false;
+afterEach(() => {
+  setFeatureFlagProvider(null);
+});
 
-    it('can complete 7-Day Reset without paywall', () => {
-      expect(canAccessFeature('sevenDayReset', isPaid)).toBe(true);
-    });
-
-    it('can use Build assessment', () => {
-      expect(canAccessFeature('buildAssessment', isPaid)).toBe(true);
-    });
-
-    it('can track XP', () => {
-      expect(canAccessFeature('xpTracking', isPaid)).toBe(true);
-    });
-
-    it('can log Time Currency', () => {
-      expect(canAccessFeature('timeCurrency', isPaid)).toBe(true);
-    });
-
-    it('can use Integrity Meter', () => {
-      expect(canAccessFeature('integrityMeter', isPaid)).toBe(true);
-    });
-
-    it('cannot access AI Companions', () => {
-      expect(canAccessFeature('aiCompanions', isPaid)).toBe(false);
-    });
-
-    it('cannot download certificates', () => {
-      expect(canAccessFeature('certificateDownload', isPaid)).toBe(false);
-    });
-
-    it('cannot access full Experience History', () => {
-      expect(canAccessFeature('progressHistory', isPaid)).toBe(false);
-      expect(canAccessFeature('badgesEarned', isPaid)).toBe(false);
-      expect(canAccessFeature('momentumDecay', isPaid)).toBe(false);
-    });
+describe("entitlements", () => {
+  it("preserves feature definitions", () => {
+    expect(PAID_FEATURES.progressHistory).toBe("plus");
+    expect(PAID_FEATURES.multipleResets).toBe("pro");
+    expect(FREE_FEATURES.sevenDayReset).toBe(true);
   });
 
-  describe('Paid User Capabilities', () => {
-    const isPaid = true;
+  it("locks paid features by tier rank", () => {
+    expect(isFeatureLocked("progressHistory", "free")).toBe(true);
+    expect(isFeatureLocked("progressHistory", "plus")).toBe(false);
+    expect(isFeatureLocked("multipleResets", "plus")).toBe(true);
+    expect(isFeatureLocked("multipleResets", "pro")).toBe(false);
+  });
 
-    it('can access all free features', () => {
-      expect(canAccessFeature('sevenDayReset', isPaid)).toBe(true);
-      expect(canAccessFeature('buildAssessment', isPaid)).toBe(true);
-      expect(canAccessFeature('xpTracking', isPaid)).toBe(true);
-    });
+  it("returns locked features per tier", () => {
+    const freeLocked = getLockedFeatures("free");
+    const plusLocked = getLockedFeatures("plus");
+    const proLocked = getLockedFeatures("pro");
 
-    it('can access AI Companions', () => {
-      expect(canAccessFeature('aiCompanions', isPaid)).toBe(true);
-    });
+    expect(freeLocked).toContain("aiCompanions");
+    expect(plusLocked).toContain("multipleResets");
+    expect(proLocked).toEqual([]);
+  });
 
-    it('can access full Experience History', () => {
-      expect(canAccessFeature('progressHistory', isPaid)).toBe(true);
-      expect(canAccessFeature('badgesEarned', isPaid)).toBe(true);
-      expect(canAccessFeature('momentumDecay', isPaid)).toBe(true);
-    });
+  it("checks feature access for free and paid features", () => {
+    expect(canAccessFeature("sevenDayReset", "free")).toBe(true);
+    expect(canAccessFeature("progressHistory", "free")).toBe(false);
+    expect(canAccessFeature("progressHistory", "plus")).toBe(true);
+  });
 
-    it('can download certificates', () => {
-      expect(canAccessFeature('certificateDownload', isPaid)).toBe(true);
-    });
+  it("validates entitlement payload shape", () => {
+    expect(isValidEntitlement({ plan_tier: "plus", purchasedAt: "2026-02-17T00:00:00Z" })).toBe(true);
+    expect(isValidEntitlement({ plan_tier: null, purchasedAt: null })).toBe(true);
+    expect(isValidEntitlement({ isPaid: true, purchasedAt: null })).toBe(false);
+  });
+
+  it("applies trial rules from feature flags for free tier users", () => {
+    setFeatureFlagProvider(
+      buildProvider({
+        trial_type: "snapshot_count",
+        free_tier_snapshot_count: 3,
+      })
+    );
+
+    expect(hasUsedFreeTrial("free", 2)).toBe(false);
+    expect(hasUsedFreeTrial("free", 3)).toBe(true);
+    expect(canStartNewSnapshot("free", 2)).toBe(true);
+    expect(canStartNewSnapshot("free", 3)).toBe(false);
+  });
+
+  it("supports single-snapshot and unlimited trial modes", () => {
+    setFeatureFlagProvider(buildProvider({ trial_type: "single_snapshot" }));
+    expect(hasUsedFreeTrial("free", 1)).toBe(true);
+    expect(canStartNewSnapshot("free", 1)).toBe(false);
+
+    setFeatureFlagProvider(buildProvider({ trial_type: "unlimited" }));
+    expect(hasUsedFreeTrial("free", 999)).toBe(false);
+    expect(canStartNewSnapshot("free", 999)).toBe(true);
+  });
+
+  it("always allows paid tiers to start snapshots", () => {
+    setFeatureFlagProvider(
+      buildProvider({
+        trial_type: "snapshot_count",
+        free_tier_snapshot_count: 1,
+      })
+    );
+
+    expect(hasUsedFreeTrial("plus", 999)).toBe(false);
+    expect(canStartNewSnapshot("plus", 999)).toBe(true);
+    expect(canStartNewSnapshot("pro", 999)).toBe(true);
+  });
+
+  it("respects modify-snapshot rules", () => {
+    expect(canModifySnapshot("free", true)).toBe(false);
+    expect(canModifySnapshot("free", false)).toBe(true);
+    expect(canModifySnapshot("plus", true)).toBe(true);
   });
 });
