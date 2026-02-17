@@ -8,7 +8,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -166,6 +165,18 @@ function getConnectionStatusBadge(status: ConnectionStatus): string {
     default:
       return "bg-muted text-muted-foreground border-muted";
   }
+}
+
+function getEffectiveExecutionStatus(campaign: Pick<CampaignRecord, "execution_status" | "is_raw">): ExecutionStatus {
+  // Backward-compatible behavior: historical non-raw generated rows are treated as launched.
+  if (campaign.execution_status === "generated" && !campaign.is_raw) {
+    return "launched";
+  }
+  return campaign.execution_status;
+}
+
+function hasCampaignIssue(campaign: Pick<CampaignRecord, "execution_status" | "is_raw">): boolean {
+  return campaign.is_raw && getEffectiveExecutionStatus(campaign) !== "launched";
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -499,17 +510,20 @@ export default function OpenClawTab() {
   }, [history]);
 
   const launchedCampaigns = useMemo(
-    () => activeCampaigns.filter((campaign) => campaign.execution_status === "launched"),
+    () =>
+      activeCampaigns.filter(
+        (campaign) => getEffectiveExecutionStatus(campaign) === "launched"
+      ),
     [activeCampaigns]
   );
 
   const readyCampaigns = useMemo(
-    () => activeCampaigns.filter((campaign) => !campaign.is_raw),
+    () => activeCampaigns.filter((campaign) => !hasCampaignIssue(campaign)),
     [activeCampaigns]
   );
 
   const needsReviewCampaigns = useMemo(
-    () => activeCampaigns.filter((campaign) => campaign.is_raw),
+    () => activeCampaigns.filter((campaign) => hasCampaignIssue(campaign)),
     [activeCampaigns]
   );
 
@@ -974,43 +988,48 @@ export default function OpenClawTab() {
             </p>
           ) : (
             <div className="space-y-2">
-              {activeCampaigns.slice(0, 8).map((campaign) => (
-                <div key={campaign.id} className="rounded-lg border p-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-[10px]">{campaign.objective}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{campaign.channel}</Badge>
-                      <Badge variant="outline" className={`text-[10px] ${getExecutionStatusBadge(campaign.execution_status)}`}>
-                        {campaign.execution_status}
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className={
-                          campaign.is_raw
-                            ? "text-[10px] border-amber-500/40 text-amber-700"
-                            : "text-[10px] border-emerald-500/40 text-emerald-700"
-                        }
-                      >
-                        {campaign.is_raw ? "Needs Review" : "Ready"}
-                      </Badge>
+              {activeCampaigns.slice(0, 8).map((campaign) => {
+                const effectiveExecutionStatus = getEffectiveExecutionStatus(campaign);
+                const campaignNeedsReview = hasCampaignIssue(campaign);
+
+                return (
+                  <div key={campaign.id} className="rounded-lg border p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-[10px]">{campaign.objective}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{campaign.channel}</Badge>
+                        <Badge variant="outline" className={`text-[10px] ${getExecutionStatusBadge(effectiveExecutionStatus)}`}>
+                          {effectiveExecutionStatus}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className={
+                            campaignNeedsReview
+                              ? "text-[10px] border-amber-500/40 text-amber-700"
+                              : "text-[10px] border-emerald-500/40 text-emerald-700"
+                          }
+                        >
+                          {campaignNeedsReview ? "Needs Review" : "Ready"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        {!campaignNeedsReview ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                        ) : (
+                          <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                        )}
+                        {formatRelativeTime(campaign.created_at)}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                      {!campaign.is_raw ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                      ) : (
-                        <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
-                      )}
-                      {formatRelativeTime(campaign.created_at)}
-                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Budget: {campaign.budget_level || "medium"} · Variants: {campaign.variation_count || 3}
+                      {` · Spend: ${formatUsd(Number(campaign.spend_amount_usd || 0))}`}
+                      {` · Attributed Revenue: ${formatUsd(Number(campaign.attributed_revenue_usd || 0))}`}
+                      {campaign.offer ? ` · Offer: ${campaign.offer}` : ""}
+                    </p>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Budget: {campaign.budget_level || "medium"} · Variants: {campaign.variation_count || 3}
-                    {` · Spend: ${formatUsd(Number(campaign.spend_amount_usd || 0))}`}
-                    {` · Attributed Revenue: ${formatUsd(Number(campaign.attributed_revenue_usd || 0))}`}
-                    {campaign.offer ? ` · Offer: ${campaign.offer}` : ""}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -1354,199 +1373,199 @@ export default function OpenClawTab() {
           {history.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-4">No campaigns generated yet</p>
           ) : (
-            <ScrollArea className="max-h-[500px]">
-              <div className="space-y-2">
-                {history.map((campaign) => {
-                  const draft = campaignDrafts[campaign.id] ?? {
-                    execution_status: campaign.execution_status ?? "generated",
-                    spend_amount_usd: Number(campaign.spend_amount_usd ?? 0),
-                    attributed_signups: Number(campaign.attributed_signups ?? 0),
-                    attributed_paid_conversions: Number(campaign.attributed_paid_conversions ?? 0),
-                    attributed_revenue_usd: Number(campaign.attributed_revenue_usd ?? 0),
-                    payment_attribution_model: campaign.payment_attribution_model ?? "manual",
-                    payment_attribution_notes: campaign.payment_attribution_notes ?? "",
-                  };
+            <div className="space-y-2">
+              {history.map((campaign) => {
+                const draft = campaignDrafts[campaign.id] ?? {
+                  execution_status: campaign.execution_status ?? "generated",
+                  spend_amount_usd: Number(campaign.spend_amount_usd ?? 0),
+                  attributed_signups: Number(campaign.attributed_signups ?? 0),
+                  attributed_paid_conversions: Number(campaign.attributed_paid_conversions ?? 0),
+                  attributed_revenue_usd: Number(campaign.attributed_revenue_usd ?? 0),
+                  payment_attribution_model: campaign.payment_attribution_model ?? "manual",
+                  payment_attribution_notes: campaign.payment_attribution_notes ?? "",
+                };
+                const effectiveExecutionStatus = getEffectiveExecutionStatus(campaign);
+                const campaignNeedsReview = hasCampaignIssue(campaign);
 
-                  return (
-                    <Collapsible
-                      key={campaign.id}
-                      open={expandedHistoryId === campaign.id}
-                      onOpenChange={() => setExpandedHistoryId(expandedHistoryId === campaign.id ? null : campaign.id)}
-                    >
-                    <div className="border rounded-lg">
-                      <CollapsibleTrigger asChild>
-                        <div className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center gap-2">
-                            {expandedHistoryId === campaign.id ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                            <Badge variant="secondary" className="text-[10px]">{campaign.objective}</Badge>
-                            <Badge variant="outline" className="text-[10px]">{campaign.channel}</Badge>
-                            <Badge variant="outline" className={`text-[10px] ${getExecutionStatusBadge(campaign.execution_status)}`}>
-                              {campaign.execution_status}
-                            </Badge>
-                            {campaign.is_raw && <Badge variant="destructive" className="text-[10px]">Raw</Badge>}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-muted-foreground">{formatUsd(Number(campaign.spend_amount_usd || 0))} spend</span>
-                            <span className="text-[10px] text-muted-foreground">{formatTime(campaign.created_at)}</span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={(e) => { e.stopPropagation(); deleteCampaign(campaign.id); }}
+                return (
+                  <Collapsible
+                    key={campaign.id}
+                    open={expandedHistoryId === campaign.id}
+                    onOpenChange={() => setExpandedHistoryId(expandedHistoryId === campaign.id ? null : campaign.id)}
+                  >
+                  <div className="border rounded-lg">
+                    <CollapsibleTrigger asChild>
+                      <div className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-2">
+                          {expandedHistoryId === campaign.id ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                          <Badge variant="secondary" className="text-[10px]">{campaign.objective}</Badge>
+                          <Badge variant="outline" className="text-[10px]">{campaign.channel}</Badge>
+                          <Badge variant="outline" className={`text-[10px] ${getExecutionStatusBadge(effectiveExecutionStatus)}`}>
+                            {effectiveExecutionStatus}
+                          </Badge>
+                          {campaignNeedsReview && <Badge variant="destructive" className="text-[10px]">Needs Review</Badge>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground">{formatUsd(Number(campaign.spend_amount_usd || 0))} spend</span>
+                          <span className="text-[10px] text-muted-foreground">{formatTime(campaign.created_at)}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={(e) => { e.stopPropagation(); deleteCampaign(campaign.id); }}
+                          >
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="px-3 pb-3 border-t">
+                        {campaign.audience && <p className="text-[10px] text-muted-foreground mt-2">Audience: {campaign.audience}</p>}
+                        <div className="grid gap-3 md:grid-cols-2 mt-3">
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px]">Execution Status</Label>
+                            <Select
+                              value={draft.execution_status}
+                              onValueChange={(value) => setCampaignDraftField(campaign.id, { execution_status: value as ExecutionStatus })}
                             >
-                              <Trash2 className="h-3 w-3 text-destructive" />
-                            </Button>
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {EXECUTION_STATUSES.map((status) => (
+                                  <SelectItem key={status} value={status} className="text-xs">
+                                    {status}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px]">Attribution Model</Label>
+                            <Select
+                              value={draft.payment_attribution_model}
+                              onValueChange={(value) => setCampaignDraftField(campaign.id, { payment_attribution_model: value as AttributionModel })}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ATTRIBUTION_MODELS.map((model) => (
+                                  <SelectItem key={model} value={model} className="text-xs">
+                                    {model}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <div className="px-3 pb-3 border-t">
-                          {campaign.audience && <p className="text-[10px] text-muted-foreground mt-2">Audience: {campaign.audience}</p>}
-                          <div className="grid gap-3 md:grid-cols-2 mt-3">
-                            <div className="space-y-1.5">
-                              <Label className="text-[10px]">Execution Status</Label>
-                              <Select
-                                value={draft.execution_status}
-                                onValueChange={(value) => setCampaignDraftField(campaign.id, { execution_status: value as ExecutionStatus })}
-                              >
-                                <SelectTrigger className="h-8 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {EXECUTION_STATUSES.map((status) => (
-                                    <SelectItem key={status} value={status} className="text-xs">
-                                      {status}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
 
-                            <div className="space-y-1.5">
-                              <Label className="text-[10px]">Attribution Model</Label>
-                              <Select
-                                value={draft.payment_attribution_model}
-                                onValueChange={(value) => setCampaignDraftField(campaign.id, { payment_attribution_model: value as AttributionModel })}
-                              >
-                                <SelectTrigger className="h-8 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {ATTRIBUTION_MODELS.map((model) => (
-                                    <SelectItem key={model} value={model} className="text-xs">
-                                      {model}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-
-                          <div className="grid gap-3 md:grid-cols-4 mt-3">
-                            <div className="space-y-1.5">
-                              <Label className="text-[10px]">Spend (USD)</Label>
-                              <Input
-                                type="number"
-                                min={0}
-                                step="0.01"
-                                className="h-8 text-xs"
-                                value={draft.spend_amount_usd}
-                                onChange={(e) =>
-                                  setCampaignDraftField(campaign.id, {
-                                    spend_amount_usd: Math.max(0, Number(e.target.value) || 0),
-                                  })
-                                }
-                              />
-                            </div>
-                            <div className="space-y-1.5">
-                              <Label className="text-[10px]">Attributed Signups</Label>
-                              <Input
-                                type="number"
-                                min={0}
-                                className="h-8 text-xs"
-                                value={draft.attributed_signups}
-                                onChange={(e) =>
-                                  setCampaignDraftField(campaign.id, {
-                                    attributed_signups: Math.max(0, parseInt(e.target.value || "0", 10) || 0),
-                                  })
-                                }
-                              />
-                            </div>
-                            <div className="space-y-1.5">
-                              <Label className="text-[10px]">Attributed Paid</Label>
-                              <Input
-                                type="number"
-                                min={0}
-                                className="h-8 text-xs"
-                                value={draft.attributed_paid_conversions}
-                                onChange={(e) =>
-                                  setCampaignDraftField(campaign.id, {
-                                    attributed_paid_conversions: Math.max(0, parseInt(e.target.value || "0", 10) || 0),
-                                  })
-                                }
-                              />
-                            </div>
-                            <div className="space-y-1.5">
-                              <Label className="text-[10px]">Attributed Revenue (USD)</Label>
-                              <Input
-                                type="number"
-                                min={0}
-                                step="0.01"
-                                className="h-8 text-xs"
-                                value={draft.attributed_revenue_usd}
-                                onChange={(e) =>
-                                  setCampaignDraftField(campaign.id, {
-                                    attributed_revenue_usd: Math.max(0, Number(e.target.value) || 0),
-                                  })
-                                }
-                              />
-                            </div>
-                          </div>
-
-                          <div className="space-y-1.5 mt-3">
-                            <Label className="text-[10px]">Attribution Notes</Label>
-                            <Textarea
-                              value={draft.payment_attribution_notes}
-                              onChange={(e) => setCampaignDraftField(campaign.id, { payment_attribution_notes: e.target.value })}
-                              placeholder="Document why conversions/revenue are attributed to this campaign."
-                              className="text-xs min-h-[70px]"
+                        <div className="grid gap-3 md:grid-cols-4 mt-3">
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px]">Spend (USD)</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              className="h-8 text-xs"
+                              value={draft.spend_amount_usd}
+                              onChange={(e) =>
+                                setCampaignDraftField(campaign.id, {
+                                  spend_amount_usd: Math.max(0, Number(e.target.value) || 0),
+                                })
+                              }
                             />
                           </div>
-
-                          <div className="flex flex-wrap items-center justify-between gap-2 mt-3">
-                            <p className="text-[10px] text-muted-foreground">
-                              Approved: {campaign.approved_at ? formatTime(campaign.approved_at) : "—"} ·
-                              Launched: {campaign.launched_at ? formatTime(campaign.launched_at) : "—"} ·
-                              Attribution updated: {campaign.attribution_updated_at ? formatTime(campaign.attribution_updated_at) : "—"}
-                            </p>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={savingCampaignId === campaign.id}
-                              onClick={() => saveCampaignOperations(campaign)}
-                            >
-                              {savingCampaignId === campaign.id ? (
-                                <>
-                                  <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-                                  Saving...
-                                </>
-                              ) : (
-                                "Save Operations"
-                              )}
-                            </Button>
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px]">Attributed Signups</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              className="h-8 text-xs"
+                              value={draft.attributed_signups}
+                              onChange={(e) =>
+                                setCampaignDraftField(campaign.id, {
+                                  attributed_signups: Math.max(0, parseInt(e.target.value || "0", 10) || 0),
+                                })
+                              }
+                            />
                           </div>
-
-                          <div className="mt-2">
-                            <CampaignOutput content={campaign.output_content} isRaw={campaign.is_raw} />
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px]">Attributed Paid</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              className="h-8 text-xs"
+                              value={draft.attributed_paid_conversions}
+                              onChange={(e) =>
+                                setCampaignDraftField(campaign.id, {
+                                  attributed_paid_conversions: Math.max(0, parseInt(e.target.value || "0", 10) || 0),
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px]">Attributed Revenue (USD)</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              className="h-8 text-xs"
+                              value={draft.attributed_revenue_usd}
+                              onChange={(e) =>
+                                setCampaignDraftField(campaign.id, {
+                                  attributed_revenue_usd: Math.max(0, Number(e.target.value) || 0),
+                                })
+                              }
+                            />
                           </div>
                         </div>
-                      </CollapsibleContent>
-                    </div>
-                    </Collapsible>
-                  );
-                })}
-              </div>
-            </ScrollArea>
+
+                        <div className="space-y-1.5 mt-3">
+                          <Label className="text-[10px]">Attribution Notes</Label>
+                          <Textarea
+                            value={draft.payment_attribution_notes}
+                            onChange={(e) => setCampaignDraftField(campaign.id, { payment_attribution_notes: e.target.value })}
+                            placeholder="Document why conversions/revenue are attributed to this campaign."
+                            className="text-xs min-h-[70px]"
+                          />
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 mt-3">
+                          <p className="text-[10px] text-muted-foreground">
+                            Approved: {campaign.approved_at ? formatTime(campaign.approved_at) : "—"} ·
+                            Launched: {campaign.launched_at ? formatTime(campaign.launched_at) : "—"} ·
+                            Attribution updated: {campaign.attribution_updated_at ? formatTime(campaign.attribution_updated_at) : "—"}
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={savingCampaignId === campaign.id}
+                            onClick={() => saveCampaignOperations(campaign)}
+                          >
+                            {savingCampaignId === campaign.id ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              "Save Operations"
+                            )}
+                          </Button>
+                        </div>
+
+                        <div className="mt-2">
+                          <CampaignOutput content={campaign.output_content} isRaw={campaign.is_raw} />
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </div>
+                  </Collapsible>
+                );
+              })}
+            </div>
           )}
         </CardContent>
       </Card>
