@@ -1,59 +1,44 @@
 /**
  * Subscription Pricing Configuration
- * 
- * Two tiers: Monthly ($9.99/mo) and Yearly ($79.99/yr - saves 33%)
+ *
+ * Two annual-first tiers:
+ * - Plus ($79.99/yr)
+ * - Pro ($119.99/yr)
  */
+
+export type PlanTier = "plus" | "pro";
+export type PlanType = PlanTier;
 
 // Stripe Price IDs (Production)
-export const PRICE_IDS = {
-  monthly: "price_1Sty37IrFORWV7K43PkIVSJx", // $9.99/month
-  yearly: "price_1Sty3RIrFORWV7K4lF4DZhPV",  // $79.99/year
+export const PRICE_IDS: Record<PlanTier, string> = {
+  plus: "price_1Sty3RIrFORWV7K4lF4DZhPV",
+  pro: "price_1Sty37IrFORWV7K43PkIVSJx",
 } as const;
 
-export type PlanType = "monthly" | "yearly";
-
-/**
- * Pricing amounts and savings
- */
 export const PRICING = {
-  monthly: 9.99,
-  yearly: 79.99,
-  yearlyMonthlyEquivalent: 6.67, // $79.99/12 = ~$6.67/month
-  yearlySavingsPercent: 33,
-  yearlySavingsAmount: 40, // $9.99 * 12 = $119.88 - $79.99 = ~$40
+  plus: {
+    annual: 79.99,
+    monthlyEquivalent: 6.67,
+  },
+  pro: {
+    annual: 119.99,
+    monthlyEquivalent: 9.99,
+  },
 } as const;
 
-/**
- * Get pricing information
- */
 export const getPricing = () => ({
-  monthly: PRICING.monthly,
-  yearly: PRICING.yearly,
-  yearlyMonthlyEquivalent: PRICING.yearlyMonthlyEquivalent,
-  yearlySavingsPercent: PRICING.yearlySavingsPercent,
-  yearlySavingsAmount: PRICING.yearlySavingsAmount,
+  plus: PRICING.plus,
+  pro: PRICING.pro,
 });
 
-/**
- * Get the price ID for a given plan
- */
-export const getPriceId = (plan: PlanType): string => {
-  return PRICE_IDS[plan];
+export const getPriceId = (tier: PlanTier): string => {
+  return PRICE_IDS[tier];
 };
 
-/**
- * Format price for display
- */
-export const formatPrice = (plan: PlanType): string => {
-  if (plan === "monthly") {
-    return `$${PRICING.monthly}/mo`;
-  }
-  return `$${PRICING.yearly}/yr`;
+export const formatPrice = (tier: PlanTier): string => {
+  return `$${PRICING[tier].annual}/yr`;
 };
 
-/**
- * Get the display label for a plan
- */
-export const getPlanLabel = (plan: PlanType): string => {
-  return plan === "monthly" ? "Monthly" : "Yearly";
+export const getPlanLabel = (tier: PlanTier): string => {
+  return tier === "plus" ? "Plus" : "Pro";
 };

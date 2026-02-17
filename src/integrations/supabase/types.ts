@@ -1220,6 +1220,7 @@ export type Database = {
           granted_at: string
           granted_by: string | null
           id: string
+          plan_tier: string | null
           source: string
           stripe_session_id: string | null
           user_id: string
@@ -1231,6 +1232,7 @@ export type Database = {
           granted_at?: string
           granted_by?: string | null
           id?: string
+          plan_tier?: string | null
           source: string
           stripe_session_id?: string | null
           user_id: string
@@ -1242,6 +1244,7 @@ export type Database = {
           granted_at?: string
           granted_by?: string | null
           id?: string
+          plan_tier?: string | null
           source?: string
           stripe_session_id?: string | null
           user_id?: string

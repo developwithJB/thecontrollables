@@ -29,7 +29,7 @@ export default function Billing() {
   const { 
     isPaid, 
     isLoading, 
-    plan, 
+    planTier, 
     subscriptionStatus, 
     currentPeriodEnd,
     purchasedAt,
@@ -86,16 +86,16 @@ export default function Billing() {
   }
 
   const getPlanDisplay = () => {
-    if (plan === "lifetime") return "Lifetime Access";
-    if (plan === "yearly") return "Yearly";
-    if (plan === "monthly") return "Monthly";
+    if (planTier === "lifetime") return "Lifetime Access";
+    if (planTier === "pro") return "Pro";
+    if (planTier === "plus") return "Plus";
     return "Free";
   };
 
   const getPlanPrice = () => {
-    if (plan === "lifetime") return "One-time purchase";
-    if (plan === "yearly") return `$${pricing.yearly}/year`;
-    if (plan === "monthly") return `$${pricing.monthly}/month`;
+    if (planTier === "lifetime") return "One-time purchase";
+    if (planTier === "pro") return `$${pricing.pro.annual}/year`;
+    if (planTier === "plus") return `$${pricing.plus.annual}/year`;
     return "$0";
   };
 
@@ -170,7 +170,7 @@ export default function Billing() {
             </CardHeader>
             
             <CardContent className="space-y-4">
-              {isPaid && currentPeriodEnd && plan !== "lifetime" && (
+              {isPaid && currentPeriodEnd && planTier !== "lifetime" && (
                 <div className="flex items-center gap-3 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">
@@ -207,7 +207,7 @@ export default function Billing() {
 
               {/* Actions */}
               <div className="flex flex-col gap-3">
-                {isPaid && plan !== "lifetime" && (
+                {isPaid && planTier !== "lifetime" && (
                   <Button
                     onClick={openCustomerPortal}
                     disabled={isOpeningPortal}
@@ -227,7 +227,7 @@ export default function Billing() {
                   </Button>
                 )}
 
-                {isPaid && plan === "lifetime" && (
+                {isPaid && planTier === "lifetime" && (
                   <div className="text-center py-4 text-muted-foreground text-sm">
                     <CheckCircle2 className="h-5 w-5 mx-auto mb-2 text-green-500" />
                     You have lifetime access. No subscription to manage.
@@ -242,18 +242,18 @@ export default function Billing() {
                     <div className="grid grid-cols-2 gap-3">
                       <Button
                         variant="outline"
-                        onClick={() => initiateCheckout("monthly")}
+                        onClick={() => initiateCheckout("pro")}
                         disabled={isCheckingOut}
                         className="flex-1"
                       >
                         {isCheckingOut ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          `$${pricing.monthly}/mo`
+                          `Pro $${pricing.pro.annual}/yr`
                         )}
                       </Button>
                       <Button
-                        onClick={() => initiateCheckout("yearly")}
+                        onClick={() => initiateCheckout("plus")}
                         disabled={isCheckingOut}
                         className="flex-1"
                       >
@@ -261,10 +261,7 @@ export default function Billing() {
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <>
-                            ${pricing.yearly}/yr
-                            <Badge variant="secondary" className="ml-2 text-xs">
-                              Save {pricing.yearlySavingsPercent}%
-                            </Badge>
+                            Plus $${pricing.plus.annual}/yr
                           </>
                         )}
                       </Button>

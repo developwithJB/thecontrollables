@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { type PlanType } from "@/lib/pricing";
+import { type PlanTier } from "@/lib/pricing";
 import { withTimeout } from "@/lib/withTimeout";
 
 interface SubscriptionInfo {
   isPaid: boolean;
-  plan: PlanType | "lifetime" | null;
+  planTier: PlanTier | "lifetime" | null;
+  // Backward compatibility alias
+  plan?: PlanTier | "lifetime" | null;
   subscriptionStatus: string | null;
   currentPeriodEnd: string | null;
   purchasedAt: string | null;
@@ -17,11 +19,13 @@ interface EntitlementStatus {
   isPaid: boolean;
   isLoading: boolean;
   purchasedAt: string | null;
-  plan: PlanType | "lifetime" | null;
+  planTier: PlanTier | "lifetime" | null;
+  // Backward compatibility alias
+  plan?: PlanTier | "lifetime" | null;
   subscriptionStatus: string | null;
   currentPeriodEnd: string | null;
   checkPaymentStatus: () => void;
-  initiateCheckout: (plan?: PlanType) => Promise<void>;
+  initiateCheckout: (tier?: PlanTier) => Promise<void>;
   openCustomerPortal: () => Promise<void>;
   isCheckingOut: boolean;
   isOpeningPortal: boolean;
@@ -55,7 +59,7 @@ function getCachedEntitlement(userId: string): SubscriptionInfo {
   } catch {
     // ignore
   }
-  return { isPaid: false, purchasedAt: null, plan: null, subscriptionStatus: null, currentPeriodEnd: null };
+  return { isPaid: false, purchasedAt: null, planTier: null, subscriptionStatus: null, currentPeriodEnd: null };
 }
 
 /**
@@ -83,7 +87,7 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
       if (!userId) return { 
         isPaid: false, 
         purchasedAt: null, 
-        plan: null, 
+        planTier: null, 
         subscriptionStatus: null, 
         currentPeriodEnd: null 
       };
@@ -108,9 +112,9 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
         }
         
         const info: SubscriptionInfo = {
-          isPaid: result?.isPaid ?? false,
+          isPaid: (result?.plan_tier ?? null) !== null,
           purchasedAt: result?.purchasedAt ?? null,
-          plan: result?.plan ?? null,
+          planTier: result?.plan_tier ?? null,
           subscriptionStatus: result?.subscriptionStatus ?? null,
           currentPeriodEnd: result?.currentPeriodEnd ?? null,
         };
@@ -154,7 +158,7 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
           // Incremental delay: 1s, 2s, 3s
           await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
           const result = await refetch();
-          if (result.data?.isPaid) {
+          if ((result.data?.planTier ?? null) !== null) {
             console.log("[useEntitlements] Payment verified on attempt", i + 1);
             break;
           }
@@ -178,7 +182,7 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
     refetch();
   }, [refetch]);
 
-  const initiateCheckout = useCallback(async (plan: PlanType = "yearly") => {
+  const initiateCheckout = useCallback(async (tier: PlanTier = "pro") => {
     if (!userId) {
       toast.error("Please sign in to subscribe");
       return;
@@ -189,7 +193,7 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
     try {
       const { data: result, error } = await withTimeout(
         supabase.functions.invoke("create-checkout", {
-          body: { plan }
+          body: { tier }
         }),
         EDGE_FUNCTION_TIMEOUT,
         "Checkout request timed out. Please try again."
@@ -272,7 +276,8 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
     isPaid: data?.isPaid ?? false,
     isLoading,
     purchasedAt: data?.purchasedAt ?? null,
-    plan: data?.plan ?? null,
+    planTier: data?.planTier ?? null,
+    plan: data?.planTier ?? null,
     subscriptionStatus: data?.subscriptionStatus ?? null,
     currentPeriodEnd: data?.currentPeriodEnd ?? null,
     checkPaymentStatus,

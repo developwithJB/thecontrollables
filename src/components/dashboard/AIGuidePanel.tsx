@@ -712,7 +712,7 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
                     </Button>
                     
                     <p className="text-xs text-muted-foreground mt-3">
-                      Starting at ${getPricing().monthly}/mo
+                      Plans from $${getPricing().plus.annual}/yr
                     </p>
                   </div>
                 </div>
