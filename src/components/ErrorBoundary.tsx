@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { captureHandledException } from "@/hooks/useAnalytics";
 
 interface Props {
   children: ReactNode;
@@ -25,6 +26,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("[ErrorBoundary] Caught error:", error, errorInfo);
+    captureHandledException(error, {
+      error_type: "react_boundary",
+      component_stack: errorInfo.componentStack?.slice(0, 500),
+    });
     
     // Log error to database for monitoring
     this.logError(error, errorInfo);
