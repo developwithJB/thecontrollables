@@ -11,7 +11,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useEntitlements } from "@/hooks/useEntitlements";
-import { isFeatureLocked } from "@/lib/entitlements";
+import {
+  getFreeTrialOfferCopy,
+  getFreeTrialSnapshotAllowance,
+  isFeatureLocked,
+} from "@/lib/entitlements";
 import { getPricing, type PlanType } from "@/lib/pricing";
 import { supabase } from "@/integrations/supabase/client";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
@@ -55,6 +59,8 @@ export const Day7Complete = ({
   } = useCertificate(resetSessionId);
   const { isPaid, initiateCheckout, isCheckingOut } = useEntitlements(userId);
   const isLocked = isFeatureLocked("certificateDownload", isPaid);
+  const freeTrialOfferCopy = getFreeTrialOfferCopy();
+  const hasFiniteFreeSnapshots = getFreeTrialSnapshotAllowance() !== null;
   const pricing = getPricing();
   
   // Get build data for recommendations
@@ -105,7 +111,7 @@ export const Day7Complete = ({
 
   const handlePlanSelect = (plan: PlanType) => {
     setSelectedPlan(plan);
-    initiateCheckout(plan);
+    initiateCheckout(plan, { source: "day7_complete" });
   };
 
   const isWorking = isLoading || isGenerating || isDownloading;
@@ -310,7 +316,8 @@ export const Day7Complete = ({
                 </div>
                 
                 <p className="text-sm text-muted-foreground mb-4">
-                  You've completed your free 7-Day Snapshot. Unlock unlimited Snapshots and The Controllables to continue your journey.
+                  Free plan includes {freeTrialOfferCopy}. Upgrade to unlock The Controllables, Experience History
+                  {hasFiniteFreeSnapshots ? ", and unlimited Snapshots." : "."}
                 </p>
                 
                 <PlanSelector

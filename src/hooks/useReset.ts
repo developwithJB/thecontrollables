@@ -156,7 +156,9 @@ export const useReset = (externalUserId?: string | null) => {
         if (isMounted) {
           setDisplayName(profile?.display_name || session?.user?.email?.split("@")[0] || "");
         }
-      } catch {}
+      } catch {
+        // Ignore profile fetch errors and keep existing display name fallback.
+      }
     };
     fetchDisplayName();
 
@@ -253,7 +255,7 @@ export const useReset = (externalUserId?: string | null) => {
     mutationFn: async ({ isPaid, journeyId }: { isPaid: boolean; journeyId?: string }) => {
       if (!userId) throw new Error("Not authenticated");
 
-      // Check if free user has already used their one free reset
+      // Check if free user has already used their free Snapshot allocation
       if (!isPaid) {
         const { count, error: countError } = await supabase
           .from("reset_sessions")
@@ -317,7 +319,7 @@ export const useReset = (externalUserId?: string | null) => {
 
       // Check if session has expired before allowing completion
       if (isSessionExpired(activeSession.start_date, completedDays.length)) {
-        throw new Error("This reset session has expired. Start a new 7-day reset to continue.");
+        throw new Error("This Snapshot has expired. Start a new 7-Day Snapshot to continue.");
       }
 
       const { data, error } = await supabase
@@ -341,7 +343,7 @@ export const useReset = (externalUserId?: string | null) => {
           user_id: userId,
           amount: xpAmount,
           source: "reset_day_complete",
-          description: `Completed Day ${currentDay} of 7-Day Reset`,
+          description: `Completed Day ${currentDay} of 7-Day Snapshot`,
         });
 
       // Calculate if this completes all 7 days (need to include the one we just added)
@@ -480,7 +482,7 @@ export const useReset = (externalUserId?: string | null) => {
       // Description text
       ctx.fillStyle = "#404040";
       ctx.font = "18px system-ui, sans-serif";
-      ctx.fillText("For completing the 7-Day Reset Challenge", centerX, canvasHeight * 0.6);
+      ctx.fillText("For completing the 7-Day Snapshot Challenge", centerX, canvasHeight * 0.6);
       ctx.fillText("I committed to controlling what I could and surrendering what I could not.", centerX, canvasHeight * 0.64);
 
       // Date range

@@ -425,8 +425,8 @@ export default function Dashboard() {
   const showDashboardPaywallPromo = useInlinePaywall;
 
   const startCheckout = useCallback(
-    (plan?: Parameters<typeof initiateCheckout>[0]) => {
-      void initiateCheckout(plan ?? defaultCheckoutPlan);
+    (plan?: Parameters<typeof initiateCheckout>[0], source = "dashboard") => {
+      void initiateCheckout(plan ?? defaultCheckoutPlan, { source });
     },
     [initiateCheckout, defaultCheckoutPlan],
   );
@@ -730,7 +730,7 @@ export default function Dashboard() {
           if (canStartSnapshot) {
             setShowJourneySwitcher(true);
           } else {
-            startCheckout();
+            startCheckout(undefined, "welcome_back_follow_up");
           }
         }}
         isPaid={isPaid}
@@ -845,7 +845,7 @@ export default function Dashboard() {
                   isPaid={isPaid}
                   nudgeEnabled={nudgeEnabled}
                   onEnable={handleEnableDailyAlignment}
-                  onUpgrade={() => startCheckout()}
+                  onUpgrade={() => startCheckout(undefined, "daily_alignment_spotlight")}
                   onDismiss={() => {}}
                 />
               )}
@@ -870,7 +870,7 @@ export default function Dashboard() {
                   if (canStartSnapshot || !!activeSession) {
                     setShowJourneySwitcher(true);
                   } else {
-                    startCheckout();
+                    startCheckout(undefined, "greeting_banner_snapshot");
                   }
                 }}
               />
@@ -905,7 +905,7 @@ export default function Dashboard() {
                   userId={user.id}
                   isPaid={isPaid}
                   onStartNewSnapshot={canStartSnapshot ? () => setShowJourneySwitcher(true) : undefined}
-                  onUpgrade={() => startCheckout()}
+                  onUpgrade={() => startCheckout(undefined, "snapshot_review_card")}
                 />
               )}
 
@@ -925,7 +925,7 @@ export default function Dashboard() {
                   isStartingReset={isAcceptingCovenant}
                   isPaid={isPaid}
                   hasUsedFreeReset={freeTrialUsed}
-                  onUpgrade={() => startCheckout()}
+                  onUpgrade={() => startCheckout(undefined, "today_actions")}
                   hasActiveQuest={!!activeQuest}
                   todayTimeLogged={!!todayTimeLog}
                   pendingPromisesCount={pendingPromises.length}
@@ -979,7 +979,7 @@ export default function Dashboard() {
 
               {/* Daily Alignment promo for free users */}
               {!isPaid && !entitlementsLoading && showDashboardPaywallPromo && (
-                <DailyAlignmentPromo onUpgrade={() => startCheckout()} />
+                <DailyAlignmentPromo onUpgrade={() => startCheckout(undefined, "daily_alignment_promo_dashboard")} />
               )}
 
               {/* 7-Day Foundation Progress - only show when active session */}
@@ -996,7 +996,7 @@ export default function Dashboard() {
                   isStartingReset={isAcceptingCovenant}
                   isPaid={isPaid}
                   totalSessionCount={allSessions.length}
-                  onUpgrade={() => startCheckout()}
+                  onUpgrade={() => startCheckout(undefined, "reset_progress_module")}
                   currentJourneyId={activeSession?.journey_id}
                   onSwitchJourney={() => setShowJourneySwitcher(true)}
                   lastCompletedAt={
@@ -1014,7 +1014,7 @@ export default function Dashboard() {
                   userId={user.id}
                   isPaid={isPaid}
                   hasUsedFreeTrial={freeTrialUsed}
-                  onUpgrade={() => startCheckout()}
+                  onUpgrade={() => startCheckout(undefined, "snapshot_selector")}
                   onSnapshotChanged={() => {
                     queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
                     queryClient.invalidateQueries({ queryKey: ["reset-session"], exact: false });
@@ -1164,7 +1164,7 @@ export default function Dashboard() {
                     currentBuild={currentBuild}
                     onXpEarned={handleOperatorInteraction}
                     isPaid={isPaid}
-                    onUpgrade={() => startCheckout()}
+                    onUpgrade={() => startCheckout(undefined, "ai_guide_panel")}
                     isCheckingOut={isCheckingOut}
                     hasActiveSnapshot={!!activeSession && !isCompleted}
                     onMessageSent={handleAskGuideMessageSent}
@@ -1296,11 +1296,11 @@ export default function Dashboard() {
                   {showOverlayPaywall ? (
                     <LockedOverlay
                       variant="experience-history"
-                      onUpgrade={(plan) => startCheckout(plan)}
+                      onUpgrade={(plan) => startCheckout(plan, "experience_locked_overlay")}
                       isLoading={isCheckingOut}
                     />
                   ) : useInlinePaywall ? (
-                    <DailyAlignmentPromo onUpgrade={() => startCheckout()} />
+                    <DailyAlignmentPromo onUpgrade={() => startCheckout(undefined, "experience_inline_promo")} />
                   ) : null}
                 </div>
               )}
@@ -1317,11 +1317,11 @@ export default function Dashboard() {
                   {showOverlayPaywall ? (
                     <LockedOverlay
                       variant="experience-history"
-                      onUpgrade={(plan) => startCheckout(plan)}
+                      onUpgrade={(plan) => startCheckout(plan, "experience_locked_overlay_post_trial")}
                       isLoading={isCheckingOut}
                     />
                   ) : useInlinePaywall ? (
-                    <DailyAlignmentPromo onUpgrade={() => startCheckout()} />
+                    <DailyAlignmentPromo onUpgrade={() => startCheckout(undefined, "experience_inline_promo_post_trial")} />
                   ) : null}
                 </div>
               )}

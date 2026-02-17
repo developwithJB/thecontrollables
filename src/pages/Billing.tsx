@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import type { User } from "@supabase/supabase-js";
+import { getFreeTrialOfferCopy } from "@/lib/entitlements";
 
 export default function Billing() {
   const [user, setUser] = useState<User | null>(null);
@@ -40,6 +41,7 @@ export default function Billing() {
   } = useEntitlements(user?.id || null);
 
   const pricing = getPricing();
+  const freeTrialOfferCopy = getFreeTrialOfferCopy();
 
   useEffect(() => {
     let isMounted = true;
@@ -237,12 +239,12 @@ export default function Billing() {
                 {!isPaid && (
                   <div className="space-y-3">
                     <p className="text-sm text-muted-foreground text-center">
-                      Unlock AI Companions and Experience History
+                      Unlock AI Companions and Experience History. {freeTrialOfferCopy} is included on Free.
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <Button
                         variant="outline"
-                        onClick={() => initiateCheckout("pro")}
+                        onClick={() => initiateCheckout("pro", { source: "billing_page_pro" })}
                         disabled={isCheckingOut}
                         className="flex-1"
                       >
@@ -253,7 +255,7 @@ export default function Billing() {
                         )}
                       </Button>
                       <Button
-                        onClick={() => initiateCheckout("plus")}
+                        onClick={() => initiateCheckout("plus", { source: "billing_page_plus" })}
                         disabled={isCheckingOut}
                         className="flex-1"
                       >
@@ -280,7 +282,7 @@ export default function Billing() {
             <CardContent>
               <div className="space-y-3">
                 <FeatureRow 
-                  label="7-Day Snapshot" 
+                  label={freeTrialOfferCopy}
                   included={true} 
                   free={true}
                 />

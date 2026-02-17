@@ -34,6 +34,8 @@ export const FREE_FEATURES = {
 
 export type FreeFeature = keyof typeof FREE_FEATURES;
 
+export const SNAPSHOT_DURATION_DAYS = 7;
+
 export const isPaidTier = (tier: PlanTier | null | undefined): boolean => {
   return !!tier && tier !== "free";
 };
@@ -42,6 +44,40 @@ const normalizeTier = (tier: PlanTier | boolean | null | undefined): PlanTier =>
   if (tier === true) return "plus";
   if (tier === false || tier == null) return "free";
   return tier;
+};
+
+const getSafeSessionCount = (sessionCount: number): number => {
+  return Number.isFinite(sessionCount) ? Math.max(0, Math.floor(sessionCount)) : 0;
+};
+
+export const getFreeTrialSnapshotAllowance = (): number | null => {
+  const { trial_type: trialType, free_tier_snapshot_count: freeTierSnapshotCount } = getFeatureFlags();
+  const snapshotLimit = Math.max(1, freeTierSnapshotCount);
+
+  if (trialType === "unlimited") return null;
+  if (trialType === "single_snapshot") return 1;
+  return snapshotLimit;
+};
+
+export const getFreeTrialOfferCopy = (): string => {
+  const allowance = getFreeTrialSnapshotAllowance();
+  const snapshotLabel = `${SNAPSHOT_DURATION_DAYS}-Day Snapshot`;
+  if (allowance === null) {
+    return `Unlimited ${snapshotLabel}s`;
+  }
+  return allowance === 1 ? `1 free ${snapshotLabel}` : `${allowance} free ${snapshotLabel}s`;
+};
+
+export const getFreeTrialCompletionCopy = (): string => {
+  const allowance = getFreeTrialSnapshotAllowance();
+  const snapshotLabel = `${SNAPSHOT_DURATION_DAYS}-Day Snapshot`;
+  if (allowance === null) {
+    return `You can keep starting ${snapshotLabel}s.`;
+  }
+  if (allowance === 1) {
+    return `Your free ${snapshotLabel} is complete.`;
+  }
+  return `Your ${allowance} free ${snapshotLabel}s are complete.`;
 };
 
 export const isFeatureLocked = (feature: PaidFeature, tier: PlanTier | boolean): boolean => {
@@ -76,28 +112,20 @@ export const hasUsedFreeTrial = (tier: PlanTier | boolean, sessionCount: number)
   const resolvedTier = normalizeTier(tier);
   if (isPaidTier(resolvedTier)) return false;
 
-  const safeSessionCount = Number.isFinite(sessionCount) ? Math.max(0, Math.floor(sessionCount)) : 0;
-  const { trial_type: trialType, free_tier_snapshot_count: freeTierSnapshotCount } = getFeatureFlags();
-  const snapshotLimit = Math.max(1, freeTierSnapshotCount);
-
-  if (trialType === "unlimited") return false;
-  if (trialType === "single_snapshot") return safeSessionCount >= 1;
-
-  return safeSessionCount >= snapshotLimit;
+  const safeSessionCount = getSafeSessionCount(sessionCount);
+  const allowance = getFreeTrialSnapshotAllowance();
+  if (allowance === null) return false;
+  return safeSessionCount >= allowance;
 };
 
 export const canStartNewSnapshot = (tier: PlanTier | boolean, sessionCount: number): boolean => {
   const resolvedTier = normalizeTier(tier);
   if (isPaidTier(resolvedTier)) return true;
 
-  const safeSessionCount = Number.isFinite(sessionCount) ? Math.max(0, Math.floor(sessionCount)) : 0;
-  const { trial_type: trialType, free_tier_snapshot_count: freeTierSnapshotCount } = getFeatureFlags();
-  const snapshotLimit = Math.max(1, freeTierSnapshotCount);
-
-  if (trialType === "unlimited") return true;
-  if (trialType === "single_snapshot") return safeSessionCount < 1;
-
-  return safeSessionCount < snapshotLimit;
+  const safeSessionCount = getSafeSessionCount(sessionCount);
+  const allowance = getFreeTrialSnapshotAllowance();
+  if (allowance === null) return true;
+  return safeSessionCount < allowance;
 };
 
 export const canModifySnapshot = (tier: PlanTier | boolean, hasUsedTrial: boolean): boolean => {
