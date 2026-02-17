@@ -28,7 +28,8 @@ import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { usePageViewTracking, useAnalytics } from "@/hooks/useAnalytics";
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import { onboardingQuickStartEnabled } from "@/lib/featureFlags";
+import { canStartNewSnapshot, hasUsedFreeTrial } from "@/lib/entitlements";
+import { getDefaultCheckoutPlan, onboardingQuickStartEnabled, shouldUseInlinePaywall } from "@/lib/featureFlags";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useDashboardVisitCount } from "@/hooks/useDashboardVisitCount";
 import { supabase } from "@/integrations/supabase/client";
@@ -410,6 +411,26 @@ export default function Dashboard() {
     return allSessions.some((s) => s.status === "completed" || s.status === "expired" || s.status === "paused");
   }, [allSessions, isPaid]);
 
+  const freeTrialUsed = useMemo(() => {
+    return hasUsedFreeTrial(isPaid, allSessions.length);
+  }, [isPaid, allSessions.length]);
+
+  const canStartSnapshot = useMemo(() => {
+    return canStartNewSnapshot(isPaid, allSessions.length);
+  }, [isPaid, allSessions.length]);
+
+  const defaultCheckoutPlan = getDefaultCheckoutPlan();
+  const useInlinePaywall = shouldUseInlinePaywall();
+  const showOverlayPaywall = !useInlinePaywall;
+  const showDashboardPaywallPromo = useInlinePaywall;
+
+  const startCheckout = useCallback(
+    (plan?: Parameters<typeof initiateCheckout>[0]) => {
+      void initiateCheckout(plan ?? defaultCheckoutPlan);
+    },
+    [initiateCheckout, defaultCheckoutPlan],
+  );
+
   // Fetch completed days per session for history - defer until Experience tab is active
   const { data: allCompletedDays = [] } = useQuery({
     queryKey: ["all-completed-days", user?.id],
@@ -706,7 +727,11 @@ export default function Dashboard() {
         onKeepCurrent={dismissFollowUp}
         onChooseNew={() => {
           dismissFollowUp();
-          setShowJourneySwitcher(true);
+          if (canStartSnapshot) {
+            setShowJourneySwitcher(true);
+          } else {
+            startCheckout();
+          }
         }}
         isPaid={isPaid}
         nudgeEnabled={nudgeEnabled}
@@ -820,7 +845,7 @@ export default function Dashboard() {
                   isPaid={isPaid}
                   nudgeEnabled={nudgeEnabled}
                   onEnable={handleEnableDailyAlignment}
-                  onUpgrade={() => initiateCheckout("plus")}
+                  onUpgrade={() => startCheckout()}
                   onDismiss={() => {}}
                 />
               )}
@@ -841,7 +866,13 @@ export default function Dashboard() {
                   getJourneyById(activeSession.journey_id)?.title : undefined}
                 snapshotEmoji={activeSession?.journey_id ? 
                   getJourneyById(activeSession.journey_id)?.emoji : undefined}
-                onSnapshotClick={() => setShowJourneySwitcher(true)}
+                onSnapshotClick={() => {
+                  if (canStartSnapshot || !!activeSession) {
+                    setShowJourneySwitcher(true);
+                  } else {
+                    startCheckout();
+                  }
+                }}
               />
 
               {/* Main Mission Module - only show when NO active quest (to create one) */}
@@ -873,8 +904,8 @@ export default function Dashboard() {
                 <SnapshotReviewCard
                   userId={user.id}
                   isPaid={isPaid}
-                  onStartNewSnapshot={isPaid ? () => setShowJourneySwitcher(true) : undefined}
-                  onUpgrade={() => initiateCheckout("plus")}
+                  onStartNewSnapshot={canStartSnapshot ? () => setShowJourneySwitcher(true) : undefined}
+                  onUpgrade={() => startCheckout()}
                 />
               )}
 
@@ -893,8 +924,8 @@ export default function Dashboard() {
                   onStartReset={() => acceptCovenant({ isPaid })}
                   isStartingReset={isAcceptingCovenant}
                   isPaid={isPaid}
-                  hasUsedFreeReset={!isPaid && allSessions.length >= 1}
-                  onUpgrade={() => initiateCheckout()}
+                  hasUsedFreeReset={freeTrialUsed}
+                  onUpgrade={() => startCheckout()}
                   hasActiveQuest={!!activeQuest}
                   todayTimeLogged={!!todayTimeLog}
                   pendingPromisesCount={pendingPromises.length}
@@ -947,8 +978,8 @@ export default function Dashboard() {
               <BuildEntryPoint userId={user?.id} />
 
               {/* Daily Alignment promo for free users */}
-              {!isPaid && !entitlementsLoading && (
-                <DailyAlignmentPromo onUpgrade={() => initiateCheckout("plus")} />
+              {!isPaid && !entitlementsLoading && showDashboardPaywallPromo && (
+                <DailyAlignmentPromo onUpgrade={() => startCheckout()} />
               )}
 
               {/* 7-Day Foundation Progress - only show when active session */}
@@ -965,7 +996,7 @@ export default function Dashboard() {
                   isStartingReset={isAcceptingCovenant}
                   isPaid={isPaid}
                   totalSessionCount={allSessions.length}
-                  onUpgrade={() => initiateCheckout()}
+                  onUpgrade={() => startCheckout()}
                   currentJourneyId={activeSession?.journey_id}
                   onSwitchJourney={() => setShowJourneySwitcher(true)}
                   lastCompletedAt={
@@ -982,8 +1013,8 @@ export default function Dashboard() {
                   currentDay={currentDay}
                   userId={user.id}
                   isPaid={isPaid}
-                  hasUsedFreeTrial={!isPaid && allSessions.length >= 1}
-                  onUpgrade={() => initiateCheckout("plus")}
+                  hasUsedFreeTrial={freeTrialUsed}
+                  onUpgrade={() => startCheckout()}
                   onSnapshotChanged={() => {
                     queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
                     queryClient.invalidateQueries({ queryKey: ["reset-session"], exact: false });
@@ -995,7 +1026,7 @@ export default function Dashboard() {
               )}
 
               {/* Start New Snapshot Dialog - shows when no active session */}
-              {!activeSession && user?.id && (
+              {!activeSession && user?.id && canStartSnapshot && (
                 <StartSnapshotDialog
                   isOpen={showJourneySwitcher}
                   onOpenChange={setShowJourneySwitcher}
@@ -1133,7 +1164,7 @@ export default function Dashboard() {
                     currentBuild={currentBuild}
                     onXpEarned={handleOperatorInteraction}
                     isPaid={isPaid}
-                    onUpgrade={() => initiateCheckout()}
+                    onUpgrade={() => startCheckout()}
                     isCheckingOut={isCheckingOut}
                     hasActiveSnapshot={!!activeSession && !isCompleted}
                     onMessageSent={handleAskGuideMessageSent}
@@ -1239,7 +1270,7 @@ export default function Dashboard() {
               {/* ===== LOCKED CONTENT (Premium) - Show for free users without any completed/expired snapshots ===== */}
               {/* Free users who completed their trial already see their real snapshot history above */}
               {!isPaid && !isSimplifiedMode && !allSessions.some(s => s.status === "completed" || s.status === "expired") && (
-                <div className="relative">
+                <div className={showOverlayPaywall ? "relative" : "space-y-3"}>
                   {/* Blurred preview of locked content */}
                   <div className="space-y-4 opacity-40 blur-[2px] pointer-events-none">
                     <SuspenseExperienceComponent>
@@ -1262,30 +1293,36 @@ export default function Dashboard() {
                       <LazyBadgesEarned earnedBadges={earnedBadges} isLoading={false} />
                     </SuspenseExperienceComponent>
                   </div>
-                  {/* Single consolidated lock overlay */}
-                  <LockedOverlay
-                    variant="experience-history"
-                    onUpgrade={(plan) => initiateCheckout(plan)}
-                    isLoading={isCheckingOut}
-                  />
+                  {showOverlayPaywall ? (
+                    <LockedOverlay
+                      variant="experience-history"
+                      onUpgrade={(plan) => startCheckout(plan)}
+                      isLoading={isCheckingOut}
+                    />
+                  ) : useInlinePaywall ? (
+                    <DailyAlignmentPromo onUpgrade={() => startCheckout()} />
+                  ) : null}
                 </div>
               )}
 
               {/* Badges/Certificates lock overlay for free users who completed trial */}
               {!isPaid && !isSimplifiedMode && allSessions.some(s => s.status === "completed" || s.status === "expired") && (
-                <div className="relative">
+                <div className={showOverlayPaywall ? "relative" : "space-y-3"}>
                   {/* Blurred preview of locked content */}
                   <div className="space-y-4 opacity-40 blur-[2px] pointer-events-none">
                     <SuspenseExperienceComponent>
                       <LazyBadgesEarned earnedBadges={earnedBadges} isLoading={false} />
                     </SuspenseExperienceComponent>
                   </div>
-                  {/* Lock overlay for premium features */}
-                  <LockedOverlay
-                    variant="experience-history"
-                    onUpgrade={(plan) => initiateCheckout(plan)}
-                    isLoading={isCheckingOut}
-                  />
+                  {showOverlayPaywall ? (
+                    <LockedOverlay
+                      variant="experience-history"
+                      onUpgrade={(plan) => startCheckout(plan)}
+                      isLoading={isCheckingOut}
+                    />
+                  ) : useInlinePaywall ? (
+                    <DailyAlignmentPromo onUpgrade={() => startCheckout()} />
+                  ) : null}
                 </div>
               )}
 

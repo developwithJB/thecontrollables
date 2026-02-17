@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { canStartNewSnapshot } from "@/lib/entitlements";
 
 interface ResetSession {
   id: string;
@@ -261,8 +262,8 @@ export const useReset = (externalUserId?: string | null) => {
 
         if (countError) throw countError;
 
-        if (count && count >= 1) {
-          throw new Error("Free users are limited to one 7-Day Reset. Upgrade to unlock unlimited resets.");
+        if (!canStartNewSnapshot(false, count ?? 0)) {
+          throw new Error("Free tier snapshot limit reached. Upgrade to unlock more snapshots.");
         }
       }
 

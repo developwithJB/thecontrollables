@@ -1,6 +1,7 @@
 /**
  * Entitlement gating logic
  */
+import { getFeatureFlags } from "@/lib/featureFlags";
 
 export type PlanTier = "free" | "plus" | "pro" | "lifetime";
 
@@ -74,13 +75,29 @@ export const isValidEntitlement = (entitlement: unknown): entitlement is {
 export const hasUsedFreeTrial = (tier: PlanTier | boolean, sessionCount: number): boolean => {
   const resolvedTier = normalizeTier(tier);
   if (isPaidTier(resolvedTier)) return false;
-  return sessionCount >= 1;
+
+  const safeSessionCount = Number.isFinite(sessionCount) ? Math.max(0, Math.floor(sessionCount)) : 0;
+  const { trial_type: trialType, free_tier_snapshot_count: freeTierSnapshotCount } = getFeatureFlags();
+  const snapshotLimit = Math.max(1, freeTierSnapshotCount);
+
+  if (trialType === "unlimited") return false;
+  if (trialType === "single_snapshot") return safeSessionCount >= 1;
+
+  return safeSessionCount >= snapshotLimit;
 };
 
 export const canStartNewSnapshot = (tier: PlanTier | boolean, sessionCount: number): boolean => {
   const resolvedTier = normalizeTier(tier);
   if (isPaidTier(resolvedTier)) return true;
-  return sessionCount < 1;
+
+  const safeSessionCount = Number.isFinite(sessionCount) ? Math.max(0, Math.floor(sessionCount)) : 0;
+  const { trial_type: trialType, free_tier_snapshot_count: freeTierSnapshotCount } = getFeatureFlags();
+  const snapshotLimit = Math.max(1, freeTierSnapshotCount);
+
+  if (trialType === "unlimited") return true;
+  if (trialType === "single_snapshot") return safeSessionCount < 1;
+
+  return safeSessionCount < snapshotLimit;
 };
 
 export const canModifySnapshot = (tier: PlanTier | boolean, hasUsedTrial: boolean): boolean => {
