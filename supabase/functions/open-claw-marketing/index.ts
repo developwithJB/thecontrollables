@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const OBJECTIVES = ["traffic", "signups", "paid_conversions", "full_funnel"] as const;
@@ -354,9 +354,9 @@ Deno.serve(async (req) => {
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: prompt },
-          { role: "user", content: "Generate the growth campaign JSON now." },
+          { role: "user", content: "Generate the growth campaign JSON now. Return ONLY raw JSON, no markdown fences." },
         ],
-        max_tokens: 1800,
+        max_tokens: 8000,
         temperature: 0.7,
       }),
     });

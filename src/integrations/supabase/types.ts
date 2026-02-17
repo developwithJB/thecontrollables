@@ -56,28 +56,25 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          month: string
-          query_count: number
-          token_count: number
+          message_count: number
           updated_at: string
+          usage_date: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          month?: string
-          query_count?: number
-          token_count?: number
+          message_count?: number
           updated_at?: string
+          usage_date?: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          month?: string
-          query_count?: number
-          token_count?: number
+          message_count?: number
           updated_at?: string
+          usage_date?: string
           user_id?: string
         }
         Relationships: []
@@ -945,6 +942,57 @@ export type Database = {
         }
         Relationships: []
       }
+      open_claw_campaigns: {
+        Row: {
+          audience: string | null
+          budget_level: string | null
+          channel: string
+          created_at: string
+          generated_by: string
+          id: string
+          input_params: Json
+          is_raw: boolean
+          notes: string | null
+          objective: string
+          offer: string | null
+          output_content: Json
+          tone: string | null
+          variation_count: number | null
+        }
+        Insert: {
+          audience?: string | null
+          budget_level?: string | null
+          channel?: string
+          created_at?: string
+          generated_by: string
+          id?: string
+          input_params?: Json
+          is_raw?: boolean
+          notes?: string | null
+          objective?: string
+          offer?: string | null
+          output_content?: Json
+          tone?: string | null
+          variation_count?: number | null
+        }
+        Update: {
+          audience?: string | null
+          budget_level?: string | null
+          channel?: string
+          created_at?: string
+          generated_by?: string
+          id?: string
+          input_params?: Json
+          is_raw?: boolean
+          notes?: string | null
+          objective?: string
+          offer?: string | null
+          output_content?: Json
+          tone?: string | null
+          variation_count?: number | null
+        }
+        Relationships: []
+      }
       page_views: {
         Row: {
           created_at: string
@@ -990,7 +1038,6 @@ export type Database = {
           email_nudge_time: string | null
           id: string
           nudge_frequency: string | null
-          plan_tier: string
           timezone: string | null
           updated_at: string
         }
@@ -1002,7 +1049,6 @@ export type Database = {
           email_nudge_time?: string | null
           id: string
           nudge_frequency?: string | null
-          plan_tier?: string
           timezone?: string | null
           updated_at?: string
         }
@@ -1014,7 +1060,6 @@ export type Database = {
           email_nudge_time?: string | null
           id?: string
           nudge_frequency?: string | null
-          plan_tier?: string
           timezone?: string | null
           updated_at?: string
         }
@@ -1226,7 +1271,6 @@ export type Database = {
           granted_at: string
           granted_by: string | null
           id: string
-          plan_tier: string | null
           source: string
           stripe_session_id: string | null
           user_id: string
@@ -1238,7 +1282,6 @@ export type Database = {
           granted_at?: string
           granted_by?: string | null
           id?: string
-          plan_tier?: string | null
           source: string
           stripe_session_id?: string | null
           user_id: string
@@ -1250,7 +1293,6 @@ export type Database = {
           granted_at?: string
           granted_by?: string | null
           id?: string
-          plan_tier?: string | null
           source?: string
           stripe_session_id?: string | null
           user_id?: string

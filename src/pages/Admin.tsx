@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { 
   ArrowLeft, Shield, Crown, User, RefreshCw, Activity, AlertTriangle, 
   BarChart3, Eye, CheckCircle, XCircle, Clock, Route, MousePointerClick,
-  ChevronDown, ChevronRight, Mail, AlertCircle
+  ChevronDown, ChevronRight, Mail, AlertCircle, Megaphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -27,6 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { AccessGrantModal, type AccessDuration } from "@/components/admin/AccessGrantModal";
+import OpenClawTab from "@/components/admin/OpenClawTab";
 
 interface AdminUser {
   id: string;
@@ -677,7 +678,7 @@ export default function Admin() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid grid-cols-8 w-full max-w-4xl">
+          <TabsList className="grid grid-cols-9 w-full max-w-5xl">
             <TabsTrigger value="overview" className="flex items-center gap-1">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -698,6 +699,10 @@ export default function Admin() {
                   {nudgeStats.potentialIssuesCount}
                 </Badge>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="openclaw" className="flex items-center gap-1">
+              <Megaphone className="h-4 w-4" />
+              <span className="hidden sm:inline">Claw</span>
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-1">
               <User className="h-4 w-4" />
@@ -1775,6 +1780,11 @@ export default function Admin() {
                 </ScrollArea>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Open Claw Tab */}
+          <TabsContent value="openclaw">
+            <OpenClawTab />
           </TabsContent>
 
           {/* Page Views Tab */}

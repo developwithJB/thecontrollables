@@ -101,7 +101,7 @@ serve(async (req) => {
     }
 
     const allSubscriptions = await stripe.subscriptions.list({ customer: customerId, limit: 5 });
-    const recentSub = allSubscriptions.data.find((sub) =>
+    const recentSub = allSubscriptions.data.find((sub: Stripe.Subscription) =>
       sub.status === "past_due" || (sub.status === "canceled" && new Date(sub.current_period_end * 1000) > new Date()),
     );
 
