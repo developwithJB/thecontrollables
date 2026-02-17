@@ -25,8 +25,13 @@ const MAX_MESSAGE_LENGTH = 4000;
 const MAX_MESSAGES_COUNT = 50;
 const MAX_SESSION_HISTORY_COUNT = 20;
 
-// Daily message limit (cost-effective at $29 price point)
-const DAILY_MESSAGE_LIMIT = 25;
+type PlanTier = 'free' | 'plus' | 'pro';
+
+const PLAN_MONTHLY_QUERY_LIMITS: Record<PlanTier, number> = {
+  free: 5,
+  plus: 0,
+  pro: 300,
+};
 
 // ============ DEEP CHARACTER PROMPTS ============
 const CONTROLLABLE_PROMPTS: Record<string, string> = {
@@ -335,50 +340,144 @@ function validateControllable(controllable: unknown): boolean {
   return VALID_CONTROLLABLES.includes(controllable);
 }
 
-// Check and update daily usage
-async function checkAndUpdateDailyUsage(
+function getCurrentMonthKey(): string {
+  return new Date().toISOString().slice(0, 7);
+}
+
+function getMonthStartDate(monthKey: string): string {
+  return `${monthKey}-01`;
+}
+
+function normalizePlanTier(rawTier: unknown): PlanTier {
+  if (rawTier === 'plus' || rawTier === 'pro') {
+    return rawTier;
+  }
+
+  return 'free';
+}
+
+async function getPlanTier(
   supabaseClient: any,
-  userId: string
-): Promise<{ allowed: boolean; remaining: number; used: number }> {
-  const today = new Date().toISOString().split('T')[0];
-  
-  // Get current usage for today
+  userId: string,
+  fallbackTier: unknown
+): Promise<PlanTier> {
+  const fallback = normalizePlanTier(fallbackTier);
+  const { data: profileData, error } = await supabaseClient
+    .from('profiles')
+    .select('plan_tier')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching plan tier from profiles:', error);
+    return fallback;
+  }
+
+  return normalizePlanTier(profileData?.plan_tier ?? fallbackTier);
+}
+
+// Check and update monthly usage
+async function checkAndUpdateMonthlyUsage(
+  supabaseClient: any,
+  userId: string,
+  planTier: PlanTier
+): Promise<{ allowed: boolean; remaining: number; used: number; monthlyLimit: number; month: string; usageLogId: string | null }> {
+  const monthKey = getCurrentMonthKey();
+  const monthStart = getMonthStartDate(monthKey);
+  const monthlyLimit = PLAN_MONTHLY_QUERY_LIMITS[planTier] ?? PLAN_MONTHLY_QUERY_LIMITS.free;
+
+  if (monthlyLimit <= 0) {
+    return {
+      allowed: false,
+      remaining: 0,
+      used: 0,
+      monthlyLimit,
+      month: monthKey,
+      usageLogId: null,
+    };
+  }
+
   const { data: usageData, error: fetchError } = await supabaseClient
     .from('ai_usage_logs')
-    .select('id, message_count')
+    .select('id, query_count')
     .eq('user_id', userId)
-    .eq('usage_date', today)
+    .eq('month', monthStart)
     .maybeSingle();
-  
+
   if (fetchError) {
     console.error('Error fetching usage:', fetchError);
     // Allow on error to not block users
-    return { allowed: true, remaining: DAILY_MESSAGE_LIMIT, used: 0 };
+    return { allowed: true, remaining: monthlyLimit, used: 0, monthlyLimit, month: monthKey, usageLogId: null };
   }
-  
-  const currentCount = usageData?.message_count || 0;
-  
-  if (currentCount >= DAILY_MESSAGE_LIMIT) {
-    return { allowed: false, remaining: 0, used: currentCount };
+
+  const currentCount = usageData?.query_count || 0;
+
+  if (currentCount >= monthlyLimit) {
+    return { allowed: false, remaining: 0, used: currentCount, monthlyLimit, month: monthKey, usageLogId: usageData?.id ?? null };
   }
-  
+
   // Update or insert usage record
   if (usageData) {
     await supabaseClient
       .from('ai_usage_logs')
-      .update({ message_count: currentCount + 1 })
+      .update({ query_count: currentCount + 1 })
       .eq('id', usageData.id);
+
+    return {
+      allowed: true,
+      remaining: monthlyLimit - currentCount - 1,
+      used: currentCount + 1,
+      monthlyLimit,
+      month: monthKey,
+      usageLogId: usageData.id,
+    };
   } else {
+    const { data: insertData } = await supabaseClient
+      .from('ai_usage_logs')
+      .insert({ user_id: userId, month: monthStart, query_count: 1, token_count: 0 })
+      .select('id')
+      .single();
+
+    return {
+      allowed: true,
+      remaining: monthlyLimit - 1,
+      used: 1,
+      monthlyLimit,
+      month: monthKey,
+      usageLogId: insertData?.id ?? null,
+    };
+  }
+}
+
+async function updateTokenUsage(
+  supabaseClient: any,
+  usageLogId: string | null,
+  tokenCount: number
+): Promise<void> {
+  if (!usageLogId || tokenCount <= 0) {
+    return;
+  }
+
+  const { error } = await supabaseClient.rpc('increment_ai_token_count', {
+    usage_log_id: usageLogId,
+    token_delta: tokenCount,
+  });
+
+  if (error) {
+    console.error('Error incrementing token count via RPC, falling back to direct update:', error);
+    const { data: existingUsage } = await supabaseClient
+      .from('ai_usage_logs')
+      .select('token_count')
+      .eq('id', usageLogId)
+      .maybeSingle();
+
+    const nextTokenCount = (existingUsage?.token_count ?? 0) + tokenCount;
+
     await supabaseClient
       .from('ai_usage_logs')
-      .insert({ user_id: userId, usage_date: today, message_count: 1 });
+      .update({ token_count: nextTokenCount })
+      .eq('id', usageLogId);
   }
-  
-  return { 
-    allowed: true, 
-    remaining: DAILY_MESSAGE_LIMIT - currentCount - 1, 
-    used: currentCount + 1 
-  };
 }
 
 // Build the enhanced pattern memory section
@@ -460,24 +559,32 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ============ DAILY LIMIT CHECK ============
+    // ============ MONTHLY QUOTA CHECK ============
     // Need to use service role for insert/update since RLS uses auth.uid()
     const serviceClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
-    const usageResult = await checkAndUpdateDailyUsage(serviceClient, userId);
+    const planTier = await getPlanTier(serviceClient, userId, userData.user.user_metadata?.plan_tier);
+    const usageResult = await checkAndUpdateMonthlyUsage(serviceClient, userId, planTier);
     
     if (!usageResult.allowed) {
+      const isPlusLocked = planTier === 'plus';
       return new Response(
         JSON.stringify({ 
-          error: 'Daily message limit reached. Your 25 messages reset at midnight.',
-          limitReached: true,
+          error: isPlusLocked
+            ? 'AI guide access is locked on Plus. Upgrade to Pro to continue.'
+            : `Monthly AI limit reached. You have used ${usageResult.monthlyLimit} of ${usageResult.monthlyLimit} this month.`,
+          limitReached: !isPlusLocked,
+          aiLocked: isPlusLocked,
           remaining: 0,
-          dailyLimit: DAILY_MESSAGE_LIMIT
+          used: usageResult.used,
+          month: usageResult.month,
+          planTier,
+          monthlyLimit: usageResult.monthlyLimit
         }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: isPlusLocked ? 403 : 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -649,6 +756,9 @@ Guide them through this specific task. Reference their Snapshot progress.`;
 
     const data = await response.json();
     let assistantMessage = data.choices?.[0]?.message?.content || 'I apologize, I could not generate a response.';
+    const totalTokensUsed = data?.usage?.total_tokens ?? 0;
+
+    await updateTokenUsage(serviceClient, usageResult.usageLogId, totalTokensUsed);
 
     // Ensure response ends with an action if it doesn't already
     if (!assistantMessage.includes('→ ACTION:') && !assistantMessage.includes('ACTION:')) {
@@ -659,7 +769,10 @@ Guide them through this specific task. Reference their Snapshot progress.`;
       JSON.stringify({ 
         message: assistantMessage,
         remaining: usageResult.remaining,
-        dailyLimit: DAILY_MESSAGE_LIMIT
+        used: usageResult.used,
+        month: usageResult.month,
+        planTier,
+        monthlyLimit: usageResult.monthlyLimit
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

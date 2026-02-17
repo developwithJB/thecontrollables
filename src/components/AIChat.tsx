@@ -25,9 +25,18 @@ interface AIChatProps {
   isOpen: boolean;
   onClose: () => void;
   challengeContext?: ChallengeContext;
+  onUpgrade?: (source: "ai_limit") => void;
 }
 
-const DAILY_MESSAGE_LIMIT = 25;
+type PlanTier = 'free' | 'plus' | 'pro';
+
+const PLAN_MONTHLY_LIMITS: Record<PlanTier, number> = {
+  free: 5,
+  plus: 0,
+  pro: 300,
+};
+
+const getCurrentMonthKey = () => new Date().toISOString().slice(0, 7);
 
 const WELCOME_MESSAGES: Record<string, string> = {
   awareness: "Hello, I am the Owl 🦉. I help you see things clearly, as they truly are. What's weighing on your mind today?",
@@ -38,11 +47,16 @@ const WELCOME_MESSAGES: Record<string, string> = {
   ego: "I am the Ego Scanner 👺. I catch the lies your ego tells you. What thought has been bothering you lately?",
 };
 
-export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeContext }: AIChatProps) {
+export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeContext, onUpgrade }: AIChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [remainingMessages, setRemainingMessages] = useState<number>(DAILY_MESSAGE_LIMIT);
+  const [planTier, setPlanTier] = useState<PlanTier>('free');
+  const [remainingMessages, setRemainingMessages] = useState<number>(PLAN_MONTHLY_LIMITS.free);
+  const [monthlyLimit, setMonthlyLimit] = useState<number>(PLAN_MONTHLY_LIMITS.free);
+  const [usedThisMonth, setUsedThisMonth] = useState<number>(0);
+  const [activeMonth, setActiveMonth] = useState<string>(getCurrentMonthKey());
+  const [aiLocked, setAiLocked] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -63,8 +77,52 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
     onClose();
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const currentMonth = getCurrentMonthKey();
+    if (currentMonth !== activeMonth) {
+      setActiveMonth(currentMonth);
+      setLimitReached(false);
+      setAiLocked(false);
+      setUsedThisMonth(0);
+      setRemainingMessages(PLAN_MONTHLY_LIMITS[planTier]);
+    }
+  }, [isOpen, activeMonth, planTier]);
+
+  const maybeWarnAtProCap = (nextPlanTier: PlanTier, remaining: number, monthKey: string) => {
+    if (nextPlanTier !== 'pro' || remaining > 0) {
+      return;
+    }
+
+    const warningStorageKey = `ai-pro-cap-warning-${monthKey}`;
+    if (localStorage.getItem(warningStorageKey)) {
+      return;
+    }
+
+    localStorage.setItem(warningStorageKey, 'shown');
+    toast.warning('You have reached your Pro AI cap for this month. Usage resets on the 1st.');
+  };
+
+  const applyUsageState = (data: any) => {
+    const nextPlanTier = (data?.planTier as PlanTier) || planTier;
+    const nextLimit = data?.monthlyLimit ?? PLAN_MONTHLY_LIMITS[nextPlanTier];
+    const nextRemaining = data?.remaining ?? Math.max(nextLimit - (data?.used ?? usedThisMonth), 0);
+    const nextUsed = data?.used ?? Math.max(nextLimit - nextRemaining, 0);
+    const monthKey = data?.month ?? getCurrentMonthKey();
+
+    setPlanTier(nextPlanTier);
+    setMonthlyLimit(nextLimit);
+    setRemainingMessages(nextRemaining);
+    setUsedThisMonth(nextUsed);
+    setActiveMonth(monthKey);
+    setAiLocked(Boolean(data?.aiLocked));
+
+    maybeWarnAtProCap(nextPlanTier, nextRemaining, monthKey);
+  };
+
   const sendMessage = async () => {
-    if (!input.trim() || isLoading || limitReached) return;
+    if (!input.trim() || isLoading || limitReached || aiLocked) return;
 
     const userMessage = input.trim();
     setInput("");
@@ -80,20 +138,33 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
         },
       });
 
-      if (error) {
-        if (error.message?.includes('limit') || data?.limitReached) {
+      if (error || data?.limitReached || data?.aiLocked) {
+        if (data) {
+          applyUsageState(data);
+        }
+
+        if (data?.aiLocked) {
           setLimitReached(true);
-          setRemainingMessages(0);
-          toast.error("Daily message limit reached. Resets at midnight.");
+          toast.error("AI guidance is locked on Plus. Upgrade to Pro for access.");
           return;
         }
-        throw error;
+
+        if (data?.limitReached || error?.message?.includes('limit')) {
+          setLimitReached(true);
+          setRemainingMessages(0);
+          toast.error("You've hit your monthly AI limit.");
+          if (onUpgrade && ((data?.planTier as PlanTier) ?? planTier) === 'free') {
+            onUpgrade("ai_limit");
+          }
+          return;
+        }
+
+        if (error) {
+          throw error;
+        }
       }
 
-      // Update remaining messages from response
-      if (data.remaining !== undefined) {
-        setRemainingMessages(data.remaining);
-      }
+      applyUsageState(data);
 
       setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
     } catch (error) {
@@ -108,7 +179,7 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey && !limitReached) {
+    if (e.key === 'Enter' && !e.shiftKey && !limitReached && !aiLocked) {
       e.preventDefault();
       sendMessage();
     }
@@ -194,26 +265,37 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={limitReached ? "Daily limit reached" : "Type your message..."}
+                  placeholder={aiLocked ? "AI locked on Plus" : limitReached ? "Monthly limit reached" : "Type your message..."}
                   className="min-h-[44px] max-h-[120px] resize-none bg-background"
                   rows={1}
-                  disabled={limitReached}
+                  disabled={limitReached || aiLocked}
                 />
                 <Button
                   onClick={sendMessage}
-                  disabled={!input.trim() || isLoading || limitReached}
+                  disabled={!input.trim() || isLoading || limitReached || aiLocked}
                   size="icon"
                   className="shrink-0"
                 >
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
-              {(limitReached || remainingMessages <= 10) && (
+              {(aiLocked || limitReached || remainingMessages <= 10) && (
                 <div className="text-xs text-muted-foreground mt-2 text-center">
-                  {limitReached 
-                    ? "🔒 Daily limit reached — resets at midnight" 
-                    : `${remainingMessages} message${remainingMessages !== 1 ? 's' : ''} remaining today`
+                  {aiLocked
+                    ? "🔒 AI guidance is locked on Plus — upgrade to Pro"
+                    : limitReached
+                      ? "🔒 Monthly AI limit reached — resets on the 1st"
+                      : planTier === 'free'
+                        ? `${usedThisMonth} of ${monthlyLimit} this month`
+                        : `${usedThisMonth} used this month (${remainingMessages} remaining)`
                   }
+                </div>
+              )}
+              {limitReached && planTier === 'free' && onUpgrade && (
+                <div className="mt-2 flex justify-center">
+                  <Button size="sm" variant="outline" onClick={() => onUpgrade("ai_limit")}>
+                    Upgrade to continue
+                  </Button>
                 </div>
               )}
             </div>

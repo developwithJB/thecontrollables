@@ -56,25 +56,28 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          message_count: number
+          month: string
+          query_count: number
+          token_count: number
           updated_at: string
-          usage_date: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          message_count?: number
+          month?: string
+          query_count?: number
+          token_count?: number
           updated_at?: string
-          usage_date?: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          message_count?: number
+          month?: string
+          query_count?: number
+          token_count?: number
           updated_at?: string
-          usage_date?: string
           user_id?: string
         }
         Relationships: []
@@ -987,6 +990,7 @@ export type Database = {
           email_nudge_time: string | null
           id: string
           nudge_frequency: string | null
+          plan_tier: string
           timezone: string | null
           updated_at: string
         }
@@ -998,6 +1002,7 @@ export type Database = {
           email_nudge_time?: string | null
           id: string
           nudge_frequency?: string | null
+          plan_tier?: string
           timezone?: string | null
           updated_at?: string
         }
@@ -1009,6 +1014,7 @@ export type Database = {
           email_nudge_time?: string | null
           id?: string
           nudge_frequency?: string | null
+          plan_tier?: string
           timezone?: string | null
           updated_at?: string
         }
