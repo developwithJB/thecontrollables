@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageViewTracking, useAnalytics } from "@/hooks/useAnalytics";
 import { useOnboardingAnalytics } from "@/hooks/useOnboardingAnalytics";
+import { getOnboardingQuickStartDraft } from "@/lib/onboardingQuickStartDraft";
 
 type AuthMode = "signin" | "signup" | "forgot" | "reset";
 
@@ -31,6 +32,7 @@ export default function Auth() {
   const [displayName, setDisplayName] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const quickStartDraft = getOnboardingQuickStartDraft();
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -250,7 +252,9 @@ export default function Auth() {
     switch (mode) {
       case "forgot": return "Enter your email and we'll send you a reset link";
       case "reset": return "Enter your new password below";
-      case "signup": return "Start building momentum today";
+      case "signup": return quickStartDraft?.mission
+        ? `Finish setup to keep your mission: ${quickStartDraft.mission}`
+        : "Start building momentum today";
       default: return "Sign in to access your dashboard";
     }
   };

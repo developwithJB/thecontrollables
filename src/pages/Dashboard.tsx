@@ -28,6 +28,7 @@ import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { usePageViewTracking, useAnalytics } from "@/hooks/useAnalytics";
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { onboardingQuickStartEnabled } from "@/lib/featureFlags";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useDashboardVisitCount } from "@/hooks/useDashboardVisitCount";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,7 +85,7 @@ import {
 import { TimeCycleCard } from "@/components/experience/TimeCycleCard";
 import { LockedOverlay } from "@/components/experience/LockedOverlay";
 import { PullToRefreshIndicator } from "@/components/pwa/PullToRefreshIndicator";
-import { OnboardingFlow } from "@/components/onboarding";
+import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 
 type TabType = "dashboard" | "experience" | "guide";
 
@@ -640,6 +641,8 @@ export default function Dashboard() {
     navigate("/");
   };
 
+  const quickStartEnabled = onboardingQuickStartEnabled();
+
   // Only block on critical auth loading - let other data load in background
   if (isAuthLoading) {
     return <SplashScreen />;
@@ -647,6 +650,21 @@ export default function Dashboard() {
 
   // Show onboarding flow for new users
   if (user?.id && needsOnboarding && currentOnboardingStep) {
+    if (quickStartEnabled) {
+      return (
+        <OnboardingQuickStartFlow
+          isPaid={isPaid}
+          createQuest={createQuest}
+          onComplete={() => {
+            queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
+          }}
+          onUpdateOnboarding={async (data) => {
+            await updateOnboardingProgress(data);
+          }}
+        />
+      );
+    }
+
     return (
       <OnboardingFlow
         userId={user.id}
@@ -926,7 +944,7 @@ export default function Dashboard() {
               )}
 
               {/* Build Entry Point - shows if user hasn't done assessment */}
-              <BuildEntryPoint />
+              <BuildEntryPoint userId={user?.id} />
 
               {/* Daily Alignment promo for free users */}
               {!isPaid && !entitlementsLoading && (
