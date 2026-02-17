@@ -261,6 +261,7 @@ The flow appears once per return gap. Missed days are never counted, highlighted
 | `generate-calendar-reminder` | .ics file generation for daily reminders |
 | `send-daily-nudge` | Scheduled email nudges |
 | `admin-users` | Admin user management |
+| `open-claw-marketing` | Open Claw growth bot for traffic, signups, and paid conversion campaigns |
 
 ### Key Data Tables
 
