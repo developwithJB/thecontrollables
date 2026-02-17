@@ -7,6 +7,31 @@ Primary goals:
 - Convert visitors into sign-ups
 - Convert sign-ups/trials into paying customers
 
+## Execution & Attribution Operations
+
+Open Claw now supports admin-side operational tracking for each generated campaign:
+- `execution_status`: `draft` | `generated` | `approved` | `launched`
+- Spend tracking: `spend_amount_usd`
+- Attribution tracking:
+  - `attributed_signups`
+  - `attributed_paid_conversions`
+  - `attributed_revenue_usd`
+  - `payment_attribution_model`
+  - `payment_attribution_notes`
+
+Channel integration health is tracked separately in `open_claw_channel_connections`:
+- connection state (`connected`/`disconnected`/`error`)
+- provider/account metadata
+- spend sync and attribution support flags
+- last checked / last sync timestamps
+
+This makes payment attribution explicit at campaign and channel levels.
+
+### Wallet Requirement
+
+MetaMask (or any crypto wallet) is **not required** for Open Claw.
+Open Claw runs through Supabase auth + Edge Functions + AI provider usage billing.
+
 ## Endpoint
 
 `POST /functions/v1/open-claw-marketing`
