@@ -1,4 +1,4 @@
-# The Controllables — v1.4.0
+# The Controllables — v1.4.1
 
 **A shame-free personal accountability system built around what you can control.**
 
@@ -140,6 +140,44 @@ On Day 7, if all actions are complete, you unlock a **Snapshot celebration** —
 
 ---
 
+## Daily Alignment (Premium)
+
+A personalized morning email delivered at **6:00 AM your local time**, built from your real progress data.
+
+Each Daily Alignment includes:
+
+- **Scripture** — Themed to your lowest Controllable score or active Mission
+- **Growth Reflection** — AI-generated insight based on your Snapshot progress and recent check-ins
+- **Guided Question** — A thought prompt for the day
+- **Micro Action** — One small, concrete step you can take today
+- **Evening Prompt** — A brief reflection to close your day
+
+Daily Alignment is powered by AI (Gemini 2.5 Flash) and personalized using your Build scores, Snapshot theme, and check-in history. Activate it from the Dashboard spotlight card or in Profile settings.
+
+---
+
+## Email Nudge System
+
+The app sends daily reminder emails to keep you on track during active Snapshots.
+
+### How It Works
+
+- **Timing**: Emails are sent at **7:00 AM** in the user's local timezone
+- **Content**: Day-specific context lines (Day 1 orientation, Day 4 normalization, Day 7 closure)
+- **Deduplication**: Atomic insert pattern with a unique constraint on `(user_id, nudge_date)` — no duplicate emails ever
+- **Suppression**: If your daily tasks are already complete, the nudge is marked `skipped` instead of sent
+- **Re-engagement**: Users between Snapshots receive a *"Start your next Snapshot"* email instead of being ignored
+
+### Nudge Statuses
+
+| Status | Meaning |
+|--------|---------|
+| `sent` | Email delivered successfully |
+| `skipped` | Suppressed (tasks already done or other criteria) |
+| `failed` | Delivery error |
+
+---
+
 ## Dashboard Modules
 
 ### Greeting Banner
@@ -207,7 +245,7 @@ If you've been away for **3 or more days**, the app greets you with a shame-free
 2. **Optional Focus Reset** — Choose to continue your current Snapshot or start fresh
 3. **Dashboard Banner** — A temporary *"Coming back counts."* message that disappears after your first action
 
-The flow appears once per return gap. Missed days are never counted, highlighted, or mentioned elsewhere.
+The flow appears once per return gap. Missed days are never counted, highlighted, or mentioned elsewhere. Session transitions now properly refresh the dashboard — no more stale data after starting a new Snapshot.
 
 ---
 
@@ -220,6 +258,7 @@ The flow appears once per return gap. Missed days are never counted, highlighted
 | Time Currency | ✅ | ✅ |
 | Integrity Meter | ✅ | ✅ |
 | Daily Check-Ins | ✅ | ✅ |
+| Email Nudge Reminders | ✅ | ✅ |
 | Snapshots Available | 1 | All 36 + Custom |
 | Snapshot History | — | ✅ |
 | Badges | — | ✅ |
@@ -228,6 +267,7 @@ The flow appears once per return gap. Missed days are never counted, highlighted
 | Momentum Analytics | — | ✅ |
 | Activity Patterns | — | ✅ |
 | AI Insights | — | ✅ |
+| Daily Alignment Emails | — | ✅ |
 
 **Pricing:**
 - Monthly: **$9.99/mo**
@@ -259,7 +299,7 @@ The flow appears once per return gap. Missed days are never counted, highlighted
 | `generate-insights` | AI-powered behavioral insights |
 | `generate-snapshot-insight` | Per-Snapshot AI analysis |
 | `generate-calendar-reminder` | .ics file generation for daily reminders |
-| `send-daily-nudge` | Scheduled email nudges |
+| `send-daily-nudge` | Daily reminder emails + re-engagement nudges for users between Snapshots |
 | `admin-users` | Admin user management |
 | `open-claw-marketing` | Open Claw growth bot for traffic, signups, and paid conversion campaigns |
 
@@ -277,6 +317,9 @@ The flow appears once per return gap. Missed days are never counted, highlighted
 | `xp_logs` | XP earning history |
 | `wellness_logs` | Sleep, movement, nutrition ratings |
 | `main_quests` | Active Mission (Direction) |
+| `email_nudge_logs` | Nudge delivery tracking (sent, skipped, failed) |
+| `daily_alignment_logs` | Daily Alignment email content and delivery |
+| `daily_scriptures` | Scripture rotation for Daily Alignment |
 
 ---
 

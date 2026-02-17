@@ -70,7 +70,7 @@ serve(async (req) => {
       }
     }
 
-    const priceId = STRIPE_PRICE_IDS[tier];
+    const priceId = STRIPE_PRICE_IDS[tier as PlanTier];
     logStep("Price selected", { tier, priceId });
 
     const origin = req.headers.get("origin") || "https://thedashboard.agbcoaching.com";
