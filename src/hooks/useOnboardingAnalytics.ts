@@ -6,28 +6,28 @@ import { useAnalytics } from "./useAnalytics";
  * Tracks: Account Created → Assessment Done → Archetype Shown → Snapshot Selected → Day 1 Started
  */
 export const useOnboardingAnalytics = () => {
-  const { trackEvent } = useAnalytics();
+  const { trackEvent, trackUserSignedUp, trackAssessmentCompleted, trackSnapshotStarted } = useAnalytics();
 
   // Track account creation (called after successful signup)
   const trackAccountCreated = useCallback(
     (source?: string) => {
-      trackEvent("onboarding", "account_created", {
+      trackUserSignedUp({
         source: source || "direct",
         timestamp: Date.now(),
       });
     },
-    [trackEvent]
+    [trackUserSignedUp]
   );
 
   // Track Build Assessment completion
-  const trackAssessmentCompleted = useCallback(
+  const trackAssessmentCompletedEvent = useCallback(
     (archetype?: string) => {
-      trackEvent("onboarding", "assessment_completed", {
+      trackAssessmentCompleted({
         archetype,
         timestamp: Date.now(),
       });
     },
-    [trackEvent]
+    [trackAssessmentCompleted]
   );
 
   // Track assessment skipped
@@ -64,13 +64,13 @@ export const useOnboardingAnalytics = () => {
   // Track Day 1 started (onboarding complete)
   const trackOnboardingComplete = useCallback(
     (journeyId: string, skippedAssessment: boolean) => {
-      trackEvent("onboarding", "day1_started", {
+      trackSnapshotStarted({
         journey_id: journeyId,
         skipped_assessment: skippedAssessment,
         timestamp: Date.now(),
       });
     },
-    [trackEvent]
+    [trackSnapshotStarted]
   );
 
   // Track onboarding step changes
@@ -99,7 +99,7 @@ export const useOnboardingAnalytics = () => {
 
   return {
     trackAccountCreated,
-    trackAssessmentCompleted,
+    trackAssessmentCompleted: trackAssessmentCompletedEvent,
     trackAssessmentSkipped,
     trackArchetypeViewed,
     trackSnapshotSelected,

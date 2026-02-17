@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
+import posthog from "posthog-js";
+import * as Sentry from "@sentry/react";
 import { supabase } from "@/integrations/supabase/client";
 import { APP_VERSION } from "@/lib/version";
 
@@ -12,9 +14,7 @@ const getSessionId = () => {
   return sessionId;
 };
 
-const getScreenSize = () => {
-  return `${window.innerWidth}x${window.innerHeight}`;
-};
+const getScreenSize = () => `${window.innerWidth}x${window.innerHeight}`;
 
 interface EventData {
   [key: string]: string | number | boolean | null | undefined;
@@ -24,24 +24,56 @@ interface ErrorContext {
   [key: string]: string | number | boolean | null | undefined;
 }
 
+const ENABLE_SUPABASE_ANALYTICS = import.meta.env.VITE_ENABLE_SUPABASE_ANALYTICS === "true";
+
+const capturePosthogEvent = (eventName: string, eventData?: EventData) => {
+  posthog.capture(eventName, {
+    ...eventData,
+    app_version: APP_VERSION,
+    page_path: window.location.pathname,
+  });
+};
+
+export const captureHandledException = (
+  error: unknown,
+  context?: ErrorContext,
+  level: "error" | "warning" = "error"
+) => {
+  Sentry.withScope((scope) => {
+    if (context) {
+      scope.setContext("error_context", context);
+    }
+    scope.setTag("app_version", APP_VERSION);
+    scope.setLevel(level);
+    Sentry.captureException(error);
+  });
+};
+
 export const useAnalytics = () => {
   const sessionId = useRef(getSessionId());
   const pageLoadTime = useRef<number>(Date.now());
 
-  // Track page view - now includes user_id
-  // Supports virtual paths for in-page navigation (e.g., tab changes)
   const trackPageView = useCallback(async (pagePath?: string, isVirtual?: boolean) => {
     const path = pagePath || window.location.pathname;
-    // For virtual page views (tab changes), don't use load time since it's not a real page load
     const loadTime = isVirtual ? null : Date.now() - pageLoadTime.current;
 
+    capturePosthogEvent("page_viewed", {
+      path,
+      is_virtual: !!isVirtual,
+      load_time_ms: loadTime ?? undefined,
+      referrer: isVirtual ? window.location.pathname : document.referrer || null,
+    });
+
+    if (!ENABLE_SUPABASE_ANALYTICS) return;
+
     try {
-      // Get current user if authenticated
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       await supabase.from("page_views").insert({
         page_path: path,
-        referrer: isVirtual ? window.location.pathname : (document.referrer || null),
+        referrer: isVirtual ? window.location.pathname : document.referrer || null,
         session_id: sessionId.current,
         user_agent: navigator.userAgent,
         screen_size: getScreenSize(),
@@ -53,31 +85,31 @@ export const useAnalytics = () => {
     }
   }, []);
 
-  // Track custom event - now includes app version and user_id
-  const trackEvent = useCallback(
-    async (eventType: string, eventName: string, eventData?: EventData) => {
-      try {
-        // Get current user if authenticated
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        await supabase.from("app_events").insert({
-          event_type: eventType,
-          event_name: eventName,
-          event_data: { ...eventData, app_version: APP_VERSION },
-          page_path: window.location.pathname,
-          session_id: sessionId.current,
-          user_agent: navigator.userAgent,
-          screen_size: getScreenSize(),
-          user_id: user?.id || null,
-        });
-      } catch (error) {
-        console.warn("Failed to track event:", error);
-      }
-    },
-    []
-  );
+  const trackEvent = useCallback(async (_eventType: string, eventName: string, eventData?: EventData) => {
+    capturePosthogEvent(eventName, eventData);
 
-  // Track error - now includes app version and user_id
+    if (!ENABLE_SUPABASE_ANALYTICS) return;
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      await supabase.from("app_events").insert({
+        event_type: _eventType,
+        event_name: eventName,
+        event_data: { ...eventData, app_version: APP_VERSION },
+        page_path: window.location.pathname,
+        session_id: sessionId.current,
+        user_agent: navigator.userAgent,
+        screen_size: getScreenSize(),
+        user_id: user?.id || null,
+      });
+    } catch (error) {
+      console.warn("Failed to track event:", error);
+    }
+  }, []);
+
   const trackError = useCallback(
     async (
       errorMessage: string,
@@ -86,10 +118,25 @@ export const useAnalytics = () => {
       componentName?: string,
       additionalContext?: ErrorContext
     ) => {
+      Sentry.withScope((scope) => {
+        if (additionalContext) {
+          scope.setContext("additional_context", additionalContext);
+        }
+        scope.setTag("error_type", errorType || "runtime");
+        if (componentName) {
+          scope.setTag("component_name", componentName);
+        }
+        scope.setTag("app_version", APP_VERSION);
+        Sentry.captureMessage(errorMessage, "error");
+      });
+
+      if (!ENABLE_SUPABASE_ANALYTICS) return;
+
       try {
-        // Get current user if authenticated
-        const { data: { user } } = await supabase.auth.getUser();
-        
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
         await supabase.from("app_errors").insert({
           error_message: errorMessage,
           error_stack: errorStack || null,
@@ -108,14 +155,32 @@ export const useAnalytics = () => {
     []
   );
 
-  return { trackPageView, trackEvent, trackError, sessionId: sessionId.current };
+  const trackUserSignedUp = useCallback((props?: EventData) => trackEvent("conversion", "user_signed_up", props), [trackEvent]);
+  const trackAssessmentCompleted = useCallback((props?: EventData) => trackEvent("assessment", "assessment_completed", props), [trackEvent]);
+  const trackSnapshotStarted = useCallback((props?: EventData) => trackEvent("snapshot", "snapshot_started", props), [trackEvent]);
+  const trackCheckinCompleted = useCallback((props?: EventData) => trackEvent("habit", "checkin_completed", props), [trackEvent]);
+  const trackPromiseCreated = useCallback((props?: EventData) => trackEvent("integrity", "promise_created", props), [trackEvent]);
+  const trackPromiseReviewed = useCallback((props?: EventData) => trackEvent("integrity", "promise_reviewed", props), [trackEvent]);
+  const trackPaywallViewed = useCallback((props?: EventData) => trackEvent("monetization", "paywall_viewed", props), [trackEvent]);
+  const trackSnapshotCompleted = useCallback((props?: EventData) => trackEvent("snapshot", "snapshot_completed", props), [trackEvent]);
+
+  return {
+    trackPageView,
+    trackEvent,
+    trackError,
+    trackUserSignedUp,
+    trackAssessmentCompleted,
+    trackSnapshotStarted,
+    trackCheckinCompleted,
+    trackPromiseCreated,
+    trackPromiseReviewed,
+    trackPaywallViewed,
+    trackSnapshotCompleted,
+    sessionId: sessionId.current,
+  };
 };
 
-// Global error handler for uncaught errors - includes app version and user_id
 export const setupGlobalErrorTracking = () => {
-  const sessionId = getSessionId();
-
-  // Helper to check if an error is a benign abort (React Query cancellation etc.)
   const isAbortError = (message: string, error?: Error | unknown): boolean => {
     const msg = message.toLowerCase();
     if (msg.includes("signal is aborted") || msg.includes("the operation was aborted")) return true;
@@ -124,61 +189,27 @@ export const setupGlobalErrorTracking = () => {
     return false;
   };
 
-  window.onerror = async (message, source, lineno, colno, error) => {
+  window.onerror = (message, source, lineno, colno, error) => {
     const msgStr = String(message);
     if (isAbortError(msgStr, error)) return;
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      await supabase.from("app_errors").insert({
-        error_message: msgStr,
-        error_stack: error?.stack || `at ${source}:${lineno}:${colno}`,
-        error_type: "uncaught",
-        component_name: null,
-        page_path: window.location.pathname,
-        session_id: sessionId,
-        user_agent: navigator.userAgent,
-        additional_context: { source, lineno, colno, app_version: APP_VERSION },
-        user_id: user?.id || null,
-      });
-    } catch (e) {
-      console.warn("Failed to track uncaught error:", e);
-    }
+
+    Sentry.captureException(error ?? new Error(msgStr), {
+      tags: { error_type: "uncaught", app_version: APP_VERSION },
+      extra: { source, lineno, colno },
+    });
   };
 
-  window.onunhandledrejection = async (event) => {
-    const errorMessage =
-      event.reason instanceof Error
-        ? event.reason.message
-        : String(event.reason);
-    
+  window.onunhandledrejection = (event) => {
+    const errorMessage = event.reason instanceof Error ? event.reason.message : String(event.reason);
     if (isAbortError(errorMessage, event.reason)) return;
-    
-    try {
-      const errorStack =
-        event.reason instanceof Error ? event.reason.stack : undefined;
 
-      const { data: { user } } = await supabase.auth.getUser();
-
-      await supabase.from("app_errors").insert({
-        error_message: errorMessage,
-        error_stack: errorStack || null,
-        error_type: "unhandled_rejection",
-        component_name: null,
-        page_path: window.location.pathname,
-        session_id: sessionId,
-        user_agent: navigator.userAgent,
-        additional_context: { app_version: APP_VERSION },
-        user_id: user?.id || null,
-      });
-    } catch (e) {
-      console.warn("Failed to track unhandled rejection:", e);
-    }
+    captureHandledException(event.reason instanceof Error ? event.reason : new Error(errorMessage), {
+      rejection_type: "unhandled_rejection",
+      app_version: APP_VERSION,
+    });
   };
 };
 
-// Hook to track page view on mount
 export const usePageViewTracking = (pageName?: string) => {
   const { trackPageView, trackEvent } = useAnalytics();
   const hasTracked = useRef(false);
