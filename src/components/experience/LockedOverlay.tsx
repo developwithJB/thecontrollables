@@ -6,6 +6,7 @@ import { PlanSelector } from "@/components/PlanSelector";
 import { getPricing, type PlanTier } from "@/lib/pricing";
 import { CalendarReminderButton } from "@/components/CalendarReminderButton";
 import { supabase } from "@/integrations/supabase/client";
+import { getFreeTrialOfferCopy } from "@/lib/entitlements";
 
 interface LockedOverlayProps {
   featureName?: string;
@@ -31,6 +32,7 @@ export function LockedOverlay({
   const [selectedPlan, setSelectedPlan] = useState<PlanTier | undefined>();
   const [timezone, setTimezone] = useState<string>(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const pricing = getPricing();
+  const freeTrialOfferCopy = getFreeTrialOfferCopy();
 
   // Fetch user's timezone
   useEffect(() => {
@@ -65,7 +67,7 @@ export function LockedOverlay({
       case "ai-companion":
         return {
           title: "The Controllables",
-          description: "Free includes the full 7-Day Snapshot.\n\nThe Controllables unlock with Full Access.",
+          description: `${freeTrialOfferCopy} included.\n\nThe Controllables unlock with Full Access.`,
           buttonText: "Unlock Full Access",
           priceLine: priceText
         };

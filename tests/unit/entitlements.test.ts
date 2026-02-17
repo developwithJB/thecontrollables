@@ -2,9 +2,13 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   PAID_FEATURES,
   FREE_FEATURES,
+  SNAPSHOT_DURATION_DAYS,
   canAccessFeature,
   canModifySnapshot,
   canStartNewSnapshot,
+  getFreeTrialCompletionCopy,
+  getFreeTrialOfferCopy,
+  getFreeTrialSnapshotAllowance,
   getLockedFeatures,
   hasUsedFreeTrial,
   isFeatureLocked,
@@ -97,6 +101,27 @@ describe("entitlements", () => {
     expect(hasUsedFreeTrial("plus", 999)).toBe(false);
     expect(canStartNewSnapshot("plus", 999)).toBe(true);
     expect(canStartNewSnapshot("pro", 999)).toBe(true);
+  });
+
+  it("derives free-trial copy from typed feature flags", () => {
+    setFeatureFlagProvider(
+      buildProvider({
+        trial_type: "snapshot_count",
+        free_tier_snapshot_count: 3,
+      })
+    );
+
+    expect(getFreeTrialSnapshotAllowance()).toBe(3);
+    expect(getFreeTrialOfferCopy()).toBe(`3 free ${SNAPSHOT_DURATION_DAYS}-Day Snapshots`);
+    expect(getFreeTrialCompletionCopy()).toBe(`Your 3 free ${SNAPSHOT_DURATION_DAYS}-Day Snapshots are complete.`);
+
+    setFeatureFlagProvider(buildProvider({ trial_type: "single_snapshot" }));
+    expect(getFreeTrialSnapshotAllowance()).toBe(1);
+    expect(getFreeTrialOfferCopy()).toBe(`1 free ${SNAPSHOT_DURATION_DAYS}-Day Snapshot`);
+
+    setFeatureFlagProvider(buildProvider({ trial_type: "unlimited" }));
+    expect(getFreeTrialSnapshotAllowance()).toBeNull();
+    expect(getFreeTrialOfferCopy()).toBe(`Unlimited ${SNAPSHOT_DURATION_DAYS}-Day Snapshots`);
   });
 
   it("respects modify-snapshot rules", () => {

@@ -25,10 +25,30 @@ interface EntitlementStatus {
   subscriptionStatus: string | null;
   currentPeriodEnd: string | null;
   checkPaymentStatus: () => void;
-  initiateCheckout: (tier?: PlanTier) => Promise<void>;
+  initiateCheckout: (tier?: PlanTier, options?: CheckoutStartOptions) => Promise<void>;
   openCustomerPortal: () => Promise<void>;
   isCheckingOut: boolean;
   isOpeningPortal: boolean;
+}
+
+interface CheckoutStartOptions {
+  source?: string;
+  successPath?: string;
+  cancelPath?: string;
+}
+
+interface CheckoutResponsePayload {
+  url?: string | null;
+  error?: string;
+  message?: string;
+  error_code?: string;
+  portal_url?: string | null;
+}
+
+interface ParsedFunctionError {
+  code: string | null;
+  message: string;
+  portalUrl: string | null;
 }
 
 // Timeout for edge function calls (15 seconds)
@@ -36,6 +56,58 @@ const EDGE_FUNCTION_TIMEOUT = 15000;
 
 // LocalStorage key for caching entitlement status
 const ENTITLEMENT_CACHE_KEY = 'entitlement_cache_';
+
+const sanitizeCheckoutSource = (source?: string): string | undefined => {
+  if (!source) return undefined;
+  const normalized = source.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "_");
+  return normalized ? normalized.slice(0, 64) : undefined;
+};
+
+const parseCheckoutPayload = (payload: unknown): ParsedFunctionError => {
+  if (!payload || typeof payload !== "object") {
+    return { code: null, message: "Unable to start checkout right now.", portalUrl: null };
+  }
+
+  const record = payload as Record<string, unknown>;
+  const rawMessage = record.message ?? record.error;
+  const message =
+    typeof rawMessage === "string" && rawMessage.trim().length > 0
+      ? rawMessage
+      : "Unable to start checkout right now.";
+  const code = typeof record.error_code === "string" ? record.error_code : null;
+  const portalUrl = typeof record.portal_url === "string" ? record.portal_url : null;
+
+  return { code, message, portalUrl };
+};
+
+const parseInvokeError = async (error: unknown): Promise<ParsedFunctionError> => {
+  const fallbackMessage =
+    error instanceof Error && error.message.trim().length > 0
+      ? error.message
+      : "Unable to start checkout right now.";
+  const fallback: ParsedFunctionError = {
+    code: null,
+    message: fallbackMessage,
+    portalUrl: null,
+  };
+
+  if (!error || typeof error !== "object") return fallback;
+  const context = (error as { context?: unknown }).context;
+  if (!(context instanceof Response)) return fallback;
+
+  try {
+    const parsed = parseCheckoutPayload(await context.clone().json());
+    if (parsed.message === "Unable to start checkout right now.") {
+      parsed.message = fallbackMessage;
+    }
+    if (!parsed.code && context.status === 409) {
+      parsed.code = "already_subscribed";
+    }
+    return parsed;
+  } catch {
+    return fallback;
+  }
+};
 
 function cacheEntitlement(userId: string, info: SubscriptionInfo): void {
   try {
@@ -123,9 +195,9 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
         cacheEntitlement(userId, info);
         
         return info;
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle AbortError gracefully (React Query query cancellation)
-        if (error?.name === "AbortError") {
+        if (error instanceof Error && error.name === "AbortError") {
           console.log("[useEntitlements] Query aborted, using cache");
         } else {
           console.error("Error checking payment status:", error);
@@ -182,7 +254,7 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
     refetch();
   }, [refetch]);
 
-  const initiateCheckout = useCallback(async (tier: PlanTier = "pro") => {
+  const initiateCheckout = useCallback(async (tier: PlanTier = "pro", options?: CheckoutStartOptions) => {
     if (!userId) {
       toast.error("Please sign in to subscribe");
       return;
@@ -193,25 +265,57 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
     try {
       const { data: result, error } = await withTimeout(
         supabase.functions.invoke("create-checkout", {
-          body: { tier }
+          body: {
+            tier,
+            source: sanitizeCheckoutSource(options?.source),
+            success_path: options?.successPath,
+            cancel_path: options?.cancelPath,
+          },
         }),
         EDGE_FUNCTION_TIMEOUT,
         "Checkout request timed out. Please try again."
       );
       
       if (error) {
-        throw new Error(error.message || "Failed to create checkout session");
+        const parsed = await parseInvokeError(error);
+        if (parsed.code === "already_subscribed") {
+          toast.info("Subscription already active", {
+            description: parsed.message,
+          });
+          setIsCheckingOut(false);
+          window.location.href = parsed.portalUrl || "/billing";
+          return;
+        }
+        throw new Error(parsed.message || "Failed to create checkout session");
       }
-      
-      if (result?.error) {
-        toast.info(result.error);
+
+      const checkoutPayload = (result ?? {}) as CheckoutResponsePayload;
+      const hasPayloadError =
+        typeof checkoutPayload.error === "string" ||
+        typeof checkoutPayload.message === "string" ||
+        typeof checkoutPayload.error_code === "string";
+
+      if (hasPayloadError) {
+        const parsed = parseCheckoutPayload(checkoutPayload);
+        if (parsed.code === "already_subscribed") {
+          toast.info("Subscription already active", {
+            description: parsed.message,
+          });
+          setIsCheckingOut(false);
+          window.location.href = parsed.portalUrl || "/billing";
+          return;
+        }
+
+        toast.error("Unable to start checkout", {
+          description: parsed.message,
+        });
         setIsCheckingOut(false);
         return;
       }
       
-      if (result?.url) {
+      if (checkoutPayload.url) {
         // Redirect in same tab to avoid popup blockers on mobile
-        window.location.href = result.url;
+        window.location.href = checkoutPayload.url;
       } else {
         throw new Error("No checkout URL returned");
       }

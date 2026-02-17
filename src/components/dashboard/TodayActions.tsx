@@ -25,6 +25,7 @@ import { useActionTracking } from "@/hooks/useActionTracking";
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { getJourneyDailyAction, getJourneyById, type DailyAction } from "@/lib/guidedJourneys";
 import { useTGIMWeeklyThreshold } from "@/hooks/useTGIMWeeklyThreshold";
+import { getFreeTrialCompletionCopy } from "@/lib/entitlements";
 
 
 interface TodayActionsProps {
@@ -120,6 +121,7 @@ export function TodayActions({
 }: TodayActionsProps) {
   const navigate = useNavigate();
   const { trackButtonClick, trackModalAction } = useActionTracking();
+  const freeTrialCompletionCopy = getFreeTrialCompletionCopy();
   const [showCovenantDialog, setShowCovenantDialog] = useState(false);
   const [covenantAccepted, setCovenantAccepted] = useState(false);
   const [expandedAction, setExpandedAction] = useState<string | null>(
@@ -580,7 +582,7 @@ export function TodayActions({
             {/* Upgrade prompt */}
             <div className="p-4 space-y-3">
               <p className="text-sm text-muted-foreground">
-                Your free 7-day snapshot is complete. Upgrade to continue building proof with unlimited snapshots.
+                {freeTrialCompletionCopy} Upgrade to continue building proof with unlimited Snapshots.
               </p>
               <Button className="w-full" size="sm" onClick={() => onUpgrade?.()}>
                 <Sparkles className="w-4 h-4 mr-2" />
@@ -607,7 +609,7 @@ export function TodayActions({
               {isResetCompleted && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
                   <Check className="w-3 h-3" />
-                  Reset Complete
+                  Snapshot Complete
                 </span>
               )}
             </div>
