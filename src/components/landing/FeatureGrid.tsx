@@ -58,7 +58,7 @@ const coreFeatures = [
   {
     icon: Mail,
     title: "Daily Alignment",
-    description: "Personalized scripture, real-time growth reflection, and one clear action each morning — built from your actual life.",
+    description: "A personalized morning email with scripture, a growth reflection, and one clear action — built from your Snapshot progress, Build scores, and check-in history. Delivered at 6 AM your time.",
     premium: true,
   },
 ];

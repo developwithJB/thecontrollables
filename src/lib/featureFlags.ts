@@ -238,21 +238,23 @@ export const getFeatureFlags = (overrides: FeatureFlagOverrides = {}): FeatureFl
 
   const resolved: FeatureFlags = { ...DEFAULT_FEATURE_FLAGS };
 
+  const r = resolved as Record<FeatureFlagKey, FeatureFlags[FeatureFlagKey]>;
+
   for (const key of FEATURE_FLAG_KEYS) {
     const providerValue = provider?.getFlag(key);
-    resolved[key] = normalizeFlagValue(key, providerValue, resolved[key]);
+    r[key] = normalizeFlagValue(key, providerValue, resolved[key]);
   }
 
   for (const key of FEATURE_FLAG_KEYS) {
-    resolved[key] = normalizeFlagValue(key, windowOverrides[key], resolved[key]);
+    r[key] = normalizeFlagValue(key, windowOverrides[key], resolved[key]);
   }
 
   for (const key of FEATURE_FLAG_KEYS) {
-    resolved[key] = normalizeFlagValue(key, localOverrides[key], resolved[key]);
+    r[key] = normalizeFlagValue(key, localOverrides[key], resolved[key]);
   }
 
   for (const key of FEATURE_FLAG_KEYS) {
-    resolved[key] = normalizeFlagValue(key, overrides[key], resolved[key]);
+    r[key] = normalizeFlagValue(key, overrides[key], resolved[key]);
   }
 
   return resolved;
