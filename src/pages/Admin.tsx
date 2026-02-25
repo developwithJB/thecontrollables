@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Shield, RefreshCw, BarChart3, Route, Mail,
-  Megaphone, User, AlertTriangle, Radar, DollarSign, HeartPulse
+  Megaphone, User, AlertTriangle, Radar, DollarSign, HeartPulse, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,10 +21,12 @@ import ExecutiveOverview from "@/components/admin/ExecutiveOverview";
 import ActivationFunnel from "@/components/admin/ActivationFunnel";
 import BehavioralIntelligence from "@/components/admin/BehavioralIntelligence";
 import RetentionRadar from "@/components/admin/RetentionRadar";
+import RevenueIntelligence from "@/components/admin/RevenueIntelligence";
 import ProductHealth from "@/components/admin/ProductHealth";
 import UserManagement from "@/components/admin/UserManagement";
 import NudgesTab from "@/components/admin/NudgesTab";
 import OpenClawTab from "@/components/admin/OpenClawTab";
+import ActionCenter from "@/components/admin/ActionCenter";
 
 export default function Admin() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -197,6 +199,10 @@ export default function Admin() {
               <Radar className="h-4 w-4" />
               <span className="hidden sm:inline">Retention</span>
             </TabsTrigger>
+            <TabsTrigger value="revenue" className="flex items-center gap-1">
+              <DollarSign className="h-4 w-4" />
+              <span className="hidden sm:inline">Revenue</span>
+            </TabsTrigger>
             <TabsTrigger value="health" className="flex items-center gap-1">
               <AlertTriangle className="h-4 w-4" />
               <span className="hidden sm:inline">Health</span>
@@ -218,6 +224,10 @@ export default function Admin() {
             <TabsTrigger value="users" className="flex items-center gap-1">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Users</span>
+            </TabsTrigger>
+            <TabsTrigger value="actions" className="flex items-center gap-1">
+              <Zap className="h-4 w-4" />
+              <span className="hidden sm:inline">Actions</span>
             </TabsTrigger>
             <TabsTrigger value="openclaw" className="flex items-center gap-1">
               <Megaphone className="h-4 w-4" />
@@ -246,6 +256,10 @@ export default function Admin() {
             <RetentionRadar />
           </TabsContent>
 
+          <TabsContent value="revenue">
+            <RevenueIntelligence />
+          </TabsContent>
+
           <TabsContent value="health">
             <ProductHealth
               errors={errors}
@@ -270,6 +284,10 @@ export default function Admin() {
               users={users}
               onRefresh={() => loadResource("admin-users", "", (d) => setUsers(d.users || []))}
             />
+          </TabsContent>
+
+          <TabsContent value="actions">
+            <ActionCenter users={users} />
           </TabsContent>
 
           <TabsContent value="openclaw">
