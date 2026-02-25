@@ -1,4 +1,4 @@
-# The Controllables — v1.4.1
+# The Controllables — v1.5.0
 
 **A shame-free personal accountability system built around what you can control.**
 
@@ -65,6 +65,21 @@ Before your first Snapshot begins, you'll see an orientation that sets expectati
 ### 5. Choose Your First Snapshot
 
 Browse the Snapshot library and pick a theme that resonates. Then set your **Mission** — a direction, not a task.
+
+---
+
+## 7-Day Free Trial
+
+New users get **full access to every feature** during their first Snapshot — no credit card required.
+
+During the trial:
+- All 36+ Snapshots unlocked
+- AI Guide available (5 messages/day)
+- Experience History and Activity Patterns accessible
+- Personalized Insights generated
+- Certificates downloadable
+
+After 7 days, the account enters a review-only state. Interactive features are gated behind a paywall, and a Trial Completion Card summarizes progress and encourages upgrading.
 
 ---
 
@@ -251,27 +266,58 @@ The flow appears once per return gap. Missed days are never counted, highlighted
 
 ## Free vs. Premium
 
-| Feature | Free | Premium |
-|---------|------|---------|
-| Build Assessment | ✅ | ✅ |
-| XP Tracking | ✅ | ✅ |
-| Time Currency | ✅ | ✅ |
-| Integrity Meter | ✅ | ✅ |
-| Daily Check-Ins | ✅ | ✅ |
-| Email Nudge Reminders | ✅ | ✅ |
-| Snapshots Available | 1 | All 36 + Custom |
-| Snapshot History | — | ✅ |
-| Badges | — | ✅ |
-| AI Guide | — | ✅ |
-| Certificates | — | ✅ |
-| Momentum Analytics | — | ✅ |
-| Activity Patterns | — | ✅ |
-| AI Insights | — | ✅ |
-| Daily Alignment Emails | — | ✅ |
+| Feature | Free | 7-Day Trial | Premium |
+|---------|------|-------------|---------|
+| Build Assessment | ✅ | ✅ | ✅ |
+| XP Tracking | ✅ | ✅ | ✅ |
+| Time Currency | ✅ | ✅ | ✅ |
+| Integrity Meter | ✅ | ✅ | ✅ |
+| Daily Check-Ins | ✅ | ✅ | ✅ |
+| Email Nudge Reminders | ✅ | ✅ | ✅ |
+| Snapshots Available | 1 | All 36 | All 36 + Custom |
+| Experience History | — | ✅ | ✅ |
+| AI Guide | — | 5 msgs/day | 25 msgs/day |
+| Badges | — | ✅ | ✅ |
+| Certificates | — | ✅ | ✅ |
+| Momentum Analytics | — | ✅ | ✅ |
+| Activity Patterns | — | ✅ | ✅ |
+| AI Insights | — | ✅ | ✅ |
+| Daily Alignment Emails | — | — | ✅ |
 
 **Pricing:**
 - Monthly: **$9.99/mo**
 - Yearly: **$79.99/yr** (saves ~33%, equivalent to $6.67/mo)
+
+---
+
+## Admin Command Center
+
+The admin panel is a 10-tab intelligence system for monitoring and managing the app:
+
+| Tab | Purpose |
+|-----|---------|
+| **Overview** | Executive metrics — DAU/WAU/MAU, activation, conversion, churn, MRR |
+| **Funnel** | Activation funnel visualization with drop-off analysis |
+| **Behavior** | Controllable usage patterns, action flows, user activity heatmaps |
+| **Retention** | Risk-tier scoring (healthy/slipping/at_risk/dormant) per user |
+| **Revenue** | Cohort conversion analysis, MRR tracking, days-to-convert |
+| **Insights** | AI-generated weekly behavioral insights, retention risks, and growth opportunities |
+| **Health** | Error monitoring, page performance, event volume |
+| **Nudges** | Email delivery monitoring, coverage rates, potential issues |
+| **Users** | User management with grant/revoke access controls |
+| **Actions** | Nudge campaigns, trial extensions, CSV export |
+| **Claw** | Open Claw marketing bot for campaign generation |
+
+### AI Insight Engine
+
+The Insights tab generates on-demand intelligence from 7-day aggregated metrics using AI (Gemini 3 Flash). Each generation produces:
+
+- **3 Behavioral Insights** — Patterns in user behavior (e.g., "Users who log Perspective 3x weekly retain 42% longer")
+- **2 Retention Risks** — Emerging churn signals
+- **2 Growth Opportunities** — Untapped potential
+- **1 Experiment Recommendation** — A testable hypothesis
+
+No PII is sent to AI — only aggregated counts and distributions.
 
 ---
 
@@ -299,9 +345,11 @@ The flow appears once per return gap. Missed days are never counted, highlighted
 | `generate-insights` | AI-powered behavioral insights |
 | `generate-snapshot-insight` | Per-Snapshot AI analysis |
 | `generate-calendar-reminder` | .ics file generation for daily reminders |
-| `send-daily-nudge` | Daily reminder emails + re-engagement nudges for users between Snapshots |
+| `send-daily-nudge` | Daily reminder emails + re-engagement nudges |
 | `admin-users` | Admin user management |
-| `open-claw-marketing` | Open Claw growth bot for traffic, signups, and paid conversion campaigns |
+| `admin-analytics` | Admin data aggregation and executive metrics |
+| `admin-insights` | AI-powered weekly behavioral insights for admins |
+| `open-claw-marketing` | Open Claw growth bot for campaigns |
 
 ### Key Data Tables
 
@@ -313,6 +361,7 @@ The flow appears once per return gap. Missed days are never counted, highlighted
 | `integrity_logs` | Promise tracking (made, kept, broken) |
 | `time_logs` | Invested vs. wasted time entries |
 | `build_assessments` / `build_scores` | Assessment responses and computed scores |
+| `user_build_current` | Current Build scores (snapshot for dashboard) |
 | `user_entitlements` | Free trial and premium access |
 | `xp_logs` | XP earning history |
 | `wellness_logs` | Sleep, movement, nutrition ratings |
@@ -320,6 +369,7 @@ The flow appears once per return gap. Missed days are never counted, highlighted
 | `email_nudge_logs` | Nudge delivery tracking (sent, skipped, failed) |
 | `daily_alignment_logs` | Daily Alignment email content and delivery |
 | `daily_scriptures` | Scripture rotation for Daily Alignment |
+| `ai_usage_logs` | Daily AI message tracking |
 
 ---
 

@@ -4,7 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Send, Gift, Tag, Search, Users } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Download, Send, Gift, Search, Users, Mail, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { AdminUser } from "./types";
@@ -17,6 +21,11 @@ export default function ActionCenter({ users }: ActionCenterProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [segmentFilter, setSegmentFilter] = useState<string>("all");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [nudgeSegment, setNudgeSegment] = useState<string>("all_free");
+  const [nudgeSending, setNudgeSending] = useState(false);
+  const [trialEmail, setTrialEmail] = useState("");
+  const [trialDuration, setTrialDuration] = useState("7");
+  const [trialLoading, setTrialLoading] = useState(false);
   const { toast } = useToast();
 
   const getAuthHeaders = async () => {
@@ -26,6 +35,11 @@ export default function ActionCenter({ users }: ActionCenterProps) {
       "Content-Type": "application/json",
     };
   };
+
+  // Stats
+  const totalUsers = users.length;
+  const paidUsers = users.filter((u) => u.isPaid).length;
+  const freeUsers = totalUsers - paidUsers;
 
   // Filter users
   const filteredUsers = users.filter((u) => {
@@ -97,36 +111,170 @@ export default function ActionCenter({ users }: ActionCenterProps) {
     }
   };
 
+  // Send nudge campaign
+  const handleSendNudgeCampaign = async () => {
+    setNudgeSending(true);
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-daily-nudge`,
+        { method: "POST", headers, body: JSON.stringify({ segment: nudgeSegment }) }
+      );
+      if (!response.ok) throw new Error("Failed to trigger nudge campaign");
+      const data = await response.json();
+      toast({
+        title: "Nudge Campaign Sent",
+        description: `Processed ${data.processed || 0} users. ${data.sent || 0} emails sent.`,
+      });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setNudgeSending(false);
+    }
+  };
+
+  // Grant trial extension by email
+  const handleGrantTrialExtension = async () => {
+    if (!trialEmail.trim()) return;
+    setTrialLoading(true);
+    try {
+      const headers = await getAuthHeaders();
+      const targetUser = users.find((u) => u.email.toLowerCase() === trialEmail.toLowerCase().trim());
+      if (!targetUser) throw new Error("User not found. Check the email address.");
+
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + parseInt(trialDuration));
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users?action=grant_access`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            targetUserId: targetUser.id,
+            expiresAt: expiresAt.toISOString(),
+          }),
+        }
+      );
+      if (!response.ok) throw new Error("Failed to grant trial extension");
+      toast({
+        title: "Trial Extended",
+        description: `${trialEmail} now has access for ${trialDuration} days.`,
+      });
+      setTrialEmail("");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setTrialLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Quick Stats Bar */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold">{totalUsers}</p>
+            <p className="text-xs text-muted-foreground">Total Users</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold">{freeUsers}</p>
+            <p className="text-xs text-muted-foreground">Free</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-emerald-600">{paidUsers}</p>
+            <p className="text-xs text-muted-foreground">Paid</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Action Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Export */}
         <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={handleExportCSV}>
-          <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+          <CardContent className="p-5 flex flex-col items-center gap-2 text-center">
             <Download className="h-6 w-6 text-primary" />
             <span className="text-sm font-medium">Export Users</span>
-            <span className="text-xs text-muted-foreground">CSV download</span>
+            <span className="text-xs text-muted-foreground">{filteredUsers.length} users as CSV</span>
           </CardContent>
         </Card>
-        <Card className="opacity-60">
-          <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-            <Send className="h-6 w-6 text-muted-foreground" />
-            <span className="text-sm font-medium">Send Campaign</span>
-            <span className="text-xs text-muted-foreground">Coming soon</span>
+
+        {/* Send Nudge Campaign */}
+        <Card>
+          <CardContent className="p-5 space-y-3">
+            <div className="flex flex-col items-center gap-2 text-center">
+              <Send className="h-6 w-6 text-primary" />
+              <span className="text-sm font-medium">Send Nudge Campaign</span>
+            </div>
+            <Select value={nudgeSegment} onValueChange={setNudgeSegment}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all_free">All Free Users</SelectItem>
+                <SelectItem value="all">All Users</SelectItem>
+              </SelectContent>
+            </Select>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" className="w-full" disabled={nudgeSending}>
+                  <Mail className="h-3.5 w-3.5 mr-1.5" />
+                  {nudgeSending ? "Sending..." : "Send Now"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Send Nudge Campaign?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will trigger nudge emails to the "{nudgeSegment}" segment. Duplicates are prevented automatically.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleSendNudgeCampaign}>Send</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
-        <Card className="opacity-60">
-          <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-            <Tag className="h-6 w-6 text-muted-foreground" />
-            <span className="text-sm font-medium">Tag Users</span>
-            <span className="text-xs text-muted-foreground">Coming soon</span>
-          </CardContent>
-        </Card>
-        <Card className="opacity-60">
-          <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-            <Gift className="h-6 w-6 text-muted-foreground" />
-            <span className="text-sm font-medium">Trial Extension</span>
-            <span className="text-xs text-muted-foreground">Coming soon</span>
+
+        {/* Trial Extension */}
+        <Card>
+          <CardContent className="p-5 space-y-3">
+            <div className="flex flex-col items-center gap-2 text-center">
+              <Gift className="h-6 w-6 text-primary" />
+              <span className="text-sm font-medium">Grant Trial Extension</span>
+            </div>
+            <Input
+              placeholder="user@email.com"
+              value={trialEmail}
+              onChange={(e) => setTrialEmail(e.target.value)}
+              className="h-8 text-xs"
+            />
+            <Select value={trialDuration} onValueChange={setTrialDuration}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7 days</SelectItem>
+                <SelectItem value="14">14 days</SelectItem>
+                <SelectItem value="30">30 days</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              className="w-full"
+              disabled={trialLoading || !trialEmail.trim()}
+              onClick={handleGrantTrialExtension}
+            >
+              <Clock className="h-3.5 w-3.5 mr-1.5" />
+              {trialLoading ? "Granting..." : "Extend"}
+            </Button>
           </CardContent>
         </Card>
       </div>

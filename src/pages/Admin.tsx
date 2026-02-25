@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Shield, RefreshCw, BarChart3, Route, Mail,
-  Megaphone, User, AlertTriangle, Radar, DollarSign, HeartPulse, Zap
+  Megaphone, User, AlertTriangle, Radar, DollarSign, HeartPulse, Zap, Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ import UserManagement from "@/components/admin/UserManagement";
 import NudgesTab from "@/components/admin/NudgesTab";
 import OpenClawTab from "@/components/admin/OpenClawTab";
 import ActionCenter from "@/components/admin/ActionCenter";
+import AIInsightsPanel from "@/components/admin/AIInsightsPanel";
 
 export default function Admin() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -203,6 +204,10 @@ export default function Admin() {
               <DollarSign className="h-4 w-4" />
               <span className="hidden sm:inline">Revenue</span>
             </TabsTrigger>
+            <TabsTrigger value="insights" className="flex items-center gap-1">
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">Insights</span>
+            </TabsTrigger>
             <TabsTrigger value="health" className="flex items-center gap-1">
               <AlertTriangle className="h-4 w-4" />
               <span className="hidden sm:inline">Health</span>
@@ -258,6 +263,10 @@ export default function Admin() {
 
           <TabsContent value="revenue">
             <RevenueIntelligence />
+          </TabsContent>
+
+          <TabsContent value="insights">
+            <AIInsightsPanel />
           </TabsContent>
 
           <TabsContent value="health">

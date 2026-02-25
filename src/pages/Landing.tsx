@@ -65,11 +65,11 @@ export default function Landing() {
             <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-3 text-balance">
               Five guides. One calm place to reset.
               <br />
-              <span className="text-accent">The Dashboard.</span>
+              <span className="text-accent">Try the full experience free for 7 days.</span>
             </h1>
 
             <p className="text-muted-foreground text-sm leading-relaxed text-balance max-w-xs mx-auto mb-4">
-              Check in daily, focus on what's controllable, and stack quiet proof that you can trust yourself again.
+              Check in daily, focus on what's controllable, and stack quiet proof that you can trust yourself again. Full access. No credit card.
             </p>
           </motion.div>
 
@@ -109,7 +109,7 @@ export default function Landing() {
           >
             <Link to={quickStartEnabled ? "/quick-start" : "/auth?mode=signup"} onClick={() => trackEvent("cta", "cta_click", { cta_label: "Start with a 7-Day Snapshot", position: "hero" })}>
               <Button size="lg" className="w-full h-14 text-base font-medium group">
-                Start with a 7-Day Snapshot
+                Start your free 7-Day Snapshot
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
@@ -136,13 +136,13 @@ export default function Landing() {
           <div className="max-w-md mx-auto text-center space-y-4">
             <div className="space-y-2">
               <h3 className="font-display text-lg font-semibold text-foreground">Try one Snapshot.</h3>
-              <p className="text-sm text-muted-foreground">See what changes.</p>
+              <p className="text-sm text-muted-foreground">Full access. No credit card. See what changes in a week.</p>
             </div>
 
             <div className="space-y-3">
-              <Link to={quickStartEnabled ? "/quick-start" : "/auth?mode=signup"} onClick={() => trackEvent("cta", "cta_click", { cta_label: "Start free", position: "bottom" })}>
+              <Link to={quickStartEnabled ? "/quick-start" : "/auth?mode=signup"} onClick={() => trackEvent("cta", "cta_click", { cta_label: "Start your free 7-Day Snapshot", position: "bottom" })}>
                 <Button size="lg" className="w-full h-12 text-base font-medium group">
-                  Start free
+                  Start your free 7-Day Snapshot
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>

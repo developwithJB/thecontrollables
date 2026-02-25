@@ -19,7 +19,7 @@ const steps = [
   {
     icon: Camera,
     title: "Take a Snapshot",
-    description: "Each week is a Snapshot. Seven days. One theme. No perfection required.",
+    description: "Each week is a Snapshot. Seven days. One theme. Your first Snapshot is fully unlocked — all features, all guides.",
     color: "text-wellness",
     bgColor: "bg-wellness/10",
   },

@@ -38,16 +38,24 @@ const coreFeatures = [
     description: "Make small promises. Keep them. Watch your self-trust rebuild one kept commitment at a time.",
   },
   {
+    icon: Sparkles,
+    title: "7-Day Free Trial",
+    description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps.",
+    trialBadge: true,
+  },
+  {
     icon: History,
     title: "Experience History",
     description: "Your weeks stack into quiet proof. Patterns emerge. The Dashboard remembers — even when you don't.",
     premium: true,
+    trialAccess: true,
   },
   {
     icon: MessageCircle,
     title: "The Controllables Guides",
     description: "Five focused voices — Awareness, Perspective, Habit, Wellness, Environment — trained on behavior change principles. Not a chatbot. A thinking partner.",
     premium: true,
+    trialAccess: true,
   },
   {
     icon: Sparkles,
@@ -98,7 +106,17 @@ export function FeatureGrid() {
                   <h3 className="font-display font-medium text-sm text-foreground">
                     {feature.title}
                   </h3>
-                  {feature.premium && (
+                  {(feature as any).trialBadge && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/10 text-accent font-medium">
+                      Free
+                    </span>
+                  )}
+                  {(feature as any).trialAccess && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/10 text-accent font-medium">
+                      Free during trial
+                    </span>
+                  )}
+                  {feature.premium && !(feature as any).trialAccess && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
                       Premium
                     </span>
