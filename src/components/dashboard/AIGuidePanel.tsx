@@ -23,6 +23,7 @@ interface AIGuidePanelProps {
   currentBuild?: UserBuildCurrent | null;
   onXpEarned?: () => void;
   isPaid?: boolean;
+  isTrialing?: boolean; // Whether user is in active free trial
   onUpgrade?: () => void;
   isCheckingOut?: boolean;
   hasActiveSnapshot?: boolean; // Whether user has an active 7-day snapshot
@@ -160,14 +161,15 @@ const detectGuideFromMessage = (message: string): GuideType => {
 };
 
 const DAILY_MESSAGE_LIMIT = 25;
-const FREE_PREVIEW_LIMIT = 1; // Free users get 1 message to try
+const FREE_TRIAL_LIMIT = 5; // Free users during trial get 5 messages/day
+const FREE_PREVIEW_LIMIT = 1; // Free users without trial get 1 message to try
 
 // Export handle type for parent components to use
 export interface AIGuidePanelHandle {
   open: () => void;
 }
 
-export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild, onXpEarned, isPaid = true, onUpgrade, isCheckingOut = false, hasActiveSnapshot = false, onMessageSent }, ref) {
+export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(function AIGuidePanel({ activeQuest, totalXp, integrityScore, currentBuild, onXpEarned, isPaid = true, isTrialing = false, onUpgrade, isCheckingOut = false, hasActiveSnapshot = false, onMessageSent }, ref) {
   const [isExpanded, setIsExpanded] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -191,9 +193,10 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
   const [isLoading, setIsLoading] = useState(false);
   const [completedActionsCount, setCompletedActionsCount] = useState(0);
   const [completedActionTexts, setCompletedActionTexts] = useState<Set<string>>(new Set());
-  const [remainingMessages, setRemainingMessages] = useState<number>(DAILY_MESSAGE_LIMIT);
+  const [remainingMessages, setRemainingMessages] = useState<number>(isPaid ? DAILY_MESSAGE_LIMIT : (isTrialing ? FREE_TRIAL_LIMIT : FREE_PREVIEW_LIMIT));
   const [limitReached, setLimitReached] = useState(false);
   const [freePreviewUsed, setFreePreviewUsed] = useState(false);
+  const [trialMessagesUsedToday, setTrialMessagesUsedToday] = useState(0);
   
   // One-time intro for AI operators
   const { hasSeenIntro, markAsSeen } = useAIOperatorIntro();
@@ -240,20 +243,31 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
   }, [isSessionLoading, sessionMessages, messages.length, isPaid]);
   
   // Check localStorage for free user's daily preview usage
-  // Free users with active snapshot get 1 free message per day
+  // Trial users get 5 messages/day; non-trial free users get 1
   useEffect(() => {
     if (!isPaid) {
       const today = new Date().toISOString().split('T')[0];
-      const previewKey = `ai_guide_daily_${today}`;
-      const usedDailyMessage = localStorage.getItem(previewKey);
-      if (usedDailyMessage) {
-        setFreePreviewUsed(true);
+      if (isTrialing) {
+        // Trial users: track count from localStorage
+        const trialKey = `ai_guide_trial_count_${today}`;
+        const count = parseInt(localStorage.getItem(trialKey) || '0', 10);
+        setTrialMessagesUsedToday(count);
+        setRemainingMessages(Math.max(0, FREE_TRIAL_LIMIT - count));
+        if (count >= FREE_TRIAL_LIMIT) {
+          setFreePreviewUsed(true);
+          setLimitReached(true);
+        }
       } else {
-        // Reset for new day - allow new message
-        setFreePreviewUsed(false);
+        const previewKey = `ai_guide_daily_${today}`;
+        const usedDailyMessage = localStorage.getItem(previewKey);
+        if (usedDailyMessage) {
+          setFreePreviewUsed(true);
+        } else {
+          setFreePreviewUsed(false);
+        }
       }
     }
-  }, [isPaid]);
+  }, [isPaid, isTrialing]);
 
   // Load completed actions (both count and action texts for deduplication)
   useEffect(() => {
@@ -345,15 +359,23 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
   const sendMessage = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
 
-    // For free users: allow 1 message per day if they have an active snapshot
+    // For free users: handle trial vs non-trial differently
     if (!isPaid) {
-      if (!hasActiveSnapshot) {
-        toast.error("Start your 7-Day Snapshot to unlock daily messages from The Controllables!");
-        return;
-      }
-      if (freePreviewUsed) {
-        toast.error("Daily message used. Come back tomorrow or upgrade for unlimited!");
-        return;
+      if (isTrialing) {
+        // Trial users: check daily limit
+        if (trialMessagesUsedToday >= FREE_TRIAL_LIMIT) {
+          toast.error("Daily message limit reached. Come back tomorrow or upgrade for unlimited!");
+          return;
+        }
+      } else {
+        if (!hasActiveSnapshot) {
+          toast.error("Start your 7-Day Snapshot to unlock daily messages from The Controllables!");
+          return;
+        }
+        if (freePreviewUsed) {
+          toast.error("Daily message used. Come back tomorrow or upgrade for unlimited!");
+          return;
+        }
       }
     }
 
@@ -435,12 +457,26 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
       
       saveSession(updatedMessages, respondingGuide.id);
       
-      // For free users, mark daily message as used after successful message
-      if (!isPaid && hasActiveSnapshot) {
+      // For free users, track daily usage after successful message
+      if (!isPaid) {
         const today = new Date().toISOString().split('T')[0];
-        const previewKey = `ai_guide_daily_${today}`;
-        localStorage.setItem(previewKey, 'true');
-        setFreePreviewUsed(true);
+        if (isTrialing) {
+          // Trial: increment count
+          const trialKey = `ai_guide_trial_count_${today}`;
+          const newCount = trialMessagesUsedToday + 1;
+          localStorage.setItem(trialKey, String(newCount));
+          setTrialMessagesUsedToday(newCount);
+          setRemainingMessages(Math.max(0, FREE_TRIAL_LIMIT - newCount));
+          if (newCount >= FREE_TRIAL_LIMIT) {
+            setLimitReached(true);
+            setFreePreviewUsed(true);
+          }
+        } else if (hasActiveSnapshot) {
+          // Non-trial: mark single daily message used
+          const previewKey = `ai_guide_daily_${today}`;
+          localStorage.setItem(previewKey, 'true');
+          setFreePreviewUsed(true);
+        }
       }
       
       // Notify parent that a message was sent (for Today Actions completion)
@@ -611,8 +647,129 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
             transition={{ duration: 0.3 }}
           >
             <div className="px-5 pb-5 relative">
-              {/* Preview mode for free users - show after they've used their free message */}
-              {!isPaid && freePreviewUsed && (
+              {/* Trial users: full functionality with daily limit counter */}
+              {!isPaid && isTrialing && (
+                <>
+                  {/* Trial banner with remaining count */}
+                  <div className="bg-accent/10 border border-accent/20 rounded-lg p-3 mb-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-accent font-medium flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Free Trial
+                      </p>
+                      <span className="text-xs text-muted-foreground">
+                        {remainingMessages > 0 ? `${remainingMessages} of ${FREE_TRIAL_LIMIT} remaining today` : "Limit reached today"}
+                      </span>
+                    </div>
+                    {/* Soft upsell after 3rd message */}
+                    {trialMessagesUsedToday >= 3 && trialMessagesUsedToday < FREE_TRIAL_LIMIT && (
+                      <p className="text-xs text-muted-foreground mt-1.5">
+                        Enjoying The Controllables? <button onClick={() => onUpgrade?.()} className="text-accent underline">Get unlimited access</button>.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Messages Area */}
+                  {messages.length > 0 && (
+                    <div ref={messagesContainerRef} className="w-full space-y-3 max-h-80 overflow-y-auto mb-4 pr-2">
+                      {messages.map((msg, idx) => {
+                        const messageGuide = msg.role === "assistant" ? getGuideById(msg.controllable) : null;
+                        const action = msg.role === 'assistant' ? getActionFromMessage(msg.content) : null;
+                        const contentWithoutAction = msg.role === 'assistant' && action
+                          ? msg.content.split('→ ACTION:')[0].trim()
+                          : msg.content;
+                        const isActionCompleted = action 
+                          ? (msg.actionCompleted || completedActionTexts.has(action))
+                          : false;
+                        
+                        return (
+                          <div key={idx}>
+                            <div className={`p-3 rounded-xl text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground ml-8" : "bg-muted text-foreground mr-8"}`}>
+                              {msg.role === "assistant" && messageGuide && <span className="mr-2">{messageGuide.emoji}</span>}
+                              {contentWithoutAction}
+                            </div>
+                            {action && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={`mt-2 mr-8 p-3 rounded-xl border ${isActionCompleted ? 'bg-accent/20 border-accent/50' : 'bg-accent/10 border-accent/30'}`}
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <p className="text-xs font-semibold text-accent flex items-center gap-1"><Zap className="w-3 h-3" /> YOUR ACTION</p>
+                                  {!isActionCompleted && <span className="text-xs text-accent/70">+{ACTION_XP} XP</span>}
+                                </div>
+                                <p className="text-sm text-foreground mb-2">{action}</p>
+                                {isActionCompleted ? (
+                                  <div className="flex items-center gap-2 text-accent"><Check className="w-4 h-4" /><span className="text-xs font-medium">Completed</span></div>
+                                ) : (
+                                  <Button size="sm" variant="outline" onClick={() => completeAction(action, idx, msg.controllable || null)} className="h-7 text-xs border-accent/30 text-accent hover:bg-accent/10">
+                                    <Check className="w-3 h-3 mr-1" />Mark Complete
+                                  </Button>
+                                )}
+                              </motion.div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {isLoading && (
+                        <div className="bg-muted text-foreground p-3 rounded-xl mr-8 flex items-center gap-2">
+                          <span>{getLoadingGuide().emoji}</span>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span className="text-sm">Thinking...</span>
+                        </div>
+                      )}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  )}
+
+                  {/* Input row for trial users (unless limit reached) */}
+                  {!limitReached ? (
+                    <>
+                      <div className="flex gap-2">
+                        <Input
+                          ref={inputRef}
+                          placeholder={selectedGuide ? `Ask ${selectedGuide.name}...` : "Ask a Controllable..."}
+                          value={input}
+                          onChange={(e) => setInput(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
+                          className="flex-1"
+                          disabled={isLoading}
+                        />
+                        <Button size="icon" onClick={() => sendMessage(input)} disabled={!input.trim() || isLoading} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                          <Send className="w-4 h-4" />
+                        </Button>
+                        {messages.length > 0 && (
+                          <Button variant="ghost" size="icon" onClick={handleNewConversation} className="shrink-0" title="New conversation">
+                            <RotateCcw className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {/* Quick prompts */}
+                      {messages.length === 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                          {(selectedGuide ? selectedGuide.prompts : GUIDES.flatMap(g => g.prompts.slice(0, 1))).map((prompt) => (
+                            <button key={prompt} onClick={() => sendMessage(prompt)} className="text-xs px-2.5 py-1 rounded-full bg-muted hover:bg-muted/80 text-foreground transition-colors">
+                              {prompt}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center py-4 border-t border-border/50 mt-2">
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Daily trial limit reached. Come back tomorrow or upgrade for unlimited.
+                      </p>
+                      <Button onClick={() => onUpgrade?.()} disabled={isCheckingOut} className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground" data-testid="ai-operators-upgrade-cta">
+                        {isCheckingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                        {isCheckingOut ? "Opening checkout..." : "Unlock Full Access"}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Preview mode for free users (non-trial) - show after they've used their free message */}
+              {!isPaid && !isTrialing && freePreviewUsed && (
                 <div className="flex flex-col" data-testid="ai-operators-locked">
                   {/* Show their full conversation including actions */}
                   {messages.length > 0 && (
@@ -623,62 +780,28 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
                         const contentWithoutAction = msg.role === 'assistant' && action
                           ? msg.content.split('→ ACTION:')[0].trim()
                           : msg.content;
-                        
-                        // Check if action is completed
                         const isActionCompleted = action 
                           ? (msg.actionCompleted || completedActionTexts.has(action))
                           : false;
                         
                         return (
                           <div key={idx}>
-                            <div
-                              className={`p-3 rounded-xl text-sm ${
-                                msg.role === "user"
-                                  ? "bg-primary text-primary-foreground ml-8"
-                                  : "bg-muted text-foreground mr-8"
-                              }`}
-                            >
-                              {msg.role === "assistant" && messageGuide && (
-                                <span className="mr-2">{messageGuide.emoji}</span>
-                              )}
+                            <div className={`p-3 rounded-xl text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground ml-8" : "bg-muted text-foreground mr-8"}`}>
+                              {msg.role === "assistant" && messageGuide && <span className="mr-2">{messageGuide.emoji}</span>}
                               {contentWithoutAction}
                             </div>
-                            
-                            {/* Show action card for free users too */}
                             {action && (
-                              <motion.div
-                                initial={{ opacity: 0, y: -5 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className={`mt-2 mr-8 p-3 rounded-xl border ${
-                                  isActionCompleted 
-                                    ? 'bg-accent/20 border-accent/50' 
-                                    : 'bg-accent/10 border-accent/30'
-                                }`}
-                              >
+                              <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className={`mt-2 mr-8 p-3 rounded-xl border ${isActionCompleted ? 'bg-accent/20 border-accent/50' : 'bg-accent/10 border-accent/30'}`}>
                                 <div className="flex items-center justify-between mb-1">
-                                  <p className="text-xs font-semibold text-accent flex items-center gap-1">
-                                    <Zap className="w-3 h-3" /> YOUR ACTION
-                                  </p>
-                                  {!isActionCompleted && (
-                                    <span className="text-xs text-accent/70">+{ACTION_XP} XP</span>
-                                  )}
+                                  <p className="text-xs font-semibold text-accent flex items-center gap-1"><Zap className="w-3 h-3" /> YOUR ACTION</p>
+                                  {!isActionCompleted && <span className="text-xs text-accent/70">+{ACTION_XP} XP</span>}
                                 </div>
                                 <p className="text-sm text-foreground mb-2">{action}</p>
-                                
                                 {isActionCompleted ? (
-                                  <div className="flex items-center gap-2 text-accent">
-                                    <Check className="w-4 h-4" />
-                                    <span className="text-xs font-medium">Completed</span>
-                                  </div>
+                                  <div className="flex items-center gap-2 text-accent"><Check className="w-4 h-4" /><span className="text-xs font-medium">Completed</span></div>
                                 ) : (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => completeAction(action, idx, msg.controllable || null)}
-                                    className="h-7 text-xs border-accent/30 text-accent hover:bg-accent/10"
-                                  >
-                                    <Check className="w-3 h-3 mr-1" />
-                                    Mark Complete
+                                  <Button size="sm" variant="outline" onClick={() => completeAction(action, idx, msg.controllable || null)} className="h-7 text-xs border-accent/30 text-accent hover:bg-accent/10">
+                                    <Check className="w-3 h-3 mr-1" />Mark Complete
                                   </Button>
                                 )}
                               </motion.div>
@@ -686,40 +809,26 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
                           </div>
                         );
                       })}
-                      {/* Scroll anchor for free users */}
                       <div ref={messagesEndRef} />
                     </div>
                   )}
                   
-                  {/* Upgrade prompt - positioned after the conversation */}
+                  {/* Upgrade prompt */}
                   <div className="text-center py-4 border-t border-border/50 mt-2">
                     <p className="text-sm text-muted-foreground mb-3">
                       Come back tomorrow for another free message, or unlock unlimited access.
                     </p>
-                    
-                    <Button 
-                      onClick={() => onUpgrade?.()}
-                      disabled={isCheckingOut}
-                      className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-                      data-testid="ai-operators-upgrade-cta"
-                    >
-                      {isCheckingOut ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Sparkles className="w-4 h-4" />
-                      )}
+                    <Button onClick={() => onUpgrade?.()} disabled={isCheckingOut} className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground" data-testid="ai-operators-upgrade-cta">
+                      {isCheckingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                       {isCheckingOut ? "Opening checkout..." : "Unlock Full Access"}
                     </Button>
-                    
-                    <p className="text-xs text-muted-foreground mt-3">
-                      Plans from $${getPricing().plus.annual}/yr
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-3">Plans from $${getPricing().plus.annual}/yr</p>
                   </div>
                 </div>
               )}
 
-              {/* Preview mode for free users who haven't used their message yet */}
-              {!isPaid && !freePreviewUsed && (
+              {/* Preview mode for free users (non-trial) who haven't used their message yet */}
+              {!isPaid && !isTrialing && !freePreviewUsed && (
                 <>
                   <div className="bg-accent/10 border border-accent/20 rounded-lg p-3 mb-4">
                     <p className="text-xs text-accent font-medium flex items-center gap-1">

@@ -133,3 +133,30 @@ export const canModifySnapshot = (tier: PlanTier | boolean, hasUsedTrial: boolea
   if (isPaidTier(resolvedTier)) return true;
   return !hasUsedTrial;
 };
+
+/**
+ * Check if user is currently in an active free trial.
+ * True when: free tier, has an active (not completed/expired) session, and within snapshot allowance.
+ */
+export const isInActiveTrial = (
+  tier: PlanTier | boolean,
+  hasActiveSession: boolean,
+  isSessionCompleted: boolean,
+  isSessionExpired: boolean,
+  sessionCount: number,
+): boolean => {
+  const resolvedTier = normalizeTier(tier);
+  if (isPaidTier(resolvedTier)) return false;
+  if (!hasActiveSession) return false;
+  if (isSessionCompleted || isSessionExpired) return false;
+  const allowance = getFreeTrialSnapshotAllowance();
+  if (allowance === null) return true;
+  return sessionCount <= allowance;
+};
+
+/** Daily AI message limits by user state */
+export const AI_DAILY_LIMITS = {
+  trial: 5,      // Free users during active trial
+  paid: 25,      // Paid subscribers
+  postTrial: 0,  // Free users after trial ends
+} as const;

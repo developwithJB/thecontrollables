@@ -944,145 +944,52 @@ export type Database = {
       }
       open_claw_campaigns: {
         Row: {
-          approved_at: string | null
-          approved_by: string | null
-          attribution_updated_at: string | null
-          attributed_paid_conversions: number
-          attributed_revenue_usd: number
-          attributed_signups: number
           audience: string | null
           budget_level: string | null
           channel: string
           created_at: string
-          execution_status: string
-          execution_status_updated_at: string
           generated_by: string
           id: string
           input_params: Json
           is_raw: boolean
-          launched_at: string | null
-          launched_by: string | null
           notes: string | null
           objective: string
           offer: string | null
-          payment_attribution_model: string
-          payment_attribution_notes: string | null
           output_content: Json
-          spend_amount_usd: number
           tone: string | null
           variation_count: number | null
         }
         Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
-          attribution_updated_at?: string | null
-          attributed_paid_conversions?: number
-          attributed_revenue_usd?: number
-          attributed_signups?: number
           audience?: string | null
           budget_level?: string | null
           channel?: string
           created_at?: string
-          execution_status?: string
-          execution_status_updated_at?: string
           generated_by: string
           id?: string
           input_params?: Json
           is_raw?: boolean
-          launched_at?: string | null
-          launched_by?: string | null
           notes?: string | null
           objective?: string
           offer?: string | null
-          payment_attribution_model?: string
-          payment_attribution_notes?: string | null
           output_content?: Json
-          spend_amount_usd?: number
           tone?: string | null
           variation_count?: number | null
         }
         Update: {
-          approved_at?: string | null
-          approved_by?: string | null
-          attribution_updated_at?: string | null
-          attributed_paid_conversions?: number
-          attributed_revenue_usd?: number
-          attributed_signups?: number
           audience?: string | null
           budget_level?: string | null
           channel?: string
           created_at?: string
-          execution_status?: string
-          execution_status_updated_at?: string
           generated_by?: string
           id?: string
           input_params?: Json
           is_raw?: boolean
-          launched_at?: string | null
-          launched_by?: string | null
           notes?: string | null
           objective?: string
           offer?: string | null
-          payment_attribution_model?: string
-          payment_attribution_notes?: string | null
           output_content?: Json
-          spend_amount_usd?: number
           tone?: string | null
           variation_count?: number | null
-        }
-        Relationships: []
-      }
-      open_claw_channel_connections: {
-        Row: {
-          api_account_id: string | null
-          attribution_supported: boolean
-          channel: string
-          connection_status: string
-          created_at: string
-          display_name: string | null
-          health_message: string | null
-          id: string
-          last_checked_at: string | null
-          last_sync_at: string | null
-          metadata: Json
-          payment_attribution_model: string
-          provider: string
-          spend_sync_supported: boolean
-          updated_at: string
-        }
-        Insert: {
-          api_account_id?: string | null
-          attribution_supported?: boolean
-          channel: string
-          connection_status?: string
-          created_at?: string
-          display_name?: string | null
-          health_message?: string | null
-          id?: string
-          last_checked_at?: string | null
-          last_sync_at?: string | null
-          metadata?: Json
-          payment_attribution_model?: string
-          provider?: string
-          spend_sync_supported?: boolean
-          updated_at?: string
-        }
-        Update: {
-          api_account_id?: string | null
-          attribution_supported?: boolean
-          channel?: string
-          connection_status?: string
-          created_at?: string
-          display_name?: string | null
-          health_message?: string | null
-          id?: string
-          last_checked_at?: string | null
-          last_sync_at?: string | null
-          metadata?: Json
-          payment_attribution_model?: string
-          provider?: string
-          spend_sync_supported?: boolean
-          updated_at?: string
         }
         Relationships: []
       }

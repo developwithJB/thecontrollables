@@ -561,7 +561,7 @@ export default function OpenClawTab() {
   }, [hydrateCampaignDrafts]);
 
   const loadChannelConnections = useCallback(async () => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("open_claw_channel_connections")
       .select("*")
       .order("channel", { ascending: true });
@@ -815,7 +815,7 @@ export default function OpenClawTab() {
             : existing?.last_sync_at ?? null,
       };
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("open_claw_channel_connections")
         .upsert(payload, { onConflict: "channel" })
         .select("*")
@@ -1022,7 +1022,7 @@ export default function OpenClawTab() {
                       </div>
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      Budget: {campaign.budget_level || "medium"} · Variants: {campaign.variation_count || 3}
+                      Budget: {campaign.budget_level || "medium"} · Variants: {(campaign as any).variation_count || 3}
                       {` · Spend: ${formatUsd(Number(campaign.spend_amount_usd || 0))}`}
                       {` · Attributed Revenue: ${formatUsd(Number(campaign.attributed_revenue_usd || 0))}`}
                       {campaign.offer ? ` · Offer: ${campaign.offer}` : ""}
