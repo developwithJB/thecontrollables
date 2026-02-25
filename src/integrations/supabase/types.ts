@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_broadcasts: {
+        Row: {
+          body_html: string
+          created_at: string
+          id: string
+          recipient_count: number
+          segment_emails: string[] | null
+          segment_type: string
+          sent_at: string
+          sent_by: string
+          subject: string
+          template_key: string
+        }
+        Insert: {
+          body_html: string
+          created_at?: string
+          id?: string
+          recipient_count?: number
+          segment_emails?: string[] | null
+          segment_type: string
+          sent_at?: string
+          sent_by: string
+          subject: string
+          template_key?: string
+        }
+        Update: {
+          body_html?: string
+          created_at?: string
+          id?: string
+          recipient_count?: number
+          segment_emails?: string[] | null
+          segment_type?: string
+          sent_at?: string
+          sent_by?: string
+          subject?: string
+          template_key?: string
+        }
+        Relationships: []
+      }
       ai_conversations: {
         Row: {
           challenge_day: number | null
