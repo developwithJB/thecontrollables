@@ -1,140 +1,269 @@
 
 
-# Full Free 7-Day Trial + Adaptive Dashboard
+# Admin Dashboard Redesign: Data Command Center
 
-## Current State
+## Overview
 
-Right now, free users are heavily restricted from day one: AI Companions are locked behind a paywall overlay, Experience History is gated, and the free trial only allows 1 snapshot with minimal AI interaction (1 message/day). The dashboard is static -- it shows the same modules regardless of how far the user has progressed.
+Transform the current 9-tab admin panel (1,900 lines in a single file) into a modular, multi-component intelligence system organized around 6 strategic sections. This is a phased build -- each phase delivers standalone value.
 
-Additionally, the AI chat edge function references database columns (`query_count`, `month`, `token_count`) that don't exist in the `ai_usage_logs` table (which has `usage_date` and `message_count`). This means AI usage tracking is currently broken in production.
-
----
-
-## Part 1: Full Free 7-Day Trial with Limited AI
-
-### Philosophy
-Give users the FULL experience during their first 7-day Snapshot -- all modules unlocked, AI Companions accessible, Experience tab functional. The only limit is AI message count (e.g., 5 messages/day during trial vs 25 for paid). After the trial ends, the paywall gates kick in.
-
-### Changes
-
-**A. New entitlement concept: `isInActiveTrial`**
-
-File: `src/lib/entitlements.ts`
-- Add `isInActiveTrial(tier, hasActiveSession, sessionCount)` -- returns `true` when the user is free, has an active (not completed/expired) session, and `sessionCount < allowance`
-- Update `isFeatureLocked` to accept an optional `isTrialing` flag that unlocks features during trial
-
-**B. Update `useEntitlements` hook**
-File: `src/hooks/useEntitlements.ts`
-- Expose `isTrialing` boolean derived from `isInActiveTrial()`
-- The Dashboard already has `activeSession`, `isCompleted`, `isExpired`, and `allSessions` -- wire these into the trial check
-
-**C. Update Dashboard gating logic**
-File: `src/pages/Dashboard.tsx`
-- Replace `isPaid` checks with `isPaid || isTrialing` for:
-  - AI Guide Panel (remove LockedOverlay during trial)
-  - Experience tab components (unlock history view during trial)
-  - Weekly Insight in GreetingBanner
-- Keep post-trial lockdown exactly as-is (SnapshotReviewCard + upgrade prompts)
-
-**D. AI Message Limits for Trial Users**
-File: `src/components/dashboard/AIGuidePanel.tsx`
-- Change `FREE_PREVIEW_LIMIT` from 1 to 5 (5 messages/day during active trial)
-- When trial is over (no active session), revert to 0 messages (fully locked)
-- Add a "X of 5 messages remaining today" counter visible to trial users
-- Show a soft upsell after the 3rd message: "Enjoying The Controllables? Unlimited with Full Access."
-
-**E. Fix AI Usage Tracking (Critical Bug)**
-File: `supabase/functions/ai-chat/index.ts`
-- The edge function references `query_count`, `month`, `token_count` columns that don't exist
-- The actual table has `usage_date` (date) and `message_count` (integer)
-- Rewrite `checkAndUpdateMonthlyUsage` to use the real schema: query by `usage_date` instead of `month`, increment `message_count` instead of `query_count`
-- Remove `updateTokenUsage` function (no `token_count` column exists)
-- Change the limit model from monthly to daily (5/day free trial, 25/day paid) to match the existing `usage_date`-based schema
-
-**F. Database migration: Add `query_count` and `month` columns OR fix edge function**
-- Preferred approach: Fix the edge function to use existing columns (`usage_date`, `message_count`) rather than adding new columns. This avoids schema bloat and matches the original daily-tracking design.
+**Immediate fix**: The build error (`isTrialing` prop missing from `LazyAIGuidePanelWrapper`) will be fixed first.
 
 ---
 
-## Part 2: Payment Gateways and Blockers
+## Architecture Decisions
 
-### Post-Trial Paywall Flow
-When the free 7-day Snapshot completes or expires:
+The current admin is a single 1,900-line file with all UI inline. The redesign will:
 
-**A. Dashboard lockdown (already partially exists)**
-- SnapshotReviewCard already shows -- keep this
-- Today Actions: disable "Start Day" button, show upgrade prompt
-- AI Guide Panel: show LockedOverlay (already works when `isPaid=false` and no trial)
-
-**B. New: Trial Completion Interstitial**
-File: `src/components/dashboard/TrialCompleteCard.tsx` (new)
-- A prominent card shown at the top of the Dashboard after trial ends
-- Shows: snapshot summary (days completed, XP earned, actions taken)
-- Copy: "Your 7-Day Snapshot is complete. Here's what you built."
-- CTA: "Continue Your Journey" (links to checkout)
-- Dismissible but re-appears on each visit until upgraded
-
-**C. Experience Tab Post-Trial**
-- During trial: fully accessible
-- After trial: Snapshot History (Your Story) and Time Cycle remain visible (read-only proof of progress)
-- Certificates, Badges, Momentum Decay: locked behind paywall
-- AI insights: locked
+1. **Extract each section into its own component** under `src/components/admin/`
+2. **Create a new backend endpoint** (`admin-analytics`) dedicated to heavy analytical queries, keeping `admin-users` for user management
+3. **Use Recharts** (already installed) for sparklines and charts
+4. **Leverage existing data tables** -- no new tables needed for Phase 1-2. Phase 3+ may need `admin_experiments` and `user_risk_scores` tables.
 
 ---
 
-## Part 3: Dashboard That Learns and Grows
+## Phase 1: Fix Build Error + Restructure Admin Shell
 
-### Adaptive Dashboard Modules
+### Fix: LazyAIGuidePanelWrapper
+Add `isTrialing?: boolean` to `LazyAIGuidePanelWrapperProps` in `src/components/dashboard/LazyAIGuidePanel.tsx` and pass it through.
 
-**A. Contextual Greeting Messages**
-File: `src/components/dashboard/GreetingBanner.tsx`
-- Replace static greeting with context-aware messages based on user data:
-  - Day 1: "Welcome to your first Snapshot. One day at a time."
-  - Day 3 (after Build assessment): "Your Build shows [archetype]. Here's what that means today."
-  - Day 5+: Reference streak, strongest controllable, or recent pattern
-  - Returning user (day gap): "You've been away X days. Pick up where you left off."
-  - Post-trial: "You completed your Snapshot. Ready for the next chapter?"
-- Use existing data: `currentDay`, `currentBuild`, `streakDays`, `visitCount`, `daysSinceLastAction`
+### Restructure Admin.tsx
+Replace the monolithic file with a clean shell:
+- Keep auth check, header, and tab navigation in `Admin.tsx`
+- Extract each tab into its own component file
 
-**B. Progressive Module Unlocking**
-File: `src/pages/Dashboard.tsx`
-- Day 1-2: Show only Mission + Today Actions + Snapshot Progress (focus on orientation)
-- Day 3+: Reveal Build Overview and XP Momentum (after first assessment)
-- Day 4+: Reveal Time Currency and Integrity Meter
-- Day 5+: Surface The Controllables AI panel more prominently
-- This uses the existing `currentDay` and `completedDaysCount` data -- no new queries needed
+**New component files:**
+- `src/components/admin/ExecutiveOverview.tsx` -- Section 1
+- `src/components/admin/ActivationFunnel.tsx` -- Section 2
+- `src/components/admin/BehavioralIntelligence.tsx` -- Section 3
+- `src/components/admin/RetentionRadar.tsx` -- Section 4
+- `src/components/admin/RevenueIntelligence.tsx` -- Section 5
+- `src/components/admin/ProductHealth.tsx` -- Section 6
+- `src/components/admin/UserManagement.tsx` -- Existing users tab
+- `src/components/admin/ActionCenter.tsx` -- Admin actions hub
 
-**C. Dynamic "Your Growth" Summary**
-File: `src/components/dashboard/GrowthSummaryCard.tsx` (new)
-- A card that appears after Day 3 showing:
-  - "You've earned X XP across Y actions"
-  - "Your strongest controllable: [name]" (from Build scores)
-  - "Streak: X days" 
-  - Comparison to Day 1 if Build assessment was retaken
-- Uses existing `totalXp`, `currentBuild`, `consecutiveStreak` -- no new queries
-
-**D. Smart Nudges Based on Missing Actions**
-File: `src/components/dashboard/TodayActions.tsx`
-- If user hasn't logged time by afternoon: surface Time Currency more prominently
-- If user hasn't made a promise in 2+ days: highlight Integrity Meter
-- If user hasn't talked to The Controllables this session: add a contextual prompt
-- All based on existing data (todayTimeLogged, todayPromiseMade, askGuideCompleted)
+**Tab restructure** (6 primary + 3 utility):
+```text
+[Overview] [Funnel] [Behavior] [Retention] [Revenue] [Health] | [Users] [Actions] [Claw]
+```
 
 ---
 
-## Technical Summary
+## Phase 2: Executive Overview (Section 1)
 
-| File | Change |
-|------|--------|
-| `src/lib/entitlements.ts` | Add `isInActiveTrial()` function |
-| `src/hooks/useEntitlements.ts` | Expose `isTrialing` boolean |
-| `src/pages/Dashboard.tsx` | Wire trial state, progressive module visibility |
-| `src/components/dashboard/AIGuidePanel.tsx` | 5 msg/day trial limit, counter, soft upsell |
-| `src/components/dashboard/GreetingBanner.tsx` | Context-aware greeting messages |
-| `src/components/dashboard/TrialCompleteCard.tsx` | New post-trial summary + CTA |
-| `src/components/dashboard/GrowthSummaryCard.tsx` | New adaptive growth card |
-| `src/components/dashboard/TodayActions.tsx` | Smart nudges for missing actions |
-| `supabase/functions/ai-chat/index.ts` | Fix broken usage tracking (use real schema) |
+### New backend endpoint: `admin-analytics`
+A dedicated edge function optimized for analytical queries with time-range parameters.
 
-No database migrations needed -- all changes use existing tables and columns.
+**Metrics computed server-side:**
+
+| Metric | Source Tables | Computation |
+|--------|-------------|-------------|
+| Total Users | `auth.users` | Count all |
+| New Users (7d/30d) | `auth.users` | Filter by `created_at` |
+| DAU/WAU/MAU | `app_events` | Distinct `user_id` by period |
+| Activation Rate | `user_onboarding` + `auth.users` | `onboarding_step = 'complete'` / total |
+| Snapshot Completion Rate | `reset_sessions` | `status = 'completed'` / total |
+| Avg Weekly Log Entries | `daily_resets` + `time_logs` + `wellness_logs` | Sum per user per week |
+| Paid Conversion Rate | `user_entitlements` / `auth.users` | Entitled / total |
+| Churn Rate | `user_entitlements` | Expired and not renewed in 30d |
+| Revenue MRR | `user_entitlements` | Active paid * price tier |
+| ARPU | MRR / active users | Derived |
+
+**UI for each metric card:**
+- Current value (large number)
+- % change vs previous period (color-coded badge: green up, red down)
+- Health indicator dot (green/yellow/red based on thresholds)
+- Mini sparkline (7 data points using Recharts `<Sparkline>`)
+
+**Time range selector**: 7d / 30d / 90d (default 30d)
+
+---
+
+## Phase 3: Activation Funnel (Section 2)
+
+### Funnel stages (computed from existing data):
+
+```text
+Landing --> Account Created --> Onboarding Completed --> First Log Entry --> 3+ Logs --> Snapshot Completed --> Subscription Purchased
+```
+
+| Stage | Data Source |
+|-------|-----------|
+| Landing | `page_views` where `page_path = '/'` (unique sessions) |
+| Account Created | `auth.users` created in period |
+| Onboarding Completed | `user_onboarding` where `simplified_mode_completed = true` |
+| First Log Entry | `daily_resets` or `completed_actions` (first per user) |
+| 3+ Logs | Users with 3+ `daily_resets` rows |
+| Snapshot Completed | `reset_sessions` where `status = 'completed'` |
+| Subscription | `user_entitlements` created in period |
+
+**Per-stage display:**
+- User count
+- Drop-off % from previous stage
+- Average time between stages (computed from timestamps)
+- Visual funnel bar chart (Recharts horizontal bar)
+
+**Auto-suggestions** (rule-based, not AI):
+- If drop-off > 50% between stages: surface a recommendation card
+- Example rules: "60% drop between Onboarding and First Log -- consider adding a guided first-log experience"
+- Stored as static rule definitions in the component
+
+---
+
+## Phase 4: Behavioral Intelligence (Section 3)
+
+### Controllable Usage Panel
+Query `completed_actions` grouped by `controllable` column:
+- Frequency per controllable (Awareness, Perspective, Habit, Wellness, Environment)
+- Trend over last 4 weeks (line chart)
+- Most/least used controllable
+
+### Power User Detection
+Define power user criteria from existing data:
+- 4+ `daily_resets` per week
+- 2+ `reset_sessions` (snapshots)
+- Has `build_scores` record
+
+Query: Join `daily_resets`, `reset_sessions`, `build_scores` grouped by `user_id`
+
+**Display:**
+- Power user count and % of total
+- List with anonymized IDs and behavior summary
+- Pattern insights (e.g., "Power users average 5.2 logs/week and use AI Chat 3x more")
+
+---
+
+## Phase 5: Retention Radar (Section 4)
+
+### User Risk Scoring (computed at query time, no new table needed)
+
+**Risk tiers based on existing data:**
+
+| Tier | Criteria |
+|------|----------|
+| Healthy | Activity within last 3 days |
+| Slipping | Last activity 4-7 days ago |
+| At Risk | Last activity 8-14 days ago |
+| Dormant | Last activity 15+ days ago |
+
+**Data source**: Last `app_events.created_at` per `user_id`, cross-referenced with `reset_sessions.status` and `email_nudge_logs.status`
+
+**Display:**
+- Risk distribution donut chart
+- Sortable table of at-risk and dormant users
+- Per-user: email, days since last activity, last action type, suggested intervention
+- Action buttons: "Send Nudge", "Offer Trial Extension", "Grant Discount"
+- These actions invoke the existing `admin-users` grant/nudge endpoints
+
+---
+
+## Phase 6: Revenue Intelligence (Section 5)
+
+### Metrics from existing data:
+
+| Metric | Source |
+|--------|--------|
+| Free to Paid conversion rate | `user_entitlements` / `auth.users` |
+| Time to conversion | `auth.users.created_at` vs `user_entitlements.granted_at` |
+| Feature usage before conversion | `app_events` for users who later got entitlements |
+| Revenue by cohort | `user_entitlements` grouped by signup month |
+| Churn rate | Expired `user_entitlements` not renewed |
+
+**Display:**
+- Conversion timeline chart
+- Cohort retention grid (signup month vs months retained)
+- Feature correlation table: "Users who used [feature] before converting"
+- Insight cards (rule-based): "Users who complete 1 Snapshot convert X% more"
+
+---
+
+## Phase 7: Product Health (Section 6)
+
+### Consolidate existing error/pageview tabs into a health dashboard:
+
+- Error rate trend (sparkline from `app_errors` grouped by day)
+- Failed submissions count
+- Device breakdown (from `page_views.user_agent`)
+- Average load time (from `page_views.load_time_ms`)
+- Session duration (from `app_events` timestamps per session)
+- Anomaly flags: auto-detect spikes (> 2x standard deviation from 7-day average)
+
+---
+
+## Phase 8: AI Insight Engine
+
+### Weekly auto-generated insights using Lovable AI
+
+Create a new edge function `admin-insights` that:
+1. Queries aggregated metrics from the last 7 days
+2. Sends a structured prompt to Lovable AI (gemini-2.5-flash) with the data
+3. Returns 3 behavioral insights, 2 retention risks, 2 growth opportunities, 1 experiment recommendation
+4. Results cached in a new `admin_insights` table (requires migration)
+
+**Database migration:**
+```sql
+CREATE TABLE public.admin_insights (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  generated_at timestamptz NOT NULL DEFAULT now(),
+  insights jsonb NOT NULL DEFAULT '[]',
+  data_snapshot jsonb NOT NULL DEFAULT '{}',
+  generated_by uuid REFERENCES auth.users(id)
+);
+ALTER TABLE public.admin_insights ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins only" ON public.admin_insights FOR ALL USING (public.is_admin());
+```
+
+**UI:** A "Weekly Intelligence" card with refresh button and formatted insight list.
+
+---
+
+## Phase 9: Action Center + Role-Based Access
+
+### Action Center tab
+Consolidate all admin actions:
+- Send segmented email (via existing nudge system)
+- Export user cohort (CSV download)
+- Grant/revoke access (existing)
+- Tag user segments (requires new `user_tags` table)
+- Launch experiment flag (leverage existing `featureFlags` system)
+
+### Role-Based Admin Levels
+The `user_roles` table already supports roles via the `app_role` enum. Extend it:
+
+```sql
+ALTER TYPE public.app_role ADD VALUE 'product_admin';
+ALTER TYPE public.app_role ADD VALUE 'marketing_admin';
+ALTER TYPE public.app_role ADD VALUE 'support_admin';
+```
+
+Each admin component checks the user's role and conditionally renders sections:
+- **Super Admin**: All sections
+- **Product Admin**: Overview, Funnel, Behavior, Health
+- **Marketing Admin**: Overview, Funnel, Revenue, Claw
+- **Support Admin**: Users, Retention Radar, Action Center
+
+---
+
+## Implementation Priority
+
+| Priority | Phase | Deliverable | Effort |
+|----------|-------|------------|--------|
+| 1 | Phase 1 | Fix build error + restructure shell | Small |
+| 2 | Phase 2 | Executive Overview with sparklines | Medium |
+| 3 | Phase 3 | Activation Funnel with auto-suggestions | Medium |
+| 4 | Phase 5 | Retention Radar (highest decision-driving value) | Medium |
+| 5 | Phase 4 | Behavioral Intelligence | Medium |
+| 6 | Phase 6 | Revenue Intelligence | Medium |
+| 7 | Phase 7 | Product Health consolidation | Small |
+| 8 | Phase 8 | AI Insight Engine | Large |
+| 9 | Phase 9 | Action Center + RBAC | Large |
+
+---
+
+## Technical Notes
+
+- **No PII exposure**: All user-facing admin displays use email (already exposed) or anonymized IDs
+- **Query performance**: The new `admin-analytics` edge function will batch queries with `Promise.all` and use date-bounded queries with indexes on `created_at`
+- **Recharts**: Already installed -- will use `AreaChart`, `BarChart`, `PieChart`, `ResponsiveContainer` for all visualizations
+- **CSV export**: Client-side generation from loaded data arrays
+- **Dark theme**: Already supported via the app's existing theme system
 
