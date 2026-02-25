@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -65,6 +65,10 @@ serve(async (req) => {
 
     if (resource === "retention_radar") {
       return await handleRetentionRadar(adminClient, corsHeaders);
+    }
+
+    if (resource === "revenue") {
+      return await handleRevenue(adminClient, corsHeaders);
     }
 
     // Executive metrics
@@ -359,5 +363,81 @@ async function handleRetentionRadar(adminClient: any, corsHeaders: any) {
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+}
+
+async function handleRevenue(adminClient: any, corsHeaders: any) {
+  try {
+    const now = new Date();
+    const monthlyPrice = 9.99;
+
+    // Get all users and entitlements
+    const [usersResult, entitlementsResult] = await Promise.all([
+      adminClient.auth.admin.listUsers({ perPage: 1000 }),
+      adminClient.from("user_entitlements").select("user_id, granted_at, expires_at, source"),
+    ]);
+
+    const allUsers = usersResult.data?.users || [];
+    const entitlements = entitlementsResult.data || [];
+
+    // Active paid users
+    const activeEntitlements = entitlements.filter(
+      (e: any) => !e.expires_at || new Date(e.expires_at) > now
+    );
+    const paidUserIds = new Set(activeEntitlements.map((e: any) => e.user_id));
+    const paidUsers = paidUserIds.size;
+    const freeUsers = allUsers.length - paidUsers;
+    const mrr = paidUsers * monthlyPrice;
+
+    // Conversion data: users who have entitlements
+    const userMap = new Map(allUsers.map((u: any) => [u.id, u]));
+    const conversions = entitlements
+      .filter((e: any) => userMap.has(e.user_id))
+      .map((e: any) => {
+        const user = userMap.get(e.user_id)!;
+        const signupDate = new Date(user.created_at);
+        const conversionDate = new Date(e.granted_at);
+        return {
+          user_id: e.user_id,
+          email: user.email || "Unknown",
+          signup_date: user.created_at,
+          conversion_date: e.granted_at,
+          days_to_convert: Math.max(0, Math.floor((conversionDate.getTime() - signupDate.getTime()) / (1000 * 60 * 60 * 24))),
+          source: e.source,
+        };
+      });
+
+    const avgDaysToConvert = conversions.length > 0
+      ? conversions.reduce((sum: number, c: any) => sum + c.days_to_convert, 0) / conversions.length
+      : 0;
+
+    // Cohort analysis: group users by signup month
+    const cohortMap = new Map<string, { total: number; converted: number }>();
+    for (const user of allUsers) {
+      const month = user.created_at.slice(0, 7);
+      if (!cohortMap.has(month)) cohortMap.set(month, { total: 0, converted: 0 });
+      cohortMap.get(month)!.total++;
+      if (paidUserIds.has(user.id)) cohortMap.get(month)!.converted++;
+    }
+
+    const cohorts = Array.from(cohortMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([cohort, data]) => ({
+        cohort,
+        total: data.total,
+        converted: data.converted,
+        rate: data.total > 0 ? (data.converted / data.total) * 100 : 0,
+      }));
+
+    return new Response(
+      JSON.stringify({ conversions, cohorts, freeUsers, paidUsers, avgDaysToConvert, mrr }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error: any) {
+    console.error("Revenue intelligence error:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
+}
 }
