@@ -942,57 +942,6 @@ export type Database = {
         }
         Relationships: []
       }
-      open_claw_campaigns: {
-        Row: {
-          audience: string | null
-          budget_level: string | null
-          channel: string
-          created_at: string
-          generated_by: string
-          id: string
-          input_params: Json
-          is_raw: boolean
-          notes: string | null
-          objective: string
-          offer: string | null
-          output_content: Json
-          tone: string | null
-          variation_count: number | null
-        }
-        Insert: {
-          audience?: string | null
-          budget_level?: string | null
-          channel?: string
-          created_at?: string
-          generated_by: string
-          id?: string
-          input_params?: Json
-          is_raw?: boolean
-          notes?: string | null
-          objective?: string
-          offer?: string | null
-          output_content?: Json
-          tone?: string | null
-          variation_count?: number | null
-        }
-        Update: {
-          audience?: string | null
-          budget_level?: string | null
-          channel?: string
-          created_at?: string
-          generated_by?: string
-          id?: string
-          input_params?: Json
-          is_raw?: boolean
-          notes?: string | null
-          objective?: string
-          offer?: string | null
-          output_content?: Json
-          tone?: string | null
-          variation_count?: number | null
-        }
-        Relationships: []
-      }
       page_views: {
         Row: {
           created_at: string
