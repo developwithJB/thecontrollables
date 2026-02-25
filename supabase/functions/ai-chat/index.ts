@@ -421,8 +421,6 @@ async function checkAndUpdateDailyUsage(
     dailyLimit,
   };
 }
-  }
-}
 
 // Build the enhanced pattern memory section
 function buildPatternMemory(patternData: PatternData, controllable: string | null): string {
