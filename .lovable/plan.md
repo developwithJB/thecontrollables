@@ -1,75 +1,140 @@
 
 
-# Update README + Landing Page + Fix Build Errors
+# Full Free 7-Day Trial + Adaptive Dashboard
 
-Three areas of work: fix the existing build errors, then update the README and landing page to reflect the latest changes (Daily Alignment emails, re-engagement nudges, nudge deduplication improvements).
+## Current State
 
----
+Right now, free users are heavily restricted from day one: AI Companions are locked behind a paywall overlay, Experience History is gated, and the free trial only allows 1 snapshot with minimal AI interaction (1 message/day). The dashboard is static -- it shows the same modules regardless of how far the user has progressed.
 
-## 1. Fix Build Errors (prerequisite -- these block deployment)
-
-### a. `supabase/functions/check-payment/index.ts` (line 104)
-- Add explicit type annotation to the `.find()` callback parameter: `(sub: Stripe.Subscription) =>` or use a local Stripe type alias to resolve the implicit `any`.
-
-### b. `supabase/functions/create-checkout/index.ts` (line 73)
-- The `tier` variable is parsed from user input (line 34: `const tier = body.tier ?? "pro"`) and is typed as `any`. Cast it to `PlanTier` before indexing: `const priceId = STRIPE_PRICE_IDS[tier as PlanTier];`
-
-### c. `src/lib/featureFlags.ts` (lines 243, 247, 251, 255)
-- The `for...of` loop over `FEATURE_FLAG_KEYS` widens `key` to `FeatureFlagKey`, which makes `resolved[key]` resolve to a union type that TypeScript narrows to `never` on assignment. Fix by casting the assignment: `(resolved as Record<FeatureFlagKey, FeatureFlags[FeatureFlagKey]>)[key] = normalizeFlagValue(...)` or use a helper function that preserves the generic relationship.
+Additionally, the AI chat edge function references database columns (`query_count`, `month`, `token_count`) that don't exist in the `ai_usage_logs` table (which has `usage_date` and `message_count`). This means AI usage tracking is currently broken in production.
 
 ---
 
-## 2. Update README.md
+## Part 1: Full Free 7-Day Trial with Limited AI
 
-Bump version from **1.4.0 to 1.4.1** in both `README.md` and `src/lib/version.ts`.
+### Philosophy
+Give users the FULL experience during their first 7-day Snapshot -- all modules unlocked, AI Companions accessible, Experience tab functional. The only limit is AI message count (e.g., 5 messages/day during trial vs 25 for paid). After the trial ends, the paywall gates kick in.
 
-Add/update these sections to reflect recent changes:
+### Changes
 
-### Daily Alignment (new feature highlight)
-Under the existing "Daily Rituals" or as a new dedicated section:
-- Personalized scripture, real-time growth reflection, and one clear action delivered each morning via email
-- Built from the user's actual Snapshot data, Build scores, and check-in history
-- Premium feature, opt-in via Dashboard spotlight or Profile settings
+**A. New entitlement concept: `isInActiveTrial`**
 
-### Email Nudge System (new section under Technical Reference)
-- Daily nudge emails sent at user's local 7 AM
-- Atomic deduplication via unique constraint on `(user_id, nudge_date)`
-- Suppressed nudges marked as "skipped" (not left in "pending" limbo)
-- Re-engagement emails for users between Snapshots ("Start your next Snapshot")
-- Logged in `email_nudge_logs` table with statuses: pending, sent, skipped, failed
+File: `src/lib/entitlements.ts`
+- Add `isInActiveTrial(tier, hasActiveSession, sessionCount)` -- returns `true` when the user is free, has an active (not completed/expired) session, and `sessionCount < allowance`
+- Update `isFeatureLocked` to accept an optional `isTrialing` flag that unlocks features during trial
 
-### Welcome Back + Cache Fix
-- Note that session transitions now properly refresh the dashboard (no more "stuck on yesterday" after starting a new Snapshot)
+**B. Update `useEntitlements` hook**
+File: `src/hooks/useEntitlements.ts`
+- Expose `isTrialing` boolean derived from `isInActiveTrial()`
+- The Dashboard already has `activeSession`, `isCompleted`, `isExpired`, and `allSessions` -- wire these into the trial check
 
-### Update Technical Reference tables
-- Add `email_nudge_logs` to the Key Data Tables list
-- Update `send-daily-nudge` description to include re-engagement nudges
+**C. Update Dashboard gating logic**
+File: `src/pages/Dashboard.tsx`
+- Replace `isPaid` checks with `isPaid || isTrialing` for:
+  - AI Guide Panel (remove LockedOverlay during trial)
+  - Experience tab components (unlock history view during trial)
+  - Weekly Insight in GreetingBanner
+- Keep post-trial lockdown exactly as-is (SnapshotReviewCard + upgrade prompts)
+
+**D. AI Message Limits for Trial Users**
+File: `src/components/dashboard/AIGuidePanel.tsx`
+- Change `FREE_PREVIEW_LIMIT` from 1 to 5 (5 messages/day during active trial)
+- When trial is over (no active session), revert to 0 messages (fully locked)
+- Add a "X of 5 messages remaining today" counter visible to trial users
+- Show a soft upsell after the 3rd message: "Enjoying The Controllables? Unlimited with Full Access."
+
+**E. Fix AI Usage Tracking (Critical Bug)**
+File: `supabase/functions/ai-chat/index.ts`
+- The edge function references `query_count`, `month`, `token_count` columns that don't exist
+- The actual table has `usage_date` (date) and `message_count` (integer)
+- Rewrite `checkAndUpdateMonthlyUsage` to use the real schema: query by `usage_date` instead of `month`, increment `message_count` instead of `query_count`
+- Remove `updateTokenUsage` function (no `token_count` column exists)
+- Change the limit model from monthly to daily (5/day free trial, 25/day paid) to match the existing `usage_date`-based schema
+
+**F. Database migration: Add `query_count` and `month` columns OR fix edge function**
+- Preferred approach: Fix the edge function to use existing columns (`usage_date`, `message_count`) rather than adding new columns. This avoids schema bloat and matches the original daily-tracking design.
 
 ---
 
-## 3. Update Landing Page
+## Part 2: Payment Gateways and Blockers
 
-### FeatureGrid (`src/components/landing/FeatureGrid.tsx`)
-- Update the "Daily Alignment" feature card description to better match the current implementation: emphasize the personalized morning email with scripture, reflection, and one action -- built from real progress data
-- Consider adding a "Daily Nudge Emails" mention or folding it into the Daily Alignment card since they share the same email infrastructure
+### Post-Trial Paywall Flow
+When the free 7-day Snapshot completes or expires:
 
-### No changes needed to:
-- `HowItWorksSection.tsx` -- still accurate
-- `WhyStartSection.tsx` -- still accurate
-- `PhilosophySection.tsx` -- still accurate
-- `TrustDisclosure.tsx` -- still accurate
-- `Landing.tsx` -- structure is fine
+**A. Dashboard lockdown (already partially exists)**
+- SnapshotReviewCard already shows -- keep this
+- Today Actions: disable "Start Day" button, show upgrade prompt
+- AI Guide Panel: show LockedOverlay (already works when `isPaid=false` and no trial)
+
+**B. New: Trial Completion Interstitial**
+File: `src/components/dashboard/TrialCompleteCard.tsx` (new)
+- A prominent card shown at the top of the Dashboard after trial ends
+- Shows: snapshot summary (days completed, XP earned, actions taken)
+- Copy: "Your 7-Day Snapshot is complete. Here's what you built."
+- CTA: "Continue Your Journey" (links to checkout)
+- Dismissible but re-appears on each visit until upgraded
+
+**C. Experience Tab Post-Trial**
+- During trial: fully accessible
+- After trial: Snapshot History (Your Story) and Time Cycle remain visible (read-only proof of progress)
+- Certificates, Badges, Momentum Decay: locked behind paywall
+- AI insights: locked
 
 ---
 
-## Files Changed
+## Part 3: Dashboard That Learns and Grows
+
+### Adaptive Dashboard Modules
+
+**A. Contextual Greeting Messages**
+File: `src/components/dashboard/GreetingBanner.tsx`
+- Replace static greeting with context-aware messages based on user data:
+  - Day 1: "Welcome to your first Snapshot. One day at a time."
+  - Day 3 (after Build assessment): "Your Build shows [archetype]. Here's what that means today."
+  - Day 5+: Reference streak, strongest controllable, or recent pattern
+  - Returning user (day gap): "You've been away X days. Pick up where you left off."
+  - Post-trial: "You completed your Snapshot. Ready for the next chapter?"
+- Use existing data: `currentDay`, `currentBuild`, `streakDays`, `visitCount`, `daysSinceLastAction`
+
+**B. Progressive Module Unlocking**
+File: `src/pages/Dashboard.tsx`
+- Day 1-2: Show only Mission + Today Actions + Snapshot Progress (focus on orientation)
+- Day 3+: Reveal Build Overview and XP Momentum (after first assessment)
+- Day 4+: Reveal Time Currency and Integrity Meter
+- Day 5+: Surface The Controllables AI panel more prominently
+- This uses the existing `currentDay` and `completedDaysCount` data -- no new queries needed
+
+**C. Dynamic "Your Growth" Summary**
+File: `src/components/dashboard/GrowthSummaryCard.tsx` (new)
+- A card that appears after Day 3 showing:
+  - "You've earned X XP across Y actions"
+  - "Your strongest controllable: [name]" (from Build scores)
+  - "Streak: X days" 
+  - Comparison to Day 1 if Build assessment was retaken
+- Uses existing `totalXp`, `currentBuild`, `consecutiveStreak` -- no new queries
+
+**D. Smart Nudges Based on Missing Actions**
+File: `src/components/dashboard/TodayActions.tsx`
+- If user hasn't logged time by afternoon: surface Time Currency more prominently
+- If user hasn't made a promise in 2+ days: highlight Integrity Meter
+- If user hasn't talked to The Controllables this session: add a contextual prompt
+- All based on existing data (todayTimeLogged, todayPromiseMade, askGuideCompleted)
+
+---
+
+## Technical Summary
 
 | File | Change |
 |------|--------|
-| `supabase/functions/check-payment/index.ts` | Add type annotation to `.find()` callback |
-| `supabase/functions/create-checkout/index.ts` | Cast `tier` to `PlanTier` before indexing |
-| `src/lib/featureFlags.ts` | Fix TS2322 assignment in `getFeatureFlags` loops |
-| `src/lib/version.ts` | Bump to 1.4.1 |
-| `README.md` | Add Daily Alignment, Email Nudge System, update tables, bump version |
-| `src/components/landing/FeatureGrid.tsx` | Update Daily Alignment card copy |
+| `src/lib/entitlements.ts` | Add `isInActiveTrial()` function |
+| `src/hooks/useEntitlements.ts` | Expose `isTrialing` boolean |
+| `src/pages/Dashboard.tsx` | Wire trial state, progressive module visibility |
+| `src/components/dashboard/AIGuidePanel.tsx` | 5 msg/day trial limit, counter, soft upsell |
+| `src/components/dashboard/GreetingBanner.tsx` | Context-aware greeting messages |
+| `src/components/dashboard/TrialCompleteCard.tsx` | New post-trial summary + CTA |
+| `src/components/dashboard/GrowthSummaryCard.tsx` | New adaptive growth card |
+| `src/components/dashboard/TodayActions.tsx` | Smart nudges for missing actions |
+| `supabase/functions/ai-chat/index.ts` | Fix broken usage tracking (use real schema) |
+
+No database migrations needed -- all changes use existing tables and columns.
 
