@@ -165,8 +165,8 @@ serve(async (req) => {
         limit: 10,
       });
 
-      const existingSubscription = subscriptions.data.find((subscription) =>
-        ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status),
+const existingSubscription = subscriptions.data.find((sub: { status: string }) =>
+        ACTIVE_SUBSCRIPTION_STATUSES.has(sub.status),
       );
 
       if (existingSubscription) {

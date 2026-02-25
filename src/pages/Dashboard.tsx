@@ -28,7 +28,7 @@ import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { usePageViewTracking, useAnalytics } from "@/hooks/useAnalytics";
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import { canStartNewSnapshot, hasUsedFreeTrial } from "@/lib/entitlements";
+import { canStartNewSnapshot, hasUsedFreeTrial, isInActiveTrial } from "@/lib/entitlements";
 import { getDefaultCheckoutPlan, onboardingQuickStartEnabled, shouldUseInlinePaywall } from "@/lib/featureFlags";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useDashboardVisitCount } from "@/hooks/useDashboardVisitCount";
@@ -53,6 +53,8 @@ import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
 // DailyCheckinCard removed - functionality merged into TodayActions
 import { TodayActions } from "@/components/dashboard/TodayActions";
 import { SnapshotReviewCard } from "@/components/dashboard/SnapshotReviewCard";
+import { TrialCompleteCard } from "@/components/dashboard/TrialCompleteCard";
+import { GrowthSummaryCard } from "@/components/dashboard/GrowthSummaryCard";
 // JourneyChangesLog removed - consolidated into Activity History
 
 import { GameRulesSection } from "@/components/GameRulesSection";
@@ -418,6 +420,11 @@ export default function Dashboard() {
   const canStartSnapshot = useMemo(() => {
     return canStartNewSnapshot(isPaid, allSessions.length);
   }, [isPaid, allSessions.length]);
+
+  // Is the user currently in an active free trial?
+  const isTrialing = useMemo(() => {
+    return isInActiveTrial(isPaid, !!activeSession, isCompleted, isExpired, allSessions.length);
+  }, [isPaid, activeSession, isCompleted, isExpired, allSessions.length]);
 
   const defaultCheckoutPlan = getDefaultCheckoutPlan();
   const useInlinePaywall = shouldUseInlinePaywall();
@@ -855,6 +862,7 @@ export default function Dashboard() {
                 totalXp={totalXp}
                 streakDays={consecutiveStreak}
                 visitCount={dashboardVisitCount}
+                isPaid={isPaid || isTrialing}
                 missionTitle={activeQuest?.title}
                 onMissionClick={() => {
                   if (activeQuest) {
@@ -1164,6 +1172,7 @@ export default function Dashboard() {
                     currentBuild={currentBuild}
                     onXpEarned={handleOperatorInteraction}
                     isPaid={isPaid}
+                    isTrialing={isTrialing}
                     onUpgrade={() => startCheckout(undefined, "ai_guide_panel")}
                     isCheckingOut={isCheckingOut}
                     hasActiveSnapshot={!!activeSession && !isCompleted}

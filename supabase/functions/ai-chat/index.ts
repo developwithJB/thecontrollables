@@ -14,7 +14,7 @@ import {
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 // Valid controllable types for validation
@@ -27,10 +27,11 @@ const MAX_SESSION_HISTORY_COUNT = 20;
 
 type PlanTier = 'free' | 'plus' | 'pro';
 
-const PLAN_MONTHLY_QUERY_LIMITS: Record<PlanTier, number> = {
-  free: 5,
-  plus: 0,
-  pro: 300,
+// Daily message limits per plan tier
+const PLAN_DAILY_LIMITS: Record<PlanTier, number> = {
+  free: 5,   // Trial users get 5/day during active snapshot
+  plus: 0,   // Plus locked from AI
+  pro: 25,   // Pro gets 25/day
 };
 
 // ============ DEEP CHARACTER PROMPTS ============
@@ -340,19 +341,14 @@ function validateControllable(controllable: unknown): boolean {
   return VALID_CONTROLLABLES.includes(controllable);
 }
 
-function getCurrentMonthKey(): string {
-  return new Date().toISOString().slice(0, 7);
-}
-
-function getMonthStartDate(monthKey: string): string {
-  return `${monthKey}-01`;
+function getTodayDateKey(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function normalizePlanTier(rawTier: unknown): PlanTier {
   if (rawTier === 'plus' || rawTier === 'pro') {
     return rawTier;
   }
-
   return 'free';
 }
 
@@ -376,107 +372,55 @@ async function getPlanTier(
   return normalizePlanTier(profileData?.plan_tier ?? fallbackTier);
 }
 
-// Check and update monthly usage
-async function checkAndUpdateMonthlyUsage(
+// Check and update daily usage using the real ai_usage_logs schema (usage_date + message_count)
+async function checkAndUpdateDailyUsage(
   supabaseClient: any,
   userId: string,
   planTier: PlanTier
-): Promise<{ allowed: boolean; remaining: number; used: number; monthlyLimit: number; month: string; usageLogId: string | null }> {
-  const monthKey = getCurrentMonthKey();
-  const monthStart = getMonthStartDate(monthKey);
-  const monthlyLimit = PLAN_MONTHLY_QUERY_LIMITS[planTier] ?? PLAN_MONTHLY_QUERY_LIMITS.free;
+): Promise<{ allowed: boolean; remaining: number; used: number; dailyLimit: number }> {
+  const today = getTodayDateKey();
+  const dailyLimit = PLAN_DAILY_LIMITS[planTier] ?? PLAN_DAILY_LIMITS.free;
 
-  if (monthlyLimit <= 0) {
-    return {
-      allowed: false,
-      remaining: 0,
-      used: 0,
-      monthlyLimit,
-      month: monthKey,
-      usageLogId: null,
-    };
+  if (dailyLimit <= 0) {
+    return { allowed: false, remaining: 0, used: 0, dailyLimit };
   }
 
   const { data: usageData, error: fetchError } = await supabaseClient
     .from('ai_usage_logs')
-    .select('id, query_count')
+    .select('id, message_count')
     .eq('user_id', userId)
-    .eq('month', monthStart)
+    .eq('usage_date', today)
     .maybeSingle();
 
   if (fetchError) {
-    console.error('Error fetching usage:', fetchError);
-    // Allow on error to not block users
-    return { allowed: true, remaining: monthlyLimit, used: 0, monthlyLimit, month: monthKey, usageLogId: null };
+    console.error('Error fetching daily usage:', fetchError);
+    return { allowed: true, remaining: dailyLimit, used: 0, dailyLimit };
   }
 
-  const currentCount = usageData?.query_count || 0;
+  const currentCount = usageData?.message_count || 0;
 
-  if (currentCount >= monthlyLimit) {
-    return { allowed: false, remaining: 0, used: currentCount, monthlyLimit, month: monthKey, usageLogId: usageData?.id ?? null };
+  if (currentCount >= dailyLimit) {
+    return { allowed: false, remaining: 0, used: currentCount, dailyLimit };
   }
 
-  // Update or insert usage record
   if (usageData) {
     await supabaseClient
       .from('ai_usage_logs')
-      .update({ query_count: currentCount + 1 })
+      .update({ message_count: currentCount + 1, updated_at: new Date().toISOString() })
       .eq('id', usageData.id);
-
-    return {
-      allowed: true,
-      remaining: monthlyLimit - currentCount - 1,
-      used: currentCount + 1,
-      monthlyLimit,
-      month: monthKey,
-      usageLogId: usageData.id,
-    };
   } else {
-    const { data: insertData } = await supabaseClient
-      .from('ai_usage_logs')
-      .insert({ user_id: userId, month: monthStart, query_count: 1, token_count: 0 })
-      .select('id')
-      .single();
-
-    return {
-      allowed: true,
-      remaining: monthlyLimit - 1,
-      used: 1,
-      monthlyLimit,
-      month: monthKey,
-      usageLogId: insertData?.id ?? null,
-    };
-  }
-}
-
-async function updateTokenUsage(
-  supabaseClient: any,
-  usageLogId: string | null,
-  tokenCount: number
-): Promise<void> {
-  if (!usageLogId || tokenCount <= 0) {
-    return;
-  }
-
-  const { error } = await supabaseClient.rpc('increment_ai_token_count', {
-    usage_log_id: usageLogId,
-    token_delta: tokenCount,
-  });
-
-  if (error) {
-    console.error('Error incrementing token count via RPC, falling back to direct update:', error);
-    const { data: existingUsage } = await supabaseClient
-      .from('ai_usage_logs')
-      .select('token_count')
-      .eq('id', usageLogId)
-      .maybeSingle();
-
-    const nextTokenCount = (existingUsage?.token_count ?? 0) + tokenCount;
-
     await supabaseClient
       .from('ai_usage_logs')
-      .update({ token_count: nextTokenCount })
-      .eq('id', usageLogId);
+      .insert({ user_id: userId, usage_date: today, message_count: 1 });
+  }
+
+  return {
+    allowed: true,
+    remaining: dailyLimit - currentCount - 1,
+    used: currentCount + 1,
+    dailyLimit,
+  };
+}
   }
 }
 
@@ -559,7 +503,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ============ MONTHLY QUOTA CHECK ============
+    // ============ DAILY QUOTA CHECK ============
     // Need to use service role for insert/update since RLS uses auth.uid()
     const serviceClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -567,7 +511,7 @@ Deno.serve(async (req) => {
     );
     
     const planTier = await getPlanTier(serviceClient, userId, userData.user.user_metadata?.plan_tier);
-    const usageResult = await checkAndUpdateMonthlyUsage(serviceClient, userId, planTier);
+    const usageResult = await checkAndUpdateDailyUsage(serviceClient, userId, planTier);
     
     if (!usageResult.allowed) {
       const isPlusLocked = planTier === 'plus';
@@ -575,14 +519,13 @@ Deno.serve(async (req) => {
         JSON.stringify({ 
           error: isPlusLocked
             ? 'AI guide access is locked on Plus. Upgrade to Pro to continue.'
-            : `Monthly AI limit reached. You have used ${usageResult.monthlyLimit} of ${usageResult.monthlyLimit} this month.`,
+            : `Daily AI limit reached. You have used ${usageResult.dailyLimit} of ${usageResult.dailyLimit} messages today.`,
           limitReached: !isPlusLocked,
           aiLocked: isPlusLocked,
           remaining: 0,
           used: usageResult.used,
-          month: usageResult.month,
           planTier,
-          monthlyLimit: usageResult.monthlyLimit
+          dailyLimit: usageResult.dailyLimit
         }),
         { status: isPlusLocked ? 403 : 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -756,9 +699,6 @@ Guide them through this specific task. Reference their Snapshot progress.`;
 
     const data = await response.json();
     let assistantMessage = data.choices?.[0]?.message?.content || 'I apologize, I could not generate a response.';
-    const totalTokensUsed = data?.usage?.total_tokens ?? 0;
-
-    await updateTokenUsage(serviceClient, usageResult.usageLogId, totalTokensUsed);
 
     // Ensure response ends with an action if it doesn't already
     if (!assistantMessage.includes('→ ACTION:') && !assistantMessage.includes('ACTION:')) {
@@ -770,9 +710,8 @@ Guide them through this specific task. Reference their Snapshot progress.`;
         message: assistantMessage,
         remaining: usageResult.remaining,
         used: usageResult.used,
-        month: usageResult.month,
         planTier,
-        monthlyLimit: usageResult.monthlyLimit
+        dailyLimit: usageResult.dailyLimit
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
