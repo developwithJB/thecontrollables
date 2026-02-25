@@ -1,0 +1,363 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Verify admin
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user } } = await userClient.auth.getUser();
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Check admin role
+    const { data: roleData } = await adminClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: "Not authorized", isAdmin: false }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const url = new URL(req.url);
+    const resource = url.searchParams.get("resource") || "executive";
+    const period = url.searchParams.get("period") || "30d";
+
+    const periodDays = period === "7d" ? 7 : period === "90d" ? 90 : 30;
+    const now = new Date();
+    const periodStart = new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000);
+    const prevPeriodStart = new Date(periodStart.getTime() - periodDays * 24 * 60 * 60 * 1000);
+
+    if (resource === "retention_radar") {
+      return await handleRetentionRadar(adminClient, corsHeaders);
+    }
+
+    // Executive metrics
+    const [
+      totalUsersResult,
+      newUsersResult,
+      prevNewUsersResult,
+      activeUsersResult,
+      prevActiveUsersResult,
+      dauResult,
+      wauResult,
+      mauResult,
+      onboardingResult,
+      snapshotsResult,
+      completedSnapshotsResult,
+      entitlementsResult,
+    ] = await Promise.all([
+      // Total users
+      adminClient.auth.admin.listUsers({ perPage: 1000 }),
+      // New users in period
+      adminClient.auth.admin.listUsers({ perPage: 1000 }),
+      // Prev period users (for comparison)
+      adminClient.auth.admin.listUsers({ perPage: 1000 }),
+      // Active users (distinct in app_events)
+      adminClient.from("app_events").select("user_id").gte("created_at", periodStart.toISOString()).not("user_id", "is", null),
+      // Prev period active
+      adminClient.from("app_events").select("user_id").gte("created_at", prevPeriodStart.toISOString()).lt("created_at", periodStart.toISOString()).not("user_id", "is", null),
+      // DAU (last 1 day)
+      adminClient.from("app_events").select("user_id").gte("created_at", new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString()).not("user_id", "is", null),
+      // WAU (last 7 days)
+      adminClient.from("app_events").select("user_id").gte("created_at", new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()).not("user_id", "is", null),
+      // MAU (last 30 days)
+      adminClient.from("app_events").select("user_id").gte("created_at", new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()).not("user_id", "is", null),
+      // Onboarding completion
+      adminClient.from("user_onboarding").select("user_id, simplified_mode_completed"),
+      // Total snapshots
+      adminClient.from("reset_sessions").select("id, status, user_id"),
+      // Completed snapshots
+      adminClient.from("reset_sessions").select("id").eq("status", "completed"),
+      // Entitlements
+      adminClient.from("user_entitlements").select("user_id, granted_at, expires_at, source"),
+    ]);
+
+    const allUsers = totalUsersResult.data?.users || [];
+    const totalUsers = allUsers.length;
+
+    const newUsersInPeriod = allUsers.filter(
+      (u) => new Date(u.created_at) >= periodStart
+    ).length;
+    const prevNewUsers = allUsers.filter(
+      (u) => new Date(u.created_at) >= prevPeriodStart && new Date(u.created_at) < periodStart
+    ).length;
+
+    // Distinct active users
+    const distinctActive = new Set((activeUsersResult.data || []).map((e: any) => e.user_id)).size;
+    const prevDistinctActive = new Set((prevActiveUsersResult.data || []).map((e: any) => e.user_id)).size;
+    const dau = new Set((dauResult.data || []).map((e: any) => e.user_id)).size;
+    const wau = new Set((wauResult.data || []).map((e: any) => e.user_id)).size;
+    const mau = new Set((mauResult.data || []).map((e: any) => e.user_id)).size;
+
+    // Activation rate
+    const onboardingData = onboardingResult.data || [];
+    const completedOnboarding = onboardingData.filter((o: any) => o.simplified_mode_completed).length;
+    const activationRate = totalUsers > 0 ? (completedOnboarding / totalUsers) * 100 : 0;
+
+    // Snapshot completion
+    const allSnapshots = snapshotsResult.data || [];
+    const completedSnapshots = completedSnapshotsResult.data || [];
+    const snapshotCompletionRate = allSnapshots.length > 0
+      ? (completedSnapshots.length / allSnapshots.length) * 100
+      : 0;
+
+    // Paid conversion
+    const entitlements = entitlementsResult.data || [];
+    const activeEntitlements = entitlements.filter(
+      (e: any) => !e.expires_at || new Date(e.expires_at) > now
+    );
+    const paidUsers = new Set(activeEntitlements.map((e: any) => e.user_id)).size;
+    const paidConversionRate = totalUsers > 0 ? (paidUsers / totalUsers) * 100 : 0;
+
+    // MRR estimate (simplified: count active paid * assumed $9.99/month)
+    const monthlyPrice = 9.99;
+    const mrr = paidUsers * monthlyPrice;
+    const arpu = totalUsers > 0 ? mrr / totalUsers : 0;
+
+    // Churn: expired in last 30d and not renewed
+    const recentExpired = entitlements.filter(
+      (e: any) => e.expires_at && new Date(e.expires_at) < now && new Date(e.expires_at) >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    );
+    const renewedUserIds = new Set(activeEntitlements.map((e: any) => e.user_id));
+    const churned = recentExpired.filter((e: any) => !renewedUserIds.has(e.user_id)).length;
+    const churnRate = paidUsers + churned > 0 ? (churned / (paidUsers + churned)) * 100 : 0;
+
+    // Build sparkline trends (7 data points)
+    const trendPoints = 7;
+    const bucketSize = Math.max(1, Math.floor(periodDays / trendPoints));
+    const newUserTrend: number[] = [];
+    const activeUserTrend: number[] = [];
+    
+    for (let i = 0; i < trendPoints; i++) {
+      const bucketStart = new Date(periodStart.getTime() + i * bucketSize * 24 * 60 * 60 * 1000);
+      const bucketEnd = new Date(bucketStart.getTime() + bucketSize * 24 * 60 * 60 * 1000);
+      
+      newUserTrend.push(
+        allUsers.filter((u) => {
+          const d = new Date(u.created_at);
+          return d >= bucketStart && d < bucketEnd;
+        }).length
+      );
+
+      activeUserTrend.push(
+        new Set(
+          (activeUsersResult.data || [])
+            .filter((e: any) => {
+              const d = new Date(e.created_at);
+              return d >= bucketStart && d < bucketEnd;
+            })
+            .map((e: any) => e.user_id)
+        ).size
+      );
+    }
+
+    const calcChange = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous) * 100;
+    };
+
+    const getHealth = (val: number, good: number, warn: number): "healthy" | "warning" | "critical" => {
+      if (val >= good) return "healthy";
+      if (val >= warn) return "warning";
+      return "critical";
+    };
+
+    const metrics = {
+      totalUsers: {
+        label: "Total Users",
+        value: totalUsers,
+        changePercent: calcChange(newUsersInPeriod, prevNewUsers),
+        trend: newUserTrend,
+        healthStatus: getHealth(totalUsers, 10, 5),
+      },
+      newUsers7d: {
+        label: `New Users (${period})`,
+        value: newUsersInPeriod,
+        changePercent: calcChange(newUsersInPeriod, prevNewUsers),
+        trend: newUserTrend,
+        healthStatus: getHealth(newUsersInPeriod, 3, 1),
+      },
+      newUsers30d: {
+        label: "New Users (30d)",
+        value: allUsers.filter((u) => new Date(u.created_at) >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)).length,
+        trend: newUserTrend,
+      },
+      dau: {
+        label: "DAU",
+        value: dau,
+        trend: activeUserTrend,
+        healthStatus: getHealth(dau, 5, 2),
+      },
+      wau: {
+        label: "WAU",
+        value: wau,
+        trend: activeUserTrend,
+        changePercent: calcChange(distinctActive, prevDistinctActive),
+        healthStatus: getHealth(wau, 10, 5),
+      },
+      mau: {
+        label: "MAU",
+        value: mau,
+        trend: activeUserTrend,
+        healthStatus: getHealth(mau, 20, 10),
+      },
+      activationRate: {
+        label: "Activation Rate",
+        value: activationRate,
+        format: "percent" as const,
+        healthStatus: getHealth(activationRate, 50, 25),
+      },
+      snapshotCompletionRate: {
+        label: "Snapshot Completion",
+        value: snapshotCompletionRate,
+        format: "percent" as const,
+        healthStatus: getHealth(snapshotCompletionRate, 40, 20),
+      },
+      paidConversionRate: {
+        label: "Paid Conversion",
+        value: paidConversionRate,
+        format: "percent" as const,
+        healthStatus: getHealth(paidConversionRate, 10, 3),
+      },
+      churnRate: {
+        label: "Churn Rate",
+        value: churnRate,
+        format: "percent" as const,
+        healthStatus: churnRate <= 5 ? "healthy" as const : churnRate <= 15 ? "warning" as const : "critical" as const,
+      },
+      mrr: {
+        label: "MRR",
+        value: mrr,
+        format: "currency" as const,
+        healthStatus: getHealth(mrr, 100, 20),
+      },
+      arpu: {
+        label: "ARPU",
+        value: arpu,
+        format: "currency" as const,
+      },
+    };
+
+    return new Response(
+      JSON.stringify({ metrics, period }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error: any) {
+    console.error("admin-analytics error:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
+
+async function handleRetentionRadar(adminClient: any, corsHeaders: any) {
+  try {
+    const now = new Date();
+
+    // Get all users with their last activity
+    const { data: allUsers } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+    const users = allUsers?.users || [];
+
+    // Get last event per user
+    const { data: lastEvents } = await adminClient
+      .from("app_events")
+      .select("user_id, created_at, event_name")
+      .not("user_id", "is", null)
+      .order("created_at", { ascending: false });
+
+    // Get active sessions
+    const { data: activeSessions } = await adminClient
+      .from("reset_sessions")
+      .select("user_id")
+      .eq("status", "active");
+
+    const activeSessionUserIds = new Set((activeSessions || []).map((s: any) => s.user_id));
+
+    // Build last activity map
+    const lastActivityMap = new Map<string, { created_at: string; event_name: string }>();
+    for (const event of lastEvents || []) {
+      if (!lastActivityMap.has(event.user_id)) {
+        lastActivityMap.set(event.user_id, { created_at: event.created_at, event_name: event.event_name });
+      }
+    }
+
+    const riskUsers = users.map((u: any) => {
+      const lastActivity = lastActivityMap.get(u.id);
+      const lastDate = lastActivity ? new Date(lastActivity.created_at) : new Date(u.created_at);
+      const daysInactive = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      let risk_tier: string;
+      if (daysInactive <= 3) risk_tier = "healthy";
+      else if (daysInactive <= 7) risk_tier = "slipping";
+      else if (daysInactive <= 14) risk_tier = "at_risk";
+      else risk_tier = "dormant";
+
+      return {
+        user_id: u.id,
+        email: u.email || "Unknown",
+        days_inactive: daysInactive,
+        risk_tier,
+        last_action: lastActivity?.event_name || null,
+        has_active_session: activeSessionUserIds.has(u.id),
+      };
+    });
+
+    // Sort: most at risk first
+    riskUsers.sort((a: any, b: any) => b.days_inactive - a.days_inactive);
+
+    const distribution = {
+      healthy: riskUsers.filter((u: any) => u.risk_tier === "healthy").length,
+      slipping: riskUsers.filter((u: any) => u.risk_tier === "slipping").length,
+      at_risk: riskUsers.filter((u: any) => u.risk_tier === "at_risk").length,
+      dormant: riskUsers.filter((u: any) => u.risk_tier === "dormant").length,
+    };
+
+    return new Response(
+      JSON.stringify({ users: riskUsers, distribution }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error: any) {
+    console.error("Retention radar error:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+}

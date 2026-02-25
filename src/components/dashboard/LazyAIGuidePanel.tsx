@@ -15,6 +15,7 @@ interface LazyAIGuidePanelWrapperProps {
   currentBuild?: any;
   onXpEarned?: () => void;
   isPaid?: boolean;
+  isTrialing?: boolean;
   onUpgrade?: () => void;
   isCheckingOut?: boolean;
   hasActiveSnapshot?: boolean;
