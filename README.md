@@ -306,7 +306,7 @@ The admin panel is a 10-tab intelligence system for monitoring and managing the 
 | **Nudges** | Email delivery monitoring, coverage rates, potential issues |
 | **Users** | User management with grant/revoke access controls |
 | **Actions** | Nudge campaigns, trial extensions, CSV export |
-| **Claw** | Open Claw marketing bot for campaign generation |
+
 
 ### AI Insight Engine
 
@@ -349,7 +349,7 @@ No PII is sent to AI — only aggregated counts and distributions.
 | `admin-users` | Admin user management |
 | `admin-analytics` | Admin data aggregation and executive metrics |
 | `admin-insights` | AI-powered weekly behavioral insights for admins |
-| `open-claw-marketing` | Open Claw growth bot for campaigns |
+
 
 ### Key Data Tables
 

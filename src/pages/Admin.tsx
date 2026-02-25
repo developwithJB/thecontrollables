@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Shield, RefreshCw, BarChart3, Route, Mail,
-  Megaphone, User, AlertTriangle, Radar, DollarSign, HeartPulse, Zap, Sparkles
+  User, AlertTriangle, Radar, DollarSign, HeartPulse, Zap, Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +25,6 @@ import RevenueIntelligence from "@/components/admin/RevenueIntelligence";
 import ProductHealth from "@/components/admin/ProductHealth";
 import UserManagement from "@/components/admin/UserManagement";
 import NudgesTab from "@/components/admin/NudgesTab";
-import OpenClawTab from "@/components/admin/OpenClawTab";
 import ActionCenter from "@/components/admin/ActionCenter";
 import AIInsightsPanel from "@/components/admin/AIInsightsPanel";
 
@@ -234,10 +233,6 @@ export default function Admin() {
               <Zap className="h-4 w-4" />
               <span className="hidden sm:inline">Actions</span>
             </TabsTrigger>
-            <TabsTrigger value="openclaw" className="flex items-center gap-1">
-              <Megaphone className="h-4 w-4" />
-              <span className="hidden sm:inline">Claw</span>
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -299,9 +294,6 @@ export default function Admin() {
             <ActionCenter users={users} />
           </TabsContent>
 
-          <TabsContent value="openclaw">
-            <OpenClawTab />
-          </TabsContent>
         </Tabs>
       </div>
     </div>

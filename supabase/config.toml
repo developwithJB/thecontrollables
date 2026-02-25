@@ -35,6 +35,3 @@ verify_jwt = false
 
 [functions.admin-analytics]
 verify_jwt = false
-
-[functions.open-claw-marketing]
-verify_jwt = false
