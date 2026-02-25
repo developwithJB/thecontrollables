@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Shield, RefreshCw, BarChart3, Route, Mail,
-  User, AlertTriangle, Radar, DollarSign, HeartPulse, Zap, Sparkles
+  User, AlertTriangle, Radar, DollarSign, HeartPulse, Zap, Sparkles, Megaphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ import UserManagement from "@/components/admin/UserManagement";
 import NudgesTab from "@/components/admin/NudgesTab";
 import ActionCenter from "@/components/admin/ActionCenter";
 import AIInsightsPanel from "@/components/admin/AIInsightsPanel";
+import CampaignComposer from "@/components/admin/CampaignComposer";
 
 export default function Admin() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -233,6 +234,10 @@ export default function Admin() {
               <Zap className="h-4 w-4" />
               <span className="hidden sm:inline">Actions</span>
             </TabsTrigger>
+            <TabsTrigger value="campaigns" className="flex items-center gap-1">
+              <Megaphone className="h-4 w-4" />
+              <span className="hidden sm:inline">Campaigns</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -292,6 +297,10 @@ export default function Admin() {
 
           <TabsContent value="actions">
             <ActionCenter users={users} />
+          </TabsContent>
+
+          <TabsContent value="campaigns">
+            <CampaignComposer />
           </TabsContent>
 
         </Tabs>
