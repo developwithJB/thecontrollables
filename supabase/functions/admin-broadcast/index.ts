@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
           });
 
           await resend.emails.send({
-            from: "The Dashboard <nudge@agbcoaching.com>",
+            from: "The Dashboard <noreply@thedashboard.agbcoaching.com>",
             to: recipient.email,
             subject,
             html,
