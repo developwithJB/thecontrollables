@@ -363,6 +363,7 @@ async function handleRetentionRadar(adminClient: any, corsHeaders: any) {
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+  }
 }
 
 async function handleRevenue(adminClient: any, corsHeaders: any) {
@@ -439,5 +440,4 @@ async function handleRevenue(adminClient: any, corsHeaders: any) {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-}
 }
