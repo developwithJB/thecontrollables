@@ -127,9 +127,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Normalize field names (support both camelCase and snake_case)
+    const segmentType = bodyData.segmentType || bodyData.segment_type;
+    const segmentEmails = bodyData.segmentEmails || bodyData.segment_emails || [];
+    const templateKey = bodyData.templateKey || bodyData.template_key;
+    const customSubject = bodyData.customSubject || bodyData.custom_subject;
+    const customBody = bodyData.customBody || bodyData.custom_body;
+
     // Preview action - returns the resolved email list and sample HTML
     if (action === "preview") {
-      const { segmentType, segmentEmails, templateKey, customSubject, customBody } = bodyData;
       const recipients = await resolveSegment(supabaseAdmin, segmentType, segmentEmails || []);
       const template = TEMPLATES[templateKey] || TEMPLATES.custom;
       const subject = customSubject || template.subject;
@@ -145,7 +151,6 @@ Deno.serve(async (req) => {
 
     // Send action
     if (action === "send") {
-      const { segmentType, segmentEmails, templateKey, customSubject, customBody } = bodyData;
       const resendKey = Deno.env.get("RESEND_API_KEY");
       if (!resendKey) {
         return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), { status: 500, headers: corsHeaders });
