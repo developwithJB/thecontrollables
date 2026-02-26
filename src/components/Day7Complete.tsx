@@ -33,6 +33,7 @@ interface Day7CompleteProps {
   resetSessionId: string;
   completedJourneyId?: string;
   isHistoricalView?: boolean;
+  completedDaysCount?: number;
 }
 
 export const Day7Complete = ({
@@ -42,6 +43,7 @@ export const Day7Complete = ({
   resetSessionId,
   completedJourneyId,
   isHistoricalView = false,
+  completedDaysCount,
 }: Day7CompleteProps) => {
   const navigate = useNavigate();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -75,6 +77,9 @@ export const Day7Complete = ({
   
   const completedJourney = completedJourneyId ? getJourneyById(completedJourneyId) : null;
 
+  // Calculate actual check-in count and whether it's a perfect week
+  const actualDaysCount = completedDaysCount ?? 7; // Default to 7 for backward compatibility
+  const isPerfectWeek = actualDaysCount >= 7;
   // Get user ID on mount
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -170,7 +175,7 @@ export const Day7Complete = ({
             transition={{ delay: 0.3 }}
             className="text-3xl font-bold text-foreground mb-2"
           >
-            You Did It.
+            {isPerfectWeek ? "You Did It." : "Snapshot Complete."}
           </motion.h1>
           
           <motion.p
@@ -179,7 +184,9 @@ export const Day7Complete = ({
             transition={{ delay: 0.4 }}
             className="text-xl text-primary font-medium mb-6"
           >
-            7 Days. 7 Check-ins. 100% You.
+            {isPerfectWeek
+              ? "7 Days. 7 Check-ins. 100% You."
+              : `7 Days. ${actualDaysCount} Check-in${actualDaysCount === 1 ? "" : "s"}. Still Showing Up.`}
           </motion.p>
 
           {/* Proof Statement - meaningful */}
@@ -193,7 +200,9 @@ export const Day7Complete = ({
               Your Proof
             </p>
             <p className="text-lg text-foreground leading-relaxed font-medium">
-              This is evidence that you showed up, every single day, for yourself.
+              {isPerfectWeek
+                ? "This is evidence that you showed up, every single day, for yourself."
+                : "This is evidence that you showed up. Every check-in counts."}
             </p>
             <p className="text-muted-foreground mt-3 text-sm">
               {formatDate(startDate)} – {formatDate(endDate)}
