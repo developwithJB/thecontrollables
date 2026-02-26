@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 
@@ -7,9 +8,12 @@ interface OnboardingSkipConfirmationProps {
 
 export function OnboardingSkipConfirmation({ onComplete }: OnboardingSkipConfirmationProps) {
   // Auto-complete after showing message
-  setTimeout(() => {
-    onComplete();
-  }, 3000);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onComplete();
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [onComplete]);
 
   return (
     <motion.div
