@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { OnboardingMissionFirstStep } from "./OnboardingMissionFirstStep";
 import { OnboardingSnapshotRecommendationStep } from "./OnboardingSnapshotRecommendationStep";
+import { OnboardingOrientation } from "./OnboardingOrientation";
 import { OnboardingStarting } from "./OnboardingStarting";
+import { OnboardingRecovery } from "./OnboardingRecovery";
 import { useReset } from "@/hooks/useReset";
 import { SNAPSHOTS } from "@/lib/snapshots";
 import { clearOnboardingQuickStartDraft, getOnboardingQuickStartDraft, saveOnboardingQuickStartDraft } from "@/lib/onboardingQuickStartDraft";
@@ -20,9 +22,10 @@ export function OnboardingQuickStartFlow({
   createQuest,
 }: OnboardingQuickStartFlowProps) {
   const draft = useMemo(() => getOnboardingQuickStartDraft(), []);
-  const [step, setStep] = useState<"mission" | "snapshot" | "starting">("mission");
+  const [step, setStep] = useState<"mission" | "snapshot" | "orientation" | "starting" | "recovery">("mission");
   const [mission, setMission] = useState(draft?.mission ?? "");
   const [snapshotId, setSnapshotId] = useState<string | null>(draft?.snapshotId ?? null);
+  const [isRetrying, setIsRetrying] = useState(false);
   const { acceptCovenant } = useReset();
 
   const selectedSnapshot = SNAPSHOTS.find((snapshot) => snapshot.id === snapshotId) ?? null;
@@ -36,19 +39,46 @@ export function OnboardingQuickStartFlow({
     setStep("snapshot");
   };
 
-  const handleStart = async () => {
+  const handleSnapshotContinue = () => {
+    if (!selectedSnapshot) return;
+    // Show orientation before starting
+    setStep("orientation");
+  };
+
+  const handleOrientationComplete = async () => {
     if (!selectedSnapshot) return;
     setStep("starting");
+    await startReset();
+  };
 
-    await acceptCovenant({ isPaid, journeyId: selectedSnapshot.id });
-    if (createQuest) {
-      await createQuest({ title: mission || selectedSnapshot.name, durationDays: 7 });
+  const startReset = async () => {
+    if (!selectedSnapshot) return;
+    try {
+      await acceptCovenant({ isPaid, journeyId: selectedSnapshot.id });
+      if (createQuest) {
+        await createQuest({ title: mission || selectedSnapshot.name, durationDays: 7 });
+      }
+
+      await onUpdateOnboarding({ step: "completed", journeyControllable: selectedSnapshot.focus });
+      clearOnboardingQuickStartDraft();
+
+      setTimeout(() => onComplete(), 1600);
+    } catch (error) {
+      console.error("QuickStart: failed to start reset:", error);
+      setStep("recovery");
     }
+  };
 
-    await onUpdateOnboarding({ step: "completed", journeyControllable: selectedSnapshot.focus });
-    clearOnboardingQuickStartDraft();
-
-    setTimeout(() => onComplete(), 1600);
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    try {
+      setStep("starting");
+      await startReset();
+    } catch {
+      setStep("recovery");
+    } finally {
+      setIsRetrying(false);
+    }
   };
 
   if (step === "mission") {
@@ -78,7 +108,26 @@ export function OnboardingQuickStartFlow({
           saveOnboardingQuickStartDraft({ mission, snapshotId: snapshot.id, snapshotName: snapshot.name });
         }}
         onBack={() => setStep("mission")}
-        onContinue={handleStart}
+        onContinue={handleSnapshotContinue}
+      />
+    );
+  }
+
+  if (step === "orientation" && selectedSnapshot) {
+    return (
+      <OnboardingOrientation
+        snapshotName={selectedSnapshot.name}
+        snapshotEmoji={selectedSnapshot.emoji}
+        onStartDay1={handleOrientationComplete}
+      />
+    );
+  }
+
+  if (step === "recovery") {
+    return (
+      <OnboardingRecovery
+        onRetry={handleRetry}
+        isRetrying={isRetrying}
       />
     );
   }
