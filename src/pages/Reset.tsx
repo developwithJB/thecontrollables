@@ -55,6 +55,7 @@ const Reset = () => {
     start_date: string;
     journey_id: string | null;
     completed_at: string | null;
+    checkin_count: number;
   } | null>(null);
 
   // Fetch historical session data if viewing a past celebration
@@ -62,14 +63,23 @@ const Reset = () => {
     if (!isHistoricalCelebration || !historicalSessionId) return;
     
     async function fetchHistoricalSession() {
-      const { data } = await supabase
-        .from("reset_sessions")
-        .select("id, start_date, journey_id, completed_at")
-        .eq("id", historicalSessionId)
-        .single();
+      const [sessionResult, checkinResult] = await Promise.all([
+        supabase
+          .from("reset_sessions")
+          .select("id, start_date, journey_id, completed_at")
+          .eq("id", historicalSessionId)
+          .single(),
+        supabase
+          .from("daily_resets")
+          .select("id", { count: "exact", head: true })
+          .eq("session_id", historicalSessionId),
+      ]);
       
-      if (data) {
-        setHistoricalSession(data);
+      if (sessionResult.data) {
+        setHistoricalSession({
+          ...sessionResult.data,
+          checkin_count: checkinResult.count ?? 0,
+        });
       }
     }
     
@@ -130,6 +140,7 @@ const Reset = () => {
         endDate={historicalEndDate.toISOString().split("T")[0]}
         resetSessionId={historicalSession.id}
         completedJourneyId={historicalSession.journey_id || undefined}
+        completedDaysCount={historicalSession.checkin_count}
         isHistoricalView
       />
     );
@@ -144,6 +155,7 @@ const Reset = () => {
         endDate={endDate}
         resetSessionId={activeSession.id}
         completedJourneyId={activeSession.journey_id || undefined}
+        completedDaysCount={completedDays.length}
       />
     );
   }
@@ -176,6 +188,7 @@ const Reset = () => {
         endDate={endDate}
         resetSessionId={activeSession.id}
         completedJourneyId={activeSession.journey_id || undefined}
+        completedDaysCount={completedDays.length}
       />
     );
   }
