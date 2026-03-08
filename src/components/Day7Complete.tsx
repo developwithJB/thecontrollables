@@ -34,6 +34,8 @@ interface Day7CompleteProps {
   completedJourneyId?: string;
   isHistoricalView?: boolean;
   completedDaysCount?: number;
+  activeSeason?: { id: string; name: string | null } | null;
+  seasonSnapshotsCompleted?: number;
 }
 
 export const Day7Complete = ({
