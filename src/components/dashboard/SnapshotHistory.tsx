@@ -351,15 +351,32 @@ function WeekCard({
         </div>
       </div>
 
-      {/* Bucket & Focus - only show if we have actual snapshot data */}
-      {bucket && (
-        <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
-          <span>{bucket.emoji} {bucket.name}</span>
-          {snapshot && (
-            <>
-              <span className="text-muted-foreground/50">•</span>
-              <span className="capitalize">{snapshot.focus}</span>
-            </>
+      {/* Activity Summary */}
+      {activity && (activity.actions > 0 || activity.checkins > 0 || activity.promisesTotal > 0 || activity.wellnessLogs > 0) && (
+        <div className="flex flex-wrap items-center gap-2 mb-3 text-xs text-muted-foreground">
+          {activity.actions > 0 && (
+            <span className="flex items-center gap-1">
+              <Target className="w-3 h-3" />
+              {activity.actions} action{activity.actions !== 1 ? "s" : ""}
+            </span>
+          )}
+          {activity.checkins > 0 && (
+            <span className="flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" />
+              {activity.checkins}/7 check-ins
+            </span>
+          )}
+          {activity.promisesTotal > 0 && (
+            <span className="flex items-center gap-1">
+              <Shield className="w-3 h-3" />
+              {activity.promisesKept}/{activity.promisesTotal} promises
+            </span>
+          )}
+          {activity.wellnessLogs > 0 && (
+            <span className="flex items-center gap-1">
+              <Heart className="w-3 h-3" />
+              {activity.wellnessLogs} wellness
+            </span>
           )}
         </div>
       )}
