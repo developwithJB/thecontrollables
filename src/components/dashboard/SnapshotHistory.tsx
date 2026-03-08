@@ -876,6 +876,7 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
                             key={record.id}
                             record={record}
                             index={index + 1}
+                            activity={activityMap[record.id]}
                             onClick={() => setSelectedRecord(record)}
                             onViewSnapshot={record.status !== "active" && userId
                               ? () => setReviewSessionId(record.id)
