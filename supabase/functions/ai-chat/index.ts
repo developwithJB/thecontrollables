@@ -315,6 +315,7 @@ interface RequestBody {
   buildContext?: BuildContext | null;
   sessionHistory?: ChatMessage[];
   patternData?: PatternData | null;
+  stream?: boolean;
 }
 
 // Validate a single message
@@ -461,6 +462,67 @@ function buildPatternMemory(patternData: PatternData, controllable: string | nul
   return sections.join('\n');
 }
 
+function buildSystemPrompt(body: RequestBody): string {
+  const { controllable, challengeContext, userContext, buildContext, patternData } = body;
+
+  let systemPrompt = CONTROLLABLE_PROMPTS[controllable || ''] || DEFAULT_PROMPT;
+
+  // Add pattern memory (enhanced callbacks)
+  if (patternData) {
+    systemPrompt += buildPatternMemory(patternData, controllable || null);
+  }
+
+  // Add user context if provided
+  if (userContext) {
+    systemPrompt += `\n\n[USER STATUS]
+- Current Focus: ${userContext.questTitle}
+- XP (momentum): ${userContext.xp}
+- Integrity score: ${userContext.integrity ?? "Not tracked yet"}`;
+  }
+
+  // Add build context if provided
+  if (buildContext) {
+    const lowestScore = Math.min(
+      parseFloat(buildContext.awareness),
+      parseFloat(buildContext.perspective),
+      parseFloat(buildContext.habit),
+      parseFloat(buildContext.wellness),
+      parseFloat(buildContext.environment)
+    );
+    
+    let weakestArea = 'unknown';
+    if (parseFloat(buildContext.awareness) === lowestScore) weakestArea = 'awareness';
+    else if (parseFloat(buildContext.perspective) === lowestScore) weakestArea = 'perspective';
+    else if (parseFloat(buildContext.habit) === lowestScore) weakestArea = 'habit';
+    else if (parseFloat(buildContext.wellness) === lowestScore) weakestArea = 'wellness';
+    else if (parseFloat(buildContext.environment) === lowestScore) weakestArea = 'environment';
+
+    systemPrompt += `\n\n[BUILD STATS - Their self-reported scores, 1-4 scale]
+- Awareness 🦉: ${buildContext.awareness}/4
+- Perspective 🐢: ${buildContext.perspective}/4
+- Habit 🦈: ${buildContext.habit}/4
+- Wellness 🛰️: ${buildContext.wellness}/4
+- Environment 🚀: ${buildContext.environment}/4
+- Overall: ${buildContext.overall}/4
+- Archetype: ${buildContext.archetype}
+- Meaning: ${buildContext.archetypeDescription}
+- Weakest area: ${weakestArea}
+
+Use this to tailor actions. Their weak spots are where small interventions have the biggest impact.`;
+  }
+
+  // Add challenge context if provided
+  if (challengeContext) {
+    systemPrompt += `\n\n[SNAPSHOT CONTEXT]
+They're on Day ${challengeContext.day} of their 7-Day Snapshot.
+Today's theme: "${challengeContext.theme}"
+Today's action: "${challengeContext.action}"
+Guide them through this specific task. Reference their Snapshot progress.`;
+  }
+
+  return systemPrompt;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -502,7 +564,6 @@ Deno.serve(async (req) => {
     }
 
     // ============ DAILY QUOTA CHECK ============
-    // Need to use service role for insert/update since RLS uses auth.uid()
     const serviceClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -540,7 +601,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { controllable, messages, challengeContext, userContext, buildContext, sessionHistory, patternData } = body;
+    const { controllable, messages, sessionHistory, stream: wantStream } = body;
 
     // Validate messages array
     if (!validateMessages(messages)) {
@@ -575,65 +636,11 @@ Deno.serve(async (req) => {
     }
 
     // ============ BUILD SYSTEM PROMPT ============
-    let systemPrompt = CONTROLLABLE_PROMPTS[controllable || ''] || DEFAULT_PROMPT;
-
-    // Add pattern memory (enhanced callbacks)
-    if (patternData) {
-      systemPrompt += buildPatternMemory(patternData, controllable || null);
-    }
-
-    // Add user context if provided
-    if (userContext) {
-      systemPrompt += `\n\n[USER STATUS]
-- Current Focus: ${userContext.questTitle}
-- XP (momentum): ${userContext.xp}
-- Integrity score: ${userContext.integrity ?? "Not tracked yet"}`;
-    }
-
-    // Add build context if provided
-    if (buildContext) {
-      const lowestScore = Math.min(
-        parseFloat(buildContext.awareness),
-        parseFloat(buildContext.perspective),
-        parseFloat(buildContext.habit),
-        parseFloat(buildContext.wellness),
-        parseFloat(buildContext.environment)
-      );
-      
-      let weakestArea = 'unknown';
-      if (parseFloat(buildContext.awareness) === lowestScore) weakestArea = 'awareness';
-      else if (parseFloat(buildContext.perspective) === lowestScore) weakestArea = 'perspective';
-      else if (parseFloat(buildContext.habit) === lowestScore) weakestArea = 'habit';
-      else if (parseFloat(buildContext.wellness) === lowestScore) weakestArea = 'wellness';
-      else if (parseFloat(buildContext.environment) === lowestScore) weakestArea = 'environment';
-
-      systemPrompt += `\n\n[BUILD STATS - Their self-reported scores, 1-4 scale]
-- Awareness 🦉: ${buildContext.awareness}/4
-- Perspective 🐢: ${buildContext.perspective}/4
-- Habit 🦈: ${buildContext.habit}/4
-- Wellness 🛰️: ${buildContext.wellness}/4
-- Environment 🚀: ${buildContext.environment}/4
-- Overall: ${buildContext.overall}/4
-- Archetype: ${buildContext.archetype}
-- Meaning: ${buildContext.archetypeDescription}
-- Weakest area: ${weakestArea}
-
-Use this to tailor actions. Their weak spots are where small interventions have the biggest impact.`;
-    }
-
-    // Add challenge context if provided
-    if (challengeContext) {
-      systemPrompt += `\n\n[SNAPSHOT CONTEXT]
-They're on Day ${challengeContext.day} of their 7-Day Snapshot.
-Today's theme: "${challengeContext.theme}"
-Today's action: "${challengeContext.action}"
-Guide them through this specific task. Reference their Snapshot progress.`;
-    }
+    const systemPrompt = buildSystemPrompt(body);
 
     // Include session history for memory continuity
     const conversationMessages: Array<{role: string; content: string}> = [];
     
-    // Add recent session history (last 10 messages for context)
     if (sessionHistory && sessionHistory.length > 0) {
       const recentHistory = sessionHistory.slice(-10);
       recentHistory.forEach(msg => {
@@ -641,7 +648,6 @@ Guide them through this specific task. Reference their Snapshot progress.`;
       });
     }
     
-    // Add current messages
     messages.forEach(msg => {
       conversationMessages.push({ role: msg.role, content: msg.content });
     });
@@ -669,6 +675,7 @@ Guide them through this specific task. Reference their Snapshot progress.`;
         ],
         max_tokens: 400,
         temperature: 0.7,
+        stream: !!wantStream,
       }),
     });
 
@@ -695,6 +702,48 @@ Guide them through this specific task. Reference their Snapshot progress.`;
       );
     }
 
+    // ============ STREAMING RESPONSE ============
+    if (wantStream) {
+      // Pipe the SSE stream straight through, prepending usage metadata as a custom SSE event
+      const metaEvent = `event: meta\ndata: ${JSON.stringify({
+        remaining: usageResult.remaining,
+        used: usageResult.used,
+        planTier,
+        dailyLimit: usageResult.dailyLimit,
+      })}\n\n`;
+
+      const encoder = new TextEncoder();
+      const metaBytes = encoder.encode(metaEvent);
+
+      // Create a ReadableStream that first emits the meta event, then pipes the upstream body
+      const upstreamBody = response.body!;
+      const merged = new ReadableStream({
+        async start(controller) {
+          controller.enqueue(metaBytes);
+          const reader = upstreamBody.getReader();
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              controller.enqueue(value);
+            }
+          } finally {
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(merged, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    }
+
+    // ============ NON-STREAMING (legacy) ============
     const data = await response.json();
     let assistantMessage = data.choices?.[0]?.message?.content || 'I apologize, I could not generate a response.';
 
