@@ -668,6 +668,33 @@ export type Database = {
           },
         ]
       }
+      daily_briefings: {
+        Row: {
+          briefing_date: string
+          content: string
+          controllable: string | null
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          briefing_date?: string
+          content: string
+          controllable?: string | null
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          briefing_date?: string
+          content?: string
+          controllable?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_checkins: {
         Row: {
           check_in_date: string
