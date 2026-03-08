@@ -117,6 +117,22 @@ Deno.serve(async (req) => {
       contextParts.push(`Build: Overall ${Number(buildData.overall).toFixed(1)}/4, weakest area: ${weakest} (${Number(buildData[weakest]).toFixed(1)}/4)`);
     }
 
+    // Compute controllable levels from XP
+    const xpMap: Record<string, number> = {};
+    for (const row of actionsRes.data ?? []) {
+      if (row.controllable) {
+        xpMap[row.controllable] = (xpMap[row.controllable] || 0) + row.xp_awarded;
+      }
+    }
+    const levelLines = Object.entries(CONTROLLABLE_META).map(([key, meta]) => {
+      const level = getLevelFromXp(xpMap[key] || 0);
+      return `${meta.emoji} ${meta.label}: Lv.${level}`;
+    });
+    const overallLevel = Math.round(
+      Object.keys(CONTROLLABLE_META).reduce((s, k) => s + getLevelFromXp(xpMap[k] || 0), 0) / 5
+    );
+    contextParts.push(`Controllable Levels (Overall Build Lv.${overallLevel}):\n${levelLines.join('\n')}`);
+
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'AI not configured' }), {
