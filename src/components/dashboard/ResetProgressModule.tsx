@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, ChevronRight, Lock, Check, Play, RefreshCw, Eye, Sparkles, Target, Compass } from "lucide-react";
+import { getControllableForDay, getControllableTheme } from "@/lib/controllableTheme";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
