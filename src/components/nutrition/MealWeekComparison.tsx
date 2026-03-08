@@ -5,8 +5,9 @@ import { format, subDays, startOfDay, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMealTracking, type MealSlotConfig, type MealPlanMeal } from "@/hooks/useMealTracking";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Sparkles, ChevronDown, ChevronUp, Calendar, Share2 } from "lucide-react";
 import { GroceryListSheet } from "./GroceryListSheet";
+import { MealShareCard } from "./MealShareCard";
 
 interface MealWeekComparisonProps {
   userId: string;
@@ -25,6 +26,7 @@ export function MealWeekComparison({ userId, slotConfig }: MealWeekComparisonPro
   const today = useMemo(() => startOfDay(new Date()), []);
   const { generateWeekPlan } = useMealTracking(userId);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const [showShare, setShowShare] = useState(false);
 
   // Fetch week plans (today + 6 future days for generation, past 6 + today for comparison)
   const { data: weekData } = useQuery({
@@ -117,6 +119,48 @@ export function MealWeekComparison({ userId, slotConfig }: MealWeekComparisonPro
         <div className="flex-1">
           <GroceryListSheet userId={userId} />
         </div>
+        {hasUpcomingPlans && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1"
+              onClick={() => {
+                const allMeals = Object.values(upcomingPlans!.map).flat();
+                const totalCal = allMeals.reduce((s, m) => s + (m.est_calories || 0), 0);
+                const title = encodeURIComponent("🛰️ Week Meal Plan");
+                const details = encodeURIComponent(
+                  upcomingPlans!.dates
+                    .filter((d) => upcomingPlans!.map[d]?.length)
+                    .map((d) => {
+                      const dayMeals = upcomingPlans!.map[d];
+                      const dayLabel = format(new Date(d + "T12:00:00"), "EEE, MMM d");
+                      return `${dayLabel}:\n${dayMeals.map((m) => `  ${m.meal_type}: ${m.name} (~${m.est_calories} cal)`).join("\n")}`;
+                    })
+                    .join("\n\n") + `\n\nTotal: ${totalCal} cal`
+                );
+                const startDate = upcomingPlans!.dates[0].replace(/-/g, "");
+                const endDate = format(addDays(new Date(upcomingPlans!.dates[6] + "T12:00:00"), 1), "yyyyMMdd");
+                window.open(
+                  `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${startDate}/${endDate}`,
+                  "_blank"
+                );
+              }}
+            >
+              <Calendar className="w-3 h-3" />
+              Calendar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1"
+              onClick={() => setShowShare(true)}
+            >
+              <Share2 className="w-3 h-3" />
+              Share
+            </Button>
+          </>
+        )}
       </div>
 
       {/* Plan This Week button */}
@@ -230,6 +274,23 @@ export function MealWeekComparison({ userId, slotConfig }: MealWeekComparisonPro
           </span>
         </div>
       </div>
+
+      {/* Share week card */}
+      {hasUpcomingPlans && upcomingPlans && (
+        <MealShareCard
+          open={showShare}
+          onOpenChange={setShowShare}
+          meals={Object.values(upcomingPlans.map).flat()}
+          mode="week-plan"
+          weekDays={upcomingPlans.dates
+            .filter((d) => upcomingPlans.map[d]?.length)
+            .map((d) => ({
+              label: format(new Date(d + "T12:00:00"), "EEE, MMM d"),
+              calories: upcomingPlans.map[d].reduce((s, m) => s + (m.est_calories || 0), 0),
+              mealCount: upcomingPlans.map[d].length,
+            }))}
+        />
+      )}
     </div>
   );
 }

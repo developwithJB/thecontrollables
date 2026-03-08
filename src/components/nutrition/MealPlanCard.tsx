@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Calendar, Loader2, Lock, UtensilsCrossed, X, Minus, Plus, Settings2 } from "lucide-react";
+import { Sparkles, Calendar, Loader2, Lock, UtensilsCrossed, X, Minus, Plus, Settings2, Share2 } from "lucide-react";
+import { MealShareCard } from "./MealShareCard";
 import { getControllableTheme } from "@/lib/controllableTheme";
 import { ControllableLevelBadge } from "@/components/dashboard/ControllableLevelBadge";
 import { MealWeekComparison } from "./MealWeekComparison";
@@ -30,6 +31,7 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
   const [showTracker, setShowTracker] = useState(false);
   const [view, setView] = useState<"today" | "week">("today");
   const [showConfig, setShowConfig] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   // Meal config state — initialized from saved preferences
   const [enabledMeals, setEnabledMeals] = useState<Record<string, boolean>>({
@@ -371,7 +373,7 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
               </div>
             )}
 
-            <div className="flex gap-2 pt-1">
+            <div className="flex flex-wrap gap-2 pt-1">
               <Button
                 variant="ghost"
                 size="sm"
@@ -380,6 +382,15 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
               >
                 <Calendar className="w-3 h-3 mr-1" />
                 Add to Calendar
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-[11px] h-7 text-muted-foreground"
+                onClick={() => setShowShare(true)}
+              >
+                <Share2 className="w-3 h-3 mr-1" />
+                Share
               </Button>
               <Button
                 variant="ghost"
@@ -433,6 +444,16 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
 
       {/* Meal Tracker Bottom Sheet */}
       <MealTracker isOpen={showTracker} onClose={() => setShowTracker(false)} userId={userId} />
+
+      {/* Share Card */}
+      {todayPlan && (
+        <MealShareCard
+          open={showShare}
+          onOpenChange={setShowShare}
+          meals={(todayPlan.meals as any[]) || []}
+          totalCalories={plannedTotals.calories}
+        />
+      )}
     </>
   );
 }
