@@ -54,7 +54,7 @@ import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
 import { TodayActions } from "@/components/dashboard/TodayActions";
 import { SnapshotReviewCard } from "@/components/dashboard/SnapshotReviewCard";
 import { TrialCompleteCard } from "@/components/dashboard/TrialCompleteCard";
-import { GrowthSummaryCard } from "@/components/dashboard/GrowthSummaryCard";
+
 // JourneyChangesLog removed - consolidated into Activity History
 
 import { GameRulesSection } from "@/components/GameRulesSection";
@@ -747,12 +747,6 @@ export default function Dashboard() {
     );
   }
 
-  const greeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning.";
-    if (hour < 18) return "Good afternoon.";
-    return "Good evening.";
-  };
 
   const todayContent = activeSession && !isCompleted ? getDayContent(currentDay) : null;
   const todayAlreadyCompleted = completedDays.some((d) => d.day_number === currentDay);
@@ -809,7 +803,7 @@ export default function Dashboard() {
                 whileTap={{ scale: 0.95 }}
                 className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all ${
                   activeTab === tab.id
-                    ? "bg-accent text-accent-foreground shadow-[0_0_12px_rgba(102,189,239,0.3)]"
+                    ? "bg-accent text-accent-foreground shadow-[0_0_12px_hsl(var(--accent)/0.3)]"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
               >
@@ -938,8 +932,8 @@ export default function Dashboard() {
                   todayTimeLogged={!!todayTimeLog}
                   pendingPromisesCount={pendingPromises.length}
                   todayPromiseMade={todayPromiseMade}
-                  todayXpEarned={xpLogs
-                    .filter((log) => log.created_at.startsWith(todayLocal))
+                   todayXpEarned={xpLogs
+                    .filter((log) => new Date(log.created_at).toLocaleDateString("sv-SE") === todayLocal)
                     .reduce((sum, log) => sum + log.amount, 0)}
                   buildLastUpdatedAt={currentBuild?.updated_at ?? null}
                   journeyId={activeSession?.journey_id ?? undefined}
@@ -1373,12 +1367,12 @@ export default function Dashboard() {
                 <div className="flex items-center justify-center gap-4 text-sm">
                   <div>
                     <span className="font-display font-bold text-lg text-accent">{allSessions.length}</span>
-                    <span className="text-muted-foreground ml-1">Resets</span>
+                    <span className="text-muted-foreground ml-1">Snapshots</span>
                   </div>
                   <div className="w-px h-6 bg-border" />
                   <div>
                     <span className="font-display font-bold text-lg text-accent">{allCompletedDays.length}</span>
-                    <span className="text-muted-foreground ml-1">Days Logged</span>
+                    <span className="text-muted-foreground ml-1">Days Checked In</span>
                   </div>
                   <div className="w-px h-6 bg-border" />
                   <div>
@@ -1396,7 +1390,7 @@ export default function Dashboard() {
       <footer className="max-w-md mx-auto px-6 py-6 text-center space-y-1">
         {dashboardVisitCount > 5 && (
           <p className="text-xs text-muted-foreground/60">
-            Designed for intentional check-ins. Desktop or mobile.
+            Quiet momentum. One check-in at a time.
           </p>
         )}
         <p className="text-xs text-muted-foreground">

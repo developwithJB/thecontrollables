@@ -41,9 +41,9 @@ export function XpMomentumModule({ totalXp, recentLogs, compact = false }: XpMom
   const progressPercent = (xpInCurrentLevel / xpToNextLevel) * 100;
 
   // Get today's XP
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString("sv-SE");
   const todayXp = recentLogs
-    .filter((log) => log.created_at.startsWith(today))
+    .filter((log) => new Date(log.created_at).toLocaleDateString("sv-SE") === today)
     .reduce((sum, log) => sum + log.amount, 0);
 
   // Get this week's XP

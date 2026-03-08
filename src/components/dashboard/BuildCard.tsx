@@ -165,7 +165,7 @@ export function BuildCard({ build }: BuildCardProps) {
         {/* Branding */}
         <div className="relative mt-4 text-center">
           <p className="text-xs text-muted-foreground">
-            thedashboard.agbcoaching.com
+            thecontrollables.lovable.app
           </p>
         </div>
       </motion.div>

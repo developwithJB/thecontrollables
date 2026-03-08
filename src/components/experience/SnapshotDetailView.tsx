@@ -305,8 +305,8 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
       `✅ ${record.daysCompleted}/7 days\n` +
       `⚡ ${totalXP} XP\n` +
       (promisesTotal > 0 ? `🛡️ ${promisesKept}/${promisesTotal} promises kept\n` : "") +
-      `\nA quiet place to restart → thedashboard.agbcoaching.com\n\n` +
-      `#TheDashboard`;
+      `\nA quiet place to restart → thecontrollables.lovable.app\n\n` +
+      `#TheControllables`;
     
     if (navigator.share) {
       try {
@@ -817,7 +817,7 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
                     A quiet place to restart
                   </p>
                   <p className="text-sm font-medium text-foreground mt-1">
-                    thedashboard.agbcoaching.com
+                    thecontrollables.lovable.app
                   </p>
                 </div>
               </>

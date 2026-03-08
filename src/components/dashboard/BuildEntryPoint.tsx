@@ -15,9 +15,13 @@ export function BuildEntryPoint({ compact = false, userId }: BuildEntryPointProp
     () => (userId ? `build_assessment_cta_dismissed_${userId}` : null),
     [userId],
   );
-  const [isDismissed, setIsDismissed] = useState(() =>
-    dismissKey ? localStorage.getItem(dismissKey) === "1" : false,
-  );
+  const [isDismissed, setIsDismissed] = useState(() => {
+    try {
+      return dismissKey ? localStorage.getItem(dismissKey) === "1" : false;
+    } catch {
+      return false;
+    }
+  });
 
   const { questions, currentBuild, submitAssessment, isSubmitting } = useBuildAssessment();
 
