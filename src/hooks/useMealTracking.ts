@@ -159,6 +159,8 @@ export function useMealTracking(userId: string | null) {
       snackCount?: number;
       date?: string;
       macro_targets?: { proteinTarget?: number; carbsTarget?: number; fatTarget?: number };
+      dietary_style?: string;
+      dietary_restrictions?: string[];
     }) => {
       if (!userId) throw new Error("Not authenticated");
 
@@ -172,6 +174,8 @@ export function useMealTracking(userId: string | null) {
           exclude_meals: opts?.excludeMeals,
           snack_count: opts?.snackCount,
           macro_targets: opts?.macro_targets,
+          dietary_style: opts?.dietary_style,
+          dietary_restrictions: opts?.dietary_restrictions,
         },
       });
       if (fnError) throw fnError;
