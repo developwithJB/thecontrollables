@@ -254,6 +254,11 @@ export const Day7Complete = ({
                 {completedJourney.title}
               </p>
             )}
+            {circleNames.length > 0 && (
+              <p className="text-accent mt-3 text-sm font-medium">
+                🤝 Your circle finished together: {circleNames.join(", ")} & you
+              </p>
+            )}
           </motion.div>
 
           {/* View Your Snapshot Button */}
