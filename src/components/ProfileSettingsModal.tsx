@@ -67,6 +67,9 @@ export function ProfileSettingsModal({
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isDark, setIsDark] = useState(false);
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushToggling, setPushToggling] = useState(false);
   const { toast } = useToast();
 
   // Detect initial theme
