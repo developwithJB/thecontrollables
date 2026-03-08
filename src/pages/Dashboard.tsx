@@ -93,6 +93,7 @@ import { LockedOverlay } from "@/components/experience/LockedOverlay";
 import { PullToRefreshIndicator } from "@/components/pwa/PullToRefreshIndicator";
 import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 import { CircleCard } from "@/components/dashboard/CircleCard";
+import { ControllableLevelsCard } from "@/components/dashboard/ControllableLevelsCard";
 import { useCircle } from "@/hooks/useCircle";
 import { SeasonBanner } from "@/components/dashboard/SeasonBanner";
 import { SeasonComplete } from "@/components/SeasonComplete";
@@ -1071,6 +1072,11 @@ export default function Dashboard() {
                   isPaid={isPaid}
                   onUpgrade={() => startCheckout(undefined, "meal_plan_card")}
                 />
+              )}
+
+              {/* Controllable Levels - Pokemon-style progression */}
+              {user?.id && (
+                <ControllableLevelsCard userId={user.id} />
               )}
 
               {/* Build Entry Point - shows if user hasn't done assessment */}
