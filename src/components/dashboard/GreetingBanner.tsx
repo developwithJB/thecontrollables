@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flame, Zap, Target, Compass, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { Flame, Zap, Target, Compass, Sparkles, ChevronDown, ChevronUp, Shield } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useInsights } from "@/hooks/useInsights";
+import { useControllableLevels } from "@/hooks/useControllableLevels";
 
 interface GreetingBannerProps {
   userId?: string;
@@ -66,6 +67,12 @@ export function GreetingBanner({
   // Calculate level from XP
   const level = Math.floor(totalXp / 500) + 1;
 
+  // Overall Build Level — average of all 5 controllable levels
+  const { data: controllableLevels } = useControllableLevels(userId ?? null);
+  const overallBuildLevel = controllableLevels
+    ? Math.round(controllableLevels.reduce((sum, cl) => sum + cl.level, 0) / controllableLevels.length)
+    : null;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -115,6 +122,16 @@ export function GreetingBanner({
             </div>
             <span className="text-sm font-medium text-foreground">Lv {level}</span>
           </div>
+
+          {/* Overall Build Level */}
+          {overallBuildLevel !== null && (
+            <div className="flex items-center gap-1.5" title="Average of all 5 Controllable levels">
+              <div className="p-1 rounded-lg bg-primary/10">
+                <Shield className="w-4 h-4 text-primary" />
+              </div>
+              <span className="text-sm font-medium text-foreground">Build Lv.{overallBuildLevel}</span>
+            </div>
+          )}
 
           {/* Mission indicator - clickable with tooltip */}
           {missionTitle && (
