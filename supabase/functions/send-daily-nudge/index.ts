@@ -1042,6 +1042,8 @@ Deno.serve(async (req) => {
                   No pressure. Just showing up is the win.
                 </p>
                 
+                ${reEngageBuildSection}
+                
                 <div style="text-align: center;">
                   <a href="https://thedashboard.agbcoaching.com/dashboard" 
                      style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 15px;">
