@@ -1152,7 +1152,7 @@ Deno.serve(async (req) => {
                   reflectionQuestion: "What part of this verse challenges you most right now?",
                   microAction: "Choose one small action today that reflects what this verse is asking of you.",
                   eveningPrompt: "Did I live closer to this verse today than yesterday?",
-                });
+                }, userLevels);
                 subject = fallbackResult.subject;
                 body = fallbackResult.body;
               }
