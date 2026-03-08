@@ -123,7 +123,7 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
             variant="secondary"
             size="sm"
             className="w-full text-xs"
-            onClick={() => generatePlan.mutate()}
+            onClick={() => generatePlan.mutate({})}
             disabled={generatePlan.isPending}
           >
             {generatePlan.isPending ? (
