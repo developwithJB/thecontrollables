@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, addDays } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Loader2, X, Check, Copy, Share2 } from "lucide-react";
+import { ShoppingCart, Loader2, X, Check, Copy, Share2, Download, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import html2canvas from "html2canvas";
+import { cn } from "@/lib/utils";
 
 interface GroceryItem {
   name: string;
@@ -31,6 +33,8 @@ export function GroceryListSheet({ userId }: GroceryListSheetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [groceryList, setGroceryList] = useState<GroceryList | null>(null);
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+  const [showShareCard, setShowShareCard] = useState(false);
+  const shareCardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const generate = useMutation({
@@ -96,15 +100,39 @@ export function GroceryListSheet({ userId }: GroceryListSheetProps) {
         await navigator.share({ title, text });
         return;
       } catch {
-        // User cancelled or share failed — fall through to mailto
+        // fallback
       }
     }
 
-    // Fallback: open mailto
     const subject = encodeURIComponent(title);
     const body = encodeURIComponent(text);
     window.open(`mailto:?subject=${subject}&body=${body}`, "_blank");
   };
+
+  const handleShareAsImage = useCallback(async () => {
+    if (!shareCardRef.current) return;
+    try {
+      const canvas = await html2canvas(shareCardRef.current, { backgroundColor: null, scale: 2, useCORS: true });
+      const imageData = canvas.toDataURL("image/png");
+
+      if (navigator.share && navigator.canShare) {
+        const blob = await (await fetch(imageData)).blob();
+        const file = new File([blob], "grocery-list.png", { type: "image/png" });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ title: "🛒 My Grocery List", files: [file] });
+          return;
+        }
+      }
+
+      // Fallback: download
+      const link = document.createElement("a");
+      link.download = "grocery-list.png";
+      link.href = imageData;
+      link.click();
+    } catch {
+      toast({ title: "Export failed", variant: "destructive" });
+    }
+  }, [toast]);
 
   const totalItems = groceryList?.categories.reduce((s, c) => s + c.items.length, 0) ?? 0;
   const checkedCount = checkedItems.size;
@@ -159,7 +187,10 @@ export function GroceryListSheet({ userId }: GroceryListSheetProps) {
                   <div className="flex items-center gap-1">
                     {groceryList && (
                       <>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleShare} title="Share">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowShareCard(!showShareCard)} title="Share as image">
+                          <Image className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleShare} title="Share text">
                           <Share2 className="w-4 h-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copyToClipboard} title="Copy">
@@ -185,6 +216,49 @@ export function GroceryListSheet({ userId }: GroceryListSheetProps) {
                 {groceryList && groceryList.categories.length === 0 && (
                   <div className="text-center py-8">
                     <p className="text-sm text-muted-foreground">{groceryList.summary}</p>
+                  </div>
+                )}
+
+                {/* Share Card Preview */}
+                {showShareCard && groceryList && groceryList.categories.length > 0 && (
+                  <div className="space-y-2">
+                    <div ref={shareCardRef} className="rounded-2xl overflow-hidden" style={{ background: "linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%)" }}>
+                      <div className="px-5 py-4 bg-gradient-to-r from-primary to-primary/60 text-white">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">🛒</span>
+                          <div>
+                            <h3 className="text-base font-bold">My Grocery List</h3>
+                            <p className="text-xs opacity-90">{totalItems} items · {groceryList.summary}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-4 space-y-2">
+                        {groceryList.categories.map((cat) => (
+                          <div key={cat.name}>
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">{cat.name}</p>
+                            {cat.items.map((item) => (
+                              <div key={item.name} className="flex justify-between text-xs py-0.5">
+                                <span className="text-foreground">{item.name}</span>
+                                <span className="text-muted-foreground">{item.quantity}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                        <div className="flex items-center justify-center gap-1.5 pt-2 border-t border-border/40">
+                          <span className="text-[10px] text-muted-foreground">Powered by</span>
+                          <span className="text-[10px] font-semibold text-foreground">The Controllables</span>
+                          <span className="text-xs">🛰️</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button className="flex-1 gap-1.5 text-xs" size="sm" onClick={handleShareAsImage}>
+                        <Share2 className="h-3 w-3" /> Share Image
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-xs gap-1" onClick={handleShareAsImage}>
+                        <Download className="h-3 w-3" /> Save
+                      </Button>
+                    </div>
                   </div>
                 )}
 
