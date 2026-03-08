@@ -282,6 +282,25 @@ export default function Dashboard() {
     lookupCircle,
   } = useCircle(user?.id || undefined, activeSession?.id);
 
+  // 4-Week Seasons
+  const {
+    activeSeason,
+    seasonSnapshots,
+    seasonProgress,
+    isStartingSeason,
+    startSeason,
+    linkSnapshotToSeason,
+    completeSeason,
+    shouldShowSeasonComplete,
+  } = useSeason(user?.id || undefined);
+  const [showSeasonComplete, setShowSeasonComplete] = useState(false);
+  useEffect(() => {
+    if (shouldShowSeasonComplete) {
+      setShowSeasonComplete(true);
+      completeSeason();
+    }
+  }, [shouldShowSeasonComplete, completeSeason]);
+
   // Handle ?join=CODE URL param for circle invites
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const joinCodeFromUrl = searchParams.get("join");
