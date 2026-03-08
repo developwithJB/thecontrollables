@@ -756,6 +756,7 @@ function generateWeeklyEmailContent(
   
   // Permission line (rotate)
   const permissionLine = PERMISSION_LINES[Math.floor(Math.random() * PERMISSION_LINES.length)];
+  const buildSection = renderBuildLevelsHtml(levels);
 
   const body = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 440px; margin: 0 auto; padding: 40px 20px; text-align: center; background: #fafafa;">
