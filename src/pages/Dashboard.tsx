@@ -1046,6 +1046,15 @@ export default function Dashboard() {
                 <DailyAlignmentPromo onUpgrade={() => startCheckout(undefined, "daily_alignment_promo_dashboard")} />
               )}
 
+              {/* Season Banner - shown when user has an active season */}
+              {activeSeason && seasonProgress && (
+                <SeasonBanner
+                  seasonName={activeSeason.name}
+                  snapshots={seasonSnapshots}
+                  progress={seasonProgress}
+                />
+              )}
+
               {/* 7-Day Foundation Progress - only show when active session */}
               {activeSession && !isCompleted && !isExpired && (
                 <ResetProgressModule
