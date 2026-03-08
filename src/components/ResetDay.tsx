@@ -287,6 +287,33 @@ export const ResetDay = ({
 
           <ProgressDots totalDays={7} currentDay={dayNumber} completedDays={completedDays} />
 
+          {/* AI Reflection Coach — appears after submission */}
+          <AnimatePresence>
+            {hasSubmitted && (isLoadingReflection || aiReflection) && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="rounded-xl bg-accent/5 border border-accent/20 p-4"
+              >
+                {isLoadingReflection && !aiReflection ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg animate-pulse">{(DAY_CONTROLLABLE_META[dayNumber] || DAY_CONTROLLABLE_META[1]).emoji}</span>
+                    <div className="h-3 bg-muted rounded animate-pulse flex-1" />
+                  </div>
+                ) : aiReflection ? (
+                  <div className="flex items-start gap-3">
+                    <span className="text-lg mt-0.5">{aiReflection.emoji}</span>
+                    <div>
+                      <p className="text-sm text-foreground/90 italic leading-relaxed">"{aiReflection.message}"</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">— {aiReflection.name}</p>
+                    </div>
+                  </div>
+                ) : null}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Lock Screen / Print Card Button */}
           <button
             onClick={() => setShowQuestCard(true)}
