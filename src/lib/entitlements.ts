@@ -19,6 +19,7 @@ export const PAID_FEATURES = {
   momentumDecay: "plus",
   aiCompanions: "plus",
   certificateDownload: "plus",
+  mealPlanning: "plus",
   multipleResets: "pro",
 } as const;
 

@@ -1050,6 +1050,15 @@ export default function Dashboard() {
                 />
               )}
 
+              {/* Meal Planning & Tracking - Powered by Satellite */}
+              {user?.id && !entitlementsLoading && (
+                <MealPlanCard
+                  userId={user.id}
+                  isPaid={isPaid}
+                  onUpgrade={() => startCheckout(undefined, "meal_plan_card")}
+                />
+              )}
+
               {/* Build Entry Point - shows if user hasn't done assessment */}
               <BuildEntryPoint userId={user?.id} />
 
