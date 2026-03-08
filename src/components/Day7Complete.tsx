@@ -46,6 +46,8 @@ export const Day7Complete = ({
   completedJourneyId,
   isHistoricalView = false,
   completedDaysCount,
+  activeSeason,
+  seasonSnapshotsCompleted = 0,
 }: Day7CompleteProps) => {
   const navigate = useNavigate();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
