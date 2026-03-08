@@ -362,7 +362,6 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
     // For free users: handle trial vs non-trial differently
     if (!isPaid) {
       if (isTrialing) {
-        // Trial users: check daily limit
         if (trialMessagesUsedToday >= FREE_TRIAL_LIMIT) {
           toast.error("Daily message limit reached. Come back tomorrow or upgrade for unlimited!");
           return;
@@ -384,12 +383,10 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
     if (selectedGuide) {
       respondingGuide = selectedGuide;
     } else {
-      // Auto-detect based on message content
       const detectedGuideId = detectGuideFromMessage(messageText);
       respondingGuide = GUIDES.find(g => g.id === detectedGuideId) || GUIDES[0];
     }
 
-    // Track message send
     trackGuideInteraction("message", respondingGuide.name);
 
     const userMessage: Message = { role: "user", content: messageText };
@@ -419,49 +416,112 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
         archetypeDescription: archetypeInfo.description,
       } : null;
 
-      const { data, error } = await supabase.functions.invoke("ai-chat", {
-        body: {
+      // Try streaming first
+      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
           controllable: respondingGuide.id,
           messages: [userMessage].map((m) => ({ role: m.role, content: m.content })),
           sessionHistory: messages.slice(-10),
           patternData,
           userContext,
           buildContext,
-        },
+          stream: true,
+        }),
       });
 
-      if (error) {
-        // Check if it's a limit reached error
-        if (error.message?.includes('limit') || data?.limitReached) {
+      if (!resp.ok || !resp.body) {
+        // Fallback: check for limit errors
+        const errData = await resp.json().catch(() => ({}));
+        if (errData.limitReached) {
           setLimitReached(true);
           setRemainingMessages(0);
           toast.error("Daily message limit reached. Resets at midnight.");
           return;
         }
-        throw error;
+        throw new Error(errData.error || "Stream failed");
       }
 
-      // Update remaining messages from response
-      if (data.remaining !== undefined) {
-        setRemainingMessages(data.remaining);
-      }
+      // Parse SSE stream token-by-token
+      let assistantSoFar = "";
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
 
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: data.message || "I'm here to help. What's on your mind?",
-        actionCompleted: false,
-        controllable: respondingGuide.id, // Persist which guide responded
+      const upsertAssistant = (content: string) => {
+        assistantSoFar = content;
+        setMessages(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant" && !last.actionCompleted) {
+            return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
+          }
+          return [...prev, { role: "assistant", content: assistantSoFar, actionCompleted: false, controllable: respondingGuide.id }];
+        });
       };
-      const updatedMessages = [...newMessages, assistantMessage];
-      setMessages(updatedMessages);
-      
-      saveSession(updatedMessages, respondingGuide.id);
+
+      let streamDone = false;
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          
+          // Handle meta event for usage tracking
+          if (line.startsWith("event: meta")) continue;
+          
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") { streamDone = true; break; }
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            // Check if it's a meta event payload
+            if (parsed.remaining !== undefined && !parsed.choices) {
+              setRemainingMessages(parsed.remaining);
+              continue;
+            }
+            const delta = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (delta) {
+              assistantSoFar += delta;
+              upsertAssistant(assistantSoFar);
+            }
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+
+      // Ensure action suffix
+      if (assistantSoFar && !assistantSoFar.includes('→ ACTION:') && !assistantSoFar.includes('ACTION:')) {
+        assistantSoFar += '\n\n→ ACTION: Take one small step right now. What can you do in the next 2 minutes?';
+        upsertAssistant(assistantSoFar);
+      }
+
+      // Save final messages
+      const finalMessages = [...newMessages, { role: "assistant" as const, content: assistantSoFar, actionCompleted: false, controllable: respondingGuide.id }];
+      saveSession(finalMessages, respondingGuide.id);
       
       // For free users, track daily usage after successful message
       if (!isPaid) {
         const today = new Date().toISOString().split('T')[0];
         if (isTrialing) {
-          // Trial: increment count
           const trialKey = `ai_guide_trial_count_${today}`;
           const newCount = trialMessagesUsedToday + 1;
           localStorage.setItem(trialKey, String(newCount));
@@ -472,14 +532,12 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
             setFreePreviewUsed(true);
           }
         } else if (hasActiveSnapshot) {
-          // Non-trial: mark single daily message used
           const previewKey = `ai_guide_daily_${today}`;
           localStorage.setItem(previewKey, 'true');
           setFreePreviewUsed(true);
         }
       }
       
-      // Notify parent that a message was sent (for Today Actions completion)
       onMessageSent?.();
     } catch (error) {
       console.error("AI chat error:", error);

@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
-import { motion } from "framer-motion";
-import { ChevronLeft, Compass, Smartphone, Download } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronLeft, Compass, Smartphone, Download, Sparkles } from "lucide-react";
 import { getDayContent } from "@/lib/resetContent";
 import { ProgressDots } from "./ProgressDots";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,11 +14,22 @@ import {
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { QuestCard } from "@/components/experience/QuestCard";
+import { supabase } from "@/integrations/supabase/client";
+
+const DAY_CONTROLLABLE_META: Record<number, { emoji: string; name: string }> = {
+  1: { emoji: "🦉", name: "Awareness" },
+  2: { emoji: "🐢", name: "Perspective" },
+  3: { emoji: "🦈", name: "Habit" },
+  4: { emoji: "🛰️", name: "Wellness" },
+  5: { emoji: "🚀", name: "Environment" },
+  6: { emoji: "🦈", name: "Habit" },
+  7: { emoji: "🦉", name: "Awareness" },
+};
 
 interface ResetDayProps {
   dayNumber: number;
   completedDays: number;
-  logDate: string; // The real calendar date for this day
+  logDate: string;
   onComplete: (data: { reflection?: string; userInput?: string }) => void;
   isCompleting: boolean;
   snapshotEmoji?: string;
@@ -46,6 +57,9 @@ export const ResetDay = ({
   const [userInput, setUserInput] = useState("");
   const [rating, setRating] = useState<number | null>(null);
   const [showQuestCard, setShowQuestCard] = useState(false);
+  const [aiReflection, setAiReflection] = useState<{ message: string; emoji: string; name: string } | null>(null);
+  const [isLoadingReflection, setIsLoadingReflection] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   // Prepare today's reading for the QuestCard
   const todayReading = {
@@ -54,8 +68,29 @@ export const ResetDay = ({
     quest_action: content.framingLine,
   };
 
+  const fetchAIReflection = async (reflectionText: string) => {
+    setIsLoadingReflection(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-reflect", {
+        body: { reflection: reflectionText, dayNumber },
+      });
+      if (!error && data?.message) {
+        setAiReflection({ message: data.message, emoji: data.emoji, name: data.name });
+      }
+    } catch {
+      // Silently fail — AI reflection is a bonus, not critical
+    } finally {
+      setIsLoadingReflection(false);
+    }
+  };
+
   const handleSubmit = () => {
     const inputValue = content.inputType === "rating_1_5" ? String(rating) : userInput.trim();
+    setHasSubmitted(true);
+    // Fire AI reflection in background (non-blocking)
+    if (inputValue && inputValue.length > 3) {
+      fetchAIReflection(inputValue);
+    }
     onComplete({
       userInput: inputValue || undefined,
     });
@@ -251,6 +286,33 @@ export const ResetDay = ({
           </Button>
 
           <ProgressDots totalDays={7} currentDay={dayNumber} completedDays={completedDays} />
+
+          {/* AI Reflection Coach — appears after submission */}
+          <AnimatePresence>
+            {hasSubmitted && (isLoadingReflection || aiReflection) && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="rounded-xl bg-accent/5 border border-accent/20 p-4"
+              >
+                {isLoadingReflection && !aiReflection ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg animate-pulse">{(DAY_CONTROLLABLE_META[dayNumber] || DAY_CONTROLLABLE_META[1]).emoji}</span>
+                    <div className="h-3 bg-muted rounded animate-pulse flex-1" />
+                  </div>
+                ) : aiReflection ? (
+                  <div className="flex items-start gap-3">
+                    <span className="text-lg mt-0.5">{aiReflection.emoji}</span>
+                    <div>
+                      <p className="text-sm text-foreground/90 italic leading-relaxed">"{aiReflection.message}"</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">— {aiReflection.name}</p>
+                    </div>
+                  </div>
+                ) : null}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Lock Screen / Print Card Button */}
           <button

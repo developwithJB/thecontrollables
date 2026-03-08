@@ -57,6 +57,7 @@ import { TrialCompleteCard } from "@/components/dashboard/TrialCompleteCard";
 
 // JourneyChangesLog removed - consolidated into Activity History
 
+import { DailyBriefingCard } from "@/components/dashboard/DailyBriefingCard";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DailyAlignmentPromo } from "@/components/dashboard/DailyAlignmentPromo";
 import { DailyAlignmentSpotlight } from "@/components/dashboard/DailyAlignmentSpotlight";
@@ -1035,6 +1036,16 @@ export default function Dashboard() {
                   onOpenBuild={() => buildRef.current?.openDetailDialog()}
                   askGuideCompleted={askGuideCompletedToday}
                   onDay7AllComplete={triggerDay7Celebration}
+                />
+              )}
+
+              {/* AI Morning Briefing Card */}
+              {user?.id && !entitlementsLoading && !!activeSession && !isCompleted && !isExpired && (
+                <DailyBriefingCard
+                  isPaid={isPaid}
+                  isTrialing={isTrialing}
+                  hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
+                  onUpgrade={() => startCheckout(undefined, "daily_briefing")}
                 />
               )}
 

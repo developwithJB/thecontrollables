@@ -331,9 +331,19 @@ export function TodayActions({
   // Day-based bonus actions (vary by day to encourage different features)
   // Only add bonus actions if we have an active session
   if (hasActiveSession && !isResetCompleted && !isResetExpired) {
-    // Day 1: Encourage making a promise (show completed if they made one today)
+    // "Ask The Controllables" — available EVERY day (AI-forward)
+    actions.push({
+      id: "ask-guide",
+      label: "Ask The Controllables",
+      sublabel: askGuideDoneToday ? "Completed" : `Get guidance from today's operator`,
+      icon: <Sparkles className="w-4 h-4" />,
+      completed: askGuideDoneToday,
+      timeEstimate: "3 min",
+      action: onOpenAIGuide,
+    });
+
+    // Day 1: Encourage making a promise
     if (currentDay === 1) {
-      // Only mark complete if user made a promise TODAY (not based on pending old promises)
       actions.push({
         id: "make-promise",
         label: "Make your first promise",
@@ -358,31 +368,17 @@ export function TodayActions({
       });
     }
     
-    // Day 5: Encourage AI Guide (paid only) or make another promise (free)
-    if (currentDay === 5) {
-      if (isPaid) {
-        actions.push({
-          id: "ask-guide",
-          label: "Ask The Controllables",
-          sublabel: askGuideDoneToday ? "Completed" : "Get personalized guidance",
-          icon: <Sparkles className="w-4 h-4" />,
-          completed: askGuideDoneToday,
-          timeEstimate: "3 min",
-          action: onOpenAIGuide,
-        });
-      } else {
-        // Free users: suggest making a promise instead
-        // Only mark complete if user made a promise TODAY (not based on pending old promises)
-        actions.push({
-          id: "make-promise",
-          label: "Make a promise to yourself",
-          sublabel: todayPromiseMade ? "Completed" : "Build integrity through kept commitments",
-          icon: <Scale className="w-4 h-4" />,
-          completed: todayPromiseMade,
-          timeEstimate: "1 min",
-          action: onOpenPromises,
-        });
-      }
+    // Day 5: Free users: suggest making a promise
+    if (currentDay === 5 && !isPaid) {
+      actions.push({
+        id: "make-promise",
+        label: "Make a promise to yourself",
+        sublabel: todayPromiseMade ? "Completed" : "Build integrity through kept commitments",
+        icon: <Scale className="w-4 h-4" />,
+        completed: todayPromiseMade,
+        timeEstimate: "1 min",
+        action: onOpenPromises,
+      });
     }
     
     // Day 7: Celebrate completion day
