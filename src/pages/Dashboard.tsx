@@ -59,6 +59,7 @@ import { TrialCompleteCard } from "@/components/dashboard/TrialCompleteCard";
 
 import { DailyBriefingCard } from "@/components/dashboard/DailyBriefingCard";
 import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
+import { BrainBodyTracker } from "@/components/dashboard/BrainBodyTracker";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DailyAlignmentPromo } from "@/components/dashboard/DailyAlignmentPromo";
 import { DailyAlignmentSpotlight } from "@/components/dashboard/DailyAlignmentSpotlight";
@@ -1047,6 +1048,19 @@ export default function Dashboard() {
                   isTrialing={isTrialing}
                   hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
                   onUpgrade={() => startCheckout(undefined, "daily_briefing")}
+                />
+              )}
+
+              {/* Brain & Body Health Tracker */}
+              {user?.id && (
+                <BrainBodyTracker
+                  userId={user.id}
+                  onLogWellness={() => {
+                    // Open wellness logger via insights section
+                    if (!showInsights) {
+                      setShowInsights(true);
+                    }
+                  }}
                 />
               )}
 
