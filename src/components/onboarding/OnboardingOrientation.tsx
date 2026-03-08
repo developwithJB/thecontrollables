@@ -11,11 +11,58 @@ interface OnboardingOrientationProps {
   onStartDay1: () => void;
 }
 
+const CONTROLLABLE_EMOJIS: Record<string, string> = {
+  awareness: "🦉", perspective: "🐢", habit: "🦈", wellness: "🛰️", environment: "🚀",
+};
+
+const STATIC_FALLBACKS: Record<string, string> = {
+  awareness: "You chose to see clearly. That's already a rep.",
+  perspective: "The long view starts here. One day at a time.",
+  habit: "You picked the hard one. Good. One rep at a time.",
+  wellness: "Let's check the systems. Everything starts here.",
+  environment: "Design beats discipline. Let's build your runway.",
+};
+
 export function OnboardingOrientation({
   snapshotName,
   snapshotEmoji,
+  snapshotFocus,
   onStartDay1,
 }: OnboardingOrientationProps) {
+  const [aiWelcome, setAiWelcome] = useState<{ text: string; emoji: string } | null>(null);
+
+  useEffect(() => {
+    if (!snapshotFocus) return;
+    const fetchWelcome = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const res = await supabase.functions.invoke('ai-reflect', {
+          body: {
+            reflection: `User just selected the "${snapshotName}" Snapshot (focus: ${snapshotFocus}) during onboarding. Generate a brief, character-specific welcome message.`,
+            dayNumber: 1,
+            controllable: snapshotFocus,
+          },
+        });
+
+        if (res.data?.message) {
+          setAiWelcome({
+            text: res.data.message,
+            emoji: CONTROLLABLE_EMOJIS[snapshotFocus] || "✨",
+          });
+        }
+      } catch {
+        // Use static fallback
+        setAiWelcome({
+          text: STATIC_FALLBACKS[snapshotFocus] || "Let's begin.",
+          emoji: CONTROLLABLE_EMOJIS[snapshotFocus] || "✨",
+        });
+      }
+    };
+    fetchWelcome();
+  }, [snapshotFocus, snapshotName]);
+
   const orientationItems = [
     {
       icon: Camera,
