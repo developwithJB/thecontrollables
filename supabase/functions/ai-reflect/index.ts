@@ -15,6 +15,42 @@ const DAY_CONTROLLABLES: Record<number, { name: string; emoji: string; key: stri
   7: { name: 'Awareness', emoji: '🦉', key: 'awareness' },
 };
 
+const CONTROLLABLE_META: Record<string, { emoji: string; label: string }> = {
+  awareness: { emoji: '🦉', label: 'Awareness' },
+  perspective: { emoji: '🐢', label: 'Perspective' },
+  habit: { emoji: '🦈', label: 'Habit' },
+  wellness: { emoji: '🛰️', label: 'Wellness' },
+  environment: { emoji: '🚀', label: 'Environment' },
+};
+
+function getLevelFromXp(totalXp: number): number {
+  if (totalXp <= 0) return 1;
+  return Math.min(Math.max(Math.floor(Math.sqrt(totalXp / 25)), 1), 99);
+}
+
+async function fetchLevelsContext(client: any, userId: string): Promise<string> {
+  const { data } = await client
+    .from('completed_actions')
+    .select('controllable, xp_awarded')
+    .eq('user_id', userId)
+    .not('controllable', 'is', null);
+
+  if (!data || data.length === 0) return '';
+
+  const xpMap: Record<string, number> = {};
+  for (const row of data) {
+    if (row.controllable) xpMap[row.controllable] = (xpMap[row.controllable] || 0) + row.xp_awarded;
+  }
+
+  const lines = Object.entries(CONTROLLABLE_META).map(([k, m]) =>
+    `${m.emoji} ${m.label}: Lv.${getLevelFromXp(xpMap[k] || 0)}`
+  );
+  const overall = Math.round(
+    Object.keys(CONTROLLABLE_META).reduce((s, k) => s + getLevelFromXp(xpMap[k] || 0), 0) / 5
+  );
+  return `\nTheir Build: Overall Lv.${overall} — ${lines.join(', ')}`;
+}
+
 const CONTROLLABLE_VOICES: Record<string, string> = {
   awareness: 'You are the Owl 🦉 — brief, observational, calm. You notice patterns the user missed. Speak in short, clear sentences. No fluff.',
   perspective: 'You are the Turtle 🐢 — wise, unhurried, grounding. You zoom out and reframe. Keep it real, not motivational.',
@@ -49,6 +85,7 @@ Deno.serve(async (req) => {
       });
     }
 
+    const userId = userData.user.id;
     const { reflection, dayNumber, controllable: overrideControllable } = await req.json();
 
     if (!reflection || typeof reflection !== 'string' || reflection.length > 2000) {
@@ -62,7 +99,16 @@ Deno.serve(async (req) => {
     const controllableKey = overrideControllable || controllableInfo.key;
     const voice = CONTROLLABLE_VOICES[controllableKey] || CONTROLLABLE_VOICES.awareness;
 
-    const apiKey = Deno.env.get('LOVABLE_API_KEY');
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const [levelsContext, apiKey] = await Promise.all([
+      fetchLevelsContext(serviceClient, userId),
+      Promise.resolve(Deno.env.get('LOVABLE_API_KEY')),
+    ]);
+
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'AI service not configured' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
