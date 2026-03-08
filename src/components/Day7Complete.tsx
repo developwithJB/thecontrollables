@@ -294,6 +294,58 @@ export const Day7Complete = ({
             "A 7-Day Snapshot is a recorded moment in time that proves you are who you say you are."
           </motion.p>
 
+          {/* Season Continuation CTA */}
+          {showWhatsNext && isPaid && activeSeason && seasonSnapshotsCompleted < 4 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.65 }}
+              className="mb-4"
+            >
+              <div className="border border-primary/30 bg-gradient-to-r from-primary/5 to-accent/5 rounded-xl p-5">
+                <div className="flex items-center gap-2 justify-center mb-2">
+                  <CalendarDays className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-foreground">
+                    Continue Your Season — Week {seasonSnapshotsCompleted + 1} of 4
+                  </h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4 italic">
+                  {seasonSnapshotsCompleted === 1
+                    ? "Week 1 is proof. Week 2 is momentum. Keep going."
+                    : seasonSnapshotsCompleted === 2
+                    ? "Two weeks down. The pattern is becoming yours."
+                    : "One more week. Finish what you started."}
+                </p>
+                <button
+                  onClick={() => handleStartNextSnapshot(recommendedJourney.id)}
+                  className="w-full bg-background hover:bg-muted/50 border border-border rounded-lg p-4 text-left transition-colors group mb-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{recommendedJourney.emoji}</span>
+                      <div>
+                        <p className="font-medium text-foreground group-hover:text-primary transition-colors">
+                          {recommendedJourney.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{recommendedJourney.tagline}</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
+                  </div>
+                </button>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={handleChooseDifferent} className="flex-1 text-xs h-9">
+                    Choose Different
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={handleTakeBreak} className="flex-1 text-xs h-9">
+                    <Coffee className="w-3 h-3 mr-1" />
+                    Take a Break
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* What's Next Section - Paid users */}
           {showWhatsNext && isPaid && (
             <motion.div
