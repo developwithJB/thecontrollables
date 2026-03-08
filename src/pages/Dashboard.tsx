@@ -89,6 +89,8 @@ import { TimeCycleCard } from "@/components/experience/TimeCycleCard";
 import { LockedOverlay } from "@/components/experience/LockedOverlay";
 import { PullToRefreshIndicator } from "@/components/pwa/PullToRefreshIndicator";
 import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
+import { CircleCard } from "@/components/dashboard/CircleCard";
+import { useCircle } from "@/hooks/useCircle";
 
 type TabType = "dashboard" | "experience" | "guide";
 
