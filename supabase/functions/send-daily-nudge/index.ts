@@ -746,7 +746,8 @@ function generateDailyAlignmentEmailContent(
 
 // Generate WEEKLY email content
 function generateWeeklyEmailContent(
-  context: UserContext
+  context: UserContext,
+  levels: ControllableLevelInfo[]
 ): { subject: string; body: string } {
   const greeting = context.displayName ? `Hey ${context.displayName}` : "Hey";
   
