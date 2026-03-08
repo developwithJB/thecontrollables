@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Download, Share2, Loader2, Eye, Lock, ChevronRight, Sparkles, Coffee, Gift } from "lucide-react";
 import { useCertificate } from "@/hooks/useCertificate";
