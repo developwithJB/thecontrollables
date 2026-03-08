@@ -63,7 +63,9 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
   };
 
   const handleGenerate = () => {
-    generatePlan.mutate(getSlotConfig());
+    const config = getSlotConfig();
+    generatePlan.mutate(config);
+    savePreferences.mutate({ excludeMeals: config.excludeMeals || [], snackCount: config.snackCount ?? 1 });
     setShowConfig(false);
   };
 
