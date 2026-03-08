@@ -18,7 +18,7 @@ const STRIPE_PRICE_IDS: Record<PlanTier, string> = {
 const DEFAULT_ORIGIN = "https://thedashboard.agbcoaching.com";
 const ALLOWED_ORIGINS = (
   Deno.env.get("CHECKOUT_ALLOWED_ORIGINS")
-  ?? `${DEFAULT_ORIGIN},https://thecontrollables.lovable.app,http://localhost:5173`
+  ?? `${DEFAULT_ORIGIN},https://thedashboard.agbcoaching.com,http://localhost:5173`
 )
   .split(",")
   .map((origin) => origin.trim())
