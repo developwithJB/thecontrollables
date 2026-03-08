@@ -817,7 +817,7 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
                     A quiet place to restart
                   </p>
                   <p className="text-sm font-medium text-foreground mt-1">
-                    thecontrollables.lovable.app
+                    thedashboard.agbcoaching.com
                   </p>
                 </div>
               </>

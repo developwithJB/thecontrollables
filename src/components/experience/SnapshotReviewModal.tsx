@@ -169,8 +169,8 @@ export function SnapshotReviewModal({ sessionId, userId, isPaid, onClose }: Snap
       `⚡ ${sessionXp} XP earned\n` +
       promiseText +
       `\nBuilding proof, one week at a time.\n` +
-      `thecontrollables.lovable.app\n\n` +
-      `#TheControllables`;
+      `thedashboard.agbcoaching.com\n\n` +
+      `#TheDashboard`;
 
     if (navigator.share) {
       try {

@@ -58,7 +58,7 @@ serve(async (req) => {
       }, { onConflict: "user_id,entitlement_type" });
     }
 
-    const origin = req.headers.get("origin") || "https://thecontrollables.lovable.app";
+    const origin = req.headers.get("origin") || "https://thedashboard.agbcoaching.com";
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${origin}/billing`,

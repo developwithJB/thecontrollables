@@ -66,8 +66,8 @@ export function LockedOverlay({
         };
       case "ai-companion":
         return {
-          title: "The Controllables",
-          description: `${freeTrialOfferCopy} included.\n\nThe Controllables unlock with Full Access.`,
+          title: "AI Companions",
+          description: `${freeTrialOfferCopy} included.\n\nAI Companions unlock with Full Access.`,
           buttonText: "Unlock Full Access",
           priceLine: priceText
         };

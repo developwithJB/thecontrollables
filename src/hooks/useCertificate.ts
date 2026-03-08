@@ -164,7 +164,7 @@ export const useCertificate = (resetSessionId: string | undefined) => {
       });
     };
 
-    const shareText = `I committed to controlling what I could and surrendering what I could not from ${formatDate(startDate)} to ${formatDate(endDate)}. #TheControllables`;
+    const shareText = `I committed to controlling what I could and surrendering what I could not from ${formatDate(startDate)} to ${formatDate(endDate)}. #TheDashboard`;
 
     if (navigator.share) {
       try {
