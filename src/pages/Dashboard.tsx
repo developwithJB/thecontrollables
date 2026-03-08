@@ -1040,11 +1040,11 @@ export default function Dashboard() {
               )}
 
               {/* AI Morning Briefing Card */}
-              {user?.id && !entitlementsLoading && hasActiveSnapshot && (
+              {user?.id && !entitlementsLoading && !!activeSession && !isCompleted && !isExpired && (
                 <DailyBriefingCard
                   isPaid={isPaid}
                   isTrialing={isTrialing}
-                  hasActiveSnapshot={hasActiveSnapshot}
+                  hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
                   onUpgrade={() => startCheckout(undefined, "daily_briefing")}
                 />
               )}
