@@ -1,4 +1,5 @@
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import type { BuildScore } from "@/lib/build";
@@ -9,14 +10,16 @@ interface OnboardingMeetGuidesProps {
 }
 
 const GUIDES = [
-  { key: "awareness", emoji: "🦉", name: "Awareness", tagline: "See clearly before you act", description: "Helps you observe your thoughts and reactions without getting swept away." },
-  { key: "perspective", emoji: "🐢", name: "Perspective", tagline: "Zoom out. See the bigger picture", description: "Reframes situations so urgency doesn't override wisdom." },
-  { key: "habit", emoji: "🦈", name: "Habit", tagline: "Reps beat motivation", description: "Cuts through excuses and points to the next smallest action." },
-  { key: "wellness", emoji: "🛰️", name: "Wellness", tagline: "Check your systems", description: "Monitors sleep, movement, and fuel — the basics that power everything." },
-  { key: "environment", emoji: "🚀", name: "Environment", tagline: "Design > discipline", description: "Redesigns your surroundings so the right choice becomes the easy choice." },
+  { key: "awareness", emoji: "🦉", name: "Awareness", tagline: "See clearly before you act", description: "Helps you observe your thoughts and reactions without getting swept away.", quotes: ["You cannot change what you cannot see.", "You are not your thoughts. You are the one watching them.", "The pause between trigger and response — that's where freedom lives."] },
+  { key: "perspective", emoji: "🐢", name: "Perspective", tagline: "Zoom out. See the bigger picture", description: "Reframes situations so urgency doesn't override wisdom.", quotes: ["Zoom out. How will this matter in a year?", "You've survived 100% of your hardest days so far.", "The story you tell yourself about what happened matters more than what happened."] },
+  { key: "habit", emoji: "🦈", name: "Habit", tagline: "Reps beat motivation", description: "Cuts through excuses and points to the next smallest action.", quotes: ["Reps beat motivation. Every time.", "Small promises kept > big promises broken.", "Don't break the chain. The chain is everything."] },
+  { key: "wellness", emoji: "🛰️", name: "Wellness", tagline: "Check your systems", description: "Monitors sleep, movement, and fuel — the basics that power everything.", quotes: ["You can't pour from an empty cup. Check your systems.", "Output is limited by input. What's your fuel?", "Sleep isn't optional. It's the foundation everything else sits on."] },
+  { key: "environment", emoji: "🚀", name: "Environment", tagline: "Design > discipline", description: "Redesigns your surroundings so the right choice becomes the easy choice.", quotes: ["Environment > willpower. Every time.", "Change the system, not just yourself.", "Make the right choice the easy choice."] },
 ];
 
 export function OnboardingMeetGuides({ buildResult, onContinue }: OnboardingMeetGuidesProps) {
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+
   // Find strongest and weakest from build scores
   let strongestKey = "";
   let weakestKey = "";
@@ -53,6 +56,9 @@ export function OnboardingMeetGuides({ buildResult, onContinue }: OnboardingMeet
           <p className="text-sm text-muted-foreground">
             They'll coach you through each day of your Snapshot.
           </p>
+          <p className="text-[11px] text-muted-foreground/60 mt-1">
+            Tap a guide to hear them speak.
+          </p>
         </motion.div>
 
         {/* Guide cards */}
@@ -60,6 +66,7 @@ export function OnboardingMeetGuides({ buildResult, onContinue }: OnboardingMeet
           {GUIDES.map((guide, index) => {
             const isStrongest = guide.key === strongestKey;
             const isWeakest = guide.key === weakestKey;
+            const isExpanded = expandedKey === guide.key;
 
             return (
               <motion.div
@@ -67,8 +74,11 @@ export function OnboardingMeetGuides({ buildResult, onContinue }: OnboardingMeet
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.15 + index * 0.08 }}
-                className={`p-4 rounded-xl border text-left transition-all ${
-                  isWeakest
+                onClick={() => setExpandedKey(isExpanded ? null : guide.key)}
+                className={`p-4 rounded-xl border text-left transition-all cursor-pointer active:scale-[0.98] ${
+                  isExpanded
+                    ? "border-primary/60 bg-primary/5 shadow-sm"
+                    : isWeakest
                     ? "border-primary bg-primary/5"
                     : isStrongest
                     ? "border-accent/40 bg-accent/5"
@@ -96,6 +106,23 @@ export function OnboardingMeetGuides({ buildResult, onContinue }: OnboardingMeet
                     </p>
                   </div>
                 </div>
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-3 pt-3 border-t border-border/50">
+                        <p className="text-xs italic text-muted-foreground leading-relaxed">
+                          "{guide.quotes[index % guide.quotes.length]}"
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             );
           })}
