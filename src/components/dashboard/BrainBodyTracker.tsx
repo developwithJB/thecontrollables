@@ -125,30 +125,6 @@ export function BrainBodyTracker({ userId, onLogWellness }: BrainBodyTrackerProp
                 <ControllableLevelBadge controllable="wellness" />
               </div>
               <div className="flex items-center gap-2">
-                {!hasHealthSync && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSyncOpen(true);
-                    }}
-                    className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors bg-primary/10 rounded-full px-2 py-0.5"
-                  >
-                    <Smartphone className="h-3 w-3" />
-                    Connect
-                  </button>
-                )}
-                {hasHealthSync && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSyncOpen(true);
-                    }}
-                    className="flex items-center gap-1 text-[10px] text-perspective hover:text-perspective/80 transition-colors"
-                  >
-                    <Smartphone className="h-3 w-3" />
-                    Synced
-                  </button>
-                )}
                 {hasData && (
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <TrendIcon className="h-3 w-3" />
