@@ -25,6 +25,47 @@ export function OnboardingArchetypeResult({
 }: OnboardingArchetypeResultProps) {
   const archetypeInfo = getArchetypeInfo(buildResult.build_archetype_key);
   const themeColors = getArchetypeThemeColors(buildResult.build_archetype_key);
+  const [aiInterpretation, setAiInterpretation] = useState<{ text: string; emoji: string; name: string } | null>(null);
+
+  // Find weakest controllable to "speak" the interpretation
+  const scoresArr = [
+    { key: "awareness", value: Number(buildResult.awareness) },
+    { key: "perspective", value: Number(buildResult.perspective) },
+    { key: "habit", value: Number(buildResult.habit) },
+    { key: "wellness", value: Number(buildResult.wellness) },
+    { key: "environment", value: Number(buildResult.environment) },
+  ];
+  const weakest = scoresArr.reduce((a, b) => (a.value < b.value ? a : b));
+  const weakestLabel = CONTROLLABLE_LABELS[weakest.key];
+
+  useEffect(() => {
+    const fetchInterpretation = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const scoresText = scoresArr.map(s => `${s.key}: ${s.value.toFixed(1)}/4`).join(', ');
+        const res = await supabase.functions.invoke('ai-reflect', {
+          body: {
+            reflection: `Build Assessment complete. Archetype: ${buildResult.build_archetype_key}. Scores: ${scoresText}. Weakest area: ${weakest.key}.`,
+            dayNumber: 1,
+            controllable: weakest.key,
+          },
+        });
+
+        if (res.data?.message) {
+          setAiInterpretation({
+            text: res.data.message,
+            emoji: weakestLabel.emoji,
+            name: weakestLabel.name,
+          });
+        }
+      } catch (e) {
+        console.warn('AI interpretation failed, using static fallback:', e);
+      }
+    };
+    fetchInterpretation();
+  }, []);
 
   // Build score bars
   const scores = [
