@@ -782,6 +782,8 @@ function generateWeeklyEmailContent(
         </p>
       </div>
       
+      ${buildSection}
+      
       <p style="font-size: 15px; color: #444; margin: 0 0 8px 0;">
         This week still counts.
       </p>
