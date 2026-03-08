@@ -4,6 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 export interface MealPreferences {
   excludeMeals: string[];
   snackCount: number;
+  calorieTarget?: number;
+  proteinTarget?: number;
+  carbsTarget?: number;
+  fatTarget?: number;
 }
 
 const DEFAULT_PREFS: MealPreferences = { excludeMeals: [], snackCount: 1 };
@@ -25,6 +29,10 @@ export function useMealPreferences(userId: string | null) {
       return {
         excludeMeals: Array.isArray(raw.excludeMeals) ? raw.excludeMeals : [],
         snackCount: typeof raw.snackCount === "number" ? raw.snackCount : 1,
+        calorieTarget: typeof raw.calorieTarget === "number" ? raw.calorieTarget : undefined,
+        proteinTarget: typeof raw.proteinTarget === "number" ? raw.proteinTarget : undefined,
+        carbsTarget: typeof raw.carbsTarget === "number" ? raw.carbsTarget : undefined,
+        fatTarget: typeof raw.fatTarget === "number" ? raw.fatTarget : undefined,
       };
     },
     enabled: !!userId,

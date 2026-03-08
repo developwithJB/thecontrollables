@@ -72,8 +72,23 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
 
   const handleGenerate = () => {
     const config = getSlotConfig();
-    generatePlan.mutate(config);
-    savePreferences.mutate({ excludeMeals: config.excludeMeals || [], snackCount: config.snackCount ?? 1 });
+    const calTarget = calorieTarget ? parseInt(calorieTarget) : undefined;
+    const macros = {
+      proteinTarget: proteinTarget ? parseInt(proteinTarget) : undefined,
+      carbsTarget: carbsTarget ? parseInt(carbsTarget) : undefined,
+      fatTarget: fatTarget ? parseInt(fatTarget) : undefined,
+    };
+    generatePlan.mutate({
+      ...config,
+      calorie_target: calTarget,
+      macro_targets: macros,
+    });
+    savePreferences.mutate({
+      excludeMeals: config.excludeMeals || [],
+      snackCount: config.snackCount ?? 1,
+      calorieTarget: calTarget,
+      ...macros,
+    });
     setShowConfig(false);
   };
 
