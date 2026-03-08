@@ -1,10 +1,13 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Camera, Clock, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 interface OnboardingOrientationProps {
   snapshotName: string;
   snapshotEmoji: string;
+  snapshotFocus?: string;
   onStartDay1: () => void;
 }
 
