@@ -63,6 +63,8 @@ export function OnboardingArchetypeResult({
         }
       } catch (e) {
         console.warn('AI interpretation failed, using static fallback:', e);
+      } finally {
+        setIsLoadingAI(false);
       }
     };
     fetchInterpretation();
