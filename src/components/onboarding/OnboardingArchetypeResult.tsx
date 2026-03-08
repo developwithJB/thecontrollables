@@ -26,6 +26,7 @@ export function OnboardingArchetypeResult({
   const archetypeInfo = getArchetypeInfo(buildResult.build_archetype_key);
   const themeColors = getArchetypeThemeColors(buildResult.build_archetype_key);
   const [aiInterpretation, setAiInterpretation] = useState<{ text: string; emoji: string; name: string } | null>(null);
+  const [isLoadingAI, setIsLoadingAI] = useState(true);
 
   // Find weakest controllable to "speak" the interpretation
   const scoresArr = [
