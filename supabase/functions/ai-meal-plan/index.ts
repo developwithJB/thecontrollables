@@ -54,7 +54,7 @@ serve(async (req) => {
     }
 
     const mealsExample = requestedMeals
-      .map((m) => `    { "meal_type": "${m}", "name": string, "description": string (brief, 1 line), "est_calories": number }`)
+      .map((m) => `    { "meal_type": "${m}", "name": string, "description": string (brief, 1 line), "est_calories": number, "est_protein": number, "est_carbs": number, "est_fat": number }`)
       .join(",\n");
 
     const systemPrompt = `You are 🛰️ Satellite, the Wellness Controllable. Generate a simple, practical meal plan.
