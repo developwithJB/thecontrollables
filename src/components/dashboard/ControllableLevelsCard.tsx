@@ -17,33 +17,44 @@ interface ControllableLevelsCardProps {
 export function ControllableLevelsCard({ userId }: ControllableLevelsCardProps) {
   const { data: levels, isLoading } = useControllableLevels(userId);
   const { toast } = useToast();
-  const prevLevelsRef = useRef<Record<string, number> | null>(null);
+  const initRef = useRef(false);
   const [expandedType, setExpandedType] = useState<ControllableType | null>(null);
 
-  // Detect level-ups by comparing to cached previous levels
+  // Detect level-ups by comparing to localStorage-persisted highest levels
   useEffect(() => {
     if (!levels || !userId) return;
 
-    const currentMap: Record<string, number> = {};
-    for (const cl of levels) {
-      currentMap[cl.type] = cl.level;
-    }
+    const storageKey = `controllable_levels_${userId}`;
+    let saved: Record<string, number> = {};
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) saved = JSON.parse(raw);
+    } catch { /* ignore */ }
 
-    const prev = prevLevelsRef.current;
-    if (prev) {
-      for (const cl of levels) {
-        const oldLevel = prev[cl.type] ?? 0;
-        if (cl.level > oldLevel && oldLevel > 0) {
-          const theme = getControllableTheme(cl.type);
-          toast({
-            title: `${theme.emoji} ${theme.label} leveled up!`,
-            description: `You reached Level ${cl.level}. Keep going!`,
-          });
-        }
+    const updated: Record<string, number> = { ...saved };
+    let changed = false;
+
+    for (const cl of levels) {
+      const prev = saved[cl.type] ?? 0;
+      // Only toast after first load (skip initial hydration)
+      if (initRef.current && cl.level > prev && prev > 0) {
+        const theme = getControllableTheme(cl.type);
+        toast({
+          title: `${theme.emoji} ${theme.label} leveled up!`,
+          description: `You reached Level ${cl.level}. Keep going!`,
+        });
+      }
+      if (cl.level > (updated[cl.type] ?? 0)) {
+        updated[cl.type] = cl.level;
+        changed = true;
       }
     }
 
-    prevLevelsRef.current = currentMap;
+    if (changed) {
+      try { localStorage.setItem(storageKey, JSON.stringify(updated)); } catch { /* ignore */ }
+    }
+
+    initRef.current = true;
   }, [levels, userId, toast]);
 
   if (isLoading || !levels) return null;
