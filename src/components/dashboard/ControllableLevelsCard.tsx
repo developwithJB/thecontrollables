@@ -1,8 +1,10 @@
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Swords } from "lucide-react";
 import { useControllableLevels } from "@/hooks/useControllableLevels";
 import { getControllableTheme } from "@/lib/controllableTheme";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
 
 interface ControllableLevelsCardProps {
   userId: string | null;
@@ -10,6 +12,34 @@ interface ControllableLevelsCardProps {
 
 export function ControllableLevelsCard({ userId }: ControllableLevelsCardProps) {
   const { data: levels, isLoading } = useControllableLevels(userId);
+  const { toast } = useToast();
+  const prevLevelsRef = useRef<Record<string, number> | null>(null);
+
+  // Detect level-ups by comparing to cached previous levels
+  useEffect(() => {
+    if (!levels || !userId) return;
+
+    const currentMap: Record<string, number> = {};
+    for (const cl of levels) {
+      currentMap[cl.type] = cl.level;
+    }
+
+    const prev = prevLevelsRef.current;
+    if (prev) {
+      for (const cl of levels) {
+        const oldLevel = prev[cl.type] ?? 0;
+        if (cl.level > oldLevel && oldLevel > 0) {
+          const theme = getControllableTheme(cl.type);
+          toast({
+            title: `${theme.emoji} ${theme.label} leveled up!`,
+            description: `You reached Level ${cl.level}. Keep going!`,
+          });
+        }
+      }
+    }
+
+    prevLevelsRef.current = currentMap;
+  }, [levels, userId, toast]);
 
   if (isLoading || !levels) return null;
 
