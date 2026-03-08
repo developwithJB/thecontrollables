@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Download, Share2, Loader2, Eye, Lock, ChevronRight, Sparkles, Coffee, Gift } from "lucide-react";
+import { Download, Share2, Loader2, Eye, Lock, ChevronRight, Sparkles, Coffee, Gift, CalendarDays } from "lucide-react";
 import { useCertificate } from "@/hooks/useCertificate";
 import {
   Dialog,
