@@ -1132,7 +1132,7 @@ Deno.serve(async (req) => {
               );
 
               if (aiContent) {
-                const result = generateDailyAlignmentEmailContent(context, scripture.verse_reference, scripture.verse_text, aiContent);
+                const result = generateDailyAlignmentEmailContent(context, scripture.verse_reference, scripture.verse_text, aiContent, userLevels);
                 subject = result.subject;
                 body = result.body;
 
