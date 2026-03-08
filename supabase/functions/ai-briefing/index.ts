@@ -15,6 +15,20 @@ const DAY_CONTROLLABLES: Record<number, { name: string; emoji: string; key: stri
   7: { name: 'Awareness', emoji: '🦉', key: 'awareness' },
 };
 
+const CONTROLLABLE_META: Record<string, { emoji: string; label: string }> = {
+  awareness: { emoji: '🦉', label: 'Awareness' },
+  perspective: { emoji: '🐢', label: 'Perspective' },
+  habit: { emoji: '🦈', label: 'Habit' },
+  wellness: { emoji: '🛰️', label: 'Wellness' },
+  environment: { emoji: '🚀', label: 'Environment' },
+};
+
+function getLevelFromXp(totalXp: number): number {
+  if (totalXp <= 0) return 1;
+  const raw = Math.floor(Math.sqrt(totalXp / 25));
+  return Math.min(Math.max(raw, 1), 99);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -66,14 +80,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Gather context: active session, recent reflections, build scores
-    const [sessionRes, reflectionsRes, buildRes] = await Promise.all([
+    // Gather context: active session, recent reflections, build scores, controllable levels
+    const [sessionRes, reflectionsRes, buildRes, actionsRes] = await Promise.all([
       serviceClient.from('reset_sessions').select('current_day, journey_id, start_date')
         .eq('user_id', userId).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       serviceClient.from('daily_resets').select('day_number, reflection, completed_at')
         .eq('user_id', userId).order('completed_at', { ascending: false }).limit(3),
       serviceClient.from('user_build_current').select('*')
         .eq('user_id', userId).maybeSingle(),
+      serviceClient.from('completed_actions').select('controllable, xp_awarded')
+        .eq('user_id', userId).not('controllable', 'is', null),
     ]);
 
     const currentDay = sessionRes.data?.current_day || 1;
@@ -100,6 +116,22 @@ Deno.serve(async (req) => {
         .reduce((min, key) => (buildData[key] < buildData[min] ? key : min), 'awareness');
       contextParts.push(`Build: Overall ${Number(buildData.overall).toFixed(1)}/4, weakest area: ${weakest} (${Number(buildData[weakest]).toFixed(1)}/4)`);
     }
+
+    // Compute controllable levels from XP
+    const xpMap: Record<string, number> = {};
+    for (const row of actionsRes.data ?? []) {
+      if (row.controllable) {
+        xpMap[row.controllable] = (xpMap[row.controllable] || 0) + row.xp_awarded;
+      }
+    }
+    const levelLines = Object.entries(CONTROLLABLE_META).map(([key, meta]) => {
+      const level = getLevelFromXp(xpMap[key] || 0);
+      return `${meta.emoji} ${meta.label}: Lv.${level}`;
+    });
+    const overallLevel = Math.round(
+      Object.keys(CONTROLLABLE_META).reduce((s, k) => s + getLevelFromXp(xpMap[k] || 0), 0) / 5
+    );
+    contextParts.push(`Controllable Levels (Overall Build Lv.${overallLevel}):\n${levelLines.join('\n')}`);
 
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!apiKey) {
