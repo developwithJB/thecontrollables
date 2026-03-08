@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Calendar, Loader2, Lock, UtensilsCrossed, X, Minus, Plus, Settings2 } from "lucide-react";
 import { getControllableTheme } from "@/lib/controllableTheme";
@@ -8,6 +8,7 @@ import { MealWeekComparison } from "./MealWeekComparison";
 const wellnessTheme = getControllableTheme("wellness");
 import { Button } from "@/components/ui/button";
 import { useMealTracking, type MealSlotConfig } from "@/hooks/useMealTracking";
+import { useMealPreferences } from "@/hooks/useMealPreferences";
 import { MealTracker } from "./MealTracker";
 
 interface MealPlanCardProps {
@@ -24,17 +25,33 @@ const MAIN_MEALS = [
 
 export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
   const { todayPlan, generatePlan, updatePlanMeals, dailyTotals, todayMeals } = useMealTracking(userId);
+  const { preferences, savePreferences } = useMealPreferences(userId);
   const [showTracker, setShowTracker] = useState(false);
   const [view, setView] = useState<"today" | "week">("today");
   const [showConfig, setShowConfig] = useState(false);
 
-  // Meal config state
+  // Meal config state — initialized from saved preferences
   const [enabledMeals, setEnabledMeals] = useState<Record<string, boolean>>({
     breakfast: true,
     lunch: true,
     dinner: true,
   });
   const [snackCount, setSnackCount] = useState(1);
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
+
+  // Sync from saved preferences once loaded
+  useEffect(() => {
+    if (prefsLoaded) return;
+    if (preferences) {
+      setEnabledMeals({
+        breakfast: !preferences.excludeMeals.includes("breakfast"),
+        lunch: !preferences.excludeMeals.includes("lunch"),
+        dinner: !preferences.excludeMeals.includes("dinner"),
+      });
+      setSnackCount(preferences.snackCount);
+      setPrefsLoaded(true);
+    }
+  }, [preferences, prefsLoaded]);
 
   const hasMealsLogged = todayMeals.length > 0;
 
