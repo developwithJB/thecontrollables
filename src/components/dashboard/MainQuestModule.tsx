@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { getControllableTheme } from "@/lib/controllableTheme";
+import { ControllableLevelBadge } from "./ControllableLevelBadge";
 
 const theme = getControllableTheme("environment");
 import { Target, AlertTriangle, Pencil, Check, X, ChevronDown, HelpCircle } from "lucide-react";
