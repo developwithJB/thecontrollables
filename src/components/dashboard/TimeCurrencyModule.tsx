@@ -328,14 +328,16 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className="p-5 rounded-2xl bg-card border shadow-soft"
+      className={`p-5 rounded-2xl bg-card border shadow-soft ${theme.borderClass}`}
     >
-      <div className="flex items-center gap-2 mb-4">
-        <div className="p-1.5 rounded-lg bg-blue-500/10">
-          <Sparkles className="w-4 h-4 text-blue-500" />
+      <div className="flex items-center gap-2 mb-1">
+        <div className="p-1.5 rounded-lg bg-awareness/10">
+          <Sparkles className="w-4 h-4 text-awareness" />
         </div>
         <h3 className="font-display font-semibold text-foreground">Time Reflection</h3>
+        <span className={`ml-auto text-xs font-medium ${theme.textClass}`}>{theme.emoji} {theme.label}</span>
       </div>
+      <div className="mb-4" />
 
       {todayTimeLog && (
         <div className="text-center py-4 mb-4">
