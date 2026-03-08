@@ -18,6 +18,7 @@ interface MealPlanCardProps {
 export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
   const { todayPlan, generatePlan, dailyTotals, todayMeals } = useMealTracking(userId);
   const [showTracker, setShowTracker] = useState(false);
+  const [view, setView] = useState<"today" | "week">("today");
 
   const hasMealsLogged = todayMeals.length > 0;
 
