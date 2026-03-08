@@ -1163,7 +1163,7 @@ Deno.serve(async (req) => {
               body = basicResult.body;
             }
           } else if (isWeekly) {
-            const result = generateWeeklyEmailContent(context);
+            const result = generateWeeklyEmailContent(context, userLevels);
             subject = result.subject;
             body = result.body;
           } else {
