@@ -907,6 +907,48 @@ export type Database = {
         }
         Relationships: []
       }
+      health_sync_data: {
+        Row: {
+          active_minutes: number | null
+          created_at: string
+          heart_rate_avg: number | null
+          id: string
+          raw_data: Json | null
+          sleep_minutes: number | null
+          source: string
+          steps: number | null
+          sync_date: string
+          synced_at: string
+          user_id: string
+        }
+        Insert: {
+          active_minutes?: number | null
+          created_at?: string
+          heart_rate_avg?: number | null
+          id?: string
+          raw_data?: Json | null
+          sleep_minutes?: number | null
+          source?: string
+          steps?: number | null
+          sync_date: string
+          synced_at?: string
+          user_id: string
+        }
+        Update: {
+          active_minutes?: number | null
+          created_at?: string
+          heart_rate_avg?: number | null
+          id?: string
+          raw_data?: Json | null
+          sleep_minutes?: number | null
+          source?: string
+          steps?: number | null
+          sync_date?: string
+          synced_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       integrity_logs: {
         Row: {
           created_at: string
