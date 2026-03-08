@@ -94,6 +94,7 @@ import { PullToRefreshIndicator } from "@/components/pwa/PullToRefreshIndicator"
 import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 import { CircleCard } from "@/components/dashboard/CircleCard";
 import { ControllableLevelsCard } from "@/components/dashboard/ControllableLevelsCard";
+import { ControllableLevelsTeaser } from "@/components/dashboard/ControllableLevelsTeaser";
 import { useCircle } from "@/hooks/useCircle";
 import { SeasonBanner } from "@/components/dashboard/SeasonBanner";
 import { SeasonComplete } from "@/components/SeasonComplete";
@@ -1074,6 +1075,17 @@ export default function Dashboard() {
                 />
               )}
 
+
+              {/* Controllable Levels Teaser - links to Guide tab */}
+              {user?.id && (
+                <ControllableLevelsTeaser
+                  userId={user.id}
+                  onNavigateToGuide={() => {
+                    setActiveTab("guide");
+                    trackEvent("navigation", "controllable_teaser_tap");
+                  }}
+                />
+              )}
 
               {/* Build Entry Point - shows if user hasn't done assessment */}
               <BuildEntryPoint userId={user?.id} />
