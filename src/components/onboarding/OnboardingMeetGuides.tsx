@@ -18,6 +18,8 @@ const GUIDES = [
 ];
 
 export function OnboardingMeetGuides({ buildResult, onContinue }: OnboardingMeetGuidesProps) {
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+
   // Find strongest and weakest from build scores
   let strongestKey = "";
   let weakestKey = "";
@@ -54,6 +56,9 @@ export function OnboardingMeetGuides({ buildResult, onContinue }: OnboardingMeet
           <p className="text-sm text-muted-foreground">
             They'll coach you through each day of your Snapshot.
           </p>
+          <p className="text-[11px] text-muted-foreground/60 mt-1">
+            Tap a guide to hear them speak.
+          </p>
         </motion.div>
 
         {/* Guide cards */}
@@ -61,6 +66,7 @@ export function OnboardingMeetGuides({ buildResult, onContinue }: OnboardingMeet
           {GUIDES.map((guide, index) => {
             const isStrongest = guide.key === strongestKey;
             const isWeakest = guide.key === weakestKey;
+            const isExpanded = expandedKey === guide.key;
 
             return (
               <motion.div
@@ -68,8 +74,11 @@ export function OnboardingMeetGuides({ buildResult, onContinue }: OnboardingMeet
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.15 + index * 0.08 }}
-                className={`p-4 rounded-xl border text-left transition-all ${
-                  isWeakest
+                onClick={() => setExpandedKey(isExpanded ? null : guide.key)}
+                className={`p-4 rounded-xl border text-left transition-all cursor-pointer active:scale-[0.98] ${
+                  isExpanded
+                    ? "border-primary/60 bg-primary/5 shadow-sm"
+                    : isWeakest
                     ? "border-primary bg-primary/5"
                     : isStrongest
                     ? "border-accent/40 bg-accent/5"
@@ -97,6 +106,23 @@ export function OnboardingMeetGuides({ buildResult, onContinue }: OnboardingMeet
                     </p>
                   </div>
                 </div>
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-3 pt-3 border-t border-border/50">
+                        <p className="text-xs italic text-muted-foreground leading-relaxed">
+                          "{guide.quotes[index % guide.quotes.length]}"
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             );
           })}
