@@ -202,6 +202,37 @@ export function OnboardingAssessment({
         </p>
       </div>
 
+      {/* Interjection overlay */}
+      <AnimatePresence>
+        {interjection && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm px-6"
+          >
+            <div className="text-center max-w-xs">
+              <motion.div
+                initial={{ scale: 0.5 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 12 }}
+                className="text-5xl mb-4"
+              >
+                {interjection.emoji}
+              </motion.div>
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="text-lg font-medium text-foreground italic"
+              >
+                "{interjection.text}"
+              </motion.p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Question */}
       <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
         <motion.div
