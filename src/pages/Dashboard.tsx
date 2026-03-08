@@ -1051,6 +1051,19 @@ export default function Dashboard() {
                 />
               )}
 
+              {/* Brain & Body Health Tracker */}
+              {user?.id && (
+                <BrainBodyTracker
+                  userId={user.id}
+                  onLogWellness={() => {
+                    // Open wellness logger via insights section
+                    if (!showInsights) {
+                      setShowInsights(true);
+                    }
+                  }}
+                />
+              )}
+
               {/* Meal Planning & Tracking - Powered by Satellite */}
               {user?.id && !entitlementsLoading && (
                 <MealPlanCard
