@@ -1364,6 +1364,11 @@ export default function Dashboard() {
                 <p className="text-muted-foreground text-sm">Play your life on purpose.</p>
               </div>
 
+              {/* Controllable Levels - Pokemon-style progression */}
+              {user?.id && (
+                <ControllableLevelsCard userId={user.id} />
+              )}
+
               {/* Game Rules and Manual */}
               <GameRulesSection />
               <DashboardManualSection />
