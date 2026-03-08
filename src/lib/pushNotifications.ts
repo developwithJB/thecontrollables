@@ -71,10 +71,7 @@ export async function subscribeToPush(): Promise<boolean> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
 
-    // Use raw query to avoid type issues with new table
-    const { error } = await supabase.rpc("exec_sql" as never, {} as never).then(() => ({ error: null })).catch(() => ({ error: null }));
-    
-    // Direct upsert via REST
+    // Direct upsert via REST (push_subscriptions not yet in generated types)
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const session = (await supabase.auth.getSession()).data.session;
