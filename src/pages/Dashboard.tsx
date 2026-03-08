@@ -1039,6 +1039,16 @@ export default function Dashboard() {
                 />
               )}
 
+              {/* AI Morning Briefing Card */}
+              {user?.id && !entitlementsLoading && hasActiveSnapshot && (
+                <DailyBriefingCard
+                  isPaid={isPaid}
+                  isTrialing={isTrialing}
+                  hasActiveSnapshot={hasActiveSnapshot}
+                  onUpgrade={() => startCheckout(undefined, "daily_briefing")}
+                />
+              )}
+
               {/* Build Entry Point - shows if user hasn't done assessment */}
               <BuildEntryPoint userId={user?.id} />
 
