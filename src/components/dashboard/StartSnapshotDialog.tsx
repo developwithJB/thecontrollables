@@ -32,7 +32,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 interface StartSnapshotDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSelectSnapshot: (snapshotId: string) => void;
+  onSelectSnapshot: (snapshotId: string, asSeason?: boolean) => void;
   isStarting: boolean;
   isPaid: boolean;
 }
