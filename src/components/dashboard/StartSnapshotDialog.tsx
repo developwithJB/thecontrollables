@@ -100,7 +100,7 @@ export function StartSnapshotDialog({
 
   const handleConfirm = () => {
     if (selectedSnapshot) {
-      onSelectSnapshot(selectedSnapshot);
+      onSelectSnapshot(selectedSnapshot, startAsSeason);
     }
   };
 
