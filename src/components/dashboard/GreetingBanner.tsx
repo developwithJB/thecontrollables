@@ -123,6 +123,16 @@ export function GreetingBanner({
             <span className="text-sm font-medium text-foreground">Lv {level}</span>
           </div>
 
+          {/* Overall Build Level */}
+          {overallBuildLevel !== null && (
+            <div className="flex items-center gap-1.5" title="Average of all 5 Controllable levels">
+              <div className="p-1 rounded-lg bg-primary/10">
+                <Shield className="w-4 h-4 text-primary" />
+              </div>
+              <span className="text-sm font-medium text-foreground">Build Lv.{overallBuildLevel}</span>
+            </div>
+          )}
+
           {/* Mission indicator - clickable with tooltip */}
           {missionTitle && (
             <button
