@@ -1158,7 +1158,7 @@ Deno.serve(async (req) => {
               }
             } else {
               // No scripture found, fall back to basic email
-              const basicResult = generateDailyEmailContent(context);
+              const basicResult = generateDailyEmailContent(context, userLevels);
               subject = basicResult.subject;
               body = basicResult.body;
             }
