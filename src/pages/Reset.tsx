@@ -193,6 +193,8 @@ const Reset = () => {
         resetSessionId={activeSession.id}
         completedJourneyId={activeSession.journey_id || undefined}
         completedDaysCount={completedDays.length}
+        activeSeason={activeSeason}
+        seasonSnapshotsCompleted={seasonProgress?.snapshotsCompleted || 0}
       />
     );
   }
