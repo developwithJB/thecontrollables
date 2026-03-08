@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { getControllableTheme } from "@/lib/controllableTheme";
+
+const theme = getControllableTheme("environment");
 import { Target, AlertTriangle, Pencil, Check, X, ChevronDown, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
