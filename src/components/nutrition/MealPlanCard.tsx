@@ -4,6 +4,7 @@ import { Sparkles, Calendar, Loader2, Lock, UtensilsCrossed, X, Minus, Plus, Set
 import { getControllableTheme } from "@/lib/controllableTheme";
 import { ControllableLevelBadge } from "@/components/dashboard/ControllableLevelBadge";
 import { MealWeekComparison } from "./MealWeekComparison";
+import { Progress } from "@/components/ui/progress";
 
 const wellnessTheme = getControllableTheme("wellness");
 import { Button } from "@/components/ui/button";
