@@ -95,6 +95,75 @@ const SNAPSHOT_DATA: Record<string, { name: string; tagline: string; focus: stri
   "environment-reset-goal": { name: "Environment Reset", tagline: "Remove friction", focus: "Environment" },
 };
 
+interface ControllableLevelInfo {
+  type: string;
+  emoji: string;
+  label: string;
+  level: number;
+}
+
+const CONTROLLABLE_META: Record<string, { emoji: string; label: string }> = {
+  awareness: { emoji: "🦉", label: "Awareness" },
+  perspective: { emoji: "🐢", label: "Perspective" },
+  habit: { emoji: "🦈", label: "Habit" },
+  wellness: { emoji: "🛰️", label: "Wellness" },
+  environment: { emoji: "🚀", label: "Environment" },
+};
+
+function getLevelFromXp(totalXp: number): number {
+  if (totalXp <= 0) return 1;
+  const raw = Math.floor(Math.sqrt(totalXp / 25));
+  return Math.min(Math.max(raw, 1), 99);
+}
+
+async function getUserControllableLevels(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<ControllableLevelInfo[]> {
+  const { data, error } = await supabase
+    .from("completed_actions")
+    .select("controllable, xp_awarded")
+    .eq("user_id", userId)
+    .not("controllable", "is", null);
+
+  const xpMap: Record<string, number> = {};
+  if (!error && data) {
+    for (const row of data) {
+      if (row.controllable) {
+        xpMap[row.controllable] = (xpMap[row.controllable] || 0) + row.xp_awarded;
+      }
+    }
+  }
+
+  return Object.entries(CONTROLLABLE_META).map(([type, meta]) => ({
+    type,
+    emoji: meta.emoji,
+    label: meta.label,
+    level: getLevelFromXp(xpMap[type] || 0),
+  }));
+}
+
+function renderBuildLevelsHtml(levels: ControllableLevelInfo[]): string {
+  const overallLevel = Math.round(levels.reduce((s, l) => s + l.level, 0) / levels.length);
+  const items = levels
+    .map(
+      (l) =>
+        `<td style="text-align:center;padding:4px 6px;">
+          <span style="font-size:18px;">${l.emoji}</span><br/>
+          <span style="font-size:11px;color:#888;">${l.label}</span><br/>
+          <span style="font-size:13px;font-weight:600;color:#333;">Lv.${l.level}</span>
+        </td>`
+    )
+    .join("");
+
+  return `
+    <div style="background:#fff;border:1px solid #eee;border-radius:8px;padding:16px;margin:0 0 20px 0;">
+      <p style="font-size:12px;color:#888;margin:0 0 4px 0;letter-spacing:0.5px;text-align:center;">YOUR BUILD — Lv.${overallLevel}</p>
+      <table style="width:100%;border-collapse:collapse;"><tr>${items}</tr></table>
+    </div>
+  `;
+}
+
 interface UserContext {
   snapshotName: string;
   snapshotTagline: string;
