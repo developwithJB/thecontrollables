@@ -95,6 +95,75 @@ const SNAPSHOT_DATA: Record<string, { name: string; tagline: string; focus: stri
   "environment-reset-goal": { name: "Environment Reset", tagline: "Remove friction", focus: "Environment" },
 };
 
+interface ControllableLevelInfo {
+  type: string;
+  emoji: string;
+  label: string;
+  level: number;
+}
+
+const CONTROLLABLE_META: Record<string, { emoji: string; label: string }> = {
+  awareness: { emoji: "🦉", label: "Awareness" },
+  perspective: { emoji: "🐢", label: "Perspective" },
+  habit: { emoji: "🦈", label: "Habit" },
+  wellness: { emoji: "🛰️", label: "Wellness" },
+  environment: { emoji: "🚀", label: "Environment" },
+};
+
+function getLevelFromXp(totalXp: number): number {
+  if (totalXp <= 0) return 1;
+  const raw = Math.floor(Math.sqrt(totalXp / 25));
+  return Math.min(Math.max(raw, 1), 99);
+}
+
+async function getUserControllableLevels(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<ControllableLevelInfo[]> {
+  const { data, error } = await supabase
+    .from("completed_actions")
+    .select("controllable, xp_awarded")
+    .eq("user_id", userId)
+    .not("controllable", "is", null);
+
+  const xpMap: Record<string, number> = {};
+  if (!error && data) {
+    for (const row of data) {
+      if (row.controllable) {
+        xpMap[row.controllable] = (xpMap[row.controllable] || 0) + row.xp_awarded;
+      }
+    }
+  }
+
+  return Object.entries(CONTROLLABLE_META).map(([type, meta]) => ({
+    type,
+    emoji: meta.emoji,
+    label: meta.label,
+    level: getLevelFromXp(xpMap[type] || 0),
+  }));
+}
+
+function renderBuildLevelsHtml(levels: ControllableLevelInfo[]): string {
+  const overallLevel = Math.round(levels.reduce((s, l) => s + l.level, 0) / levels.length);
+  const items = levels
+    .map(
+      (l) =>
+        `<td style="text-align:center;padding:4px 6px;">
+          <span style="font-size:18px;">${l.emoji}</span><br/>
+          <span style="font-size:11px;color:#888;">${l.label}</span><br/>
+          <span style="font-size:13px;font-weight:600;color:#333;">Lv.${l.level}</span>
+        </td>`
+    )
+    .join("");
+
+  return `
+    <div style="background:#fff;border:1px solid #eee;border-radius:8px;padding:16px;margin:0 0 20px 0;">
+      <p style="font-size:12px;color:#888;margin:0 0 4px 0;letter-spacing:0.5px;text-align:center;">YOUR BUILD — Lv.${overallLevel}</p>
+      <table style="width:100%;border-collapse:collapse;"><tr>${items}</tr></table>
+    </div>
+  `;
+}
+
 interface UserContext {
   snapshotName: string;
   snapshotTagline: string;
@@ -509,19 +578,16 @@ Rules:
 
 // Generate DAILY email content (basic for free users)
 function generateDailyEmailContent(
-  context: UserContext
+  context: UserContext,
+  levels: ControllableLevelInfo[]
 ): { subject: string; body: string } {
   const greeting = context.displayName ? `Hey ${context.displayName}` : "Hey";
   const dayNum = context.currentDay || 1;
   
-  // Subject: {{snapshot_name}}. Day {{day_number}}.
   const subject = `${context.snapshotName}. Day ${dayNum}.`;
-  
-  // Context line based on day
   const contextLine = getDayContextLine(dayNum);
-  
-  // Permission line (rotate)
   const permissionLine = PERMISSION_LINES[Math.floor(Math.random() * PERMISSION_LINES.length)];
+  const buildSection = renderBuildLevelsHtml(levels);
 
   const body = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 440px; margin: 0 auto; padding: 40px 20px; text-align: center; background: #fafafa;">
@@ -542,6 +608,8 @@ function generateDailyEmailContent(
       <p style="font-size: 14px; color: #666; margin: 0 0 20px 0;">
         Focus area: <strong>${context.focusArea}</strong>
       </p>
+      
+      ${buildSection}
       
       <p style="font-size: 15px; color: #444; margin: 0 0 20px 0;">
         ${contextLine}
@@ -591,17 +659,21 @@ function generateDailyAlignmentEmailContent(
     reflectionQuestion: string;
     microAction: string;
     eveningPrompt: string;
-  }
+  },
+  levels: ControllableLevelInfo[]
 ): { subject: string; body: string } {
   const firstName = context.displayName || "Friend";
   const subject = `${firstName}, stay aligned today.`;
   const permissionLine = PERMISSION_LINES[Math.floor(Math.random() * PERMISSION_LINES.length)];
+  const buildSection = renderBuildLevelsHtml(levels);
 
   const body = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 440px; margin: 0 auto; padding: 40px 20px; background: #fafafa;">
       <p style="font-size: 18px; color: #1a1a1a; margin: 0 0 24px 0;">
         Good morning ${firstName},
       </p>
+      
+      ${buildSection}
       
       <div style="background: #fff; border-left: 3px solid #6366f1; padding: 16px 20px; margin: 0 0 24px 0; border-radius: 0 8px 8px 0;">
         <p style="font-size: 12px; color: #888; margin: 0 0 8px 0; letter-spacing: 0.5px;">
@@ -674,7 +746,8 @@ function generateDailyAlignmentEmailContent(
 
 // Generate WEEKLY email content
 function generateWeeklyEmailContent(
-  context: UserContext
+  context: UserContext,
+  levels: ControllableLevelInfo[]
 ): { subject: string; body: string } {
   const greeting = context.displayName ? `Hey ${context.displayName}` : "Hey";
   
@@ -683,6 +756,7 @@ function generateWeeklyEmailContent(
   
   // Permission line (rotate)
   const permissionLine = PERMISSION_LINES[Math.floor(Math.random() * PERMISSION_LINES.length)];
+  const buildSection = renderBuildLevelsHtml(levels);
 
   const body = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 440px; margin: 0 auto; padding: 40px 20px; text-align: center; background: #fafafa;">
@@ -707,6 +781,8 @@ function generateWeeklyEmailContent(
           <strong>Days shown up:</strong> ${context.daysCompleted} / 7
         </p>
       </div>
+      
+      ${buildSection}
       
       <p style="font-size: 15px; color: #444; margin: 0 0 8px 0;">
         This week still counts.
@@ -948,6 +1024,8 @@ Deno.serve(async (req) => {
             const reEngageEmail = reEngageUser.user.email;
             const firstName = context.displayName || "Friend";
             const permissionLine = PERMISSION_LINES[Math.floor(Math.random() * PERMISSION_LINES.length)];
+            const reEngageLevels = await getUserControllableLevels(supabase, userId);
+            const reEngageBuildSection = renderBuildLevelsHtml(reEngageLevels);
 
             const reEngageSubject = "Your next Snapshot is waiting";
             const reEngageBody = `
@@ -963,6 +1041,8 @@ Deno.serve(async (req) => {
                 <p style="font-size: 15px; color: #333; margin: 0 0 24px 0; line-height: 1.6;">
                   No pressure. Just showing up is the win.
                 </p>
+                
+                ${reEngageBuildSection}
                 
                 <div style="text-align: center;">
                   <a href="https://thedashboard.agbcoaching.com/dashboard" 
@@ -1021,8 +1101,11 @@ Deno.serve(async (req) => {
 
           const email = userData.user.email;
 
-          // Check if user is paid (for Daily Alignment)
-          const userIsPaid = await checkIsPaid(supabase, userId);
+          // Check if user is paid (for Daily Alignment) and fetch levels
+          const [userIsPaid, userLevels] = await Promise.all([
+            checkIsPaid(supabase, userId),
+            getUserControllableLevels(supabase, userId),
+          ]);
           
           let subject: string;
           let body: string;
@@ -1053,7 +1136,7 @@ Deno.serve(async (req) => {
               );
 
               if (aiContent) {
-                const result = generateDailyAlignmentEmailContent(context, scripture.verse_reference, scripture.verse_text, aiContent);
+                const result = generateDailyAlignmentEmailContent(context, scripture.verse_reference, scripture.verse_text, aiContent, userLevels);
                 subject = result.subject;
                 body = result.body;
 
@@ -1073,23 +1156,23 @@ Deno.serve(async (req) => {
                   reflectionQuestion: "What part of this verse challenges you most right now?",
                   microAction: "Choose one small action today that reflects what this verse is asking of you.",
                   eveningPrompt: "Did I live closer to this verse today than yesterday?",
-                });
+                }, userLevels);
                 subject = fallbackResult.subject;
                 body = fallbackResult.body;
               }
             } else {
               // No scripture found, fall back to basic email
-              const basicResult = generateDailyEmailContent(context);
+              const basicResult = generateDailyEmailContent(context, userLevels);
               subject = basicResult.subject;
               body = basicResult.body;
             }
           } else if (isWeekly) {
-            const result = generateWeeklyEmailContent(context);
+            const result = generateWeeklyEmailContent(context, userLevels);
             subject = result.subject;
             body = result.body;
           } else {
             // FREE PATH: Basic daily nudge with upgrade CTA
-            const result = generateDailyEmailContent(context);
+            const result = generateDailyEmailContent(context, userLevels);
             subject = result.subject;
             body = result.body;
           }
