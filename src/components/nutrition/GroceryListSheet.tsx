@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, addDays } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Loader2, X, Check, Copy } from "lucide-react";
+import { ShoppingCart, Loader2, X, Check, Copy, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface GroceryItem {
@@ -72,17 +72,38 @@ export function GroceryListSheet({ userId }: GroceryListSheetProps) {
     });
   };
 
-  const copyToClipboard = () => {
-    if (!groceryList) return;
-    const text = groceryList.categories
+  const getFormattedText = () => {
+    if (!groceryList) return "";
+    return groceryList.categories
       .map((cat) => {
         const items = cat.items.map((item) => `  ${item.quantity} ${item.name}${item.note ? ` (${item.note})` : ""}`).join("\n");
         return `${cat.name}:\n${items}`;
       })
       .join("\n\n");
+  };
 
-    navigator.clipboard.writeText(text);
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(getFormattedText());
     toast({ title: "Copied!", description: "Grocery list copied to clipboard." });
+  };
+
+  const handleShare = async () => {
+    const text = getFormattedText();
+    const title = "🛒 Weekly Grocery List";
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text });
+        return;
+      } catch {
+        // User cancelled or share failed — fall through to mailto
+      }
+    }
+
+    // Fallback: open mailto
+    const subject = encodeURIComponent(title);
+    const body = encodeURIComponent(text);
+    window.open(`mailto:?subject=${subject}&body=${body}`, "_blank");
   };
 
   const totalItems = groceryList?.categories.reduce((s, c) => s + c.items.length, 0) ?? 0;
@@ -137,9 +158,14 @@ export function GroceryListSheet({ userId }: GroceryListSheetProps) {
                   </div>
                   <div className="flex items-center gap-1">
                     {groceryList && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copyToClipboard}>
-                        <Copy className="w-4 h-4" />
-                      </Button>
+                      <>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleShare} title="Share">
+                          <Share2 className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copyToClipboard} title="Copy">
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </>
                     )}
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsOpen(false)}>
                       <X className="w-4 h-4" />
