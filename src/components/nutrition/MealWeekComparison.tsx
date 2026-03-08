@@ -112,6 +112,13 @@ export function MealWeekComparison({ userId, slotConfig }: MealWeekComparisonPro
 
   return (
     <div className="space-y-3">
+      {/* Action buttons */}
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <GroceryListSheet userId={userId} />
+        </div>
+      </div>
+
       {/* Plan This Week button */}
       <Button
         variant="secondary"
