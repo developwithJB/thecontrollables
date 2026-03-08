@@ -5,8 +5,9 @@ import { format, subDays, startOfDay, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMealTracking, type MealSlotConfig, type MealPlanMeal } from "@/hooks/useMealTracking";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Sparkles, ChevronDown, ChevronUp, Calendar, Share2 } from "lucide-react";
 import { GroceryListSheet } from "./GroceryListSheet";
+import { MealShareCard } from "./MealShareCard";
 
 interface MealWeekComparisonProps {
   userId: string;
