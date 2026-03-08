@@ -33,6 +33,8 @@ export function GroceryListSheet({ userId }: GroceryListSheetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [groceryList, setGroceryList] = useState<GroceryList | null>(null);
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+  const [showShareCard, setShowShareCard] = useState(false);
+  const shareCardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const generate = useMutation({
