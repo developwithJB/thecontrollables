@@ -52,6 +52,98 @@ interface SnapshotHistoryProps {
   onStartNew?: () => void;
 }
 
+interface ActivitySummary {
+  actions: number;
+  checkins: number;
+  promisesKept: number;
+  promisesTotal: number;
+  wellnessLogs: number;
+  totalXp: number;
+}
+
+// Hook to fetch activity data for date ranges
+function useActivityData(userId: string | undefined, sessions: SnapshotRecord[]) {
+  const [activityMap, setActivityMap] = useState<Record<string, ActivitySummary>>({});
+
+  useEffect(() => {
+    if (!userId || sessions.length === 0) return;
+
+    const fetchActivity = async () => {
+      // Get the full date range
+      const dates = sessions.map(s => new Date(s.startDate));
+      const earliest = new Date(Math.min(...dates.map(d => d.getTime())));
+      const latest = addDays(new Date(Math.max(...dates.map(d => d.getTime()))), 7);
+
+      const [actionsRes, checkinsRes, integrityRes, wellnessRes] = await Promise.all([
+        supabase
+          .from("completed_actions")
+          .select("completed_at, xp_awarded")
+          .eq("user_id", userId)
+          .gte("completed_at", earliest.toISOString())
+          .lte("completed_at", latest.toISOString()),
+        supabase
+          .from("daily_checkins")
+          .select("check_in_date")
+          .eq("user_id", userId)
+          .gte("check_in_date", format(earliest, "yyyy-MM-dd"))
+          .lte("check_in_date", format(latest, "yyyy-MM-dd")),
+        supabase
+          .from("integrity_logs")
+          .select("promised_at, kept")
+          .eq("user_id", userId)
+          .gte("promised_at", earliest.toISOString())
+          .lte("promised_at", latest.toISOString()),
+        supabase
+          .from("wellness_logs")
+          .select("log_date")
+          .eq("user_id", userId)
+          .gte("log_date", format(earliest, "yyyy-MM-dd"))
+          .lte("log_date", format(latest, "yyyy-MM-dd")),
+      ]);
+
+      const actions = actionsRes.data || [];
+      const checkins = checkinsRes.data || [];
+      const integrity = integrityRes.data || [];
+      const wellness = wellnessRes.data || [];
+
+      // Map each session to its activity
+      const map: Record<string, ActivitySummary> = {};
+      sessions.forEach(session => {
+        const start = new Date(session.startDate);
+        const end = addDays(start, 7);
+        const startStr = format(start, "yyyy-MM-dd");
+        const endStr = format(end, "yyyy-MM-dd");
+
+        const sessionActions = actions.filter(a => {
+          const d = a.completed_at.slice(0, 10);
+          return d >= startStr && d < endStr;
+        });
+        const sessionCheckins = checkins.filter(c => c.check_in_date >= startStr && c.check_in_date < endStr);
+        const sessionIntegrity = integrity.filter(i => {
+          const d = i.promised_at.slice(0, 10);
+          return d >= startStr && d < endStr;
+        });
+        const sessionWellness = wellness.filter(w => w.log_date >= startStr && w.log_date < endStr);
+
+        map[session.id] = {
+          actions: sessionActions.length,
+          checkins: sessionCheckins.length,
+          promisesKept: sessionIntegrity.filter(i => i.kept === true).length,
+          promisesTotal: sessionIntegrity.length,
+          wellnessLogs: sessionWellness.length,
+          totalXp: sessionActions.reduce((sum, a) => sum + (a.xp_awarded || 0), 0),
+        };
+      });
+
+      setActivityMap(map);
+    };
+
+    fetchActivity();
+  }, [userId, sessions.length]);
+
+  return activityMap;
+}
+
 type ViewMode = "week" | "month" | "year" | "patterns";
 
 // Get status info - enhanced with proof language for completed
