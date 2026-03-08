@@ -54,7 +54,7 @@ import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
 import { TodayActions } from "@/components/dashboard/TodayActions";
 import { SnapshotReviewCard } from "@/components/dashboard/SnapshotReviewCard";
 import { TrialCompleteCard } from "@/components/dashboard/TrialCompleteCard";
-import { GrowthSummaryCard } from "@/components/dashboard/GrowthSummaryCard";
+
 // JourneyChangesLog removed - consolidated into Activity History
 
 import { GameRulesSection } from "@/components/GameRulesSection";
