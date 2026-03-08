@@ -1017,6 +1017,66 @@ export type Database = {
         }
         Relationships: []
       }
+      meal_logs: {
+        Row: {
+          ai_analysis: Json | null
+          created_at: string
+          description: string | null
+          id: string
+          image_path: string | null
+          log_date: string
+          meal_type: string
+          user_id: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_path?: string | null
+          log_date?: string
+          meal_type: string
+          user_id: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_path?: string | null
+          log_date?: string
+          meal_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      meal_plans: {
+        Row: {
+          created_at: string
+          generated_by: string | null
+          id: string
+          meals: Json
+          plan_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          generated_by?: string | null
+          id?: string
+          meals?: Json
+          plan_date: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          generated_by?: string | null
+          id?: string
+          meals?: Json
+          plan_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       page_views: {
         Row: {
           created_at: string
