@@ -8,9 +8,11 @@ export interface MealPreferences {
   proteinTarget?: number;
   carbsTarget?: number;
   fatTarget?: number;
+  dietaryStyle?: string;
+  dietaryRestrictions?: string[];
 }
 
-const DEFAULT_PREFS: MealPreferences = { excludeMeals: [], snackCount: 1 };
+const DEFAULT_PREFS: MealPreferences = { excludeMeals: [], snackCount: 1, dietaryStyle: "", dietaryRestrictions: [] };
 
 export function useMealPreferences(userId: string | null) {
   const queryClient = useQueryClient();
@@ -33,6 +35,8 @@ export function useMealPreferences(userId: string | null) {
         proteinTarget: typeof raw.proteinTarget === "number" ? raw.proteinTarget : undefined,
         carbsTarget: typeof raw.carbsTarget === "number" ? raw.carbsTarget : undefined,
         fatTarget: typeof raw.fatTarget === "number" ? raw.fatTarget : undefined,
+        dietaryStyle: typeof raw.dietaryStyle === "string" ? raw.dietaryStyle : "",
+        dietaryRestrictions: Array.isArray(raw.dietaryRestrictions) ? raw.dietaryRestrictions : [],
       };
     },
     enabled: !!userId,

@@ -26,13 +26,17 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    const { date, preferences, calorie_target, exclude_meals, snack_count, macro_targets } = await req.json();
+    const { date, preferences, calorie_target, exclude_meals, snack_count, macro_targets, dietary_style, dietary_restrictions } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const targetInfo = calorie_target ? `Target: ~${calorie_target} calories/day.` : "Target: ~2000 calories/day.";
     const prefInfo = preferences ? `Preferences: ${preferences}.` : "";
+    const styleInfo = dietary_style ? `Dietary style: ${dietary_style}. All meals should follow this style.` : "";
+    const restrictionsInfo = Array.isArray(dietary_restrictions) && dietary_restrictions.length > 0
+      ? `STRICT dietary restrictions (never include these): ${dietary_restrictions.join(", ")}.`
+      : "";
 
     // Build macro instructions
     const macroLines: string[] = [];
@@ -59,6 +63,8 @@ serve(async (req) => {
 
     const systemPrompt = `You are 🛰️ Satellite, the Wellness Controllable. Generate a simple, practical meal plan.
 ${targetInfo} ${macroInfo} ${prefInfo}
+${styleInfo}
+${restrictionsInfo}
 Generate ONLY these meals: ${requestedMeals.join(", ")}.
 Return a JSON object:
 {

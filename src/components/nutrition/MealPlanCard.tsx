@@ -44,6 +44,9 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
   const [proteinTarget, setProteinTarget] = useState<string>("");
   const [carbsTarget, setCarbsTarget] = useState<string>("");
   const [fatTarget, setFatTarget] = useState<string>("");
+  const [dietaryStyle, setDietaryStyle] = useState("");
+  const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([]);
+  const [restrictionInput, setRestrictionInput] = useState("");
   const [prefsLoaded, setPrefsLoaded] = useState(false);
 
   // Sync from saved preferences once loaded
@@ -60,6 +63,8 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
       setProteinTarget(preferences.proteinTarget ? String(preferences.proteinTarget) : "");
       setCarbsTarget(preferences.carbsTarget ? String(preferences.carbsTarget) : "");
       setFatTarget(preferences.fatTarget ? String(preferences.fatTarget) : "");
+      setDietaryStyle(preferences.dietaryStyle || "");
+      setDietaryRestrictions(preferences.dietaryRestrictions || []);
       setPrefsLoaded(true);
     }
   }, [preferences, prefsLoaded]);
@@ -102,12 +107,16 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
       ...config,
       calorie_target: calTarget,
       macro_targets: macros,
+      dietary_style: dietaryStyle || undefined,
+      dietary_restrictions: dietaryRestrictions.length > 0 ? dietaryRestrictions : undefined,
     });
     savePreferences.mutate({
       excludeMeals: config.excludeMeals || [],
       snackCount: config.snackCount ?? 1,
       calorieTarget: calTarget,
       ...macros,
+      dietaryStyle,
+      dietaryRestrictions,
     });
     setShowConfig(false);
   };
@@ -246,6 +255,75 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
                   <Plus className="w-3 h-3" />
                 </button>
               </div>
+            </div>
+
+            {/* Dietary Style */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground">Dietary style</p>
+              <div className="flex flex-wrap gap-1.5">
+                {["", "Whole Foods", "Single Ingredient", "Clean Eating"].map((style) => (
+                  <button
+                    key={style}
+                    onClick={() => setDietaryStyle(style)}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                      dietaryStyle === style
+                        ? "bg-primary/10 border-primary/30 text-primary"
+                        : "bg-muted/50 border-border/40 text-muted-foreground"
+                    }`}
+                  >
+                    {style || "No Preference"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Dietary Restrictions */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground">Restrictions</p>
+              <div className="flex gap-1.5">
+                <input
+                  type="text"
+                  placeholder='e.g. "no lunch meat"'
+                  value={restrictionInput}
+                  onChange={(e) => setRestrictionInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && restrictionInput.trim()) {
+                      setDietaryRestrictions((prev) => [...prev, restrictionInput.trim()]);
+                      setRestrictionInput("");
+                    }
+                  }}
+                  className="flex-1 h-7 px-2 text-xs rounded-md border border-border/60 bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                />
+                <button
+                  onClick={() => {
+                    if (restrictionInput.trim()) {
+                      setDietaryRestrictions((prev) => [...prev, restrictionInput.trim()]);
+                      setRestrictionInput("");
+                    }
+                  }}
+                  className="h-7 px-2.5 text-xs font-medium rounded-md border border-border/60 bg-muted/50 text-foreground hover:bg-muted transition-colors"
+                >
+                  Add
+                </button>
+              </div>
+              {dietaryRestrictions.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {dietaryRestrictions.map((r, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-destructive/10 text-destructive border border-destructive/20"
+                    >
+                      {r}
+                      <button
+                        onClick={() => setDietaryRestrictions((prev) => prev.filter((_, idx) => idx !== i))}
+                        className="hover:text-destructive/80"
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Calorie & Macro Targets */}
