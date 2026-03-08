@@ -949,6 +949,7 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
                     key={key} 
                     records={records} 
                     label={label} 
+                    activityMap={activityMap}
                     onSelectRecord={setSelectedRecord}
                   />
                 ))
