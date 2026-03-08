@@ -101,8 +101,10 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
           </div>
         </div>
 
-        {/* Meal Plan */}
-        {todayPlan ? (
+        {/* Content: Today or Week view */}
+        {view === "week" && userId ? (
+          <MealWeekComparison userId={userId} />
+        ) : todayPlan ? (
           <div className="space-y-2">
             {(todayPlan.meals as any[]).map((meal: any, i: number) => (
               <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/30 last:border-0">
