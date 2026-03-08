@@ -291,17 +291,18 @@ export function MainQuestModule({
         
       </div>
 
-      {/* Bottom action row - no progress, no countdown */}
-      <div className="flex items-center justify-end text-sm">
+      {/* Bottom action row */}
+      <div className="flex items-center justify-between text-sm mt-3">
+        <p className="text-xs text-muted-foreground italic">{theme.tip}</p>
         {onUpdateQuest && (
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground shrink-0"
             onClick={handleStartEdit}
           >
             <Pencil className="w-3 h-3 mr-1" />
-            Update Direction
+            Update
           </Button>
         )}
       </div>

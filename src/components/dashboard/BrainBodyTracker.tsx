@@ -111,7 +111,8 @@ export function BrainBodyTracker({ userId, onLogWellness }: BrainBodyTrackerProp
       >
         <Card
           className={cn(
-            "cursor-pointer transition-shadow hover:shadow-md border-wellness/20",
+            "cursor-pointer transition-shadow hover:shadow-md",
+            wellnessTheme.borderClass,
             !hasData && "opacity-80"
           )}
           onClick={!hasData ? onLogWellness : undefined}
@@ -122,6 +123,7 @@ export function BrainBodyTracker({ userId, onLogWellness }: BrainBodyTrackerProp
               <div className="flex items-center gap-2">
                 <Activity className="h-4 w-4 text-wellness" />
                 <h3 className="text-sm font-semibold text-foreground">Brain & Body</h3>
+                <span className={`text-xs font-medium ${wellnessTheme.textClass}`}>{wellnessTheme.emoji} {wellnessTheme.label}</span>
               </div>
               <div className="flex items-center gap-2">
                 {!hasHealthSync && (

@@ -228,6 +228,11 @@ export function XpMomentumModule({ totalXp, recentLogs, compact = false }: XpMom
           <span className="text-foreground font-medium">{weekXp} XP</span> earned this week
         </p>
       </div>
+
+      {/* Controllable voice tip */}
+      <p className="text-xs text-muted-foreground text-center italic mt-3">
+        {theme.tip}
+      </p>
     </motion.div>
   );
 }

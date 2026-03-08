@@ -419,6 +419,11 @@ export const IntegrityMeterModule = forwardRef<IntegrityMeterModuleHandle, Integ
         </Button>
       </div>
 
+      {/* Controllable voice tip */}
+      <p className="text-xs text-muted-foreground text-center italic mt-3">
+        {theme.tip}
+      </p>
+
       <Dialog open={isOpen} onOpenChange={handlePromiseModalOpen}>
         <DialogTrigger asChild>
           <span className="hidden" />
