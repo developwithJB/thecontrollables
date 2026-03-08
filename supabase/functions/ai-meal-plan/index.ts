@@ -63,6 +63,8 @@ serve(async (req) => {
 
     const systemPrompt = `You are 🛰️ Satellite, the Wellness Controllable. Generate a simple, practical meal plan.
 ${targetInfo} ${macroInfo} ${prefInfo}
+${styleInfo}
+${restrictionsInfo}
 Generate ONLY these meals: ${requestedMeals.join(", ")}.
 Return a JSON object:
 {

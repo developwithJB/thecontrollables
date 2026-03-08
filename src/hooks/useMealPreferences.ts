@@ -35,6 +35,8 @@ export function useMealPreferences(userId: string | null) {
         proteinTarget: typeof raw.proteinTarget === "number" ? raw.proteinTarget : undefined,
         carbsTarget: typeof raw.carbsTarget === "number" ? raw.carbsTarget : undefined,
         fatTarget: typeof raw.fatTarget === "number" ? raw.fatTarget : undefined,
+        dietaryStyle: typeof raw.dietaryStyle === "string" ? raw.dietaryStyle : "",
+        dietaryRestrictions: Array.isArray(raw.dietaryRestrictions) ? raw.dietaryRestrictions : [],
       };
     },
     enabled: !!userId,
