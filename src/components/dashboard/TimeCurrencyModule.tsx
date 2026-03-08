@@ -1,6 +1,9 @@
 import { useState, useImperativeHandle, forwardRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Clock, Sparkles } from "lucide-react";
+import { getControllableTheme } from "@/lib/controllableTheme";
+
+const theme = getControllableTheme("awareness");
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
