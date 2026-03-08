@@ -1,164 +1,62 @@
 
-# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-## Overview
+# Controllable Leveling System (1-99) + Meal Plan vs Actual Week View
 
-Three interconnected deliverables:
-1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
-2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
-3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
+## Two Features
 
----
+### Feature 1: Per-Controllable Leveling (Pokemon-style, Lvl 1-99)
 
-## Part 1: AI Insight Engine
+Each of the 5 controllables gets its own independent level (1-99), calculated from XP earned in that domain. This creates long-term progression that persists across snapshots.
 
-### New Edge Function: `admin-insights`
+**Data source**: `completed_actions` table already has a `controllable` column and `xp_awarded`. We sum XP per controllable to derive individual levels. No new tables needed.
 
-**File: `supabase/functions/admin-insights/index.ts`**
+**Leveling formula** (scaling curve like Pokemon):
+- Level 1 = 0 XP, Level 2 = 50 XP, Level 10 = ~2,500 XP, Level 50 = ~62,500 XP, Level 99 = ~245,000 XP
+- Formula: `XP needed for level N = N^2 * 25` (quadratic scaling — easy early, grindy late)
+- Current level: largest N where `totalControllableXp >= N^2 * 25`
 
-This function:
-1. Verifies the caller is an admin (same pattern as `admin-analytics`)
-2. Queries aggregated metrics from the last 7 days using the service role client:
-   - `app_events` grouped by `event_name` and day-of-week
-   - `completed_actions` grouped by `controllable`
-   - `daily_resets` count per user (for retention correlation)
-   - `reset_sessions` completion rates
-   - `user_entitlements` conversion data
-   - `user_onboarding` activation delays
-3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
-   - 3 behavioral insights
-   - 2 retention risks
-   - 2 growth opportunities
-   - 1 experiment recommendation
-4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
-5. Returns the insights directly (no caching table needed initially -- can add later)
+**New files**:
+- `src/hooks/useControllableLevels.ts` — queries `completed_actions` grouped by controllable, computes level per controllable
+- `src/components/dashboard/ControllableLevelsCard.tsx` — shows all 5 controllables with their level, XP bar to next level, emoji
 
-**Prompt structure:**
+**UI design**: A card showing 5 rows, one per controllable:
+```text
+🦉 Awareness    Lv.12  ████████░░  2,450 / 3,025 XP
+🐢 Perspective  Lv.8   ██████░░░░  1,600 / 2,025 XP
+🦈 Habit        Lv.15  █████░░░░░  5,100 / 6,400 XP
+🛰️ Wellness     Lv.6   ███░░░░░░░    900 / 1,225 XP
+🚀 Environment  Lv.3   ████████░░    200 /   225 XP
 ```
-You are a product analytics advisor for a personal growth app called The Controllables.
-Given the following 7-day metrics, generate actionable insights.
+- Each bar uses the controllable's accent color
+- Tapping a row could show XP history for that controllable
+- Level-up celebrations via toast when a new level is detected
 
-[structured data blob]
+**Dashboard placement**: Replace or augment the existing `GrowthSummaryCard` which already shows XP + strongest controllable but lacks depth.
 
-Return insights as structured tool output.
-```
+### Feature 2: Meal Plan vs Actual — Weekly Comparison
 
-**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+A week view inside the MealPlanCard showing what was planned vs what was actually eaten each day.
 
-**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+**Data sources**: `meal_plans` (planned) + `meal_logs` (actual), both already exist with `plan_date`/`log_date` and calorie data.
 
-### New Admin Component: AI Insights Panel
+**New component**: `src/components/nutrition/MealWeekComparison.tsx`
+- 7-day horizontal view (Mon-Sun)
+- Each day shows two stacked bars: planned calories vs actual calories
+- Color coding: green if actual is within 15% of plan, yellow if off, red if way off or missing
+- Tapping a day opens detail of planned meals vs logged meals
 
-**File: `src/components/admin/AIInsightsPanel.tsx`**
+**Integration**: Add as a section within the existing MealPlanCard or as a toggle view ("Today" | "Week").
 
-- A card with "Weekly Intelligence" header and a "Generate Insights" button
-- On click, calls the `admin-insights` edge function
-- Displays results in categorized sections:
-  - Behavioral Insights (brain icon, blue accent)
-  - Retention Risks (alert icon, amber accent)
-  - Growth Opportunities (trending-up icon, green accent)
-  - Experiment Recommendation (flask icon, purple accent)
-- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
-- Loading state with skeleton cards
-- Error state with retry button
-- "Last generated" timestamp display
+## Files
 
-### Integration into Admin.tsx
+- **New**: `src/hooks/useControllableLevels.ts`, `src/components/dashboard/ControllableLevelsCard.tsx`, `src/components/nutrition/MealWeekComparison.tsx`
+- **Edit**: `src/pages/Dashboard.tsx` (add ControllableLevelsCard), `src/components/nutrition/MealPlanCard.tsx` (add week toggle), `src/lib/controllableTheme.ts` (add level utility functions)
+- **No database changes** — reads existing `completed_actions` and `meal_plans`/`meal_logs`
 
-- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
-- The tab renders `<AIInsightsPanel />`
+## Implementation Order
+1. Add leveling utility functions to `controllableTheme.ts`
+2. Create `useControllableLevels` hook
+3. Create `ControllableLevelsCard` component
+4. Create `MealWeekComparison` component
+5. Wire both into Dashboard and MealPlanCard
 
----
-
-## Part 2: Enhanced Action Center
-
-**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
-
-Replace the three "Coming soon" cards with working functionality:
-
-### A. Send Nudge Campaign
-- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
-- Confirmation dialog before sending
-- Calls the existing `send-daily-nudge` edge function for each selected user
-- Shows progress and results
-
-### B. Grant Trial Extension
-- Search for a specific user by email
-- Set extension duration (7 days, 14 days, 30 days)
-- Calls `admin-users?action=grant_access` with an `expires_at` parameter
-- Confirmation toast on success
-
-### C. Export with More Segments
-- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
-- Risk tier data fetched from `admin-analytics?resource=retention_radar`
-- CSV includes: email, signup date, last active, risk tier, paid status, source
-
-### D. Quick Stats Bar
-- Show counts above the action cards: Total Users, Free, Paid, At Risk
-- Derived from the `users` prop already passed in
-
----
-
-## Part 3: Landing Page Updates
-
-**File: `src/pages/Landing.tsx`**
-
-Update the hero copy to reflect the free trial:
-- Change hero tagline to emphasize "Try the full experience free for 7 days"
-- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
-- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
-
-**File: `src/components/landing/FeatureGrid.tsx`**
-
-- Update the Free/Premium labeling:
-  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
-  - "Experience History" -- add "Free during trial" badge
-  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
-
-**File: `src/components/landing/HowItWorksSection.tsx`**
-
-- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
-
----
-
-## Part 4: README Update
-
-**File: `README.md`**
-
-Update to v1.5.0 reflecting all recent changes:
-
-1. **Version bump**: `v1.4.1` to `v1.5.0`
-2. **New section: "Admin Command Center"** after Technical Reference:
-   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
-   - Mention the `admin-analytics` and `admin-insights` edge functions
-   - Document the AI Insight Engine capability
-3. **Update "Free vs. Premium" table**:
-   - Add "7-Day Free Trial" row explaining full access during first Snapshot
-   - Update AI Guide from "---" to "5 msgs/day during trial"
-   - Update Experience History from "---" to "During trial"
-4. **Update Backend Functions table**:
-   - Add `admin-analytics` -- Admin data aggregation and executive metrics
-   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
-5. **Update Key Data Tables**:
-   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
-   - Add `ai_usage_logs` -- Daily AI message tracking
-6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
-
----
-
-## Technical Summary
-
-| File | Change | Type |
-|------|--------|------|
-| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
-| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
-| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
-| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
-| `src/pages/Admin.tsx` | Add Insights tab | Edit |
-| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
-| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
-| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
-| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
-| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
-
-No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
