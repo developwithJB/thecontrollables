@@ -1,76 +1,164 @@
 
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-# Private Snapshot Circles
+## Overview
 
-Invite-only 2-5 person groups running the same Snapshot together with "showed up today" dots and day-7 celebration.
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-## Existing Infrastructure
+---
 
-The database already has `challenges`, `challenge_participants`, `challenge_progress` tables with RLS policies, plus `generate_invite_code()` and `is_challenge_participant()` functions. These are dormant — no frontend uses them. We'll repurpose them as the Circle backend.
+## Part 1: AI Insight Engine
 
-## What Gets Built
+### New Edge Function: `admin-insights`
 
-### 1. Database Migration — Extend existing tables
-- Add `journey_id text` and `max_members int default 5` columns to `challenges` table
-- Add `display_name text` to `challenge_participants` (denormalized for privacy — no cross-user profile lookups)
-- Add RLS policy: participants can view other participants' `display_name` and `challenge_progress` within their circle (already partially exists)
-- Enable realtime on `challenge_progress` so dots update live
+**File: `supabase/functions/admin-insights/index.ts`**
 
-### 2. New hook: `useCircle.ts`
-Central hook managing circle state:
-- `createCircle(journeyId)` → inserts into `challenges` with `is_solo=false`, generates invite code, adds creator as first participant
-- `joinCircle(inviteCode)` → looks up challenge by invite code, validates < max_members, inserts participant
-- `leaveCircle()` → deletes participant row
-- `logShowedUp(dayNumber)` → upserts into `challenge_progress` for today
-- `circleMembers` → query participants with their progress dots
-- `myCircle` → the user's active circle (at most one)
-- Auto-links to the user's active `reset_session` journey_id
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
 
-### 3. New component: `CircleCard.tsx` (Dashboard module)
-Placed on the Dashboard tab below ResetProgressModule when user has an active session:
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
 
-**No circle yet:**
-- Card with "Run this Snapshot together" heading
-- "Create a Circle" button → creates circle linked to current snapshot
-- "Join a Circle" button → shows invite code input
+[structured data blob]
 
-**Has circle:**
-- Circle name (snapshot name) + invite code with copy button
-- Member dots row: 2-5 avatar circles showing first initial + "showed up today" green dot
-- Today's dot auto-fills when user completes their daily reset
-- Day count: "Day 3 of 7 · 3/4 showed up today"
-- "Invite" button (if < 5 members) — copies invite link
-- "Leave Circle" with confirmation
+Return insights as structured tool output.
+```
 
-### 4. New component: `JoinCircleDialog.tsx`
-Simple dialog with 6-character invite code input. Validates code, shows circle snapshot name and member count before confirming join. Accessible from CircleCard and via URL param `?join=CODE`.
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-### 5. Dashboard Integration
-- In `Dashboard.tsx`, add `CircleCard` below `ResetProgressModule` (around line 1008)
-- Only render when user has an active session
-- Add `?join=CODE` URL param handling to auto-open join dialog
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-### 6. Day-7 Circle Celebration
-- When all circle members complete day 7, show a shared celebration line in the existing Day7Complete screen: "Your circle finished together: [names]"
-- Query `challenge_progress` for day 7 completions from circle members
+### New Admin Component: AI Insights Panel
 
-## What Does NOT Change
-- Solo snapshot flow remains identical
-- No new pages or routes — circles live inside the Dashboard tab
-- No cross-user data beyond circle membership (privacy preserved)
-- Existing `challenge_progress` RLS already allows viewing progress of fellow participants
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-## Implementation Order
-1. Database migration (add columns, realtime)
-2. `useCircle.ts` hook
-3. `CircleCard.tsx` component
-4. `JoinCircleDialog.tsx` component
-5. Dashboard integration + URL param handling
-6. Day-7 circle celebration enhancement
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-## File Changes
-- **New**: `src/hooks/useCircle.ts`, `src/components/dashboard/CircleCard.tsx`, `src/components/dashboard/JoinCircleDialog.tsx`
-- **Edit**: `src/pages/Dashboard.tsx` (add CircleCard + join param handling)
-- **Edit**: `src/components/Day7Complete.tsx` (add circle celebration line)
-- **Migration**: Add columns to `challenges`/`challenge_participants`, enable realtime on `challenge_progress`
+### Integration into Admin.tsx
 
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
+
+---
+
+## Part 2: Enhanced Action Center
+
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
+
+Replace the three "Coming soon" cards with working functionality:
+
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
+
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
+
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
+
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
+
+---
+
+## Part 3: Landing Page Updates
+
+**File: `src/pages/Landing.tsx`**
+
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+
+**File: `src/components/landing/FeatureGrid.tsx`**
+
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+
+**File: `src/components/landing/HowItWorksSection.tsx`**
+
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
