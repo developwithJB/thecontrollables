@@ -176,6 +176,11 @@ export interface ExecutiveMetrics {
   churnRate: MetricCard;
   mrr: MetricCard;
   arpu: MetricCard;
+  activeCircles: MetricCard;
+  circleMembers: MetricCard;
+  activeSeasons: MetricCard;
+  completedSeasons: MetricCard;
+  pushSubscribers: MetricCard;
 }
 
 export interface AdminAnalyticsResponse {

@@ -137,6 +137,7 @@ export default function ExecutiveOverview() {
         { title: "Growth", items: [metrics.totalUsers, metrics.newUsers7d, metrics.dau, metrics.wau] },
         { title: "Engagement", items: [metrics.activationRate, metrics.snapshotCompletionRate, metrics.mau] },
         { title: "Revenue", items: [metrics.paidConversionRate, metrics.mrr, metrics.arpu, metrics.churnRate] },
+        { title: "Community", items: [metrics.activeCircles, metrics.circleMembers, metrics.activeSeasons, metrics.completedSeasons, metrics.pushSubscribers].filter(Boolean) },
       ]
     : [];
 

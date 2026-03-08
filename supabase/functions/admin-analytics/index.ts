@@ -288,6 +288,40 @@ serve(async (req) => {
         value: arpu,
         format: "currency" as const,
       },
+      activeCircles: {
+        label: "Active Circles",
+        value: (() => {
+          const circles = circlesResult.data || [];
+          const participants = circleParticipantsResult.data || [];
+          const circleIds = new Set(circles.map((c: any) => c.id));
+          const activeCircleIds = new Set(participants.filter((p: any) => circleIds.has(p.challenge_id)).map((p: any) => p.challenge_id));
+          return activeCircleIds.size;
+        })(),
+        healthStatus: getHealth((circlesResult.data || []).length, 3, 1),
+      },
+      circleMembers: {
+        label: "Circle Members",
+        value: (() => {
+          const circles = circlesResult.data || [];
+          const circleIds = new Set(circles.map((c: any) => c.id));
+          return (circleParticipantsResult.data || []).filter((p: any) => circleIds.has(p.challenge_id)).length;
+        })(),
+        healthStatus: getHealth((circleParticipantsResult.data || []).length, 5, 2),
+      },
+      activeSeasons: {
+        label: "Active Seasons",
+        value: (seasonsResult.data || []).filter((s: any) => s.status === "active").length,
+        healthStatus: getHealth((seasonsResult.data || []).filter((s: any) => s.status === "active").length, 3, 1),
+      },
+      completedSeasons: {
+        label: "Completed Seasons",
+        value: (seasonsResult.data || []).filter((s: any) => s.status === "completed").length,
+      },
+      pushSubscribers: {
+        label: "Push Subscribers",
+        value: new Set((pushSubsResult.data || []).map((p: any) => p.user_id)).size,
+        healthStatus: getHealth(new Set((pushSubsResult.data || []).map((p: any) => p.user_id)).size, 5, 2),
+      },
     };
 
     return new Response(
