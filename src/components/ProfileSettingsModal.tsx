@@ -268,6 +268,52 @@ export function ProfileSettingsModal({
                 />
               </div>
 
+              {/* Push Notifications - Free, only when supported */}
+              {pushSupported && (
+                <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-muted-foreground" />
+                      <Label htmlFor="push-toggle" className="font-medium cursor-pointer">
+                        Push Reminders
+                      </Label>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/20 text-accent-foreground font-medium">
+                        Free
+                      </span>
+                    </div>
+                    <Switch
+                      id="push-toggle"
+                      checked={pushEnabled}
+                      disabled={pushToggling}
+                      onCheckedChange={async (checked) => {
+                        setPushToggling(true);
+                        try {
+                          if (checked) {
+                            const success = await subscribeToPush();
+                            setPushEnabled(success);
+                            if (!success) {
+                              toast({
+                                title: "Push notifications blocked",
+                                description: "Please allow notifications in your browser settings.",
+                                variant: "destructive",
+                              });
+                            }
+                          } else {
+                            await unsubscribeFromPush();
+                            setPushEnabled(false);
+                          }
+                        } finally {
+                          setPushToggling(false);
+                        }
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    A quiet nudge on your device. No email, no guilt.
+                  </p>
+                </div>
+              )}
+
               {/* Premium Option: Email Nudges */}
               <div className={`space-y-3 p-4 rounded-lg border ${isPaid ? 'bg-muted/50 border-border' : 'bg-muted/20 border-border/50'}`}>
                 <div className="flex items-center gap-2 mb-1">
