@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Zap, TrendingUp } from "lucide-react";
+import { getControllableTheme } from "@/lib/controllableTheme";
+
+const theme = getControllableTheme("habit");
 import {
   Dialog,
   DialogContent,
