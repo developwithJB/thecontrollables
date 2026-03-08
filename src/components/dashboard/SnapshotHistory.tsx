@@ -703,6 +703,9 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
   const [showOlderWeeks, setShowOlderWeeks] = useState(false);
   const [reviewSessionId, setReviewSessionId] = useState<string | null>(null);
 
+  // Fetch activity data for all sessions
+  const activityMap = useActivityData(userId, sessions);
+
   // Filter to only show sessions with meaningful data
   const validSessions = useMemo(() => 
     sessions.filter(s => s.daysCompleted > 0 || s.status === "active"),
