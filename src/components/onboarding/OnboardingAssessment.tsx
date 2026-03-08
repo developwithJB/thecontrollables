@@ -56,6 +56,8 @@ export function OnboardingAssessment({
 }: OnboardingAssessmentProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [interjection, setInterjection] = useState<{ emoji: string; text: string } | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const currentQuestion = questions[currentIndex];
   const progress = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0;
