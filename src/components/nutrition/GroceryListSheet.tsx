@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, addDays } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Loader2, X, Check, Copy } from "lucide-react";
+import { ShoppingCart, Loader2, X, Check, Copy, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface GroceryItem {
