@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useMealTracking, type MealSlotConfig, type MealPlanMeal } from "@/hooks/useMealTracking";
 import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { GroceryListSheet } from "./GroceryListSheet";
 
 interface MealWeekComparisonProps {
   userId: string;
@@ -111,6 +112,13 @@ export function MealWeekComparison({ userId, slotConfig }: MealWeekComparisonPro
 
   return (
     <div className="space-y-3">
+      {/* Action buttons */}
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <GroceryListSheet userId={userId} />
+        </div>
+      </div>
+
       {/* Plan This Week button */}
       <Button
         variant="secondary"
