@@ -342,6 +342,14 @@ export function OnboardingFlow({
             onSelect={handleSnapshotSelected}
           />
         )}
+
+        {currentStep === "meet_guides" && (
+          <OnboardingMeetGuides
+            key="meet-guides"
+            buildResult={buildResult}
+            onContinue={handleMeetGuidesContinue}
+          />
+        )}
         
         {currentStep === "orientation" && selectedSnapshot && (
           <OnboardingOrientation
