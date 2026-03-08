@@ -1390,7 +1390,7 @@ export default function Dashboard() {
       <footer className="max-w-md mx-auto px-6 py-6 text-center space-y-1">
         {dashboardVisitCount > 5 && (
           <p className="text-xs text-muted-foreground/60">
-            Designed for intentional check-ins. Desktop or mobile.
+            Quiet momentum. One check-in at a time.
           </p>
         )}
         <p className="text-xs text-muted-foreground">
