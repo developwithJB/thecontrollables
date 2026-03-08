@@ -72,17 +72,38 @@ export function GroceryListSheet({ userId }: GroceryListSheetProps) {
     });
   };
 
-  const copyToClipboard = () => {
-    if (!groceryList) return;
-    const text = groceryList.categories
+  const getFormattedText = () => {
+    if (!groceryList) return "";
+    return groceryList.categories
       .map((cat) => {
         const items = cat.items.map((item) => `  ${item.quantity} ${item.name}${item.note ? ` (${item.note})` : ""}`).join("\n");
         return `${cat.name}:\n${items}`;
       })
       .join("\n\n");
+  };
 
-    navigator.clipboard.writeText(text);
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(getFormattedText());
     toast({ title: "Copied!", description: "Grocery list copied to clipboard." });
+  };
+
+  const handleShare = async () => {
+    const text = getFormattedText();
+    const title = "🛒 Weekly Grocery List";
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text });
+        return;
+      } catch {
+        // User cancelled or share failed — fall through to mailto
+      }
+    }
+
+    // Fallback: open mailto
+    const subject = encodeURIComponent(title);
+    const body = encodeURIComponent(text);
+    window.open(`mailto:?subject=${subject}&body=${body}`, "_blank");
   };
 
   const totalItems = groceryList?.categories.reduce((s, c) => s + c.items.length, 0) ?? 0;
