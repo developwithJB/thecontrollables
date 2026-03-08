@@ -15,6 +15,20 @@ const DAY_CONTROLLABLES: Record<number, { name: string; emoji: string; key: stri
   7: { name: 'Awareness', emoji: '🦉', key: 'awareness' },
 };
 
+const CONTROLLABLE_META: Record<string, { emoji: string; label: string }> = {
+  awareness: { emoji: '🦉', label: 'Awareness' },
+  perspective: { emoji: '🐢', label: 'Perspective' },
+  habit: { emoji: '🦈', label: 'Habit' },
+  wellness: { emoji: '🛰️', label: 'Wellness' },
+  environment: { emoji: '🚀', label: 'Environment' },
+};
+
+function getLevelFromXp(totalXp: number): number {
+  if (totalXp <= 0) return 1;
+  const raw = Math.floor(Math.sqrt(totalXp / 25));
+  return Math.min(Math.max(raw, 1), 99);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
