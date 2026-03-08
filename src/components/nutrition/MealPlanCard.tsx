@@ -62,6 +62,23 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
     }
   }, [preferences, prefsLoaded]);
 
+  // Compute planned totals from today's meal plan
+  const plannedTotals = useMemo(() => {
+    if (!todayPlan?.meals) return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    return (todayPlan.meals as any[]).reduce(
+      (acc, m) => ({
+        calories: acc.calories + (m.est_calories || 0),
+        protein: acc.protein + (m.est_protein || 0),
+        carbs: acc.carbs + (m.est_carbs || 0),
+        fat: acc.fat + (m.est_fat || 0),
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+  }, [todayPlan]);
+
+  const hasTargets = !!(calorieTarget || proteinTarget || carbsTarget || fatTarget);
+  const hasPlannedMacros = plannedTotals.protein > 0 || plannedTotals.carbs > 0 || plannedTotals.fat > 0;
+
   const hasMealsLogged = todayMeals.length > 0;
 
   const getSlotConfig = (): MealSlotConfig => {
