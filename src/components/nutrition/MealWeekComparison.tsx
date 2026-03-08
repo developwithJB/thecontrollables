@@ -26,6 +26,7 @@ export function MealWeekComparison({ userId, slotConfig }: MealWeekComparisonPro
   const today = useMemo(() => startOfDay(new Date()), []);
   const { generateWeekPlan } = useMealTracking(userId);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const [showShare, setShowShare] = useState(false);
 
   // Fetch week plans (today + 6 future days for generation, past 6 + today for comparison)
   const { data: weekData } = useQuery({
