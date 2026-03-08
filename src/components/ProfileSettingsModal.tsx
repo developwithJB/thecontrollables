@@ -367,6 +367,26 @@ export function ProfileSettingsModal({
               </div>
             </div>
 
+            {/* Health Data Import */}
+            <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border/50">
+              <div className="flex items-center gap-2 mb-1">
+                <Smartphone className="w-4 h-4 text-muted-foreground" />
+                <Label className="font-medium">Health Data</Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Import health data from Apple Health or Google Fit to enhance your Brain & Body tracker.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setHealthSyncOpen(true)}
+                className="w-full"
+              >
+                <Smartphone className="w-4 h-4 mr-2" />
+                Import Health Data
+              </Button>
+            </div>
+
             {/* Timezone */}
             <div className="space-y-2">
               <Label>Timezone</Label>
