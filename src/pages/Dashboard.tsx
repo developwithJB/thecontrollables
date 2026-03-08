@@ -58,6 +58,7 @@ import { TrialCompleteCard } from "@/components/dashboard/TrialCompleteCard";
 // JourneyChangesLog removed - consolidated into Activity History
 
 import { DailyBriefingCard } from "@/components/dashboard/DailyBriefingCard";
+import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DailyAlignmentPromo } from "@/components/dashboard/DailyAlignmentPromo";
 import { DailyAlignmentSpotlight } from "@/components/dashboard/DailyAlignmentSpotlight";
