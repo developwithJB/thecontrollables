@@ -1,11 +1,28 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useAutoLoadingTimeout } from "@/hooks/useLoadingTimeout";
 import { TimeoutWarning } from "@/components/ui/TimeoutWarning";
 import type { BuildQuestion } from "@/lib/build";
+
+// Controllable interjection quotes based on score
+const INTERJECTION_LOW: Record<string, string[]> = {
+  awareness: ["That's what I'm here for.", "The fact that you noticed? That's step one.", "We'll work on this together."],
+  perspective: ["Zoom is a skill. We'll practice it.", "The view gets clearer with time.", "Seeing differently starts with seeing at all."],
+  habit: ["No reps yet? Good. We start now.", "You don't need motivation. You need one rep.", "That's honest. We build from here."],
+  wellness: ["Systems need attention. That's data, not failure.", "The basics are basic because they work.", "Let's check the dashboard together."],
+  environment: ["Your setup matters more than your willpower.", "We'll redesign, not just discipline.", "The system shapes the behavior."],
+};
+
+const INTERJECTION_HIGH: Record<string, string[]> = {
+  awareness: ["You already see clearly. Let's sharpen it.", "Observation is your superpower.", "You've got the instinct. Now we refine it."],
+  perspective: ["The long view comes naturally to you.", "You already zoom out. That's rare.", "Patience is your edge."],
+  habit: ["You show up. That's the hardest part.", "Reps are already in your DNA.", "Consistency is your foundation."],
+  wellness: ["Your systems are running well.", "You take care of the machine. Smart.", "The basics are locked in."],
+  environment: ["You design your world intentionally.", "You think in systems, not just effort.", "Your defaults are working for you."],
+};
 
 interface OnboardingAssessmentProps {
   questions: BuildQuestion[];
@@ -39,6 +56,8 @@ export function OnboardingAssessment({
 }: OnboardingAssessmentProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [interjection, setInterjection] = useState<{ emoji: string; text: string } | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const currentQuestion = questions[currentIndex];
   const progress = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0;
@@ -51,11 +70,31 @@ export function OnboardingAssessment({
     setAnswers((prev) => ({ ...prev, [currentQuestion.id]: value }));
   };
 
+  const showInterjection = useCallback((controllable: string, score: number) => {
+    const pool = score <= 2 ? INTERJECTION_LOW[controllable] : INTERJECTION_HIGH[controllable];
+    if (!pool?.length) return;
+    const emoji = CONTROLLABLE_EMOJIS[controllable] || "📊";
+    const text = pool[Math.floor(Math.random() * pool.length)];
+    setInterjection({ emoji, text });
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setInterjection(null);
+      setIsTransitioning(false);
+      setCurrentIndex((prev) => prev + 1);
+    }, 1500);
+  }, []);
+
   const handleNext = () => {
     if (isLastQuestion && canGoNext) {
       onComplete(answers);
     } else if (canGoNext) {
-      setCurrentIndex((prev) => prev + 1);
+      // Show interjection before advancing (every 3rd question to avoid fatigue)
+      if (currentQuestion && (currentIndex + 1) % 3 === 0) {
+        const score = answers[currentQuestion.id];
+        showInterjection(currentQuestion.controllable, score);
+      } else {
+        setCurrentIndex((prev) => prev + 1);
+      }
     }
   };
 
@@ -163,6 +202,37 @@ export function OnboardingAssessment({
         </p>
       </div>
 
+      {/* Interjection overlay */}
+      <AnimatePresence>
+        {interjection && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm px-6"
+          >
+            <div className="text-center max-w-xs">
+              <motion.div
+                initial={{ scale: 0.5 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 12 }}
+                className="text-5xl mb-4"
+              >
+                {interjection.emoji}
+              </motion.div>
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="text-lg font-medium text-foreground italic"
+              >
+                "{interjection.text}"
+              </motion.p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Question */}
       <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
         <motion.div
@@ -250,7 +320,7 @@ export function OnboardingAssessment({
           )}
           <Button
             onClick={handleNext}
-            disabled={!canGoNext || isSubmitting}
+            disabled={!canGoNext || isSubmitting || isTransitioning}
             className="flex-1"
             data-testid="assessment-next-button"
           >

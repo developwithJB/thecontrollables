@@ -10,6 +10,7 @@ import { OnboardingStarting } from "./OnboardingStarting";
 import { OnboardingSkipConfirmation } from "./OnboardingSkipConfirmation";
 import { OnboardingRecovery } from "./OnboardingRecovery";
 import { OnboardingOrientation } from "./OnboardingOrientation";
+import { OnboardingMeetGuides } from "./OnboardingMeetGuides";
 import { 
   SNAPSHOTS,
   getRecommendedSnapshot,
@@ -19,7 +20,7 @@ import type { BuildScore } from "@/lib/build";
 import type { OnboardingStep } from "@/hooks/useOnboarding";
 
 // Internal step type that includes transitional states
-type InternalOnboardingStep = OnboardingStep | "orientation" | "starting" | "skip_confirmation" | "recovery";
+type InternalOnboardingStep = OnboardingStep | "orientation" | "starting" | "skip_confirmation" | "recovery" | "meet_guides";
 
 interface OnboardingFlowProps {
   userId: string;
@@ -220,17 +221,26 @@ export function OnboardingFlow({
 
   const handleArchetypeAcknowledged = async () => {
     try {
-      // Track archetype viewed
       if (buildResult) {
         trackArchetypeViewed(buildResult.build_archetype_key);
       }
-      trackStepChange("archetype_result", "journey_selection");
-      
+      trackStepChange("archetype_result", "meet_guides");
+      setCurrentStep("meet_guides");
+    } catch (error) {
+      console.error("Failed to save progress:", error);
+      lastActionRef.current = handleArchetypeAcknowledged;
+      setCurrentStep("recovery");
+    }
+  };
+
+  const handleMeetGuidesContinue = async () => {
+    try {
+      trackStepChange("meet_guides", "journey_selection");
       await onUpdateOnboarding({ step: "journey_selection" });
       setCurrentStep("journey_selection");
     } catch (error) {
       console.error("Failed to save progress:", error);
-      lastActionRef.current = handleArchetypeAcknowledged;
+      lastActionRef.current = handleMeetGuidesContinue;
       setCurrentStep("recovery");
     }
   };
@@ -333,12 +343,21 @@ export function OnboardingFlow({
             onSelect={handleSnapshotSelected}
           />
         )}
+
+        {currentStep === "meet_guides" && (
+          <OnboardingMeetGuides
+            key="meet-guides"
+            buildResult={buildResult}
+            onContinue={handleMeetGuidesContinue}
+          />
+        )}
         
         {currentStep === "orientation" && selectedSnapshot && (
           <OnboardingOrientation
             key="orientation"
             snapshotName={selectedSnapshot.name}
             snapshotEmoji={selectedSnapshot.emoji}
+            snapshotFocus={selectedSnapshot.focus}
             onStartDay1={handleOrientationComplete}
           />
         )}

@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { getArchetypeInfo, getArchetypeThemeColors } from "@/lib/build";
 import type { BuildScore } from "@/lib/build";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface OnboardingArchetypeResultProps {
   buildResult: BuildScore;
@@ -23,6 +25,47 @@ export function OnboardingArchetypeResult({
 }: OnboardingArchetypeResultProps) {
   const archetypeInfo = getArchetypeInfo(buildResult.build_archetype_key);
   const themeColors = getArchetypeThemeColors(buildResult.build_archetype_key);
+  const [aiInterpretation, setAiInterpretation] = useState<{ text: string; emoji: string; name: string } | null>(null);
+
+  // Find weakest controllable to "speak" the interpretation
+  const scoresArr = [
+    { key: "awareness", value: Number(buildResult.awareness) },
+    { key: "perspective", value: Number(buildResult.perspective) },
+    { key: "habit", value: Number(buildResult.habit) },
+    { key: "wellness", value: Number(buildResult.wellness) },
+    { key: "environment", value: Number(buildResult.environment) },
+  ];
+  const weakest = scoresArr.reduce((a, b) => (a.value < b.value ? a : b));
+  const weakestLabel = CONTROLLABLE_LABELS[weakest.key];
+
+  useEffect(() => {
+    const fetchInterpretation = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const scoresText = scoresArr.map(s => `${s.key}: ${s.value.toFixed(1)}/4`).join(', ');
+        const res = await supabase.functions.invoke('ai-reflect', {
+          body: {
+            reflection: `Build Assessment complete. Archetype: ${buildResult.build_archetype_key}. Scores: ${scoresText}. Weakest area: ${weakest.key}.`,
+            dayNumber: 1,
+            controllable: weakest.key,
+          },
+        });
+
+        if (res.data?.message) {
+          setAiInterpretation({
+            text: res.data.message,
+            emoji: weakestLabel.emoji,
+            name: weakestLabel.name,
+          });
+        }
+      } catch (e) {
+        console.warn('AI interpretation failed, using static fallback:', e);
+      }
+    };
+    fetchInterpretation();
+  }, []);
 
   // Build score bars
   const scores = [
@@ -129,17 +172,33 @@ export function OnboardingArchetypeResult({
           })}
         </motion.div>
 
-        {/* Recommendation preview */}
+        {/* AI interpretation or static fallback */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9 }}
-          className="p-4 rounded-xl bg-card border border-border mb-8"
+          className="p-5 rounded-xl bg-card border border-border mb-8"
         >
-          <p className="text-sm text-muted-foreground mb-2">What this means</p>
-          <p className="text-foreground text-sm leading-relaxed">
-            {archetypeInfo.recommendations[0]}
-          </p>
+          {aiInterpretation ? (
+            <div className="flex items-start gap-3">
+              <span className="text-3xl shrink-0">{aiInterpretation.emoji}</span>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">
+                  {aiInterpretation.name} says
+                </p>
+                <p className="text-foreground text-sm leading-relaxed italic">
+                  "{aiInterpretation.text}"
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground mb-2">What this means</p>
+              <p className="text-foreground text-sm leading-relaxed">
+                {archetypeInfo.recommendations[0]}
+              </p>
+            </>
+          )}
         </motion.div>
 
         {/* Continue button */}
