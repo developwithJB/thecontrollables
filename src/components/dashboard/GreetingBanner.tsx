@@ -67,6 +67,12 @@ export function GreetingBanner({
   // Calculate level from XP
   const level = Math.floor(totalXp / 500) + 1;
 
+  // Overall Build Level — average of all 5 controllable levels
+  const { data: controllableLevels } = useControllableLevels(userId ?? null);
+  const overallBuildLevel = controllableLevels
+    ? Math.round(controllableLevels.reduce((sum, cl) => sum + cl.level, 0) / controllableLevels.length)
+    : null;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
