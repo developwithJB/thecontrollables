@@ -38,3 +38,12 @@ verify_jwt = false
 
 [functions.admin-broadcast]
 verify_jwt = false
+
+[functions.admin-insights]
+verify_jwt = false
+
+[functions.ai-reflect]
+verify_jwt = false
+
+[functions.ai-briefing]
+verify_jwt = false
