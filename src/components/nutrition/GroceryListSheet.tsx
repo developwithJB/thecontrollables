@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, addDays } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Loader2, X, Check, Copy, Share2 } from "lucide-react";
+import { ShoppingCart, Loader2, X, Check, Copy, Share2, Download, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import html2canvas from "html2canvas";
+import { cn } from "@/lib/utils";
 
 interface GroceryItem {
   name: string;
