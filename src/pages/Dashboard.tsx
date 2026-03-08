@@ -1082,7 +1082,7 @@ export default function Dashboard() {
                   userId={user.id}
                   onNavigateToGuide={() => {
                     setActiveTab("guide");
-                    trackEvent("controllable_teaser_tap");
+                    trackEvent("navigation", "controllable_teaser_tap");
                   }}
                 />
               )}
