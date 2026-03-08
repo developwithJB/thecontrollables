@@ -59,6 +59,7 @@ export function StartSnapshotDialog({
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [expandedBuckets, setExpandedBuckets] = useState<Set<BucketId>>(new Set());
   const [customSnapshots, setCustomSnapshots] = useState<Snapshot[]>([]);
+  const [startAsSeason, setStartAsSeason] = useState(false);
 
   const { currentBuild, questions, submitAssessment, isSubmitting } = useBuildAssessment();
   
