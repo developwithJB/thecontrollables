@@ -381,7 +381,7 @@ export function ProfileSettingsModal({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Used for daily reset timing{nudgeFrequency !== "off" ? " and email nudges" : ""}
+                Used for daily reset timing{nudgeFrequency !== "off" || pushEnabled ? " and reminders" : ""}
               </p>
             </div>
 
