@@ -1367,12 +1367,12 @@ export default function Dashboard() {
                 <div className="flex items-center justify-center gap-4 text-sm">
                   <div>
                     <span className="font-display font-bold text-lg text-accent">{allSessions.length}</span>
-                    <span className="text-muted-foreground ml-1">Resets</span>
+                    <span className="text-muted-foreground ml-1">Snapshots</span>
                   </div>
                   <div className="w-px h-6 bg-border" />
                   <div>
                     <span className="font-display font-bold text-lg text-accent">{allCompletedDays.length}</span>
-                    <span className="text-muted-foreground ml-1">Days Logged</span>
+                    <span className="text-muted-foreground ml-1">Days Checked In</span>
                   </div>
                   <div className="w-px h-6 bg-border" />
                   <div>
