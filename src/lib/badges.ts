@@ -10,7 +10,8 @@ export type BadgeKey =
   | "completed_reset"
   | "protected_time"
   | "asked_guidance"
-  | "snapshot_explorer";
+  | "snapshot_explorer"
+  | "season_finisher";
 
 export interface Badge {
   key: BadgeKey;
