@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useMealTracking, type MealSlotConfig, type MealPlanMeal } from "@/hooks/useMealTracking";
 import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { GroceryListSheet } from "./GroceryListSheet";
 
 interface MealWeekComparisonProps {
   userId: string;
