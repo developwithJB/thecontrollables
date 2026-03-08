@@ -441,21 +441,39 @@ function WeekCard({
   );
 }
 
-// Month View: Meaning + Pattern
+// Month View: Activity-focused
 function MonthView({
   records,
   label,
+  activityMap,
   onSelectRecord,
 }: {
   records: SnapshotRecord[];
   label: string;
+  activityMap: Record<string, ActivitySummary>;
   onSelectRecord?: (record: SnapshotRecord) => void;
 }) {
   const narrative = getMonthNarrative(records);
   const completed = records.filter(r => r.status === "completed").length;
-  const primaryBucket = getPrimaryBucket(records);
-  const focusAreas = getFocusAreas(records);
-  const totalXP = records.reduce((sum, r) => sum + r.xpEarned, 0);
+
+  // Aggregate activity for the month
+  const monthActivity = useMemo(() => {
+    return records.reduce<ActivitySummary>(
+      (acc, r) => {
+        const a = activityMap[r.id];
+        if (a) {
+          acc.actions += a.actions;
+          acc.checkins += a.checkins;
+          acc.promisesKept += a.promisesKept;
+          acc.promisesTotal += a.promisesTotal;
+          acc.wellnessLogs += a.wellnessLogs;
+          acc.totalXp += a.totalXp;
+        }
+        return acc;
+      },
+      { actions: 0, checkins: 0, promisesKept: 0, promisesTotal: 0, wellnessLogs: 0, totalXp: 0 }
+    );
+  }, [records, activityMap]);
 
   return (
     <motion.div
@@ -466,7 +484,7 @@ function MonthView({
       {/* Month label */}
       <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">{label}</p>
       
-      {/* Narrative - the emotional anchor */}
+      {/* Narrative */}
       <p className="text-lg font-medium text-foreground mb-4 leading-snug">
         {narrative}
       </p>
@@ -477,38 +495,47 @@ function MonthView({
           <span className="font-semibold">{records.length}</span> Snapshot{records.length !== 1 ? "s" : ""}
         </span>
         <span className="text-muted-foreground">
-          <span className="font-medium text-emerald-600 dark:text-emerald-400">{completed}</span> completed
+          <span className="font-medium text-primary">{completed}</span> completed
         </span>
       </div>
 
-      {/* Primary Bucket */}
-      {primaryBucket && (
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-xl">{BUCKETS[primaryBucket.id].emoji}</span>
-          <span className="text-sm text-foreground">{BUCKETS[primaryBucket.id].name}</span>
-        </div>
-      )}
+      {/* Activity Stats Grid */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        {monthActivity.actions > 0 && (
+          <div className="flex items-center gap-2 text-sm">
+            <Target className="w-4 h-4 text-muted-foreground" />
+            <span><span className="font-semibold text-foreground">{monthActivity.actions}</span> <span className="text-muted-foreground">actions</span></span>
+          </div>
+        )}
+        {monthActivity.checkins > 0 && (
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
+            <span><span className="font-semibold text-foreground">{monthActivity.checkins}</span> <span className="text-muted-foreground">check-ins</span></span>
+          </div>
+        )}
+        {monthActivity.promisesTotal > 0 && (
+          <div className="flex items-center gap-2 text-sm">
+            <Shield className="w-4 h-4 text-muted-foreground" />
+            <span><span className="font-semibold text-foreground">{monthActivity.promisesKept}/{monthActivity.promisesTotal}</span> <span className="text-muted-foreground">promises</span></span>
+          </div>
+        )}
+        {monthActivity.wellnessLogs > 0 && (
+          <div className="flex items-center gap-2 text-sm">
+            <Heart className="w-4 h-4 text-muted-foreground" />
+            <span><span className="font-semibold text-foreground">{monthActivity.wellnessLogs}</span> <span className="text-muted-foreground">wellness</span></span>
+          </div>
+        )}
+      </div>
 
-      {/* Focus chips */}
-      {focusAreas.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {focusAreas.map(({ focus, count }) => (
-            <Badge key={focus} variant="secondary" className="text-xs capitalize">
-              {focus} ({count})
-            </Badge>
-          ))}
-        </div>
-      )}
-
-      {/* XP - subdued */}
-      {totalXP > 0 && (
+      {/* XP */}
+      {monthActivity.totalXp > 0 && (
         <p className="text-xs text-muted-foreground flex items-center gap-1 mb-4">
           <Zap className="w-3 h-3" />
-          +{totalXP} XP earned
+          +{monthActivity.totalXp} XP earned
         </p>
       )}
 
-      {/* Week breakdown - clickable list */}
+      {/* Week breakdown */}
       <div className="border-t border-border pt-3 mt-3">
         <p className="text-xs text-muted-foreground mb-2">Weekly breakdown</p>
         <div className="space-y-2">
@@ -516,6 +543,7 @@ function MonthView({
             const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
             const statusInfo = getStatusInfo(record.status, record.daysCompleted);
             const startDate = new Date(record.startDate);
+            const activity = activityMap[record.id];
             
             return (
               <motion.button
@@ -527,7 +555,10 @@ function MonthView({
                 <span className="text-base">{snapshot?.emoji || "📅"}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{snapshot?.name || "Week Record"}</p>
-                  <p className="text-xs text-muted-foreground">{format(startDate, "MMM d")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(startDate, "MMM d")}
+                    {activity && activity.actions > 0 && ` · ${activity.actions} actions`}
+                  </p>
                 </div>
                 <Badge variant="secondary" className={`text-xs shrink-0 ${statusInfo.colorClass}`}>
                   {record.daysCompleted}/7
