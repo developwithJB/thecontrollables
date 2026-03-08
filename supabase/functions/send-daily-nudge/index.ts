@@ -1168,7 +1168,7 @@ Deno.serve(async (req) => {
             body = result.body;
           } else {
             // FREE PATH: Basic daily nudge with upgrade CTA
-            const result = generateDailyEmailContent(context);
+            const result = generateDailyEmailContent(context, userLevels);
             subject = result.subject;
             body = result.body;
           }
