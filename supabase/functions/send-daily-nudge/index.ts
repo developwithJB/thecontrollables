@@ -1024,6 +1024,8 @@ Deno.serve(async (req) => {
             const reEngageEmail = reEngageUser.user.email;
             const firstName = context.displayName || "Friend";
             const permissionLine = PERMISSION_LINES[Math.floor(Math.random() * PERMISSION_LINES.length)];
+            const reEngageLevels = await getUserControllableLevels(supabase, userId);
+            const reEngageBuildSection = renderBuildLevelsHtml(reEngageLevels);
 
             const reEngageSubject = "Your next Snapshot is waiting";
             const reEngageBody = `
