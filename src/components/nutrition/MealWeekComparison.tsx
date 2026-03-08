@@ -274,7 +274,6 @@ export function MealWeekComparison({ userId, slotConfig }: MealWeekComparisonPro
           </span>
         </div>
       </div>
-    </div>
 
       {/* Share week card */}
       {hasUpcomingPlans && upcomingPlans && (
