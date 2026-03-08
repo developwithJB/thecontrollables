@@ -68,3 +68,29 @@ const ROTATION: ControllableType[] = ["awareness", "perspective", "habit", "well
 export function getControllableForDay(dayNumber: number): ControllableType {
   return ROTATION[(dayNumber - 1) % ROTATION.length];
 }
+
+/** All controllable types in order */
+export const ALL_CONTROLLABLES: ControllableType[] = ROTATION;
+
+/* ── Leveling System (Pokemon-style 1-99) ── */
+
+/** XP needed to reach a given level: level^2 * 25 */
+export function getXpForLevel(level: number): number {
+  return level * level * 25;
+}
+
+/** Derive current level from total XP (capped at 99) */
+export function getLevelFromXp(totalXp: number): number {
+  if (totalXp <= 0) return 1;
+  const raw = Math.floor(Math.sqrt(totalXp / 25));
+  return Math.min(Math.max(raw, 1), 99);
+}
+
+/** Progress within the current level (0-1) */
+export function getLevelProgress(totalXp: number): { level: number; current: number; next: number; progress: number } {
+  const level = getLevelFromXp(totalXp);
+  const current = getXpForLevel(level);
+  const next = getXpForLevel(level + 1);
+  const progress = next > current ? Math.min((totalXp - current) / (next - current), 1) : 1;
+  return { level, current, next, progress };
+}
