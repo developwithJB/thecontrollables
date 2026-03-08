@@ -70,11 +70,31 @@ export function OnboardingAssessment({
     setAnswers((prev) => ({ ...prev, [currentQuestion.id]: value }));
   };
 
+  const showInterjection = useCallback((controllable: string, score: number) => {
+    const pool = score <= 2 ? INTERJECTION_LOW[controllable] : INTERJECTION_HIGH[controllable];
+    if (!pool?.length) return;
+    const emoji = CONTROLLABLE_EMOJIS[controllable] || "📊";
+    const text = pool[Math.floor(Math.random() * pool.length)];
+    setInterjection({ emoji, text });
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setInterjection(null);
+      setIsTransitioning(false);
+      setCurrentIndex((prev) => prev + 1);
+    }, 1500);
+  }, []);
+
   const handleNext = () => {
     if (isLastQuestion && canGoNext) {
       onComplete(answers);
     } else if (canGoNext) {
-      setCurrentIndex((prev) => prev + 1);
+      // Show interjection before advancing (every 3rd question to avoid fatigue)
+      if (currentQuestion && (currentIndex + 1) % 3 === 0) {
+        const score = answers[currentQuestion.id];
+        showInterjection(currentQuestion.controllable, score);
+      } else {
+        setCurrentIndex((prev) => prev + 1);
+      }
     }
   };
 
