@@ -1,11 +1,9 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useBrainBodyHealth } from "@/hooks/useBrainBodyHealth";
-import { Brain, Dumbbell, Moon, Monitor, Salad, Activity, TrendingUp, TrendingDown, Minus, Smartphone } from "lucide-react";
+import { Brain, Dumbbell, Moon, Monitor, Salad, Activity, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { HealthDataSync } from "./HealthDataSync";
 import { getControllableTheme } from "@/lib/controllableTheme";
 import { ControllableLevelBadge } from "./ControllableLevelBadge";
 
@@ -84,7 +82,6 @@ const SATELLITE_TIPS: Record<string, string> = {
 
 export function BrainBodyTracker({ userId, onLogWellness }: BrainBodyTrackerProps) {
   const { brainScore, bodyScore, factors, trend, hasData, hasHealthSync, isLoading } = useBrainBodyHealth(userId);
-  const [syncOpen, setSyncOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -128,30 +125,6 @@ export function BrainBodyTracker({ userId, onLogWellness }: BrainBodyTrackerProp
                 <ControllableLevelBadge controllable="wellness" />
               </div>
               <div className="flex items-center gap-2">
-                {!hasHealthSync && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSyncOpen(true);
-                    }}
-                    className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors bg-primary/10 rounded-full px-2 py-0.5"
-                  >
-                    <Smartphone className="h-3 w-3" />
-                    Connect
-                  </button>
-                )}
-                {hasHealthSync && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSyncOpen(true);
-                    }}
-                    className="flex items-center gap-1 text-[10px] text-perspective hover:text-perspective/80 transition-colors"
-                  >
-                    <Smartphone className="h-3 w-3" />
-                    Synced
-                  </button>
-                )}
                 {hasData && (
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <TrendIcon className="h-3 w-3" />
@@ -187,15 +160,6 @@ export function BrainBodyTracker({ userId, onLogWellness }: BrainBodyTrackerProp
                 <p className="text-sm text-muted-foreground mb-2">
                   Log your wellness to see your health status
                 </p>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSyncOpen(true);
-                  }}
-                  className="text-xs text-primary underline mb-2"
-                >
-                  Or import from Apple Health / Google Fit
-                </button>
                 <p className="text-xs text-muted-foreground italic">
                   {SATELLITE_TIPS.default}
                 </p>
@@ -205,13 +169,6 @@ export function BrainBodyTracker({ userId, onLogWellness }: BrainBodyTrackerProp
         </Card>
       </motion.div>
 
-      {userId && (
-        <HealthDataSync
-          open={syncOpen}
-          onOpenChange={setSyncOpen}
-          userId={userId}
-        />
-      )}
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,13 +21,17 @@ import {
   Trophy,
   Award,
   Gift,
+  Target,
+  Heart,
+  Shield,
 } from "lucide-react";
-import { format, addDays } from "date-fns";
+import { format, addDays, parseISO } from "date-fns";
 import { BUCKETS, getSnapshotById, type BucketId } from "@/lib/snapshots";
 import { useNavigate } from "react-router-dom";
 import { SnapshotDetailView } from "@/components/experience/SnapshotDetailView";
 import { WeeklyPatternView } from "@/components/experience/WeeklyPatternView";
 import { SnapshotReviewModal } from "@/components/experience/SnapshotReviewModal";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SnapshotRecord {
   id: string;
@@ -46,6 +50,98 @@ interface SnapshotHistoryProps {
   isPaid?: boolean;
   userId?: string;
   onStartNew?: () => void;
+}
+
+interface ActivitySummary {
+  actions: number;
+  checkins: number;
+  promisesKept: number;
+  promisesTotal: number;
+  wellnessLogs: number;
+  totalXp: number;
+}
+
+// Hook to fetch activity data for date ranges
+function useActivityData(userId: string | undefined, sessions: SnapshotRecord[]) {
+  const [activityMap, setActivityMap] = useState<Record<string, ActivitySummary>>({});
+
+  useEffect(() => {
+    if (!userId || sessions.length === 0) return;
+
+    const fetchActivity = async () => {
+      // Get the full date range
+      const dates = sessions.map(s => new Date(s.startDate));
+      const earliest = new Date(Math.min(...dates.map(d => d.getTime())));
+      const latest = addDays(new Date(Math.max(...dates.map(d => d.getTime()))), 7);
+
+      const [actionsRes, checkinsRes, integrityRes, wellnessRes] = await Promise.all([
+        supabase
+          .from("completed_actions")
+          .select("completed_at, xp_awarded")
+          .eq("user_id", userId)
+          .gte("completed_at", earliest.toISOString())
+          .lte("completed_at", latest.toISOString()),
+        supabase
+          .from("daily_checkins")
+          .select("check_in_date")
+          .eq("user_id", userId)
+          .gte("check_in_date", format(earliest, "yyyy-MM-dd"))
+          .lte("check_in_date", format(latest, "yyyy-MM-dd")),
+        supabase
+          .from("integrity_logs")
+          .select("promised_at, kept")
+          .eq("user_id", userId)
+          .gte("promised_at", earliest.toISOString())
+          .lte("promised_at", latest.toISOString()),
+        supabase
+          .from("wellness_logs")
+          .select("log_date")
+          .eq("user_id", userId)
+          .gte("log_date", format(earliest, "yyyy-MM-dd"))
+          .lte("log_date", format(latest, "yyyy-MM-dd")),
+      ]);
+
+      const actions = actionsRes.data || [];
+      const checkins = checkinsRes.data || [];
+      const integrity = integrityRes.data || [];
+      const wellness = wellnessRes.data || [];
+
+      // Map each session to its activity
+      const map: Record<string, ActivitySummary> = {};
+      sessions.forEach(session => {
+        const start = new Date(session.startDate);
+        const end = addDays(start, 7);
+        const startStr = format(start, "yyyy-MM-dd");
+        const endStr = format(end, "yyyy-MM-dd");
+
+        const sessionActions = actions.filter(a => {
+          const d = a.completed_at.slice(0, 10);
+          return d >= startStr && d < endStr;
+        });
+        const sessionCheckins = checkins.filter(c => c.check_in_date >= startStr && c.check_in_date < endStr);
+        const sessionIntegrity = integrity.filter(i => {
+          const d = i.promised_at.slice(0, 10);
+          return d >= startStr && d < endStr;
+        });
+        const sessionWellness = wellness.filter(w => w.log_date >= startStr && w.log_date < endStr);
+
+        map[session.id] = {
+          actions: sessionActions.length,
+          checkins: sessionCheckins.length,
+          promisesKept: sessionIntegrity.filter(i => i.kept === true).length,
+          promisesTotal: sessionIntegrity.length,
+          wellnessLogs: sessionWellness.length,
+          totalXp: sessionActions.reduce((sum, a) => sum + (a.xp_awarded || 0), 0),
+        };
+      });
+
+      setActivityMap(map);
+    };
+
+    fetchActivity();
+  }, [userId, sessions.length]);
+
+  return activityMap;
 }
 
 type ViewMode = "week" | "month" | "year" | "patterns";
@@ -185,11 +281,13 @@ function getHistoricalSnapshotVisual(startDate: Date, index: number): { emoji: s
 function WeekCard({
   record,
   index = 0,
+  activity,
   onClick,
   onViewSnapshot,
 }: {
   record: SnapshotRecord;
   index?: number;
+  activity?: ActivitySummary;
   onClick?: () => void;
   onViewSnapshot?: () => void;
 }) {
@@ -255,15 +353,32 @@ function WeekCard({
         </div>
       </div>
 
-      {/* Bucket & Focus - only show if we have actual snapshot data */}
-      {bucket && (
-        <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
-          <span>{bucket.emoji} {bucket.name}</span>
-          {snapshot && (
-            <>
-              <span className="text-muted-foreground/50">•</span>
-              <span className="capitalize">{snapshot.focus}</span>
-            </>
+      {/* Activity Summary */}
+      {activity && (activity.actions > 0 || activity.checkins > 0 || activity.promisesTotal > 0 || activity.wellnessLogs > 0) && (
+        <div className="flex flex-wrap items-center gap-2 mb-3 text-xs text-muted-foreground">
+          {activity.actions > 0 && (
+            <span className="flex items-center gap-1">
+              <Target className="w-3 h-3" />
+              {activity.actions} action{activity.actions !== 1 ? "s" : ""}
+            </span>
+          )}
+          {activity.checkins > 0 && (
+            <span className="flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" />
+              {activity.checkins}/7 check-ins
+            </span>
+          )}
+          {activity.promisesTotal > 0 && (
+            <span className="flex items-center gap-1">
+              <Shield className="w-3 h-3" />
+              {activity.promisesKept}/{activity.promisesTotal} promises
+            </span>
+          )}
+          {activity.wellnessLogs > 0 && (
+            <span className="flex items-center gap-1">
+              <Heart className="w-3 h-3" />
+              {activity.wellnessLogs} wellness
+            </span>
           )}
         </div>
       )}
@@ -326,21 +441,39 @@ function WeekCard({
   );
 }
 
-// Month View: Meaning + Pattern
+// Month View: Activity-focused
 function MonthView({
   records,
   label,
+  activityMap,
   onSelectRecord,
 }: {
   records: SnapshotRecord[];
   label: string;
+  activityMap: Record<string, ActivitySummary>;
   onSelectRecord?: (record: SnapshotRecord) => void;
 }) {
   const narrative = getMonthNarrative(records);
   const completed = records.filter(r => r.status === "completed").length;
-  const primaryBucket = getPrimaryBucket(records);
-  const focusAreas = getFocusAreas(records);
-  const totalXP = records.reduce((sum, r) => sum + r.xpEarned, 0);
+
+  // Aggregate activity for the month
+  const monthActivity = useMemo(() => {
+    return records.reduce<ActivitySummary>(
+      (acc, r) => {
+        const a = activityMap[r.id];
+        if (a) {
+          acc.actions += a.actions;
+          acc.checkins += a.checkins;
+          acc.promisesKept += a.promisesKept;
+          acc.promisesTotal += a.promisesTotal;
+          acc.wellnessLogs += a.wellnessLogs;
+          acc.totalXp += a.totalXp;
+        }
+        return acc;
+      },
+      { actions: 0, checkins: 0, promisesKept: 0, promisesTotal: 0, wellnessLogs: 0, totalXp: 0 }
+    );
+  }, [records, activityMap]);
 
   return (
     <motion.div
@@ -351,7 +484,7 @@ function MonthView({
       {/* Month label */}
       <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">{label}</p>
       
-      {/* Narrative - the emotional anchor */}
+      {/* Narrative */}
       <p className="text-lg font-medium text-foreground mb-4 leading-snug">
         {narrative}
       </p>
@@ -362,38 +495,47 @@ function MonthView({
           <span className="font-semibold">{records.length}</span> Snapshot{records.length !== 1 ? "s" : ""}
         </span>
         <span className="text-muted-foreground">
-          <span className="font-medium text-emerald-600 dark:text-emerald-400">{completed}</span> completed
+          <span className="font-medium text-primary">{completed}</span> completed
         </span>
       </div>
 
-      {/* Primary Bucket */}
-      {primaryBucket && (
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-xl">{BUCKETS[primaryBucket.id].emoji}</span>
-          <span className="text-sm text-foreground">{BUCKETS[primaryBucket.id].name}</span>
-        </div>
-      )}
+      {/* Activity Stats Grid */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        {monthActivity.actions > 0 && (
+          <div className="flex items-center gap-2 text-sm">
+            <Target className="w-4 h-4 text-muted-foreground" />
+            <span><span className="font-semibold text-foreground">{monthActivity.actions}</span> <span className="text-muted-foreground">actions</span></span>
+          </div>
+        )}
+        {monthActivity.checkins > 0 && (
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
+            <span><span className="font-semibold text-foreground">{monthActivity.checkins}</span> <span className="text-muted-foreground">check-ins</span></span>
+          </div>
+        )}
+        {monthActivity.promisesTotal > 0 && (
+          <div className="flex items-center gap-2 text-sm">
+            <Shield className="w-4 h-4 text-muted-foreground" />
+            <span><span className="font-semibold text-foreground">{monthActivity.promisesKept}/{monthActivity.promisesTotal}</span> <span className="text-muted-foreground">promises</span></span>
+          </div>
+        )}
+        {monthActivity.wellnessLogs > 0 && (
+          <div className="flex items-center gap-2 text-sm">
+            <Heart className="w-4 h-4 text-muted-foreground" />
+            <span><span className="font-semibold text-foreground">{monthActivity.wellnessLogs}</span> <span className="text-muted-foreground">wellness</span></span>
+          </div>
+        )}
+      </div>
 
-      {/* Focus chips */}
-      {focusAreas.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {focusAreas.map(({ focus, count }) => (
-            <Badge key={focus} variant="secondary" className="text-xs capitalize">
-              {focus} ({count})
-            </Badge>
-          ))}
-        </div>
-      )}
-
-      {/* XP - subdued */}
-      {totalXP > 0 && (
+      {/* XP */}
+      {monthActivity.totalXp > 0 && (
         <p className="text-xs text-muted-foreground flex items-center gap-1 mb-4">
           <Zap className="w-3 h-3" />
-          +{totalXP} XP earned
+          +{monthActivity.totalXp} XP earned
         </p>
       )}
 
-      {/* Week breakdown - clickable list */}
+      {/* Week breakdown */}
       <div className="border-t border-border pt-3 mt-3">
         <p className="text-xs text-muted-foreground mb-2">Weekly breakdown</p>
         <div className="space-y-2">
@@ -401,6 +543,7 @@ function MonthView({
             const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
             const statusInfo = getStatusInfo(record.status, record.daysCompleted);
             const startDate = new Date(record.startDate);
+            const activity = activityMap[record.id];
             
             return (
               <motion.button
@@ -412,7 +555,10 @@ function MonthView({
                 <span className="text-base">{snapshot?.emoji || "📅"}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{snapshot?.name || "Week Record"}</p>
-                  <p className="text-xs text-muted-foreground">{format(startDate, "MMM d")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(startDate, "MMM d")}
+                    {activity && activity.actions > 0 && ` · ${activity.actions} actions`}
+                  </p>
                 </div>
                 <Badge variant="secondary" className={`text-xs shrink-0 ${statusInfo.colorClass}`}>
                   {record.daysCompleted}/7
@@ -588,6 +734,9 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
   const [showOlderWeeks, setShowOlderWeeks] = useState(false);
   const [reviewSessionId, setReviewSessionId] = useState<string | null>(null);
 
+  // Fetch activity data for all sessions
+  const activityMap = useActivityData(userId, sessions);
+
   // Filter to only show sessions with meaningful data
   const validSessions = useMemo(() => 
     sessions.filter(s => s.daysCompleted > 0 || s.status === "active"),
@@ -717,6 +866,7 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
                   key={record.id}
                   record={record}
                   index={index}
+                  activity={activityMap[record.id]}
                   onClick={() => setSelectedRecord(record)}
                   onViewSnapshot={record.status !== "active" && userId
                     ? () => setReviewSessionId(record.id)
@@ -757,6 +907,7 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
                             key={record.id}
                             record={record}
                             index={index + 1}
+                            activity={activityMap[record.id]}
                             onClick={() => setSelectedRecord(record)}
                             onViewSnapshot={record.status !== "active" && userId
                               ? () => setReviewSessionId(record.id)
@@ -798,6 +949,7 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
                     key={key} 
                     records={records} 
                     label={label} 
+                    activityMap={activityMap}
                     onSelectRecord={setSelectedRecord}
                   />
                 ))
