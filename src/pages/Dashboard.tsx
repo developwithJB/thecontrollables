@@ -1076,6 +1076,17 @@ export default function Dashboard() {
               )}
 
 
+              {/* Controllable Levels Teaser - links to Guide tab */}
+              {user?.id && (
+                <ControllableLevelsTeaser
+                  userId={user.id}
+                  onNavigateToGuide={() => {
+                    setActiveTab("guide");
+                    trackEvent("controllable_teaser_tap");
+                  }}
+                />
+              )}
+
               {/* Build Entry Point - shows if user hasn't done assessment */}
               <BuildEntryPoint userId={user?.id} />
 
