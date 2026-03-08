@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useBrainBodyHealth } from "@/hooks/useBrainBodyHealth";
-import { Brain, Dumbbell, Moon, Monitor, Salad, Activity, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Brain, Dumbbell, Moon, Monitor, Salad, Activity, TrendingUp, TrendingDown, Minus, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HealthDataSync } from "./HealthDataSync";
 
 interface BrainBodyTrackerProps {
   userId: string | undefined;
@@ -77,7 +79,8 @@ const SATELLITE_TIPS: Record<string, string> = {
 };
 
 export function BrainBodyTracker({ userId, onLogWellness }: BrainBodyTrackerProps) {
-  const { brainScore, bodyScore, factors, trend, hasData, isLoading } = useBrainBodyHealth(userId);
+  const { brainScore, bodyScore, factors, trend, hasData, hasHealthSync, isLoading } = useBrainBodyHealth(userId);
+  const [syncOpen, setSyncOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -97,66 +100,111 @@ export function BrainBodyTracker({ userId, onLogWellness }: BrainBodyTrackerProp
   const TrendIcon = trendIcon;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      <Card
-        className={cn(
-          "cursor-pointer transition-shadow hover:shadow-md border-wellness/20",
-          !hasData && "opacity-80"
-        )}
-        onClick={!hasData ? onLogWellness : undefined}
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
       >
-        <CardContent className="p-5">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-wellness" />
-              <h3 className="text-sm font-semibold text-foreground">Brain & Body</h3>
+        <Card
+          className={cn(
+            "cursor-pointer transition-shadow hover:shadow-md border-wellness/20",
+            !hasData && "opacity-80"
+          )}
+          onClick={!hasData ? onLogWellness : undefined}
+        >
+          <CardContent className="p-5">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-wellness" />
+                <h3 className="text-sm font-semibold text-foreground">Brain & Body</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                {!hasHealthSync && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSyncOpen(true);
+                    }}
+                    className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors bg-primary/10 rounded-full px-2 py-0.5"
+                  >
+                    <Smartphone className="h-3 w-3" />
+                    Connect
+                  </button>
+                )}
+                {hasHealthSync && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSyncOpen(true);
+                    }}
+                    className="flex items-center gap-1 text-[10px] text-perspective hover:text-perspective/80 transition-colors"
+                  >
+                    <Smartphone className="h-3 w-3" />
+                    Synced
+                  </button>
+                )}
+                {hasData && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <TrendIcon className="h-3 w-3" />
+                    <span>7-day</span>
+                  </div>
+                )}
+              </div>
             </div>
-            {hasData && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <TrendIcon className="h-3 w-3" />
-                <span>7-day</span>
+
+            {hasData ? (
+              <>
+                {/* Score Rings */}
+                <div className="flex justify-center gap-8 mb-4">
+                  <ScoreRing score={brainScore} emoji="🧠" label="Brain" />
+                  <ScoreRing score={bodyScore} emoji="💪" label="Body" />
+                </div>
+
+                {/* Factor Chips */}
+                <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+                  <FactorChip icon={Moon} label="Sleep" score={factors.sleep} />
+                  <FactorChip icon={Dumbbell} label="Movement" score={factors.movement} />
+                  <FactorChip icon={Monitor} label="Screen" score={factors.screenTime} />
+                  <FactorChip icon={Salad} label="Nutrition" score={factors.nutrition} />
+                </div>
+
+                {/* Satellite Tip */}
+                <p className="text-xs text-muted-foreground text-center italic">
+                  {SATELLITE_TIPS[weakest] || SATELLITE_TIPS.default}
+                </p>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground mb-2">
+                  Log your wellness to see your health status
+                </p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSyncOpen(true);
+                  }}
+                  className="text-xs text-primary underline mb-2"
+                >
+                  Or import from Apple Health / Google Fit
+                </button>
+                <p className="text-xs text-muted-foreground italic">
+                  {SATELLITE_TIPS.default}
+                </p>
               </div>
             )}
-          </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
-          {hasData ? (
-            <>
-              {/* Score Rings */}
-              <div className="flex justify-center gap-8 mb-4">
-                <ScoreRing score={brainScore} emoji="🧠" label="Brain" />
-                <ScoreRing score={bodyScore} emoji="💪" label="Body" />
-              </div>
-
-              {/* Factor Chips */}
-              <div className="flex flex-wrap justify-center gap-1.5 mb-3">
-                <FactorChip icon={Moon} label="Sleep" score={factors.sleep} />
-                <FactorChip icon={Dumbbell} label="Movement" score={factors.movement} />
-                <FactorChip icon={Monitor} label="Screen" score={factors.screenTime} />
-                <FactorChip icon={Salad} label="Nutrition" score={factors.nutrition} />
-              </div>
-
-              {/* Satellite Tip */}
-              <p className="text-xs text-muted-foreground text-center italic">
-                {SATELLITE_TIPS[weakest] || SATELLITE_TIPS.default}
-              </p>
-            </>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-sm text-muted-foreground mb-2">
-                Log your wellness to see your health status
-              </p>
-              <p className="text-xs text-muted-foreground italic">
-                {SATELLITE_TIPS.default}
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </motion.div>
+      {userId && (
+        <HealthDataSync
+          open={syncOpen}
+          onOpenChange={setSyncOpen}
+          userId={userId}
+        />
+      )}
+    </>
   );
 }
