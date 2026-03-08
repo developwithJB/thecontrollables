@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Moon, Sun, CreditCard, Mail, Calendar } from "lucide-react";
+import { LogOut, Moon, Sun, CreditCard, Mail, Calendar, Bell } from "lucide-react";
+import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush } from "@/lib/pushNotifications";
 import {
   Dialog,
   DialogContent,
@@ -66,12 +67,19 @@ export function ProfileSettingsModal({
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isDark, setIsDark] = useState(false);
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushToggling, setPushToggling] = useState(false);
   const { toast } = useToast();
 
-  // Detect initial theme
+  // Detect initial theme + push support
   useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains("dark");
     setIsDark(isDarkMode);
+    setPushSupported(isPushSupported());
+    if (isPushSupported()) {
+      isPushSubscribed().then(setPushEnabled);
+    }
   }, [open]);
 
   // Fetch profile on open
@@ -260,6 +268,52 @@ export function ProfileSettingsModal({
                 />
               </div>
 
+              {/* Push Notifications - Free, only when supported */}
+              {pushSupported && (
+                <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-muted-foreground" />
+                      <Label htmlFor="push-toggle" className="font-medium cursor-pointer">
+                        Push Reminders
+                      </Label>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/20 text-accent-foreground font-medium">
+                        Free
+                      </span>
+                    </div>
+                    <Switch
+                      id="push-toggle"
+                      checked={pushEnabled}
+                      disabled={pushToggling}
+                      onCheckedChange={async (checked) => {
+                        setPushToggling(true);
+                        try {
+                          if (checked) {
+                            const success = await subscribeToPush();
+                            setPushEnabled(success);
+                            if (!success) {
+                              toast({
+                                title: "Push notifications blocked",
+                                description: "Please allow notifications in your browser settings.",
+                                variant: "destructive",
+                              });
+                            }
+                          } else {
+                            await unsubscribeFromPush();
+                            setPushEnabled(false);
+                          }
+                        } finally {
+                          setPushToggling(false);
+                        }
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    A quiet nudge on your device. No email, no guilt.
+                  </p>
+                </div>
+              )}
+
               {/* Premium Option: Email Nudges */}
               <div className={`space-y-3 p-4 rounded-lg border ${isPaid ? 'bg-muted/50 border-border' : 'bg-muted/20 border-border/50'}`}>
                 <div className="flex items-center gap-2 mb-1">
@@ -327,7 +381,7 @@ export function ProfileSettingsModal({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Used for daily reset timing{nudgeFrequency !== "off" ? " and email nudges" : ""}
+                Used for daily reset timing{nudgeFrequency !== "off" || pushEnabled ? " and reminders" : ""}
               </p>
             </div>
 

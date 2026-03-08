@@ -1,79 +1,164 @@
 
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-# Smart Push Nudges
+## Overview
 
-Native web push notifications for installed PWA users with shame-free, context-aware messages.
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-## Architecture Overview
+---
 
-```text
-┌──────────────┐     ┌──────────────────┐     ┌──────────────────────┐
-│  Client PWA  │────▶│  push_subscriptions │◀───│  send-push-nudge     │
-│  (subscribe) │     │  table (DB)        │     │  edge function       │
-└──────────────┘     └──────────────────┘     └──────────────────────┘
-                                                        │
-                                                        ▼
-                                               Web Push API (VAPID)
+## Part 1: AI Insight Engine
+
+### New Edge Function: `admin-insights`
+
+**File: `supabase/functions/admin-insights/index.ts`**
+
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
+
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
+
+[structured data blob]
+
+Return insights as structured tool output.
 ```
 
-## What Gets Built
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-### 1. Database: `push_subscriptions` table
-Store Web Push subscription objects per user. Columns: `id`, `user_id`, `endpoint`, `p256dh_key`, `auth_key`, `created_at`, `updated_at`. RLS: users can insert/update/delete/select their own rows only.
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-### 2. VAPID Key Pair (Secret)
-Generate a VAPID key pair. The **public key** goes in the frontend code. The **private key** gets stored as a backend secret (`VAPID_PRIVATE_KEY`). We'll also store `VAPID_PUBLIC_KEY` as a secret for the edge function, and a `VAPID_SUBJECT` (mailto: email).
+### New Admin Component: AI Insights Panel
 
-### 3. Service Worker: Push event handler
-Add `push` and `notificationclick` event listeners to `public/sw.js`. On push, display a notification with the message payload. On click, open the dashboard and focus the window.
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-### 4. Client: Push subscription flow
-New `src/lib/pushNotifications.ts` utility:
-- `subscribeToPush()`: requests `Notification.permission`, calls `registration.pushManager.subscribe()` with the VAPID public key, saves the subscription to `push_subscriptions` table.
-- `unsubscribeFromPush()`: unsubscribes and deletes from DB.
-- `isPushSupported()`: checks `'PushManager' in window`.
-- `isPushSubscribed()`: checks current subscription state.
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-### 5. Profile Settings: Push toggle
-Add a new "Push Notifications" option in the Reminders section of `ProfileSettingsModal.tsx`, between Calendar Reminder and Daily Alignment. Shows:
-- A toggle switch for enabling/disabling push
-- Label: "Push Reminders" with a "Free" badge
-- Description: "A quiet nudge on your device. No email, no guilt."
-- Only visible when `isPushSupported()` returns true (i.e., installed PWA or supported browser)
+### Integration into Admin.tsx
 
-### 6. Edge Function: `send-push-nudge`
-New edge function that:
-- Queries `push_subscriptions` joined with `profiles` (for timezone) and `reset_sessions` (for context)
-- For each user where it's their local morning (7 AM), builds a context-aware message:
-  - Active snapshot, actions remaining → "One action left today. You're closer than you think."
-  - No active snapshot → "Ready to start your next Snapshot?"
-  - Returning after absence → "Welcome back. Pick the light version today."
-- Sends via Web Push protocol using the `web-push` npm library (available via esm.sh)
-- Handles expired subscriptions (HTTP 410) by deleting them from DB
-- Logs to `email_nudge_logs` with status `push_sent` for unified monitoring
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
-### 7. Config
-Add `[functions.send-push-nudge]` with `verify_jwt = false` to `supabase/config.toml` (it will be called by a cron/scheduler, not directly by users).
+---
 
-## Nudge Copy (Shame-Free)
-Every push includes one of these permission lines rotated:
-- "Nothing is required today."
-- "No pressure. Just a quiet check-in."
-- "You don't have to open this."
-- "Just a reminder that your Dashboard is here."
-- "Show up if you want. Skip if you need to."
+## Part 2: Enhanced Action Center
 
-## What Does NOT Change
-- Email nudge system remains as-is
-- Calendar reminder remains as-is
-- No changes to existing pages or routing
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
 
-## Implementation Order
-1. Request VAPID secrets from user
-2. Create `push_subscriptions` table migration
-3. Add push handlers to `sw.js`
-4. Create `src/lib/pushNotifications.ts`
-5. Add push toggle to `ProfileSettingsModal.tsx`
-6. Create `send-push-nudge` edge function
-7. Update `supabase/config.toml`
+Replace the three "Coming soon" cards with working functionality:
 
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
+
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
+
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
+
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
+
+---
+
+## Part 3: Landing Page Updates
+
+**File: `src/pages/Landing.tsx`**
+
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+
+**File: `src/components/landing/FeatureGrid.tsx`**
+
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+
+**File: `src/components/landing/HowItWorksSection.tsx`**
+
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
