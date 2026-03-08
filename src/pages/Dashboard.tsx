@@ -1074,10 +1074,6 @@ export default function Dashboard() {
                 />
               )}
 
-              {/* Controllable Levels - Pokemon-style progression */}
-              {user?.id && (
-                <ControllableLevelsCard userId={user.id} />
-              )}
 
               {/* Build Entry Point - shows if user hasn't done assessment */}
               <BuildEntryPoint userId={user?.id} />
