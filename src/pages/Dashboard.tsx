@@ -639,6 +639,31 @@ export default function Dashboard() {
     }
   }, [searchParams, currentDay, setSearchParams, triggerDay7Celebration]);
 
+  // Handle wearable OAuth callback (Fitbit/Oura redirect)
+  useEffect(() => {
+    const connected = searchParams.get("wearable_connected");
+    const wearableError = searchParams.get("wearable_error");
+    if (connected) {
+      toast({
+        title: `${connected === "fitbit" ? "Fitbit" : "Oura Ring"} connected!`,
+        description: "Tap Sync Now in Health Data to pull your latest data.",
+      });
+      const next = new URLSearchParams(searchParams);
+      next.delete("wearable_connected");
+      setSearchParams(next, { replace: true });
+      queryClient.invalidateQueries({ queryKey: ["wearable-connections"] });
+    } else if (wearableError) {
+      toast({
+        title: "Connection failed",
+        description: `Could not connect: ${wearableError}`,
+        variant: "destructive",
+      });
+      const next = new URLSearchParams(searchParams);
+      next.delete("wearable_error");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams, toast, queryClient]);
+
   // Handle quest creation - award badge and complete onboarding
   const handleCreateQuest = useCallback(
     (data: { title: string; durationDays: number }) => {
