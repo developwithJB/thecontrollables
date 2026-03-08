@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, Calendar, Loader2, Lock, UtensilsCrossed } from "lucide-react";
 import { getControllableTheme } from "@/lib/controllableTheme";
+import { ControllableLevelBadge } from "@/components/dashboard/ControllableLevelBadge";
 import { MealWeekComparison } from "./MealWeekComparison";
 
 const wellnessTheme = getControllableTheme("wellness");
