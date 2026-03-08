@@ -356,6 +356,7 @@ export function OnboardingFlow({
             key="orientation"
             snapshotName={selectedSnapshot.name}
             snapshotEmoji={selectedSnapshot.emoji}
+            snapshotFocus={selectedSnapshot.focus}
             onStartDay1={handleOrientationComplete}
           />
         )}
