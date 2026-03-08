@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Sparkles, Calendar, Loader2, Lock, UtensilsCrossed } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, Calendar, Loader2, Lock, UtensilsCrossed, X, Minus, Plus, Settings2 } from "lucide-react";
 import { getControllableTheme } from "@/lib/controllableTheme";
 import { ControllableLevelBadge } from "@/components/dashboard/ControllableLevelBadge";
 import { MealWeekComparison } from "./MealWeekComparison";
 
 const wellnessTheme = getControllableTheme("wellness");
 import { Button } from "@/components/ui/button";
-import { useMealTracking } from "@/hooks/useMealTracking";
+import { useMealTracking, type MealSlotConfig } from "@/hooks/useMealTracking";
 import { MealTracker } from "./MealTracker";
 
 interface MealPlanCardProps {
@@ -16,12 +16,45 @@ interface MealPlanCardProps {
   onUpgrade?: () => void;
 }
 
+const MAIN_MEALS = [
+  { key: "breakfast", label: "Breakfast", emoji: "🌅" },
+  { key: "lunch", label: "Lunch", emoji: "☀️" },
+  { key: "dinner", label: "Dinner", emoji: "🌙" },
+];
+
 export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
-  const { todayPlan, generatePlan, dailyTotals, todayMeals } = useMealTracking(userId);
+  const { todayPlan, generatePlan, updatePlanMeals, dailyTotals, todayMeals } = useMealTracking(userId);
   const [showTracker, setShowTracker] = useState(false);
   const [view, setView] = useState<"today" | "week">("today");
+  const [showConfig, setShowConfig] = useState(false);
+
+  // Meal config state
+  const [enabledMeals, setEnabledMeals] = useState<Record<string, boolean>>({
+    breakfast: true,
+    lunch: true,
+    dinner: true,
+  });
+  const [snackCount, setSnackCount] = useState(1);
 
   const hasMealsLogged = todayMeals.length > 0;
+
+  const getSlotConfig = (): MealSlotConfig => {
+    const excludeMeals = Object.entries(enabledMeals)
+      .filter(([, v]) => !v)
+      .map(([k]) => k);
+    return { excludeMeals, snackCount };
+  };
+
+  const handleGenerate = () => {
+    generatePlan.mutate(getSlotConfig());
+    setShowConfig(false);
+  };
+
+  const handleRemoveMeal = (index: number) => {
+    if (!todayPlan) return;
+    const meals = (todayPlan.meals as any[]).filter((_: any, i: number) => i !== index);
+    updatePlanMeals.mutate({ planId: todayPlan.id, meals });
+  };
 
   // Build Google Calendar URL for meal prep
   const getCalendarUrl = () => {
@@ -105,16 +138,91 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
 
         {/* Content: Today or Week view */}
         {view === "week" && userId ? (
-          <MealWeekComparison userId={userId} />
-        ) : todayPlan ? (
+          <MealWeekComparison userId={userId} slotConfig={getSlotConfig()} />
+        ) : showConfig ? (
+          /* Meal config panel */
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-muted-foreground">Choose your meals</p>
+            
+            {/* Main meal toggles */}
+            <div className="flex flex-wrap gap-1.5">
+              {MAIN_MEALS.map((meal) => (
+                <button
+                  key={meal.key}
+                  onClick={() =>
+                    setEnabledMeals((prev) => ({ ...prev, [meal.key]: !prev[meal.key] }))
+                  }
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                    enabledMeals[meal.key]
+                      ? "bg-primary/10 border-primary/30 text-primary"
+                      : "bg-muted/50 border-border/40 text-muted-foreground line-through"
+                  }`}
+                >
+                  <span>{meal.emoji}</span>
+                  {meal.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Snack stepper */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">🍎 Snacks</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSnackCount((c) => Math.max(0, c - 1))}
+                  disabled={snackCount === 0}
+                  className="w-6 h-6 rounded-full border border-border/60 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
+                >
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="text-xs font-mono w-4 text-center text-foreground">{snackCount}</span>
+                <button
+                  onClick={() => setSnackCount((c) => Math.min(5, c + 1))}
+                  disabled={snackCount >= 5}
+                  className="w-6 h-6 rounded-full border border-border/60 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="flex-1 text-xs"
+                onClick={handleGenerate}
+                disabled={generatePlan.isPending || (!enabledMeals.breakfast && !enabledMeals.lunch && !enabledMeals.dinner && snackCount === 0)}
+              >
+                {generatePlan.isPending ? (
+                  <><Loader2 className="w-3 h-3 animate-spin mr-1" /> Planning...</>
+                ) : (
+                  <><Sparkles className="w-3 h-3 mr-1" /> Generate</>
+                )}
+              </Button>
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => setShowConfig(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : todayPlan && (todayPlan.meals as any[]).length > 0 ? (
           <div className="space-y-2">
             {(todayPlan.meals as any[]).map((meal: any, i: number) => (
-              <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/30 last:border-0">
+              <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/30 last:border-0 group">
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground capitalize w-16">{meal.meal_type}</span>
+                  <span className="text-muted-foreground capitalize w-16">{meal.meal_type.replace("_", " ")}</span>
                   <span className="text-foreground">{meal.name}</span>
                 </div>
-                <span className="text-muted-foreground">{meal.est_calories} cal</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground">{meal.est_calories} cal</span>
+                  <button
+                    onClick={() => handleRemoveMeal(i)}
+                    className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full hover:bg-destructive/10 flex items-center justify-center transition-opacity"
+                    title="Remove meal"
+                  >
+                    <X className="w-3 h-3 text-destructive" />
+                  </button>
+                </div>
               </div>
             ))}
             <div className="flex gap-2 pt-1">
@@ -131,7 +239,16 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
                 variant="ghost"
                 size="sm"
                 className="text-[11px] h-7 text-muted-foreground"
-                onClick={() => generatePlan.mutate({})}
+                onClick={() => setShowConfig(true)}
+              >
+                <Settings2 className="w-3 h-3 mr-1" />
+                Edit meals
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-[11px] h-7 text-muted-foreground"
+                onClick={handleGenerate}
                 disabled={generatePlan.isPending}
               >
                 {generatePlan.isPending ? (
@@ -144,25 +261,27 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
             </div>
           </div>
         ) : (
-          <Button
-            variant="secondary"
-            size="sm"
-            className="w-full text-xs"
-            onClick={() => generatePlan.mutate({})}
-            disabled={generatePlan.isPending}
-          >
-            {generatePlan.isPending ? (
-              <>
-                <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                Satellite is planning...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-3 h-3 mr-1" />
-                Generate Today's Meal Plan
-              </>
-            )}
-          </Button>
+          <div className="space-y-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full text-xs"
+              onClick={() => setShowConfig(true)}
+              disabled={generatePlan.isPending}
+            >
+              {generatePlan.isPending ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                  Satellite is planning...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  Generate Today's Meal Plan
+                </>
+              )}
+            </Button>
+          </div>
         )}
       </div>
 

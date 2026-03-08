@@ -39,6 +39,11 @@ export interface MealPlan {
   created_at: string;
 }
 
+export interface MealSlotConfig {
+  excludeMeals?: string[];
+  snackCount?: number;
+}
+
 export function useMealTracking(userId: string | null) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -92,7 +97,6 @@ export function useMealTracking(userId: string | null) {
       let image_base64: string | undefined;
       let image_path: string | undefined;
 
-      // Upload photo if provided
       if (imageFile) {
         const fileExt = imageFile.name.split(".").pop() || "jpg";
         const filePath = `${userId}/${Date.now()}.${fileExt}`;
@@ -103,7 +107,6 @@ export function useMealTracking(userId: string | null) {
         if (uploadError) throw uploadError;
         image_path = filePath;
 
-        // Convert to base64 for AI
         const buffer = await imageFile.arrayBuffer();
         const bytes = new Uint8Array(buffer);
         let binary = "";
@@ -113,7 +116,6 @@ export function useMealTracking(userId: string | null) {
         image_base64 = btoa(binary);
       }
 
-      // Call AI analysis
       const { data: fnData, error: fnError } = await supabase.functions.invoke("ai-meal-analyze", {
         body: { description, image_base64 },
       });
@@ -121,7 +123,6 @@ export function useMealTracking(userId: string | null) {
       if (fnError) throw fnError;
       const analysis = fnData as MealAnalysis;
 
-      // Save meal log
       const { error: insertError } = await supabase.from("meal_logs").insert({
         user_id: userId,
         log_date: today,
@@ -148,20 +149,33 @@ export function useMealTracking(userId: string | null) {
 
   // Generate meal plan via AI
   const generatePlan = useMutation({
-    mutationFn: async (opts?: { preferences?: string; calorie_target?: number }) => {
+    mutationFn: async (opts?: {
+      preferences?: string;
+      calorie_target?: number;
+      excludeMeals?: string[];
+      snackCount?: number;
+      date?: string;
+    }) => {
       if (!userId) throw new Error("Not authenticated");
 
+      const planDate = opts?.date || today;
+
       const { data: fnData, error: fnError } = await supabase.functions.invoke("ai-meal-plan", {
-        body: { date: today, preferences: opts?.preferences, calorie_target: opts?.calorie_target },
+        body: {
+          date: planDate,
+          preferences: opts?.preferences,
+          calorie_target: opts?.calorie_target,
+          exclude_meals: opts?.excludeMeals,
+          snack_count: opts?.snackCount,
+        },
       });
       if (fnError) throw fnError;
 
       const plan = fnData as { meals: MealPlanMeal[]; satellite_tip: string };
 
-      // Upsert meal plan
       const { error: upsertError } = await supabase.from("meal_plans").upsert({
         user_id: userId,
-        plan_date: today,
+        plan_date: planDate,
         meals: plan.meals as any,
         generated_by: "ai",
       }, { onConflict: "user_id,plan_date" });
@@ -169,14 +183,87 @@ export function useMealTracking(userId: string | null) {
 
       return plan;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["meal-plan", userId, today] });
+    onSuccess: (_data, vars) => {
+      const planDate = vars?.date || today;
+      queryClient.invalidateQueries({ queryKey: ["meal-plan", userId, planDate] });
+      queryClient.invalidateQueries({ queryKey: ["meal-week-comparison", userId] });
+      queryClient.invalidateQueries({ queryKey: ["meal-week-plans", userId] });
       toast({ title: "🛰️ Meal plan generated", description: "Satellite has your fuel mapped out." });
     },
     onError: (err: any) => {
       toast({
         title: "Plan generation failed",
         description: err?.message || "Could not generate plan",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update meals in an existing plan (remove a meal, etc.)
+  const updatePlanMeals = useMutation({
+    mutationFn: async ({ planId, meals, planDate }: { planId: string; meals: MealPlanMeal[]; planDate?: string }) => {
+      if (!userId) throw new Error("Not authenticated");
+      const { error } = await supabase
+        .from("meal_plans")
+        .update({ meals: meals as any })
+        .eq("id", planId)
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["meal-plan", userId] });
+      queryClient.invalidateQueries({ queryKey: ["meal-week-plans", userId] });
+      queryClient.invalidateQueries({ queryKey: ["meal-week-comparison", userId] });
+    },
+  });
+
+  // Generate week plan (7 days)
+  const generateWeekPlan = useMutation({
+    mutationFn: async (opts?: MealSlotConfig & { preferences?: string; calorie_target?: number }) => {
+      if (!userId) throw new Error("Not authenticated");
+
+      const results: { date: string; meals: MealPlanMeal[] }[] = [];
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() + i);
+        const dateStr = d.toLocaleDateString("sv-SE");
+
+        const { data: fnData, error: fnError } = await supabase.functions.invoke("ai-meal-plan", {
+          body: {
+            date: dateStr,
+            preferences: opts?.preferences,
+            calorie_target: opts?.calorie_target,
+            exclude_meals: opts?.excludeMeals,
+            snack_count: opts?.snackCount,
+          },
+        });
+        if (fnError) throw fnError;
+
+        const plan = fnData as { meals: MealPlanMeal[]; satellite_tip: string };
+
+        await supabase.from("meal_plans").upsert({
+          user_id: userId,
+          plan_date: dateStr,
+          meals: plan.meals as any,
+          generated_by: "ai",
+        }, { onConflict: "user_id,plan_date" });
+
+        results.push({ date: dateStr, meals: plan.meals });
+      }
+
+      return results;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meal-plan", userId] });
+      queryClient.invalidateQueries({ queryKey: ["meal-week-comparison", userId] });
+      queryClient.invalidateQueries({ queryKey: ["meal-week-plans", userId] });
+      toast({ title: "🛰️ Week plan generated", description: "7 days of fuel mapped out." });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Week plan failed",
+        description: err?.message || "Could not generate week plan",
         variant: "destructive",
       });
     },
@@ -204,6 +291,8 @@ export function useMealTracking(userId: string | null) {
     planLoading,
     analyzeMeal,
     generatePlan,
+    updatePlanMeals,
+    generateWeekPlan,
     dailyTotals,
   };
 }
