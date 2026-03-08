@@ -220,17 +220,26 @@ export function OnboardingFlow({
 
   const handleArchetypeAcknowledged = async () => {
     try {
-      // Track archetype viewed
       if (buildResult) {
         trackArchetypeViewed(buildResult.build_archetype_key);
       }
-      trackStepChange("archetype_result", "journey_selection");
-      
+      trackStepChange("archetype_result", "meet_guides");
+      setCurrentStep("meet_guides");
+    } catch (error) {
+      console.error("Failed to save progress:", error);
+      lastActionRef.current = handleArchetypeAcknowledged;
+      setCurrentStep("recovery");
+    }
+  };
+
+  const handleMeetGuidesContinue = async () => {
+    try {
+      trackStepChange("meet_guides", "journey_selection");
       await onUpdateOnboarding({ step: "journey_selection" });
       setCurrentStep("journey_selection");
     } catch (error) {
       console.error("Failed to save progress:", error);
-      lastActionRef.current = handleArchetypeAcknowledged;
+      lastActionRef.current = handleMeetGuidesContinue;
       setCurrentStep("recovery");
     }
   };
