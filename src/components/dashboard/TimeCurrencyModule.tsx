@@ -359,6 +359,11 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
         {disabled ? "Loading..." : todayTimeLog ? "Update Reflection" : "Reflect on Yesterday"}
       </Button>
 
+      {/* Controllable voice tip */}
+      <p className="text-xs text-muted-foreground text-center italic mt-3">
+        {theme.tip}
+      </p>
+
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
