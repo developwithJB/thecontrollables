@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Calendar, Loader2, Lock, UtensilsCrossed, X, Minus, Plus, Settings2 } from "lucide-react";
+import { Sparkles, Calendar, Loader2, Lock, UtensilsCrossed, X, Minus, Plus, Settings2, Share2 } from "lucide-react";
+import { MealShareCard } from "./MealShareCard";
 import { getControllableTheme } from "@/lib/controllableTheme";
 import { ControllableLevelBadge } from "@/components/dashboard/ControllableLevelBadge";
 import { MealWeekComparison } from "./MealWeekComparison";
