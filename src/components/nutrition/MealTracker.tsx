@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MealLogEntry } from "./MealLogEntry";
 import { useMealTracking, type MealAnalysis } from "@/hooks/useMealTracking";
+import { useMemo } from "react";
 
 interface MealTrackerProps {
   isOpen: boolean;
@@ -10,15 +11,37 @@ interface MealTrackerProps {
   userId: string | null;
 }
 
-const MEAL_SLOTS = [
+const DEFAULT_SLOTS = [
   { type: "breakfast", label: "Breakfast", emoji: "🌅" },
   { type: "lunch", label: "Lunch", emoji: "☀️" },
   { type: "dinner", label: "Dinner", emoji: "🌙" },
   { type: "snack", label: "Snack", emoji: "🍎" },
-] as const;
+];
+
+const EMOJI_MAP: Record<string, string> = {
+  breakfast: "🌅",
+  lunch: "☀️",
+  dinner: "🌙",
+};
 
 export function MealTracker({ isOpen, onClose, userId }: MealTrackerProps) {
-  const { todayMeals, dailyTotals, analyzeMeal } = useMealTracking(userId);
+  const { todayMeals, dailyTotals, analyzeMeal, todayPlan } = useMealTracking(userId);
+
+  // Derive slots from plan if available
+  const mealSlots = useMemo(() => {
+    if (!todayPlan || !(todayPlan.meals as any[])?.length) return DEFAULT_SLOTS;
+
+    const planMeals = todayPlan.meals as any[];
+    return planMeals.map((m: any) => {
+      const t = m.meal_type as string;
+      const isSnack = t.startsWith("snack");
+      return {
+        type: t,
+        label: isSnack ? t.replace("_", " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) : t.charAt(0).toUpperCase() + t.slice(1),
+        emoji: EMOJI_MAP[t] || "🍎",
+      };
+    });
+  }, [todayPlan]);
 
   const getMealForType = (type: string) =>
     todayMeals.find((m) => m.meal_type === type);
@@ -107,7 +130,7 @@ export function MealTracker({ isOpen, onClose, userId }: MealTrackerProps) {
 
               {/* Meal slots */}
               <div className="space-y-2">
-                {MEAL_SLOTS.map((slot) => {
+                {mealSlots.map((slot) => {
                   const existing = getMealForType(slot.type);
                   return (
                     <MealLogEntry

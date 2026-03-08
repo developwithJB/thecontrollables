@@ -26,7 +26,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    const { date, preferences, calorie_target } = await req.json();
+    const { date, preferences, calorie_target, exclude_meals, snack_count } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -34,15 +34,29 @@ serve(async (req) => {
     const targetInfo = calorie_target ? `Target: ~${calorie_target} calories/day.` : "Target: ~2000 calories/day.";
     const prefInfo = preferences ? `Preferences: ${preferences}.` : "";
 
+    // Build meal list based on exclusions and snack count
+    const excludeSet = new Set((exclude_meals || []).map((m: string) => m.toLowerCase()));
+    const numSnacks = typeof snack_count === "number" ? Math.max(0, Math.min(5, snack_count)) : 1;
+
+    const requestedMeals: string[] = [];
+    if (!excludeSet.has("breakfast")) requestedMeals.push("breakfast");
+    if (!excludeSet.has("lunch")) requestedMeals.push("lunch");
+    if (!excludeSet.has("dinner")) requestedMeals.push("dinner");
+    for (let i = 1; i <= numSnacks; i++) {
+      requestedMeals.push(numSnacks === 1 ? "snack" : `snack_${i}`);
+    }
+
+    const mealsExample = requestedMeals
+      .map((m) => `    { "meal_type": "${m}", "name": string, "description": string (brief, 1 line), "est_calories": number }`)
+      .join(",\n");
+
     const systemPrompt = `You are 🛰️ Satellite, the Wellness Controllable. Generate a simple, practical meal plan.
 ${targetInfo} ${prefInfo}
+Generate ONLY these meals: ${requestedMeals.join(", ")}.
 Return a JSON object:
 {
   "meals": [
-    { "meal_type": "breakfast", "name": string, "description": string (brief, 1 line), "est_calories": number },
-    { "meal_type": "lunch", "name": string, "description": string, "est_calories": number },
-    { "meal_type": "dinner", "name": string, "description": string, "est_calories": number },
-    { "meal_type": "snack", "name": string, "description": string, "est_calories": number }
+${mealsExample}
   ],
   "satellite_tip": string (1-sentence wellness insight)
 }
