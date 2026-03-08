@@ -8,9 +8,11 @@ export interface MealPreferences {
   proteinTarget?: number;
   carbsTarget?: number;
   fatTarget?: number;
+  dietaryStyle?: string;
+  dietaryRestrictions?: string[];
 }
 
-const DEFAULT_PREFS: MealPreferences = { excludeMeals: [], snackCount: 1 };
+const DEFAULT_PREFS: MealPreferences = { excludeMeals: [], snackCount: 1, dietaryStyle: "", dietaryRestrictions: [] };
 
 export function useMealPreferences(userId: string | null) {
   const queryClient = useQueryClient();
