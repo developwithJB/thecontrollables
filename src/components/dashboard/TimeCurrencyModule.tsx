@@ -337,6 +337,7 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
         </div>
         <h3 className="font-display font-semibold text-foreground">Time Reflection</h3>
         <span className={`ml-auto text-xs font-medium ${theme.textClass}`}>{theme.emoji} {theme.label}</span>
+        <ControllableLevelBadge controllable="awareness" />
       </div>
       <div className="mb-4" />
 

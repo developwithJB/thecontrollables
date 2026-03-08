@@ -349,6 +349,7 @@ export const IntegrityMeterModule = forwardRef<IntegrityMeterModuleHandle, Integ
         </div>
         <h3 className="font-display font-semibold text-foreground">Integrity</h3>
         <span className={`ml-auto text-xs font-medium ${theme.textClass}`}>{theme.emoji} {theme.label}</span>
+        <ControllableLevelBadge controllable="perspective" />
       </div>
       <div className="mb-4" />
 
