@@ -1,164 +1,77 @@
 
-# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-## Overview
+## Plan: Fitbit & Oura Ring OAuth Integrations
 
-Three interconnected deliverables:
-1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
-2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
-3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
+### Architecture
 
----
+Both Fitbit and Oura use standard OAuth 2.0 authorization code flows. The integration stores tokens server-side and syncs data into the existing `health_sync_data` table.
 
-## Part 1: AI Insight Engine
-
-### New Edge Function: `admin-insights`
-
-**File: `supabase/functions/admin-insights/index.ts`**
-
-This function:
-1. Verifies the caller is an admin (same pattern as `admin-analytics`)
-2. Queries aggregated metrics from the last 7 days using the service role client:
-   - `app_events` grouped by `event_name` and day-of-week
-   - `completed_actions` grouped by `controllable`
-   - `daily_resets` count per user (for retention correlation)
-   - `reset_sessions` completion rates
-   - `user_entitlements` conversion data
-   - `user_onboarding` activation delays
-3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
-   - 3 behavioral insights
-   - 2 retention risks
-   - 2 growth opportunities
-   - 1 experiment recommendation
-4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
-5. Returns the insights directly (no caching table needed initially -- can add later)
-
-**Prompt structure:**
-```
-You are a product analytics advisor for a personal growth app called The Controllables.
-Given the following 7-day metrics, generate actionable insights.
-
-[structured data blob]
-
-Return insights as structured tool output.
+```text
+User taps "Connect Fitbit"
+  → Redirect to Fitbit OAuth consent
+  → Callback edge function exchanges code for tokens
+  → Tokens stored in wearable_connections table
+  → Sync edge function pulls sleep/steps/activity data
+  → Data written to health_sync_data (existing table)
+  → Brain & Body tracker auto-refreshes
 ```
 
-**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+### Required Secrets (4 total)
+- `FITBIT_CLIENT_ID` + `FITBIT_CLIENT_SECRET` — from dev.fitbit.com
+- `OURA_CLIENT_ID` + `OURA_CLIENT_SECRET` — from cloud.ouraring.com
 
-**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+### Database Changes
 
-### New Admin Component: AI Insights Panel
+**New table: `wearable_connections`**
+- `id`, `user_id`, `provider` (fitbit/oura), `access_token`, `refresh_token`, `token_expires_at`, `scopes`, `connected_at`, `last_synced_at`
+- Unique constraint on `(user_id, provider)`
+- RLS: users can only read/update/delete their own connections
 
-**File: `src/components/admin/AIInsightsPanel.tsx`**
+### Edge Functions (3 new)
 
-- A card with "Weekly Intelligence" header and a "Generate Insights" button
-- On click, calls the `admin-insights` edge function
-- Displays results in categorized sections:
-  - Behavioral Insights (brain icon, blue accent)
-  - Retention Risks (alert icon, amber accent)
-  - Growth Opportunities (trending-up icon, green accent)
-  - Experiment Recommendation (flask icon, purple accent)
-- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
-- Loading state with skeleton cards
-- Error state with retry button
-- "Last generated" timestamp display
+1. **`wearable-oauth-start`** — Generates the OAuth authorization URL for the requested provider (Fitbit or Oura) and returns it to the client. Includes PKCE or state parameter for security.
 
-### Integration into Admin.tsx
+2. **`wearable-oauth-callback`** — Handles the redirect from Fitbit/Oura after user consents. Exchanges the authorization code for access/refresh tokens and stores them in `wearable_connections`.
 
-- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
-- The tab renders `<AIInsightsPanel />`
+3. **`wearable-sync`** — Authenticated function that reads stored tokens, calls the Fitbit/Oura REST APIs for the last 7 days of sleep, steps, and activity data, normalizes it, and upserts into `health_sync_data` with the appropriate source (`fitbit` or `oura`). Handles token refresh automatically.
 
----
+### API Endpoints Used
 
-## Part 2: Enhanced Action Center
+**Fitbit:**
+- `GET /1/user/-/sleep/date/{date}.json` — sleep duration, stages
+- `GET /1/user/-/activities/date/{date}.json` — steps, active minutes, calories
+- `GET /1/user/-/activities/heart/date/{date}/1d.json` — resting heart rate
 
-**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
+**Oura:**
+- `GET /v2/usercollection/daily_sleep` — sleep duration, efficiency
+- `GET /v2/usercollection/daily_activity` — steps, active calories, movement
+- `GET /v2/usercollection/heartrate` — heart rate data
 
-Replace the three "Coming soon" cards with working functionality:
+### UI Changes
 
-### A. Send Nudge Campaign
-- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
-- Confirmation dialog before sending
-- Calls the existing `send-daily-nudge` edge function for each selected user
-- Shows progress and results
+**File: `src/components/dashboard/HealthDataSync.tsx`**
+- Add two new tabs: "Fitbit" and "Oura Ring" alongside existing Apple Health and Google Fit tabs
+- Each shows a "Connect" button if no connection exists, or "Connected · Sync Now" if already linked
+- Connect button calls `wearable-oauth-start` and opens the returned URL
+- Add a disconnect option per provider
+- Query `wearable_connections` to show connection status
 
-### B. Grant Trial Extension
-- Search for a specific user by email
-- Set extension duration (7 days, 14 days, 30 days)
-- Calls `admin-users?action=grant_access` with an `expires_at` parameter
-- Confirmation toast on success
+**File: `src/pages/Dashboard.tsx`**
+- Add a route-level handler for OAuth callback redirect (query param `?wearable_callback=fitbit&code=...`)
+- On mount, detect callback params, call `wearable-oauth-callback`, then redirect cleanly
 
-### C. Export with More Segments
-- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
-- Risk tier data fetched from `admin-analytics?resource=retention_radar`
-- CSV includes: email, signup date, last active, risk tier, paid status, source
+### Data Flow
+All wearable data lands in the same `health_sync_data` table with `source` set to `fitbit` or `oura`. The existing `useBrainBodyHealth` hook already queries this table and will automatically incorporate the new data with zero changes needed.
 
-### D. Quick Stats Bar
-- Show counts above the action cards: Total Users, Free, Paid, At Risk
-- Derived from the `users` prop already passed in
+### Files Changed
 
----
+| File | Change |
+|---|---|
+| `wearable_connections` table | New migration — token storage |
+| `supabase/functions/wearable-oauth-start/index.ts` | New — generate OAuth URL |
+| `supabase/functions/wearable-oauth-callback/index.ts` | New — exchange code, store tokens |
+| `supabase/functions/wearable-sync/index.ts` | New — pull data from APIs, upsert to health_sync_data |
+| `src/components/dashboard/HealthDataSync.tsx` | Add Fitbit/Oura tabs with connect/sync UI |
+| `src/pages/Dashboard.tsx` | Handle OAuth callback redirect |
+| `supabase/config.toml` | Register 3 new edge functions |
 
-## Part 3: Landing Page Updates
-
-**File: `src/pages/Landing.tsx`**
-
-Update the hero copy to reflect the free trial:
-- Change hero tagline to emphasize "Try the full experience free for 7 days"
-- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
-- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
-
-**File: `src/components/landing/FeatureGrid.tsx`**
-
-- Update the Free/Premium labeling:
-  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
-  - "Experience History" -- add "Free during trial" badge
-  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
-
-**File: `src/components/landing/HowItWorksSection.tsx`**
-
-- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
-
----
-
-## Part 4: README Update
-
-**File: `README.md`**
-
-Update to v1.5.0 reflecting all recent changes:
-
-1. **Version bump**: `v1.4.1` to `v1.5.0`
-2. **New section: "Admin Command Center"** after Technical Reference:
-   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
-   - Mention the `admin-analytics` and `admin-insights` edge functions
-   - Document the AI Insight Engine capability
-3. **Update "Free vs. Premium" table**:
-   - Add "7-Day Free Trial" row explaining full access during first Snapshot
-   - Update AI Guide from "---" to "5 msgs/day during trial"
-   - Update Experience History from "---" to "During trial"
-4. **Update Backend Functions table**:
-   - Add `admin-analytics` -- Admin data aggregation and executive metrics
-   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
-5. **Update Key Data Tables**:
-   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
-   - Add `ai_usage_logs` -- Daily AI message tracking
-6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
-
----
-
-## Technical Summary
-
-| File | Change | Type |
-|------|--------|------|
-| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
-| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
-| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
-| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
-| `src/pages/Admin.tsx` | Add Insights tab | Edit |
-| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
-| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
-| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
-| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
-| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
-
-No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
