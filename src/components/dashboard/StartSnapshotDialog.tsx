@@ -32,7 +32,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 interface StartSnapshotDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSelectSnapshot: (snapshotId: string) => void;
+  onSelectSnapshot: (snapshotId: string, asSeason?: boolean) => void;
   isStarting: boolean;
   isPaid: boolean;
 }
@@ -59,6 +59,7 @@ export function StartSnapshotDialog({
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [expandedBuckets, setExpandedBuckets] = useState<Set<BucketId>>(new Set());
   const [customSnapshots, setCustomSnapshots] = useState<Snapshot[]>([]);
+  const [startAsSeason, setStartAsSeason] = useState(false);
 
   const { currentBuild, questions, submitAssessment, isSubmitting } = useBuildAssessment();
   
@@ -99,7 +100,7 @@ export function StartSnapshotDialog({
 
   const handleConfirm = () => {
     if (selectedSnapshot) {
-      onSelectSnapshot(selectedSnapshot);
+      onSelectSnapshot(selectedSnapshot, startAsSeason);
     }
   };
 
@@ -361,6 +362,24 @@ export function StartSnapshotDialog({
             </TabsContent>
           </Tabs>
 
+          {/* Season toggle - Premium only */}
+          {isPaid && (
+            <label className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
+              <input
+                type="checkbox"
+                checked={startAsSeason}
+                onChange={(e) => setStartAsSeason(e.target.checked)}
+                className="w-4 h-4 rounded border-border text-primary accent-primary"
+              />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Start as a 4-Week Season</p>
+                <p className="text-xs text-muted-foreground">
+                  Chain 4 Snapshots together. See your momentum build over a month.
+                </p>
+              </div>
+            </label>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4 border-t">
             <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
@@ -371,7 +390,7 @@ export function StartSnapshotDialog({
               disabled={!selectedSnapshot || isStarting}
               className="flex-1"
             >
-              {isStarting ? "Starting..." : "Start Snapshot"}
+              {isStarting ? "Starting..." : startAsSeason ? "Start Season" : "Start Snapshot"}
             </Button>
           </div>
         </DialogContent>

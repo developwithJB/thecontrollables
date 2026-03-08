@@ -91,6 +91,9 @@ import { PullToRefreshIndicator } from "@/components/pwa/PullToRefreshIndicator"
 import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 import { CircleCard } from "@/components/dashboard/CircleCard";
 import { useCircle } from "@/hooks/useCircle";
+import { SeasonBanner } from "@/components/dashboard/SeasonBanner";
+import { SeasonComplete } from "@/components/SeasonComplete";
+import { useSeason } from "@/hooks/useSeason";
 
 type TabType = "dashboard" | "experience" | "guide";
 
@@ -278,6 +281,25 @@ export default function Dashboard() {
     logShowedUp,
     lookupCircle,
   } = useCircle(user?.id || undefined, activeSession?.id);
+
+  // 4-Week Seasons
+  const {
+    activeSeason,
+    seasonSnapshots,
+    seasonProgress,
+    isStartingSeason,
+    startSeason,
+    linkSnapshotToSeason,
+    completeSeason,
+    shouldShowSeasonComplete,
+  } = useSeason(user?.id || undefined);
+  const [showSeasonComplete, setShowSeasonComplete] = useState(false);
+  useEffect(() => {
+    if (shouldShowSeasonComplete) {
+      setShowSeasonComplete(true);
+      completeSeason();
+    }
+  }, [shouldShowSeasonComplete, completeSeason]);
 
   // Handle ?join=CODE URL param for circle invites
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
@@ -1024,6 +1046,15 @@ export default function Dashboard() {
                 <DailyAlignmentPromo onUpgrade={() => startCheckout(undefined, "daily_alignment_promo_dashboard")} />
               )}
 
+              {/* Season Banner - shown when user has an active season */}
+              {activeSeason && seasonProgress && (
+                <SeasonBanner
+                  seasonName={activeSeason.name}
+                  snapshots={seasonSnapshots}
+                  progress={seasonProgress}
+                />
+              )}
+
               {/* 7-Day Foundation Progress - only show when active session */}
               {activeSession && !isCompleted && !isExpired && (
                 <ResetProgressModule
@@ -1100,8 +1131,46 @@ export default function Dashboard() {
                 <StartSnapshotDialog
                   isOpen={showJourneySwitcher}
                   onOpenChange={setShowJourneySwitcher}
-                  onSelectSnapshot={(snapshotId) => {
-                    acceptCovenant({ isPaid, journeyId: snapshotId });
+                  onSelectSnapshot={async (snapshotId, asSeason) => {
+                    if (asSeason) {
+                      const seasonId = await startSeason();
+                      if (seasonId) {
+                        // Start the snapshot, then link it to the season after creation
+                        acceptCovenant({ isPaid, journeyId: snapshotId });
+                        // We'll link once the session is created - use a brief timeout
+                        setTimeout(async () => {
+                          const { data: newSession } = await supabase
+                            .from("reset_sessions")
+                            .select("id")
+                            .eq("user_id", user!.id)
+                            .eq("status", "active")
+                            .order("created_at", { ascending: false })
+                            .limit(1)
+                            .maybeSingle();
+                          if (newSession) {
+                            await linkSnapshotToSeason(newSession.id, seasonId);
+                          }
+                        }, 2000);
+                      }
+                    } else {
+                      // If user has an active season, auto-link
+                      acceptCovenant({ isPaid, journeyId: snapshotId });
+                      if (activeSeason) {
+                        setTimeout(async () => {
+                          const { data: newSession } = await supabase
+                            .from("reset_sessions")
+                            .select("id")
+                            .eq("user_id", user!.id)
+                            .eq("status", "active")
+                            .order("created_at", { ascending: false })
+                            .limit(1)
+                            .maybeSingle();
+                          if (newSession) {
+                            await linkSnapshotToSeason(newSession.id, activeSeason.id);
+                          }
+                        }, 2000);
+                      }
+                    }
                     setShowJourneySwitcher(false);
                   }}
                   isStarting={isAcceptingCovenant}
@@ -1537,6 +1606,26 @@ export default function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Season Complete Overlay */}
+      {showSeasonComplete && seasonProgress && (
+        <SeasonComplete
+          seasonName={activeSeason?.name}
+          snapshots={seasonSnapshots}
+          progress={seasonProgress}
+          onStartNewSeason={async () => {
+            setShowSeasonComplete(false);
+            const newSeasonId = await startSeason();
+            if (newSeasonId) {
+              setShowJourneySwitcher(true);
+            }
+          }}
+          onTakeBreak={() => {
+            setShowSeasonComplete(false);
+            navigate("/dashboard?maintenanceMode=true");
+          }}
+          onDismiss={() => setShowSeasonComplete(false)}
+        />
+      )}
     </div>
   );
 }

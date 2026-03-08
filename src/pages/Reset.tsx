@@ -12,6 +12,7 @@ import { Day7Complete } from "@/components/Day7Complete";
 import { ResetComplete } from "@/components/ResetComplete";
 import { getJourneyById } from "@/lib/guidedJourneys";
 import { supabase } from "@/integrations/supabase/client";
+import { useSeason } from "@/hooks/useSeason";
 
 const Reset = () => {
   const navigate = useNavigate();
@@ -38,6 +39,7 @@ const Reset = () => {
 
   const { isPaid } = useEntitlements(userId || null);
   const { activeQuest } = useDashboardSummary(userId || null);
+  const { activeSeason, seasonProgress } = useSeason(userId || undefined);
 
   const [showDayComplete, setShowDayComplete] = useState(false);
   const [acknowledgedMissedDays, setAcknowledgedMissedDays] = useState(false);
@@ -156,6 +158,8 @@ const Reset = () => {
         resetSessionId={activeSession.id}
         completedJourneyId={activeSession.journey_id || undefined}
         completedDaysCount={completedDays.length}
+        activeSeason={activeSeason}
+        seasonSnapshotsCompleted={seasonProgress?.snapshotsCompleted || 0}
       />
     );
   }
@@ -189,6 +193,8 @@ const Reset = () => {
         resetSessionId={activeSession.id}
         completedJourneyId={activeSession.journey_id || undefined}
         completedDaysCount={completedDays.length}
+        activeSeason={activeSeason}
+        seasonSnapshotsCompleted={seasonProgress?.snapshotsCompleted || 0}
       />
     );
   }

@@ -1,88 +1,164 @@
 
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-# 4-Week Seasons
+## Overview
 
-Opt-in multi-week arcs that chain 4 consecutive Snapshots into a "Season," providing cumulative proof, continuity between weeks, and a season-end recap/reward.
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-## Architecture
+---
 
-```text
-┌─────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│  seasons     │────▶│  reset_sessions  │     │  Season Recap    │
-│  (new table) │     │  (season_id FK)  │     │  (UI component)  │
-└─────────────┘     └──────────────────┘     └──────────────────┘
+## Part 1: AI Insight Engine
+
+### New Edge Function: `admin-insights`
+
+**File: `supabase/functions/admin-insights/index.ts`**
+
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
+
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
+
+[structured data blob]
+
+Return insights as structured tool output.
 ```
 
-## What Gets Built
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-### 1. Database Migration
-- **New `seasons` table**: `id`, `user_id`, `name` (optional custom name), `started_at`, `completed_at`, `status` (active/completed/abandoned), `created_at`. RLS: user can CRUD own rows only.
-- **Add `season_id uuid` nullable column** to `reset_sessions` — links a Snapshot to its parent Season.
-- RLS on seasons: standard user-owns-row pattern for SELECT, INSERT, UPDATE.
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-### 2. New hook: `useSeason.ts`
-- `activeSeason` — query for user's season with status=active
-- `startSeason()` — creates a season row, returns its ID
-- `joinSeason(sessionId)` — sets `season_id` on the current reset_session
-- `seasonSnapshots` — all reset_sessions with this season_id, ordered by start_date
-- `seasonProgress` — computed: { weekNumber (1-4), totalCheckIns, totalXP, snapshotsCompleted }
-- `completeSeason()` — marks season completed when 4th Snapshot finishes
-- Auto-detect: when Day7Complete fires and user has an active season with < 4 snapshots, prompt "Continue Season" instead of generic "What's Next"
+### New Admin Component: AI Insights Panel
 
-### 3. Dashboard: Season Progress Banner
-New `SeasonBanner.tsx` component, shown above ResetProgressModule when user has an active season:
-- "Season: Week 2 of 4" with a 4-segment progress bar (each segment = one Snapshot)
-- Completed segments show green + check, active segment pulses, future segments are muted
-- Cumulative stats: total check-ins, total XP across all season Snapshots
-- Subtle: does not replace existing UI, just adds a thin banner
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-### 4. Day7Complete: Season Continuation
-Modify the "What's Next?" section in `Day7Complete.tsx`:
-- If user has an active season with < 4 Snapshots completed → show "Continue Your Season — Week N of 4" as primary CTA instead of recommended Snapshot
-- Copy: "Week 1 is proof. Week 2 is momentum. Keep going."
-- Still allow "Choose Different" and "Browse All" as secondary options
-- If no active season → add a new option: "Start a 4-Week Season" below the existing What's Next section (opt-in, not forced)
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-### 5. Season Recap Screen
-New `SeasonComplete.tsx` component triggered when the 4th Snapshot in a season completes:
-- Celebration header: "Season Complete. 4 Weeks. Your Record."
-- Cumulative stats card: total check-ins across 4 weeks, total XP, controllables covered
-- 4-Snapshot timeline showing each week's emoji + name + check-in count
-- Narrative line based on consistency (e.g., "28 days. 22 check-ins. That's a season of showing up.")
-- Badge unlock: "Season Finisher" badge (add to badges.ts)
-- "Start Another Season" and "Take a Break" CTAs
+### Integration into Admin.tsx
 
-### 6. Snapshot History: Season View
-In `SnapshotHistory.tsx`, group Snapshots that share a `season_id`:
-- Show a collapsible "Season" card that contains 4 Snapshot rows with cumulative stats
-- Season card header: "4-Week Season · [date range] · [X] check-ins"
-- Standalone Snapshots (no season_id) render as they do today — no change
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
-### 7. Start Season Flow
-In `StartSnapshotDialog.tsx`, add a toggle/option:
-- "Start as a 4-Week Season" checkbox (default unchecked)
-- When checked: creates a season first, then links the first Snapshot to it
-- Description: "Chain 4 Snapshots together. See your momentum build over a month."
-- Premium-only feature (check entitlements)
+---
 
-## What Does NOT Change
-- Solo Snapshot flow remains default — Seasons are opt-in
-- Existing 7-day cycle, daily actions, check-ins unchanged
-- Free users still get 1 Snapshot at a time (Seasons are Premium)
-- No changes to edge functions or push notifications
+## Part 2: Enhanced Action Center
 
-## Implementation Order
-1. Database migration (seasons table + season_id on reset_sessions)
-2. `useSeason.ts` hook
-3. `SeasonBanner.tsx` dashboard component
-4. Day7Complete season continuation CTA
-5. `SeasonComplete.tsx` recap screen
-6. SnapshotHistory season grouping
-7. StartSnapshotDialog season toggle
-8. "Season Finisher" badge in badges.ts
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
 
-## File Changes
-- **New**: `src/hooks/useSeason.ts`, `src/components/dashboard/SeasonBanner.tsx`, `src/components/SeasonComplete.tsx`
-- **Edit**: `src/pages/Dashboard.tsx` (add SeasonBanner), `src/components/Day7Complete.tsx` (season continuation), `src/components/dashboard/SnapshotHistory.tsx` (season grouping), `src/components/dashboard/StartSnapshotDialog.tsx` (season toggle), `src/lib/badges.ts` (Season Finisher badge)
-- **Migration**: Create `seasons` table, add `season_id` to `reset_sessions`
+Replace the three "Coming soon" cards with working functionality:
 
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
+
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
+
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
+
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
+
+---
+
+## Part 3: Landing Page Updates
+
+**File: `src/pages/Landing.tsx`**
+
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+
+**File: `src/components/landing/FeatureGrid.tsx`**
+
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+
+**File: `src/components/landing/HowItWorksSection.tsx`**
+
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.

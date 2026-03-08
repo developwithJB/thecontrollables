@@ -1105,6 +1105,7 @@ export type Database = {
           is_maintenance_mode: boolean | null
           journey_changed_at: string | null
           journey_id: string | null
+          season_id: string | null
           start_date: string
           status: string
           timezone: string | null
@@ -1122,6 +1123,7 @@ export type Database = {
           is_maintenance_mode?: boolean | null
           journey_changed_at?: string | null
           journey_id?: string | null
+          season_id?: string | null
           start_date?: string
           status?: string
           timezone?: string | null
@@ -1139,9 +1141,48 @@ export type Database = {
           is_maintenance_mode?: boolean | null
           journey_changed_at?: string | null
           journey_id?: string | null
+          season_id?: string | null
           start_date?: string
           status?: string
           timezone?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reset_sessions_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seasons: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          name: string | null
+          started_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          started_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          started_at?: string
+          status?: string
           user_id?: string
         }
         Relationships: []
