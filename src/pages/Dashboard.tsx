@@ -1568,6 +1568,26 @@ export default function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Season Complete Overlay */}
+      {showSeasonComplete && seasonProgress && (
+        <SeasonComplete
+          seasonName={activeSeason?.name}
+          snapshots={seasonSnapshots}
+          progress={seasonProgress}
+          onStartNewSeason={async () => {
+            setShowSeasonComplete(false);
+            const newSeasonId = await startSeason();
+            if (newSeasonId) {
+              setShowJourneySwitcher(true);
+            }
+          }}
+          onTakeBreak={() => {
+            setShowSeasonComplete(false);
+            navigate("/dashboard?maintenanceMode=true");
+          }}
+          onDismiss={() => setShowSeasonComplete(false)}
+        />
+      )}
     </div>
   );
 }
