@@ -747,12 +747,6 @@ export default function Dashboard() {
     );
   }
 
-  const greeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning.";
-    if (hour < 18) return "Good afternoon.";
-    return "Good evening.";
-  };
 
   const todayContent = activeSession && !isCompleted ? getDayContent(currentDay) : null;
   const todayAlreadyCompleted = completedDays.some((d) => d.day_number === currentDay);
