@@ -444,6 +444,16 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
 
       {/* Meal Tracker Bottom Sheet */}
       <MealTracker isOpen={showTracker} onClose={() => setShowTracker(false)} userId={userId} />
+
+      {/* Share Card */}
+      {todayPlan && (
+        <MealShareCard
+          open={showShare}
+          onOpenChange={setShowShare}
+          meals={(todayPlan.meals as any[]) || []}
+          totalCalories={plannedTotals.calories}
+        />
+      )}
     </>
   );
 }

@@ -275,5 +275,23 @@ export function MealWeekComparison({ userId, slotConfig }: MealWeekComparisonPro
         </div>
       </div>
     </div>
+
+      {/* Share week card */}
+      {hasUpcomingPlans && upcomingPlans && (
+        <MealShareCard
+          open={showShare}
+          onOpenChange={setShowShare}
+          meals={Object.values(upcomingPlans.map).flat()}
+          mode="week-plan"
+          weekDays={upcomingPlans.dates
+            .filter((d) => upcomingPlans.map[d]?.length)
+            .map((d) => ({
+              label: format(new Date(d + "T12:00:00"), "EEE, MMM d"),
+              calories: upcomingPlans.map[d].reduce((s, m) => s + (m.est_calories || 0), 0),
+              mealCount: upcomingPlans.map[d].length,
+            }))}
+        />
+      )}
+    </div>
   );
 }

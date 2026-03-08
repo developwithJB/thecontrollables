@@ -296,12 +296,19 @@ export function BrainBodyTracker({ userId, onLogWellness, onQuickLog, onImportHe
                   <ScoreRing score={bodyScore} emoji="💪" label="Body" />
                 </div>
 
-                {/* Factor Chips */}
-                <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+                {/* Factor Chips — tap for details */}
+                <div className="flex flex-wrap justify-center gap-1.5 mb-2">
                   <FactorChip icon={Moon} label="Sleep" score={factors.sleep} />
                   <FactorChip icon={Dumbbell} label="Movement" score={factors.movement} />
                   <FactorChip icon={Monitor} label="Screen" score={factors.screenTime} />
                   <FactorChip icon={Salad} label="Nutrition" score={factors.nutrition} />
+                </div>
+
+                {/* Color legend */}
+                <div className="flex items-center justify-center gap-3 text-[10px] text-muted-foreground mb-2">
+                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary" /> Good (70+)</span>
+                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-secondary-foreground/50" /> Fair (40-69)</span>
+                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-destructive" /> Needs work (&lt;40)</span>
                 </div>
 
                 {/* Satellite Tip */}
