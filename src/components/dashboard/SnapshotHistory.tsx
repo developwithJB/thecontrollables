@@ -281,11 +281,13 @@ function getHistoricalSnapshotVisual(startDate: Date, index: number): { emoji: s
 function WeekCard({
   record,
   index = 0,
+  activity,
   onClick,
   onViewSnapshot,
 }: {
   record: SnapshotRecord;
   index?: number;
+  activity?: ActivitySummary;
   onClick?: () => void;
   onViewSnapshot?: () => void;
 }) {
