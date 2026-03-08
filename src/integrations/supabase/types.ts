@@ -436,6 +436,7 @@ export type Database = {
           completed_at: string | null
           covenant_accepted: boolean
           covenant_accepted_at: string | null
+          display_name: string | null
           id: string
           joined_at: string
           start_date: string | null
@@ -449,6 +450,7 @@ export type Database = {
           completed_at?: string | null
           covenant_accepted?: boolean
           covenant_accepted_at?: string | null
+          display_name?: string | null
           id?: string
           joined_at?: string
           start_date?: string | null
@@ -462,6 +464,7 @@ export type Database = {
           completed_at?: string | null
           covenant_accepted?: boolean
           covenant_accepted_at?: string | null
+          display_name?: string | null
           id?: string
           joined_at?: string
           start_date?: string | null
@@ -532,6 +535,8 @@ export type Database = {
           invite_code: string | null
           is_evergreen: boolean
           is_solo: boolean
+          journey_id: string | null
+          max_members: number
           name: string
           start_date: string
         }
@@ -544,6 +549,8 @@ export type Database = {
           invite_code?: string | null
           is_evergreen?: boolean
           is_solo?: boolean
+          journey_id?: string | null
+          max_members?: number
           name?: string
           start_date?: string
         }
@@ -556,6 +563,8 @@ export type Database = {
           invite_code?: string | null
           is_evergreen?: boolean
           is_solo?: boolean
+          journey_id?: string | null
+          max_members?: number
           name?: string
           start_date?: string
         }
