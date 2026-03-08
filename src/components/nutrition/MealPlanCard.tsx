@@ -67,22 +67,38 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
             <span className="text-lg">{wellnessTheme.emoji}</span>
             <div>
               <h3 className="text-sm font-semibold text-foreground">Fuel Check</h3>
-              {hasMealsLogged && (
+              {hasMealsLogged && view === "today" && (
                 <p className="text-[11px] text-muted-foreground">
                   {dailyTotals.calories} cal logged today
                 </p>
               )}
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs h-7"
-            onClick={() => setShowTracker(true)}
-          >
-            <UtensilsCrossed className="w-3 h-3 mr-1" />
-            Log Meal
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <div className="flex rounded-md border border-border/60 text-[10px] overflow-hidden">
+              <button
+                onClick={() => setView("today")}
+                className={`px-2 py-0.5 transition-colors ${view === "today" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Today
+              </button>
+              <button
+                onClick={() => setView("week")}
+                className={`px-2 py-0.5 transition-colors ${view === "week" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Week
+              </button>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7"
+              onClick={() => setShowTracker(true)}
+            >
+              <UtensilsCrossed className="w-3 h-3 mr-1" />
+              Log
+            </Button>
+          </div>
         </div>
 
         {/* Meal Plan */}
