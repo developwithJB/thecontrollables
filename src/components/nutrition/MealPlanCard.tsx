@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, Calendar, Loader2, Lock, UtensilsCrossed } from "lucide-react";
 import { getControllableTheme } from "@/lib/controllableTheme";
+import { MealWeekComparison } from "./MealWeekComparison";
 
 const wellnessTheme = getControllableTheme("wellness");
 import { Button } from "@/components/ui/button";
