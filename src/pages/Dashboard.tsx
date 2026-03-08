@@ -1119,7 +1119,11 @@ export default function Dashboard() {
                 />
               )}
 
-              {/* Meal Planning & Tracking - Powered by Satellite */}
+              {/* Weekly Wellness Report */}
+              {user?.id && (
+                <WeeklyWellnessReport userId={user.id} />
+              )}
+
               {user?.id && !entitlementsLoading && (
                 <MealPlanCard
                   userId={user.id}
