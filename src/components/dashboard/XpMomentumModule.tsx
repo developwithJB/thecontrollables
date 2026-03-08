@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Zap, TrendingUp } from "lucide-react";
 import { getControllableTheme } from "@/lib/controllableTheme";
+import { ControllableLevelBadge } from "./ControllableLevelBadge";
 
 const theme = getControllableTheme("habit");
 import {
@@ -186,6 +187,7 @@ export function XpMomentumModule({ totalXp, recentLogs, compact = false }: XpMom
         </div>
         <h3 className="font-display font-semibold text-foreground">Momentum</h3>
         <span className={`ml-auto text-xs font-medium ${theme.textClass}`}>{theme.emoji} {theme.label}</span>
+        <ControllableLevelBadge controllable="habit" />
       </div>
       <div className="mb-4" />
 

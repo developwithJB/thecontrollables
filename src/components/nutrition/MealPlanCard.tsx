@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, Calendar, Loader2, Lock, UtensilsCrossed } from "lucide-react";
 import { getControllableTheme } from "@/lib/controllableTheme";
+import { ControllableLevelBadge } from "@/components/dashboard/ControllableLevelBadge";
 import { MealWeekComparison } from "./MealWeekComparison";
 
 const wellnessTheme = getControllableTheme("wellness");
@@ -67,6 +68,7 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
             <span className="text-lg">{wellnessTheme.emoji}</span>
             <div>
               <h3 className="text-sm font-semibold text-foreground">Fuel Check</h3>
+              <ControllableLevelBadge controllable="wellness" />
               {hasMealsLogged && view === "today" && (
                 <p className="text-[11px] text-muted-foreground">
                   {dailyTotals.calories} cal logged today

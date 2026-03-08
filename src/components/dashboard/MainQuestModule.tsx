@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { getControllableTheme } from "@/lib/controllableTheme";
+import { ControllableLevelBadge } from "./ControllableLevelBadge";
 
 const theme = getControllableTheme("environment");
 import { Target, AlertTriangle, Pencil, Check, X, ChevronDown, HelpCircle } from "lucide-react";
@@ -232,6 +233,7 @@ export function MainQuestModule({
             <div className="flex items-center gap-2 mb-1">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Main Mission</p>
               <span className={`text-xs font-medium ${theme.textClass}`}>{theme.emoji} {theme.label}</span>
+              <ControllableLevelBadge controllable="environment" />
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">
               Direction, not a task.

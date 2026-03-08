@@ -7,6 +7,7 @@ import { Brain, Dumbbell, Moon, Monitor, Salad, Activity, TrendingUp, TrendingDo
 import { cn } from "@/lib/utils";
 import { HealthDataSync } from "./HealthDataSync";
 import { getControllableTheme } from "@/lib/controllableTheme";
+import { ControllableLevelBadge } from "./ControllableLevelBadge";
 
 const wellnessTheme = getControllableTheme("wellness");
 
@@ -124,6 +125,7 @@ export function BrainBodyTracker({ userId, onLogWellness }: BrainBodyTrackerProp
                 <Activity className="h-4 w-4 text-wellness" />
                 <h3 className="text-sm font-semibold text-foreground">Brain & Body</h3>
                 <span className={`text-xs font-medium ${wellnessTheme.textClass}`}>{wellnessTheme.emoji} {wellnessTheme.label}</span>
+                <ControllableLevelBadge controllable="wellness" />
               </div>
               <div className="flex items-center gap-2">
                 {!hasHealthSync && (

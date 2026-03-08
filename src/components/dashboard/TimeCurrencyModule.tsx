@@ -2,6 +2,7 @@ import { useState, useImperativeHandle, forwardRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Clock, Sparkles } from "lucide-react";
 import { getControllableTheme } from "@/lib/controllableTheme";
+import { ControllableLevelBadge } from "./ControllableLevelBadge";
 
 const theme = getControllableTheme("awareness");
 import { Button } from "@/components/ui/button";
@@ -336,6 +337,7 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
         </div>
         <h3 className="font-display font-semibold text-foreground">Time Reflection</h3>
         <span className={`ml-auto text-xs font-medium ${theme.textClass}`}>{theme.emoji} {theme.label}</span>
+        <ControllableLevelBadge controllable="awareness" />
       </div>
       <div className="mb-4" />
 
