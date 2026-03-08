@@ -7,6 +7,7 @@ import { Brain, Dumbbell, Moon, Monitor, Salad, Activity, TrendingUp, TrendingDo
 import { cn } from "@/lib/utils";
 import { HealthDataSync } from "./HealthDataSync";
 import { getControllableTheme } from "@/lib/controllableTheme";
+import { ControllableLevelBadge } from "./ControllableLevelBadge";
 
 const wellnessTheme = getControllableTheme("wellness");
 
