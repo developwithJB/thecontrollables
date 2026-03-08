@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { getArchetypeInfo, getArchetypeThemeColors } from "@/lib/build";
 import type { BuildScore } from "@/lib/build";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface OnboardingArchetypeResultProps {
   buildResult: BuildScore;
