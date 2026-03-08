@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Zap, TrendingUp } from "lucide-react";
+import { getControllableTheme } from "@/lib/controllableTheme";
+
+const theme = getControllableTheme("habit");
 import {
   Dialog,
   DialogContent,
@@ -175,14 +178,16 @@ export function XpMomentumModule({ totalXp, recentLogs, compact = false }: XpMom
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="p-5 rounded-2xl bg-card border shadow-soft"
+      className={`p-5 rounded-2xl bg-card border shadow-soft ${theme.borderClass}`}
     >
-      <div className="flex items-center gap-2 mb-4">
-        <div className="p-1.5 rounded-lg bg-accent/20">
-          <Zap className="w-4 h-4 text-accent" />
+      <div className="flex items-center gap-2 mb-1">
+        <div className="p-1.5 rounded-lg bg-habit/10">
+          <Zap className="w-4 h-4 text-habit" />
         </div>
         <h3 className="font-display font-semibold text-foreground">Momentum</h3>
+        <span className={`ml-auto text-xs font-medium ${theme.textClass}`}>{theme.emoji} {theme.label}</span>
       </div>
+      <div className="mb-4" />
 
       {/* Today's XP Badge */}
       {todayXp > 0 && (
@@ -223,6 +228,11 @@ export function XpMomentumModule({ totalXp, recentLogs, compact = false }: XpMom
           <span className="text-foreground font-medium">{weekXp} XP</span> earned this week
         </p>
       </div>
+
+      {/* Controllable voice tip */}
+      <p className="text-xs text-muted-foreground text-center italic mt-3">
+        {theme.tip}
+      </p>
     </motion.div>
   );
 }

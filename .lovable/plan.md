@@ -1,65 +1,164 @@
 
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-# Controllable Ownership — Each Character Leads Their Data Domain
+## Overview
 
-## Concept
-Each of the 5 Controllables becomes the visible "owner" of specific dashboard modules. Their emoji, accent color, and voice appear on the modules they govern. This makes the dashboard feel alive — like 5 specialists each reporting on their domain.
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-## Mapping
+---
 
-```text
-🦉 Awareness  → Time Currency (screen time, time reflection)
-🐢 Perspective → Integrity Meter (promises, long-term commitments)
-🦈 Habit       → XP Momentum + Streak (consistency, daily reps)
-🛰️ Wellness    → Brain & Body Tracker + Meal Tracking (already done)
-🚀 Environment → Main Quest / Mission (shaping your world)
+## Part 1: AI Insight Engine
+
+### New Edge Function: `admin-insights`
+
+**File: `supabase/functions/admin-insights/index.ts`**
+
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
+
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
+
+[structured data blob]
+
+Return insights as structured tool output.
 ```
 
-## Visual Changes Per Module
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-Each module gets three small additions:
-1. **Character badge**: Emoji + label in the header (e.g., "🦉 Awareness" next to "Time Reflection")
-2. **Accent border/tint**: Use existing CSS variables (`--awareness`, `--perspective`, `--habit`, `--wellness`, `--environment`) for a subtle left border or soft background tint
-3. **One-liner voice**: A short contextual tip in the character's voice at the bottom of each module (similar to the Satellite tips already in BrainBodyTracker)
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-## File Edits
+### New Admin Component: AI Insights Panel
 
-### `src/components/dashboard/TimeCurrencyModule.tsx`
-- Add 🦉 badge + awareness accent color to header
-- Add awareness-themed tip at bottom ("🦉 Notice where your minutes actually went.")
-- Add subtle `border-l-2 border-awareness/30` styling
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-### `src/components/dashboard/IntegrityMeterModule.tsx`
-- Add 🐢 badge + perspective accent color to header
-- Add perspective-themed tip ("🐢 A kept promise compounds. A broken one teaches.")
-- Add subtle `border-l-2 border-perspective/30` styling
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-### `src/components/dashboard/XpMomentumModule.tsx`
-- Add 🦈 badge + habit accent color to header
-- Add habit-themed tip ("🦈 Reps over results. Show up again.")
-- Add subtle `border-l-2 border-habit/30` styling
+### Integration into Admin.tsx
 
-### `src/components/dashboard/BrainBodyTracker.tsx`
-- Already uses 🛰️ Wellness identity — just ensure consistent badge format matching the others
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
-### `src/components/dashboard/MainQuestModule.tsx`
-- Add 🚀 badge + environment accent color to header
-- Add environment-themed tip ("🚀 Your mission shapes your environment.")
-- Add subtle `border-l-2 border-environment/30` styling
+---
 
-### `src/components/nutrition/MealPlanCard.tsx`
-- Already branded as 🛰️ — ensure consistent badge format
+## Part 2: Enhanced Action Center
 
-### `src/components/dashboard/ResetProgressModule.tsx`
-- Add a dynamic badge that rotates based on `currentDay` (Day 1 = 🦉, Day 2 = 🐢, etc.) using the existing `getDayContent()` mapping
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
 
-### Shared helper: `src/lib/controllableTheme.ts` (new)
-- Export a small utility mapping controllable type → emoji, label, accent class, and voice tips
-- Keeps the branding DRY across all modules
+Replace the three "Coming soon" cards with working functionality:
 
-## Implementation Order
-1. Create `controllableTheme.ts` shared utility
-2. Update each of the 5 core modules (TimeCurrency, Integrity, XP, MainQuest, ResetProgress)
-3. Ensure BrainBodyTracker + MealPlanCard use the same badge format
-4. No database changes needed
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
 
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
+
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
+
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
+
+---
+
+## Part 3: Landing Page Updates
+
+**File: `src/pages/Landing.tsx`**
+
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+
+**File: `src/components/landing/FeatureGrid.tsx`**
+
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+
+**File: `src/components/landing/HowItWorksSection.tsx`**
+
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.

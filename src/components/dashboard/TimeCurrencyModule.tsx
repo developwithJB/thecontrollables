@@ -1,6 +1,9 @@
 import { useState, useImperativeHandle, forwardRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Clock, Sparkles } from "lucide-react";
+import { getControllableTheme } from "@/lib/controllableTheme";
+
+const theme = getControllableTheme("awareness");
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
@@ -325,14 +328,16 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className="p-5 rounded-2xl bg-card border shadow-soft"
+      className={`p-5 rounded-2xl bg-card border shadow-soft ${theme.borderClass}`}
     >
-      <div className="flex items-center gap-2 mb-4">
-        <div className="p-1.5 rounded-lg bg-blue-500/10">
-          <Sparkles className="w-4 h-4 text-blue-500" />
+      <div className="flex items-center gap-2 mb-1">
+        <div className="p-1.5 rounded-lg bg-awareness/10">
+          <Sparkles className="w-4 h-4 text-awareness" />
         </div>
         <h3 className="font-display font-semibold text-foreground">Time Reflection</h3>
+        <span className={`ml-auto text-xs font-medium ${theme.textClass}`}>{theme.emoji} {theme.label}</span>
       </div>
+      <div className="mb-4" />
 
       {todayTimeLog && (
         <div className="text-center py-4 mb-4">
@@ -353,6 +358,11 @@ export const TimeCurrencyModule = forwardRef<TimeCurrencyModuleHandle, TimeCurre
       <Button variant="outline" size="sm" onClick={handleOpenDialog} className="w-full" disabled={disabled}>
         {disabled ? "Loading..." : todayTimeLog ? "Update Reflection" : "Reflect on Yesterday"}
       </Button>
+
+      {/* Controllable voice tip */}
+      <p className="text-xs text-muted-foreground text-center italic mt-3">
+        {theme.tip}
+      </p>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-sm">

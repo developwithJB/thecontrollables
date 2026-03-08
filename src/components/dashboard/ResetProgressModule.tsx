@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, ChevronRight, Lock, Check, Play, RefreshCw, Eye, Sparkles, Target, Compass } from "lucide-react";
+import { getControllableForDay, getControllableTheme } from "@/lib/controllableTheme";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -629,7 +630,17 @@ export function ResetProgressModule({
               <RefreshCw className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">7-Day Snapshot</p>
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">7-Day Snapshot</p>
+                {(() => {
+                  const dayTheme = getControllableTheme(getControllableForDay(currentDay));
+                  return (
+                    <span className={`text-xs font-medium ${dayTheme.textClass}`}>
+                      {dayTheme.emoji} {dayTheme.label}
+                    </span>
+                  );
+                })()}
+              </div>
               {todayAlreadyCompleted ? (
                 <h3 className="font-display font-semibold text-foreground text-lg flex items-center gap-2">
                   Day {currentDay} Complete

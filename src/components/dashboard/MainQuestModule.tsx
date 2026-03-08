@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { getControllableTheme } from "@/lib/controllableTheme";
+
+const theme = getControllableTheme("environment");
 import { Target, AlertTriangle, Pencil, Check, X, ChevronDown, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -218,9 +221,9 @@ export function MainQuestModule({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
+      className={`p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 ${theme.borderClass}`}
     >
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-1">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           <div className="p-2 rounded-lg bg-primary/20 shrink-0">
             <Target className="w-5 h-5 text-primary" />
@@ -228,6 +231,7 @@ export function MainQuestModule({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Main Mission</p>
+              <span className={`text-xs font-medium ${theme.textClass}`}>{theme.emoji} {theme.label}</span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">
               Direction, not a task.
@@ -287,17 +291,18 @@ export function MainQuestModule({
         
       </div>
 
-      {/* Bottom action row - no progress, no countdown */}
-      <div className="flex items-center justify-end text-sm">
+      {/* Bottom action row */}
+      <div className="flex items-center justify-between text-sm mt-3">
+        <p className="text-xs text-muted-foreground italic">{theme.tip}</p>
         {onUpdateQuest && (
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground shrink-0"
             onClick={handleStartEdit}
           >
             <Pencil className="w-3 h-3 mr-1" />
-            Update Direction
+            Update
           </Button>
         )}
       </div>

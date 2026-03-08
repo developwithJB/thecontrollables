@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, Calendar, Loader2, Lock, UtensilsCrossed } from "lucide-react";
+import { getControllableTheme } from "@/lib/controllableTheme";
+
+const wellnessTheme = getControllableTheme("wellness");
 import { Button } from "@/components/ui/button";
 import { useMealTracking } from "@/hooks/useMealTracking";
 import { MealTracker } from "./MealTracker";
@@ -55,11 +58,11 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
 
   return (
     <>
-      <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-3">
+      <div className={`rounded-2xl border border-border/60 bg-card p-4 space-y-3 ${wellnessTheme.borderClass}`}>
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-lg">🛰️</span>
+            <span className="text-lg">{wellnessTheme.emoji}</span>
             <div>
               <h3 className="text-sm font-semibold text-foreground">Fuel Check</h3>
               {hasMealsLogged && (

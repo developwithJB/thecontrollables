@@ -1,6 +1,9 @@
 import { useState, useImperativeHandle, forwardRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Shield, Check, X } from "lucide-react";
+import { getControllableTheme } from "@/lib/controllableTheme";
+
+const theme = getControllableTheme("perspective");
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -337,14 +340,16 @@ export const IntegrityMeterModule = forwardRef<IntegrityMeterModuleHandle, Integ
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.15 }}
-      className="p-5 rounded-2xl bg-card border shadow-soft"
+      className={`p-5 rounded-2xl bg-card border shadow-soft ${theme.borderClass}`}
     >
-      <div className="flex items-center gap-2 mb-4">
-        <div className="p-1.5 rounded-lg bg-primary/10">
-          <Shield className="w-4 h-4 text-primary" />
+      <div className="flex items-center gap-2 mb-1">
+        <div className="p-1.5 rounded-lg bg-perspective/10">
+          <Shield className="w-4 h-4 text-perspective" />
         </div>
         <h3 className="font-display font-semibold text-foreground">Integrity</h3>
+        <span className={`ml-auto text-xs font-medium ${theme.textClass}`}>{theme.emoji} {theme.label}</span>
       </div>
+      <div className="mb-4" />
 
       {/* Score Display */}
       <div className="text-center mb-4">
@@ -413,6 +418,11 @@ export const IntegrityMeterModule = forwardRef<IntegrityMeterModuleHandle, Integ
           {disabled ? "Loading..." : "Make a Promise"}
         </Button>
       </div>
+
+      {/* Controllable voice tip */}
+      <p className="text-xs text-muted-foreground text-center italic mt-3">
+        {theme.tip}
+      </p>
 
       <Dialog open={isOpen} onOpenChange={handlePromiseModalOpen}>
         <DialogTrigger asChild>
