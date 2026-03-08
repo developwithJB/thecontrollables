@@ -47,3 +47,9 @@ verify_jwt = false
 
 [functions.ai-briefing]
 verify_jwt = false
+
+[functions.ai-meal-analyze]
+verify_jwt = false
+
+[functions.ai-meal-plan]
+verify_jwt = false

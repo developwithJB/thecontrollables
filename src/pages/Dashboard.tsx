@@ -58,6 +58,7 @@ import { TrialCompleteCard } from "@/components/dashboard/TrialCompleteCard";
 // JourneyChangesLog removed - consolidated into Activity History
 
 import { DailyBriefingCard } from "@/components/dashboard/DailyBriefingCard";
+import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DailyAlignmentPromo } from "@/components/dashboard/DailyAlignmentPromo";
 import { DailyAlignmentSpotlight } from "@/components/dashboard/DailyAlignmentSpotlight";
@@ -1046,6 +1047,15 @@ export default function Dashboard() {
                   isTrialing={isTrialing}
                   hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
                   onUpgrade={() => startCheckout(undefined, "daily_briefing")}
+                />
+              )}
+
+              {/* Meal Planning & Tracking - Powered by Satellite */}
+              {user?.id && !entitlementsLoading && (
+                <MealPlanCard
+                  userId={user.id}
+                  isPaid={isPaid}
+                  onUpgrade={() => startCheckout(undefined, "meal_plan_card")}
                 />
               )}
 
