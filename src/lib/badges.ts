@@ -84,6 +84,13 @@ export const BADGES: Record<BadgeKey, Badge> = {
     meaning: "You learned the tools to build your life.",
     trigger: "Completed the Welcome 7-Day Snapshot",
   },
+  season_finisher: {
+    key: "season_finisher",
+    emoji: "🏅",
+    name: "Season Finisher",
+    meaning: "Four weeks of showing up. That's a season.",
+    trigger: "Completed a 4-Week Season",
+  },
 };
 
 // Return badge by key
