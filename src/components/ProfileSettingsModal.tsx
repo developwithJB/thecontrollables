@@ -72,10 +72,14 @@ export function ProfileSettingsModal({
   const [pushToggling, setPushToggling] = useState(false);
   const { toast } = useToast();
 
-  // Detect initial theme
+  // Detect initial theme + push support
   useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains("dark");
     setIsDark(isDarkMode);
+    setPushSupported(isPushSupported());
+    if (isPushSupported()) {
+      isPushSubscribed().then(setPushEnabled);
+    }
   }, [open]);
 
   // Fetch profile on open
