@@ -39,6 +39,7 @@ const Reset = () => {
 
   const { isPaid } = useEntitlements(userId || null);
   const { activeQuest } = useDashboardSummary(userId || null);
+  const { activeSeason, seasonProgress } = useSeason(userId || undefined);
 
   const [showDayComplete, setShowDayComplete] = useState(false);
   const [acknowledgedMissedDays, setAcknowledgedMissedDays] = useState(false);
