@@ -10,6 +10,7 @@ import { OnboardingStarting } from "./OnboardingStarting";
 import { OnboardingSkipConfirmation } from "./OnboardingSkipConfirmation";
 import { OnboardingRecovery } from "./OnboardingRecovery";
 import { OnboardingOrientation } from "./OnboardingOrientation";
+import { OnboardingMeetGuides } from "./OnboardingMeetGuides";
 import { 
   SNAPSHOTS,
   getRecommendedSnapshot,
