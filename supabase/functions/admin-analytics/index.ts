@@ -85,6 +85,10 @@ serve(async (req) => {
       snapshotsResult,
       completedSnapshotsResult,
       entitlementsResult,
+      circlesResult,
+      circleParticipantsResult,
+      seasonsResult,
+      pushSubsResult,
     ] = await Promise.all([
       // Total users
       adminClient.auth.admin.listUsers({ perPage: 1000 }),
@@ -110,6 +114,14 @@ serve(async (req) => {
       adminClient.from("reset_sessions").select("id").eq("status", "completed"),
       // Entitlements
       adminClient.from("user_entitlements").select("user_id, granted_at, expires_at, source"),
+      // Circles (non-solo challenges)
+      adminClient.from("challenges").select("id").eq("is_solo", false),
+      // Circle participants
+      adminClient.from("challenge_participants").select("id, challenge_id"),
+      // Seasons
+      adminClient.from("seasons").select("id, status"),
+      // Push subscribers
+      adminClient.from("push_subscriptions").select("user_id"),
     ]);
 
     const allUsers = totalUsersResult.data?.users || [];
