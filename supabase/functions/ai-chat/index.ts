@@ -678,7 +678,11 @@ Deno.serve(async (req) => {
     }
 
     // ============ BUILD SYSTEM PROMPT ============
-    const systemPrompt = buildSystemPrompt(body);
+    const [basePrompt, levelsContext] = await Promise.all([
+      Promise.resolve(buildSystemPrompt(body)),
+      fetchControllableLevelsContext(serviceClient, userId),
+    ]);
+    const systemPrompt = basePrompt + levelsContext;
 
     // Include session history for memory continuity
     const conversationMessages: Array<{role: string; content: string}> = [];
