@@ -1097,8 +1097,11 @@ Deno.serve(async (req) => {
 
           const email = userData.user.email;
 
-          // Check if user is paid (for Daily Alignment)
-          const userIsPaid = await checkIsPaid(supabase, userId);
+          // Check if user is paid (for Daily Alignment) and fetch levels
+          const [userIsPaid, userLevels] = await Promise.all([
+            checkIsPaid(supabase, userId),
+            getUserControllableLevels(supabase, userId),
+          ]);
           
           let subject: string;
           let body: string;
