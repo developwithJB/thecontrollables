@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flame, Zap, Target, Compass, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { Flame, Zap, Target, Compass, Sparkles, ChevronDown, ChevronUp, Shield } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useInsights } from "@/hooks/useInsights";
+import { useControllableLevels } from "@/hooks/useControllableLevels";
 
 interface GreetingBannerProps {
   userId?: string;
