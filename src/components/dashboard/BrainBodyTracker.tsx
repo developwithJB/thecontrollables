@@ -82,7 +82,6 @@ const SATELLITE_TIPS: Record<string, string> = {
 
 export function BrainBodyTracker({ userId, onLogWellness }: BrainBodyTrackerProps) {
   const { brainScore, bodyScore, factors, trend, hasData, hasHealthSync, isLoading } = useBrainBodyHealth(userId);
-  const [syncOpen, setSyncOpen] = useState(false);
 
   if (isLoading) {
     return (
