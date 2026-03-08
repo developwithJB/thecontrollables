@@ -63,6 +63,8 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
       setProteinTarget(preferences.proteinTarget ? String(preferences.proteinTarget) : "");
       setCarbsTarget(preferences.carbsTarget ? String(preferences.carbsTarget) : "");
       setFatTarget(preferences.fatTarget ? String(preferences.fatTarget) : "");
+      setDietaryStyle(preferences.dietaryStyle || "");
+      setDietaryRestrictions(preferences.dietaryRestrictions || []);
       setPrefsLoaded(true);
     }
   }, [preferences, prefsLoaded]);
