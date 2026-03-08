@@ -659,7 +659,8 @@ function generateDailyAlignmentEmailContent(
     reflectionQuestion: string;
     microAction: string;
     eveningPrompt: string;
-  }
+  },
+  levels: ControllableLevelInfo[]
 ): { subject: string; body: string } {
   const firstName = context.displayName || "Friend";
   const subject = `${firstName}, stay aligned today.`;
