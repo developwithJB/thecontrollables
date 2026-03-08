@@ -36,11 +36,11 @@ const TEMPLATES: Record<string, { subject: string; bodyFn: (vars: Record<string,
         <p style="font-size: 15px; color: #444; margin: 0 0 20px 0;">
           ${vars.customBody || "You've been showing up consistently. That's not nothing — that's everything. Keep building on what you've started."}
         </p>
-        <a href="https://thecontrollables.lovable.app/dashboard" style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 15px;">
+        <a href="https://thedashboard.agbcoaching.com/dashboard" style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 15px;">
           Continue Your Journey
         </a>
         <p style="font-size: 11px; color: #aaa; margin-top: 32px;">
-          <a href="https://thecontrollables.lovable.app/dashboard" style="color: #888; text-decoration: none;">Manage email preferences in settings</a>
+          <a href="https://thedashboard.agbcoaching.com/dashboard" style="color: #888; text-decoration: none;">Manage email preferences in settings</a>
         </p>
       </div>`,
   },
