@@ -37,6 +37,10 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
     dinner: true,
   });
   const [snackCount, setSnackCount] = useState(1);
+  const [calorieTarget, setCalorieTarget] = useState<string>("");
+  const [proteinTarget, setProteinTarget] = useState<string>("");
+  const [carbsTarget, setCarbsTarget] = useState<string>("");
+  const [fatTarget, setFatTarget] = useState<string>("");
   const [prefsLoaded, setPrefsLoaded] = useState(false);
 
   // Sync from saved preferences once loaded
@@ -49,6 +53,10 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
         dinner: !preferences.excludeMeals.includes("dinner"),
       });
       setSnackCount(preferences.snackCount);
+      setCalorieTarget(preferences.calorieTarget ? String(preferences.calorieTarget) : "");
+      setProteinTarget(preferences.proteinTarget ? String(preferences.proteinTarget) : "");
+      setCarbsTarget(preferences.carbsTarget ? String(preferences.carbsTarget) : "");
+      setFatTarget(preferences.fatTarget ? String(preferences.fatTarget) : "");
       setPrefsLoaded(true);
     }
   }, [preferences, prefsLoaded]);
