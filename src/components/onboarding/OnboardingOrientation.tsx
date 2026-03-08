@@ -141,11 +141,28 @@ export function OnboardingOrientation({
           ))}
         </div>
 
+        {/* AI Welcome Message */}
+        {aiWelcome && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55 }}
+            className="p-4 rounded-xl bg-primary/5 border border-primary/20 mb-6"
+          >
+            <div className="flex items-start gap-3">
+              <span className="text-2xl shrink-0">{aiWelcome.emoji}</span>
+              <p className="text-sm text-foreground italic leading-relaxed">
+                "{aiWelcome.text}"
+              </p>
+            </div>
+          </motion.div>
+        )}
+
         {/* CTA */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.65 }}
         >
           <Button size="lg" onClick={onStartDay1} className="w-full h-14 text-base">
             Start Day 1

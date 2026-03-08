@@ -172,17 +172,33 @@ export function OnboardingArchetypeResult({
           })}
         </motion.div>
 
-        {/* Recommendation preview */}
+        {/* AI interpretation or static fallback */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9 }}
-          className="p-4 rounded-xl bg-card border border-border mb-8"
+          className="p-5 rounded-xl bg-card border border-border mb-8"
         >
-          <p className="text-sm text-muted-foreground mb-2">What this means</p>
-          <p className="text-foreground text-sm leading-relaxed">
-            {archetypeInfo.recommendations[0]}
-          </p>
+          {aiInterpretation ? (
+            <div className="flex items-start gap-3">
+              <span className="text-3xl shrink-0">{aiInterpretation.emoji}</span>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">
+                  {aiInterpretation.name} says
+                </p>
+                <p className="text-foreground text-sm leading-relaxed italic">
+                  "{aiInterpretation.text}"
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground mb-2">What this means</p>
+              <p className="text-foreground text-sm leading-relaxed">
+                {archetypeInfo.recommendations[0]}
+              </p>
+            </>
+          )}
         </motion.div>
 
         {/* Continue button */}

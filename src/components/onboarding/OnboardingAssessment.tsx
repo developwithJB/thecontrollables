@@ -320,7 +320,7 @@ export function OnboardingAssessment({
           )}
           <Button
             onClick={handleNext}
-            disabled={!canGoNext || isSubmitting}
+            disabled={!canGoNext || isSubmitting || isTransitioning}
             className="flex-1"
             data-testid="assessment-next-button"
           >
