@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, Calendar, Loader2, Lock, UtensilsCrossed } from "lucide-react";
+import { getControllableTheme } from "@/lib/controllableTheme";
+
+const wellnessTheme = getControllableTheme("wellness");
 import { Button } from "@/components/ui/button";
 import { useMealTracking } from "@/hooks/useMealTracking";
 import { MealTracker } from "./MealTracker";
