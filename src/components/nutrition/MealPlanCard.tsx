@@ -37,6 +37,10 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
     dinner: true,
   });
   const [snackCount, setSnackCount] = useState(1);
+  const [calorieTarget, setCalorieTarget] = useState<string>("");
+  const [proteinTarget, setProteinTarget] = useState<string>("");
+  const [carbsTarget, setCarbsTarget] = useState<string>("");
+  const [fatTarget, setFatTarget] = useState<string>("");
   const [prefsLoaded, setPrefsLoaded] = useState(false);
 
   // Sync from saved preferences once loaded
@@ -49,6 +53,10 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
         dinner: !preferences.excludeMeals.includes("dinner"),
       });
       setSnackCount(preferences.snackCount);
+      setCalorieTarget(preferences.calorieTarget ? String(preferences.calorieTarget) : "");
+      setProteinTarget(preferences.proteinTarget ? String(preferences.proteinTarget) : "");
+      setCarbsTarget(preferences.carbsTarget ? String(preferences.carbsTarget) : "");
+      setFatTarget(preferences.fatTarget ? String(preferences.fatTarget) : "");
       setPrefsLoaded(true);
     }
   }, [preferences, prefsLoaded]);
@@ -64,8 +72,23 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
 
   const handleGenerate = () => {
     const config = getSlotConfig();
-    generatePlan.mutate(config);
-    savePreferences.mutate({ excludeMeals: config.excludeMeals || [], snackCount: config.snackCount ?? 1 });
+    const calTarget = calorieTarget ? parseInt(calorieTarget) : undefined;
+    const macros = {
+      proteinTarget: proteinTarget ? parseInt(proteinTarget) : undefined,
+      carbsTarget: carbsTarget ? parseInt(carbsTarget) : undefined,
+      fatTarget: fatTarget ? parseInt(fatTarget) : undefined,
+    };
+    generatePlan.mutate({
+      ...config,
+      calorie_target: calTarget,
+      macro_targets: macros,
+    });
+    savePreferences.mutate({
+      excludeMeals: config.excludeMeals || [],
+      snackCount: config.snackCount ?? 1,
+      calorieTarget: calTarget,
+      ...macros,
+    });
     setShowConfig(false);
   };
 
@@ -202,6 +225,53 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
                 >
                   <Plus className="w-3 h-3" />
                 </button>
+              </div>
+            </div>
+
+            {/* Calorie & Macro Targets */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Daily targets <span className="font-normal">(optional)</span></p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-muted-foreground">Calories</label>
+                  <input
+                    type="number"
+                    placeholder="2000"
+                    value={calorieTarget}
+                    onChange={(e) => setCalorieTarget(e.target.value)}
+                    className="w-full h-7 px-2 text-xs rounded-md border border-border/60 bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground">Protein (g)</label>
+                  <input
+                    type="number"
+                    placeholder="150"
+                    value={proteinTarget}
+                    onChange={(e) => setProteinTarget(e.target.value)}
+                    className="w-full h-7 px-2 text-xs rounded-md border border-border/60 bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground">Carbs (g)</label>
+                  <input
+                    type="number"
+                    placeholder="200"
+                    value={carbsTarget}
+                    onChange={(e) => setCarbsTarget(e.target.value)}
+                    className="w-full h-7 px-2 text-xs rounded-md border border-border/60 bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground">Fat (g)</label>
+                  <input
+                    type="number"
+                    placeholder="65"
+                    value={fatTarget}
+                    onChange={(e) => setFatTarget(e.target.value)}
+                    className="w-full h-7 px-2 text-xs rounded-md border border-border/60 bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                  />
+                </div>
               </div>
             </div>
 

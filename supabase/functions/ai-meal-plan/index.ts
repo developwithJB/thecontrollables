@@ -26,13 +26,20 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    const { date, preferences, calorie_target, exclude_meals, snack_count } = await req.json();
+    const { date, preferences, calorie_target, exclude_meals, snack_count, macro_targets } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const targetInfo = calorie_target ? `Target: ~${calorie_target} calories/day.` : "Target: ~2000 calories/day.";
     const prefInfo = preferences ? `Preferences: ${preferences}.` : "";
+
+    // Build macro instructions
+    const macroLines: string[] = [];
+    if (macro_targets?.proteinTarget) macroLines.push(`Protein: ~${macro_targets.proteinTarget}g/day`);
+    if (macro_targets?.carbsTarget) macroLines.push(`Carbs: ~${macro_targets.carbsTarget}g/day`);
+    if (macro_targets?.fatTarget) macroLines.push(`Fat: ~${macro_targets.fatTarget}g/day`);
+    const macroInfo = macroLines.length > 0 ? `Macro targets: ${macroLines.join(", ")}.` : "";
 
     // Build meal list based on exclusions and snack count
     const excludeSet = new Set((exclude_meals || []).map((m: string) => m.toLowerCase()));
@@ -51,7 +58,7 @@ serve(async (req) => {
       .join(",\n");
 
     const systemPrompt = `You are 🛰️ Satellite, the Wellness Controllable. Generate a simple, practical meal plan.
-${targetInfo} ${prefInfo}
+${targetInfo} ${macroInfo} ${prefInfo}
 Generate ONLY these meals: ${requestedMeals.join(", ")}.
 Return a JSON object:
 {
