@@ -1,164 +1,114 @@
 
-# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-## Overview
+# Meal Planning & Tracking — Powered by Wellness (🛰️)
 
-Three interconnected deliverables:
-1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
-2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
-3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
+## Concept
+A Cal AI-inspired, ultra-lightweight meal tracker led by the Satellite (Wellness Controllable). Users snap a photo or type what they ate, AI estimates macros, and meals accumulate into a simple daily view. Meal plans can be generated and added to calendar. Paid feature gated behind `plus` tier.
 
----
+## Database
 
-## Part 1: AI Insight Engine
-
-### New Edge Function: `admin-insights`
-
-**File: `supabase/functions/admin-insights/index.ts`**
-
-This function:
-1. Verifies the caller is an admin (same pattern as `admin-analytics`)
-2. Queries aggregated metrics from the last 7 days using the service role client:
-   - `app_events` grouped by `event_name` and day-of-week
-   - `completed_actions` grouped by `controllable`
-   - `daily_resets` count per user (for retention correlation)
-   - `reset_sessions` completion rates
-   - `user_entitlements` conversion data
-   - `user_onboarding` activation delays
-3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
-   - 3 behavioral insights
-   - 2 retention risks
-   - 2 growth opportunities
-   - 1 experiment recommendation
-4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
-5. Returns the insights directly (no caching table needed initially -- can add later)
-
-**Prompt structure:**
+### New table: `meal_logs`
 ```
-You are a product analytics advisor for a personal growth app called The Controllables.
-Given the following 7-day metrics, generate actionable insights.
-
-[structured data blob]
-
-Return insights as structured tool output.
+id              uuid PK default gen_random_uuid()
+user_id         uuid NOT NULL
+log_date        date NOT NULL default CURRENT_DATE
+meal_type       text NOT NULL (breakfast/lunch/dinner/snack)
+description     text          -- typed entry
+image_path      text          -- storage path if photo uploaded
+ai_analysis     jsonb         -- { calories, protein, carbs, fat, items[] }
+created_at      timestamptz default now()
 ```
+RLS: user can SELECT/INSERT/UPDATE own rows.
 
-**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+### New table: `meal_plans`
+```
+id              uuid PK default gen_random_uuid()
+user_id         uuid NOT NULL
+plan_date       date NOT NULL
+meals           jsonb NOT NULL -- [{ meal_type, name, description, est_calories }]
+generated_by    text default 'ai'
+created_at      timestamptz default now()
+UNIQUE(user_id, plan_date)
+```
+RLS: user can SELECT/INSERT own rows.
 
-**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+### Storage bucket: `meal-photos` (public: false)
+RLS: user can INSERT and SELECT own objects.
 
-### New Admin Component: AI Insights Panel
+## New Edge Function: `ai-meal-analyze`
+- Accepts: `{ description?: string, image_base64?: string }`
+- Uses Lovable AI (gemini-2.5-flash) to analyze the meal
+- Returns: `{ calories, protein, carbs, fat, items: [{ name, portion, calories }] }`
+- Satellite voice wrapper: includes a 1-liner wellness observation
+- No API key needed — uses Lovable AI supported models
 
-**File: `src/components/admin/AIInsightsPanel.tsx`**
+## New Edge Function: `ai-meal-plan`
+- Accepts: `{ date, preferences?, calorie_target? }`
+- Uses Lovable AI to generate a simple 3-meal + 1-snack plan
+- Returns: `{ meals: [{ meal_type, name, description, est_calories }], satellite_tip }`
+- Also generates an .ics calendar entry for meal prep reminder
 
-- A card with "Weekly Intelligence" header and a "Generate Insights" button
-- On click, calls the `admin-insights` edge function
-- Displays results in categorized sections:
-  - Behavioral Insights (brain icon, blue accent)
-  - Retention Risks (alert icon, amber accent)
-  - Growth Opportunities (trending-up icon, green accent)
-  - Experiment Recommendation (flask icon, purple accent)
-- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
-- Loading state with skeleton cards
-- Error state with retry button
-- "Last generated" timestamp display
+## New Components
 
-### Integration into Admin.tsx
+### `src/components/nutrition/MealTracker.tsx`
+Main entry point — a bottom-sheet style modal (like WellnessLogger pattern).
+- **Header**: 🛰️ "Fuel Check" with daily calorie summary ring
+- **Meal slots**: 4 cards (Breakfast, Lunch, Dinner, Snack) — tap to log
+- **Each slot**: Photo button (camera icon) OR text input — pick one
+- **After logging**: AI analysis appears inline with macro breakdown
+- **Daily total**: Simple cal/protein/carb/fat summary bar at bottom
 
-- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
-- The tab renders `<AIInsightsPanel />`
+### `src/components/nutrition/MealLogEntry.tsx`
+Single meal logging card:
+- Tap camera icon → file input for photo upload
+- Or tap keyboard icon → text input ("2 eggs, toast, coffee")
+- Submit → calls `ai-meal-analyze` → shows result with Satellite quote
+- Displays: meal name, estimated calories, macro chips
 
----
+### `src/components/nutrition/MealPlanCard.tsx`
+Dashboard card (similar to DailyBriefingCard):
+- Shows today's AI-generated meal plan if one exists
+- "Generate Plan" button if none exists
+- Each meal shows name + est. calories
+- "Add to Calendar" button → generates .ics via existing calendar pattern
+- Satellite quote at bottom
 
-## Part 2: Enhanced Action Center
+### `src/hooks/useMealTracking.ts`
+- CRUD for meal_logs (today's meals, recent history)
+- Fetch/create meal plans
+- Photo upload to `meal-photos` bucket
+- AI analysis invocation
 
-**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
+## Integration Points
 
-Replace the three "Coming soon" cards with working functionality:
+### Dashboard (`Dashboard.tsx`)
+- Add `MealPlanCard` below the DailyBriefingCard (paid users only)
+- Free users see a teaser card with lock overlay
 
-### A. Send Nudge Campaign
-- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
-- Confirmation dialog before sending
-- Calls the existing `send-daily-nudge` edge function for each selected user
-- Shows progress and results
+### Entitlements (`entitlements.ts`)
+- Add `mealPlanning: "plus"` to `PAID_FEATURES`
 
-### B. Grant Trial Extension
-- Search for a specific user by email
-- Set extension duration (7 days, 14 days, 30 days)
-- Calls `admin-users?action=grant_access` with an `expires_at` parameter
-- Confirmation toast on success
+### TodayActions (`TodayActions.tsx`)
+- Add "Log your meals" as a daily action (paid only) with 🛰️ tip
 
-### C. Export with More Segments
-- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
-- Risk tier data fetched from `admin-analytics?resource=retention_radar`
-- CSV includes: email, signup date, last active, risk tier, paid status, source
+## Calendar Integration
+Reuse the existing `generate-calendar-reminder` pattern:
+- `MealPlanCard` has "Add to Calendar" that generates a Google Calendar URL or .ics with meal prep times
+- Morning meal prep reminder at 7am, evening prep at 5pm
 
-### D. Quick Stats Bar
-- Show counts above the action cards: Total Users, Free, Paid, At Risk
-- Derived from the `users` prop already passed in
+## Implementation Order
+1. Database migration (meal_logs, meal_plans tables + meal-photos bucket)
+2. `ai-meal-analyze` edge function
+3. `ai-meal-plan` edge function
+4. `useMealTracking` hook
+5. `MealLogEntry` component (photo + text input)
+6. `MealTracker` modal (daily view with 4 slots)
+7. `MealPlanCard` dashboard component
+8. Wire into Dashboard, entitlements, and TodayActions
+9. Calendar export for meal plans
 
----
+## File Changes
+- **New**: `supabase/functions/ai-meal-analyze/index.ts`, `supabase/functions/ai-meal-plan/index.ts`, `src/components/nutrition/MealTracker.tsx`, `src/components/nutrition/MealLogEntry.tsx`, `src/components/nutrition/MealPlanCard.tsx`, `src/hooks/useMealTracking.ts`
+- **Edit**: `src/lib/entitlements.ts` (add mealPlanning feature), `src/pages/Dashboard.tsx` (add MealPlanCard), `src/components/dashboard/TodayActions.tsx` (add meal logging action), `supabase/config.toml` (new functions)
+- **Migration**: Create meal_logs, meal_plans tables + meal-photos storage bucket with RLS
 
-## Part 3: Landing Page Updates
-
-**File: `src/pages/Landing.tsx`**
-
-Update the hero copy to reflect the free trial:
-- Change hero tagline to emphasize "Try the full experience free for 7 days"
-- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
-- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
-
-**File: `src/components/landing/FeatureGrid.tsx`**
-
-- Update the Free/Premium labeling:
-  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
-  - "Experience History" -- add "Free during trial" badge
-  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
-
-**File: `src/components/landing/HowItWorksSection.tsx`**
-
-- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
-
----
-
-## Part 4: README Update
-
-**File: `README.md`**
-
-Update to v1.5.0 reflecting all recent changes:
-
-1. **Version bump**: `v1.4.1` to `v1.5.0`
-2. **New section: "Admin Command Center"** after Technical Reference:
-   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
-   - Mention the `admin-analytics` and `admin-insights` edge functions
-   - Document the AI Insight Engine capability
-3. **Update "Free vs. Premium" table**:
-   - Add "7-Day Free Trial" row explaining full access during first Snapshot
-   - Update AI Guide from "---" to "5 msgs/day during trial"
-   - Update Experience History from "---" to "During trial"
-4. **Update Backend Functions table**:
-   - Add `admin-analytics` -- Admin data aggregation and executive metrics
-   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
-5. **Update Key Data Tables**:
-   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
-   - Add `ai_usage_logs` -- Daily AI message tracking
-6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
-
----
-
-## Technical Summary
-
-| File | Change | Type |
-|------|--------|------|
-| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
-| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
-| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
-| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
-| `src/pages/Admin.tsx` | Add Insights tab | Edit |
-| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
-| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
-| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
-| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
-| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
-
-No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
