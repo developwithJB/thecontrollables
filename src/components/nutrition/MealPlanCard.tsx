@@ -107,12 +107,16 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
       ...config,
       calorie_target: calTarget,
       macro_targets: macros,
+      dietary_style: dietaryStyle || undefined,
+      dietary_restrictions: dietaryRestrictions.length > 0 ? dietaryRestrictions : undefined,
     });
     savePreferences.mutate({
       excludeMeals: config.excludeMeals || [],
       snackCount: config.snackCount ?? 1,
       calorieTarget: calTarget,
       ...macros,
+      dietaryStyle,
+      dietaryRestrictions,
     });
     setShowConfig(false);
   };
