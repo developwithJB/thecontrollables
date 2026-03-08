@@ -106,7 +106,7 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
                 variant="ghost"
                 size="sm"
                 className="text-[11px] h-7 text-muted-foreground"
-                onClick={() => generatePlan.mutate()}
+                onClick={() => generatePlan.mutate({})}
                 disabled={generatePlan.isPending}
               >
                 {generatePlan.isPending ? (
