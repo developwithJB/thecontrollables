@@ -169,13 +169,6 @@ export function BrainBodyTracker({ userId, onLogWellness }: BrainBodyTrackerProp
         </Card>
       </motion.div>
 
-      {userId && (
-        <HealthDataSync
-          open={syncOpen}
-          onOpenChange={setSyncOpen}
-          userId={userId}
-        />
-      )}
     </>
   );
 }
