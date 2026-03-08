@@ -60,6 +60,7 @@ import { TrialCompleteCard } from "@/components/dashboard/TrialCompleteCard";
 import { DailyBriefingCard } from "@/components/dashboard/DailyBriefingCard";
 import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
 import { BrainBodyTracker } from "@/components/dashboard/BrainBodyTracker";
+import { WeeklyWellnessReport } from "@/components/dashboard/WeeklyWellnessReport";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DailyAlignmentPromo } from "@/components/dashboard/DailyAlignmentPromo";
 import { DailyAlignmentSpotlight } from "@/components/dashboard/DailyAlignmentSpotlight";
@@ -1118,7 +1119,11 @@ export default function Dashboard() {
                 />
               )}
 
-              {/* Meal Planning & Tracking - Powered by Satellite */}
+              {/* Weekly Wellness Report */}
+              {user?.id && (
+                <WeeklyWellnessReport userId={user.id} />
+              )}
+
               {user?.id && !entitlementsLoading && (
                 <MealPlanCard
                   userId={user.id}
