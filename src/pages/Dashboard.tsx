@@ -264,6 +264,44 @@ export default function Dashboard() {
   // Entitlements (free vs paid)
   const { isPaid, isLoading: entitlementsLoading, initiateCheckout, isCheckingOut } = useEntitlements(user?.id || null);
 
+  // Snapshot Circles
+  const {
+    myCircle,
+    circleMembers,
+    showedUpTodayCount,
+    createCircle,
+    isCreatingCircle,
+    joinCircle,
+    isJoiningCircle,
+    leaveCircle,
+    isLeavingCircle,
+    logShowedUp,
+    lookupCircle,
+  } = useCircle(user?.id || undefined, activeSession?.id);
+
+  // Handle ?join=CODE URL param for circle invites
+  const [joinDialogOpen, setJoinDialogOpen] = useState(false);
+  const joinCodeFromUrl = searchParams.get("join");
+  useEffect(() => {
+    if (joinCodeFromUrl && user?.id) {
+      setJoinDialogOpen(true);
+    }
+  }, [joinCodeFromUrl, user?.id]);
+
+  // Auto-log showed-up when daily reset is completed
+  const prevCompletedDaysRef = useRef<number>(0);
+  useEffect(() => {
+    if (!completedDays || !myCircle) return;
+    const count = completedDays.length;
+    if (count > prevCompletedDaysRef.current && count > 0) {
+      logShowedUp(count);
+    }
+    prevCompletedDaysRef.current = count;
+  }, [completedDays?.length, myCircle, logShowedUp]);
+
+  // Get user display name for circles
+  const circleDisplayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "You";
+
   // Fetch profile for nudge status (used by spotlight and welcome back)
   const { data: userProfile, refetch: refetchProfile } = useQuery({
     queryKey: ["profile-nudge-status", user?.id],
