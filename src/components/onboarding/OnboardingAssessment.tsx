@@ -1,11 +1,28 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useAutoLoadingTimeout } from "@/hooks/useLoadingTimeout";
 import { TimeoutWarning } from "@/components/ui/TimeoutWarning";
 import type { BuildQuestion } from "@/lib/build";
+
+// Controllable interjection quotes based on score
+const INTERJECTION_LOW: Record<string, string[]> = {
+  awareness: ["That's what I'm here for.", "The fact that you noticed? That's step one.", "We'll work on this together."],
+  perspective: ["Zoom is a skill. We'll practice it.", "The view gets clearer with time.", "Seeing differently starts with seeing at all."],
+  habit: ["No reps yet? Good. We start now.", "You don't need motivation. You need one rep.", "That's honest. We build from here."],
+  wellness: ["Systems need attention. That's data, not failure.", "The basics are basic because they work.", "Let's check the dashboard together."],
+  environment: ["Your setup matters more than your willpower.", "We'll redesign, not just discipline.", "The system shapes the behavior."],
+};
+
+const INTERJECTION_HIGH: Record<string, string[]> = {
+  awareness: ["You already see clearly. Let's sharpen it.", "Observation is your superpower.", "You've got the instinct. Now we refine it."],
+  perspective: ["The long view comes naturally to you.", "You already zoom out. That's rare.", "Patience is your edge."],
+  habit: ["You show up. That's the hardest part.", "Reps are already in your DNA.", "Consistency is your foundation."],
+  wellness: ["Your systems are running well.", "You take care of the machine. Smart.", "The basics are locked in."],
+  environment: ["You design your world intentionally.", "You think in systems, not just effort.", "Your defaults are working for you."],
+};
 
 interface OnboardingAssessmentProps {
   questions: BuildQuestion[];
