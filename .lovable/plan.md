@@ -1,164 +1,74 @@
 
-# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-## Overview
+# AI-Forward Upgrade: Controllables Deeply Integrated
 
-Three interconnected deliverables:
-1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
-2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
-3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
+## Current State
+- AI Guide Panel lives as a collapsible card on the Dashboard, only surfaced as a Day 5 action
+- Non-streaming responses (full response arrives at once)
+- No AI presence during the daily check-in ritual (ResetDay)
+- No AI-generated daily content personalization
+- Insights are a separate premium-only feature disconnected from the daily flow
+- The 5 Controllables appear as guide selectors but don't proactively engage users
 
----
+## What Gets Built
 
-## Part 1: AI Insight Engine
+### 1. Streaming AI Responses
+Upgrade `ai-chat` edge function to stream SSE tokens and render them live in the AIGuidePanel. Transforms the interaction from "send and wait" to a fluid, modern chat feel.
+- Edge function returns `text/event-stream` instead of buffered JSON
+- Frontend parses SSE line-by-line, updating assistant message token-by-token
+- Loading state shows typing indicator with guide emoji
 
-### New Edge Function: `admin-insights`
+### 2. AI Reflection Coach on Daily Check-In (ResetDay)
+After the user submits their daily reflection on the ResetDay screen, show a brief AI-generated response from the day's Controllable — a 1-2 sentence observation rooted in the knowledge base.
+- New edge function `ai-reflect` — lightweight, takes the user's reflection text + day context, returns a short coached response (50 words max)
+- Appears as a subtle card below the completion button: `🦉 "You noticed the gap. That's the rep."`
+- Uses the day's Controllable character automatically (Day 1 = Awareness Owl, Day 2 = Perspective Turtle, etc.)
+- Available to all users (free gets 1/day, paid unlimited) — this is the hook
 
-**File: `supabase/functions/admin-insights/index.ts`**
+### 3. AI Morning Briefing Card
+A new `DailyBriefingCard` on the Dashboard that appears each morning with a personalized AI-generated micro-briefing based on the user's current snapshot day, build scores, and recent patterns.
+- New edge function `ai-briefing` — generates a 3-line briefing: (1) pattern observation, (2) today's controllable focus, (3) one actionable suggestion
+- Cached per user per day in a new `daily_briefings` table
+- Shows the relevant Controllable emoji and name
+- Replaces the static "Use a guide when you're stuck" tagline with dynamic, personalized content
+- Premium feature, free users see a teaser line
 
-This function:
-1. Verifies the caller is an admin (same pattern as `admin-analytics`)
-2. Queries aggregated metrics from the last 7 days using the service role client:
-   - `app_events` grouped by `event_name` and day-of-week
-   - `completed_actions` grouped by `controllable`
-   - `daily_resets` count per user (for retention correlation)
-   - `reset_sessions` completion rates
-   - `user_entitlements` conversion data
-   - `user_onboarding` activation delays
-3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
-   - 3 behavioral insights
-   - 2 retention risks
-   - 2 growth opportunities
-   - 1 experiment recommendation
-4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
-5. Returns the insights directly (no caching table needed initially -- can add later)
+### 4. Controllable of the Day — Proactive Guide Nudges
+Instead of waiting for users to open the AI panel, the relevant Controllable proactively surfaces a one-liner on the Dashboard based on the day's theme.
+- Integrated into the existing `TodayActions` component as a contextual tip below each action item
+- E.g., on Day 4 (Habit day): 🦈 *"You don't need motivation. You need one rep."*
+- These are pulled from the existing `controllables-knowledge.ts` quotes, no API call needed
+- Clicking the tip opens the AI Guide Panel with that Controllable pre-selected
 
-**Prompt structure:**
-```
-You are a product analytics advisor for a personal growth app called The Controllables.
-Given the following 7-day metrics, generate actionable insights.
+### 5. "Ask The Controllables" on Every Day (Not Just Day 5)
+Promote AI interaction from a Day 5-only action to an always-available daily action.
+- Add "Ask The Controllables" to `TodayActions` for every day of the snapshot (not just Day 5)
+- Keep it as a secondary action (not blocking completion) but always visible
+- For free trial users, this drives engagement with the AI system daily
 
-[structured data blob]
+### 6. Post-Reflection AI Follow-Up
+After the user completes their daily check-in and returns to the Dashboard, show a contextual follow-up from the day's Controllable in the AI Guide Panel.
+- Auto-populate the first message in the guide panel with context: "You just reflected on [topic]. Here's what I noticed..."
+- Uses the user's reflection text from the daily reset as conversation context
+- Pre-selects the day's Controllable as the active guide
 
-Return insights as structured tool output.
-```
+## Database Migration
+- New `daily_briefings` table: `id`, `user_id`, `briefing_date` (date), `content` (text), `controllable` (text), `created_at`
+- RLS: user can SELECT/INSERT own rows only
 
-**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+## Implementation Order
+1. Database migration (daily_briefings table)
+2. Streaming upgrade to `ai-chat` edge function + frontend SSE parser
+3. `ai-reflect` edge function for post-check-in coaching
+4. ResetDay integration (show AI reflection after submission)
+5. `ai-briefing` edge function for morning briefing
+6. `DailyBriefingCard` dashboard component
+7. Controllable-of-the-day quotes in TodayActions
+8. "Ask The Controllables" promoted to every-day action
+9. Post-reflection auto-context in AI Guide Panel
 
-**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+## File Changes
+- **New**: `supabase/functions/ai-reflect/index.ts`, `supabase/functions/ai-briefing/index.ts`, `src/components/dashboard/DailyBriefingCard.tsx`
+- **Edit**: `supabase/functions/ai-chat/index.ts` (streaming), `src/components/dashboard/AIGuidePanel.tsx` (SSE parsing, auto-context), `src/components/ResetDay.tsx` (post-reflection AI card), `src/components/dashboard/TodayActions.tsx` (every-day AI action + controllable tips), `supabase/config.toml` (new functions)
+- **Migration**: Create `daily_briefings` table
 
-### New Admin Component: AI Insights Panel
-
-**File: `src/components/admin/AIInsightsPanel.tsx`**
-
-- A card with "Weekly Intelligence" header and a "Generate Insights" button
-- On click, calls the `admin-insights` edge function
-- Displays results in categorized sections:
-  - Behavioral Insights (brain icon, blue accent)
-  - Retention Risks (alert icon, amber accent)
-  - Growth Opportunities (trending-up icon, green accent)
-  - Experiment Recommendation (flask icon, purple accent)
-- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
-- Loading state with skeleton cards
-- Error state with retry button
-- "Last generated" timestamp display
-
-### Integration into Admin.tsx
-
-- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
-- The tab renders `<AIInsightsPanel />`
-
----
-
-## Part 2: Enhanced Action Center
-
-**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
-
-Replace the three "Coming soon" cards with working functionality:
-
-### A. Send Nudge Campaign
-- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
-- Confirmation dialog before sending
-- Calls the existing `send-daily-nudge` edge function for each selected user
-- Shows progress and results
-
-### B. Grant Trial Extension
-- Search for a specific user by email
-- Set extension duration (7 days, 14 days, 30 days)
-- Calls `admin-users?action=grant_access` with an `expires_at` parameter
-- Confirmation toast on success
-
-### C. Export with More Segments
-- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
-- Risk tier data fetched from `admin-analytics?resource=retention_radar`
-- CSV includes: email, signup date, last active, risk tier, paid status, source
-
-### D. Quick Stats Bar
-- Show counts above the action cards: Total Users, Free, Paid, At Risk
-- Derived from the `users` prop already passed in
-
----
-
-## Part 3: Landing Page Updates
-
-**File: `src/pages/Landing.tsx`**
-
-Update the hero copy to reflect the free trial:
-- Change hero tagline to emphasize "Try the full experience free for 7 days"
-- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
-- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
-
-**File: `src/components/landing/FeatureGrid.tsx`**
-
-- Update the Free/Premium labeling:
-  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
-  - "Experience History" -- add "Free during trial" badge
-  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
-
-**File: `src/components/landing/HowItWorksSection.tsx`**
-
-- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
-
----
-
-## Part 4: README Update
-
-**File: `README.md`**
-
-Update to v1.5.0 reflecting all recent changes:
-
-1. **Version bump**: `v1.4.1` to `v1.5.0`
-2. **New section: "Admin Command Center"** after Technical Reference:
-   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
-   - Mention the `admin-analytics` and `admin-insights` edge functions
-   - Document the AI Insight Engine capability
-3. **Update "Free vs. Premium" table**:
-   - Add "7-Day Free Trial" row explaining full access during first Snapshot
-   - Update AI Guide from "---" to "5 msgs/day during trial"
-   - Update Experience History from "---" to "During trial"
-4. **Update Backend Functions table**:
-   - Add `admin-analytics` -- Admin data aggregation and executive metrics
-   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
-5. **Update Key Data Tables**:
-   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
-   - Add `ai_usage_logs` -- Daily AI message tracking
-6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
-
----
-
-## Technical Summary
-
-| File | Change | Type |
-|------|--------|------|
-| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
-| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
-| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
-| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
-| `src/pages/Admin.tsx` | Add Insights tab | Edit |
-| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
-| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
-| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
-| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
-| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
-
-No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
