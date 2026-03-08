@@ -373,7 +373,7 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
               </div>
             )}
 
-            <div className="flex gap-2 pt-1">
+            <div className="flex flex-wrap gap-2 pt-1">
               <Button
                 variant="ghost"
                 size="sm"
@@ -382,6 +382,15 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
               >
                 <Calendar className="w-3 h-3 mr-1" />
                 Add to Calendar
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-[11px] h-7 text-muted-foreground"
+                onClick={() => setShowShare(true)}
+              >
+                <Share2 className="w-3 h-3 mr-1" />
+                Share
               </Button>
               <Button
                 variant="ghost"
