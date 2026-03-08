@@ -932,8 +932,8 @@ export default function Dashboard() {
                   todayTimeLogged={!!todayTimeLog}
                   pendingPromisesCount={pendingPromises.length}
                   todayPromiseMade={todayPromiseMade}
-                  todayXpEarned={xpLogs
-                    .filter((log) => log.created_at.startsWith(todayLocal))
+                   todayXpEarned={xpLogs
+                    .filter((log) => new Date(log.created_at).toLocaleDateString("sv-SE") === todayLocal)
                     .reduce((sum, log) => sum + log.amount, 0)}
                   buildLastUpdatedAt={currentBuild?.updated_at ?? null}
                   journeyId={activeSession?.journey_id ?? undefined}
