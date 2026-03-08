@@ -6,6 +6,9 @@ import { useBrainBodyHealth } from "@/hooks/useBrainBodyHealth";
 import { Brain, Dumbbell, Moon, Monitor, Salad, Activity, TrendingUp, TrendingDown, Minus, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HealthDataSync } from "./HealthDataSync";
+import { getControllableTheme } from "@/lib/controllableTheme";
+
+const wellnessTheme = getControllableTheme("wellness");
 
 interface BrainBodyTrackerProps {
   userId: string | undefined;
