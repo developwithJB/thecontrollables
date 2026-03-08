@@ -164,13 +164,58 @@ function ScoreRing({ score, emoji, label, size = 100 }: { score: number; emoji: 
   );
 }
 
+const FACTOR_INFO: Record<string, { description: string; tips: string }> = {
+  Sleep: {
+    description: "Measures your sleep quality based on your wellness logs.",
+    tips: "Aim for 7-9 hours. Keep a consistent bedtime. Avoid screens 1 hour before bed.",
+  },
+  Movement: {
+    description: "Tracks how active you've been based on your daily ratings.",
+    tips: "Even a 10-minute walk helps. Try to move every hour. Build up gradually.",
+  },
+  Screen: {
+    description: "Reflects your screen time balance from health data imports.",
+    tips: "Set daily limits. Use focus modes. Replace 30 min of scrolling with reading.",
+  },
+  Nutrition: {
+    description: "Based on your nutrition ratings and meal logging consistency.",
+    tips: "Prioritize whole foods. Stay hydrated. Plan meals ahead to avoid impulse eating.",
+  },
+};
+
 function FactorChip({ icon: Icon, label, score }: { icon: typeof Moon; label: string; score: number }) {
   const variant = score >= 70 ? "default" : score >= 40 ? "secondary" : "destructive";
+  const colorLabel = score >= 70 ? "Good" : score >= 40 ? "Fair" : "Needs work";
+  const colorDot = score >= 70 ? "bg-primary" : score >= 40 ? "bg-secondary-foreground/50" : "bg-destructive";
+  const info = FACTOR_INFO[label];
+
   return (
-    <Badge variant={variant} className="gap-1 text-[10px] px-2 py-0.5">
-      <Icon className="h-3 w-3" />
-      {label}
-    </Badge>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="focus:outline-none">
+          <Badge variant={variant} className="gap-1 text-[10px] px-2 py-0.5 cursor-pointer hover:opacity-80 transition-opacity">
+            <Icon className="h-3 w-3" />
+            {label}
+          </Badge>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-3 text-xs space-y-2" side="top">
+        <div className="flex items-center gap-2 font-semibold text-foreground">
+          <Icon className="h-3.5 w-3.5" />
+          {label}
+          <span className="ml-auto flex items-center gap-1">
+            <span className={cn("w-2 h-2 rounded-full", colorDot)} />
+            <span className="font-normal text-muted-foreground">{colorLabel} ({score})</span>
+          </span>
+        </div>
+        {info && (
+          <>
+            <p className="text-muted-foreground">{info.description}</p>
+            <p className="text-foreground/80">💡 {info.tips}</p>
+          </>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
 
