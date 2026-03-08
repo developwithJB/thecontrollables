@@ -1047,6 +1047,34 @@ export default function Dashboard() {
                 />
               )}
 
+              {/* Snapshot Circle */}
+              {activeSession && !isCompleted && !isExpired && user?.id && (
+                <CircleCard
+                  myCircle={myCircle ?? null}
+                  circleMembers={circleMembers}
+                  showedUpTodayCount={showedUpTodayCount}
+                  currentDay={currentDay}
+                  displayName={circleDisplayName}
+                  currentJourneyId={activeSession.journey_id}
+                  isCreatingCircle={isCreatingCircle}
+                  isLeavingCircle={isLeavingCircle}
+                  onCreateCircle={createCircle}
+                  onLeaveCircle={leaveCircle}
+                  onJoinCircle={joinCircle}
+                  isJoiningCircle={isJoiningCircle}
+                  lookupCircle={lookupCircle}
+                  joinDialogOpen={joinDialogOpen}
+                  onJoinDialogOpenChange={(open) => {
+                    setJoinDialogOpen(open);
+                    if (!open && joinCodeFromUrl) {
+                      searchParams.delete("join");
+                      setSearchParams(searchParams, { replace: true });
+                    }
+                  }}
+                  initialJoinCode={joinCodeFromUrl || undefined}
+                />
+              )}
+
               {/* Snapshot Selector Dialog - triggered from within Reset module */}
               {activeSession && !isCompleted && user?.id && (
                 <SnapshotSelector
