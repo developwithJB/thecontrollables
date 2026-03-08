@@ -160,15 +160,6 @@ export function BrainBodyTracker({ userId, onLogWellness }: BrainBodyTrackerProp
                 <p className="text-sm text-muted-foreground mb-2">
                   Log your wellness to see your health status
                 </p>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSyncOpen(true);
-                  }}
-                  className="text-xs text-primary underline mb-2"
-                >
-                  Or import from Apple Health / Google Fit
-                </button>
                 <p className="text-xs text-muted-foreground italic">
                   {SATELLITE_TIPS.default}
                 </p>
