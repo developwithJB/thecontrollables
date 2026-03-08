@@ -332,6 +332,45 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
                 </div>
               </div>
             ))}
+
+            {/* Macro Breakdown Summary */}
+            {(hasTargets || hasPlannedMacros) && (
+              <div className="rounded-lg border border-border/40 bg-muted/30 p-2.5 space-y-2 mt-1">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Daily Macro Breakdown</p>
+                {[
+                  { label: "Calories", planned: plannedTotals.calories, target: calorieTarget ? parseInt(calorieTarget) : 0, unit: "cal", color: "bg-primary" },
+                  { label: "Protein", planned: plannedTotals.protein, target: proteinTarget ? parseInt(proteinTarget) : 0, unit: "g", color: "bg-chart-1" },
+                  { label: "Carbs", planned: plannedTotals.carbs, target: carbsTarget ? parseInt(carbsTarget) : 0, unit: "g", color: "bg-chart-2" },
+                  { label: "Fat", planned: plannedTotals.fat, target: fatTarget ? parseInt(fatTarget) : 0, unit: "g", color: "bg-chart-3" },
+                ].map((row) => {
+                  if (!row.target && !row.planned) return null;
+                  const pct = row.target > 0 ? Math.min(Math.round((row.planned / row.target) * 100), 150) : 100;
+                  const overTarget = row.target > 0 && row.planned > row.target;
+                  return (
+                    <div key={row.label} className="space-y-0.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-muted-foreground">{row.label}</span>
+                        <span className={`font-medium ${overTarget ? "text-destructive" : "text-foreground"}`}>
+                          {row.planned}{row.unit}
+                          {row.target > 0 && (
+                            <span className="text-muted-foreground font-normal"> / {row.target}{row.unit}</span>
+                          )}
+                        </span>
+                      </div>
+                      {row.target > 0 && (
+                        <div className="relative h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${overTarget ? "bg-destructive" : row.color}`}
+                            style={{ width: `${Math.min(pct, 100)}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             <div className="flex gap-2 pt-1">
               <Button
                 variant="ghost"
