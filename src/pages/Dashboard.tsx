@@ -1131,8 +1131,46 @@ export default function Dashboard() {
                 <StartSnapshotDialog
                   isOpen={showJourneySwitcher}
                   onOpenChange={setShowJourneySwitcher}
-                  onSelectSnapshot={(snapshotId) => {
-                    acceptCovenant({ isPaid, journeyId: snapshotId });
+                  onSelectSnapshot={async (snapshotId, asSeason) => {
+                    if (asSeason) {
+                      const seasonId = await startSeason();
+                      if (seasonId) {
+                        // Start the snapshot, then link it to the season after creation
+                        acceptCovenant({ isPaid, journeyId: snapshotId });
+                        // We'll link once the session is created - use a brief timeout
+                        setTimeout(async () => {
+                          const { data: newSession } = await supabase
+                            .from("reset_sessions")
+                            .select("id")
+                            .eq("user_id", user!.id)
+                            .eq("status", "active")
+                            .order("created_at", { ascending: false })
+                            .limit(1)
+                            .maybeSingle();
+                          if (newSession) {
+                            await linkSnapshotToSeason(newSession.id, seasonId);
+                          }
+                        }, 2000);
+                      }
+                    } else {
+                      // If user has an active season, auto-link
+                      acceptCovenant({ isPaid, journeyId: snapshotId });
+                      if (activeSeason) {
+                        setTimeout(async () => {
+                          const { data: newSession } = await supabase
+                            .from("reset_sessions")
+                            .select("id")
+                            .eq("user_id", user!.id)
+                            .eq("status", "active")
+                            .order("created_at", { ascending: false })
+                            .limit(1)
+                            .maybeSingle();
+                          if (newSession) {
+                            await linkSnapshotToSeason(newSession.id, activeSeason.id);
+                          }
+                        }, 2000);
+                      }
+                    }
                     setShowJourneySwitcher(false);
                   }}
                   isStarting={isAcceptingCovenant}
