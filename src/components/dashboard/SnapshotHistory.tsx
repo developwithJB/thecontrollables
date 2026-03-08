@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,13 +21,17 @@ import {
   Trophy,
   Award,
   Gift,
+  Target,
+  Heart,
+  Shield,
 } from "lucide-react";
-import { format, addDays } from "date-fns";
+import { format, addDays, parseISO } from "date-fns";
 import { BUCKETS, getSnapshotById, type BucketId } from "@/lib/snapshots";
 import { useNavigate } from "react-router-dom";
 import { SnapshotDetailView } from "@/components/experience/SnapshotDetailView";
 import { WeeklyPatternView } from "@/components/experience/WeeklyPatternView";
 import { SnapshotReviewModal } from "@/components/experience/SnapshotReviewModal";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SnapshotRecord {
   id: string;
