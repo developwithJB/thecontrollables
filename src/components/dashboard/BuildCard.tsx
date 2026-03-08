@@ -34,7 +34,7 @@ export function BuildCard({ build }: BuildCardProps) {
   const handleShare = async () => {
     const shareData = {
       title: "My Controllables Build",
-      text: `My Build: ${archetypeInfo.label}\n\n🦉 Awareness: ${getStatValue("awareness").toFixed(1)}\n🐢 Perspective: ${getStatValue("perspective").toFixed(1)}\n🦈 Habit: ${getStatValue("habit").toFixed(1)}\n🛰️ Wellness: ${getStatValue("wellness").toFixed(1)}\n🚀 Environment: ${getStatValue("environment").toFixed(1)}\n\nOverall: ${Number(build.overall).toFixed(1)}/4\n\n#TheControllables`,
+      text: `My Build: ${archetypeInfo.label}\n\n🦉 Awareness: ${getStatValue("awareness").toFixed(1)}\n🐢 Perspective: ${getStatValue("perspective").toFixed(1)}\n🦈 Habit: ${getStatValue("habit").toFixed(1)}\n🛰️ Wellness: ${getStatValue("wellness").toFixed(1)}\n🚀 Environment: ${getStatValue("environment").toFixed(1)}\n\nOverall: ${Number(build.overall).toFixed(1)}/4\n\n#TheDashboard`,
       url: window.location.origin,
     };
 
@@ -165,7 +165,7 @@ export function BuildCard({ build }: BuildCardProps) {
         {/* Branding */}
         <div className="relative mt-4 text-center">
           <p className="text-xs text-muted-foreground">
-            thecontrollables.lovable.app
+            thedashboard.agbcoaching.com
           </p>
         </div>
       </motion.div>

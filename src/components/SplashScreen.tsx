@@ -111,7 +111,7 @@ export function SplashScreen() {
           The Dashboard
         </h1>
         <p className="text-sm text-primary-foreground/70 dark:text-muted-foreground mt-1">
-          by The Controllables
+          by AGB Coaching
         </p>
       </motion.div>
 

@@ -236,8 +236,8 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
       `⚡ ${sessionXp} XP earned\n` +
       promiseText +
       `\nBuilding proof, one week at a time.\n` +
-      `thecontrollables.lovable.app\n\n` +
-      `#TheControllables`;
+      `thedashboard.agbcoaching.com\n\n` +
+      `#TheDashboard`;
     
     if (navigator.share) {
       try {

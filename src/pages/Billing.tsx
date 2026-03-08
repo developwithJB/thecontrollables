@@ -308,7 +308,7 @@ export default function Billing() {
                 />
                 <Separator className="my-2" />
                 <FeatureRow 
-                  label="AI Companions (The Controllables)" 
+                  label="AI Companions" 
                   included={isPaid} 
                   premium={true}
                 />

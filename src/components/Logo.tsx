@@ -65,7 +65,7 @@ export function Logo({ className, showText = true }: LogoProps) {
             The Dashboard
           </span>
           <span className="text-xs text-muted-foreground">
-            by The Controllables
+            by AGB Coaching
           </span>
         </div>
       )}
