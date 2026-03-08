@@ -665,12 +665,15 @@ function generateDailyAlignmentEmailContent(
   const firstName = context.displayName || "Friend";
   const subject = `${firstName}, stay aligned today.`;
   const permissionLine = PERMISSION_LINES[Math.floor(Math.random() * PERMISSION_LINES.length)];
+  const buildSection = renderBuildLevelsHtml(levels);
 
   const body = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 440px; margin: 0 auto; padding: 40px 20px; background: #fafafa;">
       <p style="font-size: 18px; color: #1a1a1a; margin: 0 0 24px 0;">
         Good morning ${firstName},
       </p>
+      
+      ${buildSection}
       
       <div style="background: #fff; border-left: 3px solid #6366f1; padding: 16px 20px; margin: 0 0 24px 0; border-radius: 0 8px 8px 0;">
         <p style="font-size: 12px; color: #888; margin: 0 0 8px 0; letter-spacing: 0.5px;">
