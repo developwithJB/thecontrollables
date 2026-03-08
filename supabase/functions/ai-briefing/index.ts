@@ -80,14 +80,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Gather context: active session, recent reflections, build scores
-    const [sessionRes, reflectionsRes, buildRes] = await Promise.all([
+    // Gather context: active session, recent reflections, build scores, controllable levels
+    const [sessionRes, reflectionsRes, buildRes, actionsRes] = await Promise.all([
       serviceClient.from('reset_sessions').select('current_day, journey_id, start_date')
         .eq('user_id', userId).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       serviceClient.from('daily_resets').select('day_number, reflection, completed_at')
         .eq('user_id', userId).order('completed_at', { ascending: false }).limit(3),
       serviceClient.from('user_build_current').select('*')
         .eq('user_id', userId).maybeSingle(),
+      serviceClient.from('completed_actions').select('controllable, xp_awarded')
+        .eq('user_id', userId).not('controllable', 'is', null),
     ]);
 
     const currentDay = sessionRes.data?.current_day || 1;
