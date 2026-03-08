@@ -100,15 +100,39 @@ export function GroceryListSheet({ userId }: GroceryListSheetProps) {
         await navigator.share({ title, text });
         return;
       } catch {
-        // User cancelled or share failed — fall through to mailto
+        // fallback
       }
     }
 
-    // Fallback: open mailto
     const subject = encodeURIComponent(title);
     const body = encodeURIComponent(text);
     window.open(`mailto:?subject=${subject}&body=${body}`, "_blank");
   };
+
+  const handleShareAsImage = useCallback(async () => {
+    if (!shareCardRef.current) return;
+    try {
+      const canvas = await html2canvas(shareCardRef.current, { backgroundColor: null, scale: 2, useCORS: true });
+      const imageData = canvas.toDataURL("image/png");
+
+      if (navigator.share && navigator.canShare) {
+        const blob = await (await fetch(imageData)).blob();
+        const file = new File([blob], "grocery-list.png", { type: "image/png" });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ title: "🛒 My Grocery List", files: [file] });
+          return;
+        }
+      }
+
+      // Fallback: download
+      const link = document.createElement("a");
+      link.download = "grocery-list.png";
+      link.href = imageData;
+      link.click();
+    } catch {
+      toast({ title: "Export failed", variant: "destructive" });
+    }
+  }, [toast]);
 
   const totalItems = groceryList?.categories.reduce((s, c) => s + c.items.length, 0) ?? 0;
   const checkedCount = checkedItems.size;
