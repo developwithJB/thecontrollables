@@ -221,9 +221,9 @@ export function MainQuestModule({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
+      className={`p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 ${theme.borderClass}`}
     >
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-1">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           <div className="p-2 rounded-lg bg-primary/20 shrink-0">
             <Target className="w-5 h-5 text-primary" />
