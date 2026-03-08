@@ -91,6 +91,9 @@ import { PullToRefreshIndicator } from "@/components/pwa/PullToRefreshIndicator"
 import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 import { CircleCard } from "@/components/dashboard/CircleCard";
 import { useCircle } from "@/hooks/useCircle";
+import { SeasonBanner } from "@/components/dashboard/SeasonBanner";
+import { SeasonComplete } from "@/components/SeasonComplete";
+import { useSeason } from "@/hooks/useSeason";
 
 type TabType = "dashboard" | "experience" | "guide";
 
