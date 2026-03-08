@@ -1074,10 +1074,6 @@ export default function Dashboard() {
                 />
               )}
 
-              {/* Controllable Levels - Pokemon-style progression */}
-              {user?.id && (
-                <ControllableLevelsCard userId={user.id} />
-              )}
 
               {/* Build Entry Point - shows if user hasn't done assessment */}
               <BuildEntryPoint userId={user?.id} />
@@ -1367,6 +1363,11 @@ export default function Dashboard() {
                 <h1 className="font-display text-2xl font-semibold text-foreground mb-2">The Controllables</h1>
                 <p className="text-muted-foreground text-sm">Play your life on purpose.</p>
               </div>
+
+              {/* Controllable Levels - Pokemon-style progression */}
+              {user?.id && (
+                <ControllableLevelsCard userId={user.id} />
+              )}
 
               {/* Game Rules and Manual */}
               <GameRulesSection />
