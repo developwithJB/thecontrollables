@@ -158,9 +158,14 @@ export function GroceryListSheet({ userId }: GroceryListSheetProps) {
                   </div>
                   <div className="flex items-center gap-1">
                     {groceryList && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copyToClipboard}>
-                        <Copy className="w-4 h-4" />
-                      </Button>
+                      <>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleShare} title="Share">
+                          <Share2 className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copyToClipboard} title="Copy">
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </>
                     )}
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsOpen(false)}>
                       <X className="w-4 h-4" />
