@@ -87,6 +87,44 @@ export const Day7Complete = ({
     });
   }, []);
 
+  // Circle celebration - check if user was in a circle
+  const [circleNames, setCircleNames] = useState<string[]>([]);
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      // Find circle (non-solo challenge) user participated in
+      const { data: participations } = await supabase
+        .from("challenge_participants")
+        .select("challenge_id, display_name")
+        .eq("user_id", userId);
+      if (!participations?.length) return;
+
+      for (const p of participations) {
+        const { data: challenge } = await supabase
+          .from("challenges")
+          .select("id, is_solo")
+          .eq("id", p.challenge_id)
+          .eq("is_solo", false)
+          .maybeSingle();
+        if (!challenge) continue;
+
+        // Get all members' display names
+        const { data: members } = await supabase
+          .from("challenge_participants")
+          .select("display_name, user_id")
+          .eq("challenge_id", challenge.id);
+        if (members && members.length > 1) {
+          setCircleNames(
+            members
+              .filter((m) => m.user_id !== userId)
+              .map((m) => m.display_name?.split(" ")[0] || "Someone")
+          );
+        }
+        break;
+      }
+    })();
+  }, [userId]);
+
   // Format dates nicely
   const formatDate = (dateStr: string) => {
     return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
