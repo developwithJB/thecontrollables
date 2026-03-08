@@ -44,6 +44,9 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
   const [proteinTarget, setProteinTarget] = useState<string>("");
   const [carbsTarget, setCarbsTarget] = useState<string>("");
   const [fatTarget, setFatTarget] = useState<string>("");
+  const [dietaryStyle, setDietaryStyle] = useState("");
+  const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([]);
+  const [restrictionInput, setRestrictionInput] = useState("");
   const [prefsLoaded, setPrefsLoaded] = useState(false);
 
   // Sync from saved preferences once loaded
