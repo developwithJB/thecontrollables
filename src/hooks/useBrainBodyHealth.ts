@@ -225,6 +225,9 @@ export function useBrainBodyHealth(userId: string | undefined): BrainBodyHealth 
       }
     }
 
+    // Only report hasData if at least one composite score is positive
+    const actuallyHasData = brainScore > 0 || bodyScore > 0;
+
     return {
       brainScore,
       bodyScore,
@@ -235,7 +238,7 @@ export function useBrainBodyHealth(userId: string | undefined): BrainBodyHealth 
         nutrition: Math.max(0, nutritionScore),
       },
       trend,
-      hasData: true,
+      hasData: actuallyHasData,
       hasHealthSync,
     };
   }, [wellnessLogs, timeLogs, mealLogs, healthSyncData]);

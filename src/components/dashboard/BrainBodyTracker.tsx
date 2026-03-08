@@ -1,8 +1,10 @@
-import { motion } from "framer-motion";
+import { useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useBrainBodyHealth } from "@/hooks/useBrainBodyHealth";
-import { Brain, Dumbbell, Moon, Monitor, Salad, Activity, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Brain, Dumbbell, Moon, Monitor, Salad, Activity, TrendingUp, TrendingDown, Minus, Upload, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getControllableTheme } from "@/lib/controllableTheme";
 import { ControllableLevelBadge } from "./ControllableLevelBadge";
@@ -12,6 +14,105 @@ const wellnessTheme = getControllableTheme("wellness");
 interface BrainBodyTrackerProps {
   userId: string | undefined;
   onLogWellness?: () => void;
+  onQuickLog?: (sleep: number, movement: number, nutrition: number) => Promise<boolean>;
+  onImportHealth?: () => void;
+}
+
+const QUICK_STEPS = [
+  { key: "sleep", question: "How did you sleep last night?", emojis: ["😩", "😕", "😐", "🙂", "😴"] },
+  { key: "movement", question: "How active were you yesterday?", emojis: ["🪑", "🚶", "🏃", "💪", "🔥"] },
+  { key: "nutrition", question: "How was your nutrition?", emojis: ["🍟", "🍕", "🥪", "🥗", "🥑"] },
+] as const;
+
+function QuickCheckIn({ onComplete, onLogInstead, onImport }: {
+  onComplete: (sleep: number, movement: number, nutrition: number) => void;
+  onLogInstead?: () => void;
+  onImport?: () => void;
+}) {
+  const [step, setStep] = useState(0);
+  const [ratings, setRatings] = useState<number[]>([]);
+
+  const handleRate = useCallback((rating: number) => {
+    const newRatings = [...ratings, rating];
+    setRatings(newRatings);
+
+    if (step < 2) {
+      setStep(step + 1);
+    } else {
+      onComplete(newRatings[0], newRatings[1], newRatings[2]);
+    }
+  }, [step, ratings, onComplete]);
+
+  const currentStep = QUICK_STEPS[step];
+
+  return (
+    <div className="py-2">
+      {/* Progress dots */}
+      <div className="flex justify-center gap-1.5 mb-4">
+        {QUICK_STEPS.map((_, i) => (
+          <div
+            key={i}
+            className={cn(
+              "h-1.5 rounded-full transition-all duration-300",
+              i <= step ? "w-6 bg-wellness" : "w-1.5 bg-border"
+            )}
+          />
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.2 }}
+          className="text-center"
+        >
+          <p className="text-sm font-medium text-foreground mb-3">
+            {currentStep.question}
+          </p>
+          <div className="flex justify-center gap-2">
+            {currentStep.emojis.map((emoji, i) => (
+              <motion.button
+                key={i}
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => handleRate(i + 1)}
+                className={cn(
+                  "w-11 h-11 rounded-xl text-xl flex items-center justify-center",
+                  "bg-muted/50 hover:bg-muted border border-transparent",
+                  "hover:border-wellness/30 transition-colors cursor-pointer"
+                )}
+                aria-label={`Rate ${i + 1} out of 5`}
+              >
+                {emoji}
+              </motion.button>
+            ))}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-2">
+            {step === 0 ? "Terrible → Amazing" : step === 1 ? "Sedentary → Very Active" : "Poor → Excellent"}
+          </p>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Secondary actions */}
+      <div className="flex items-center justify-center gap-3 mt-4 pt-3 border-t border-border/50">
+        {onImport && (
+          <Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-muted-foreground" onClick={onImport}>
+            <Upload className="h-3 w-3" />
+            Import Health Data
+          </Button>
+        )}
+        {onLogInstead && (
+          <Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-muted-foreground" onClick={onLogInstead}>
+            <ClipboardList className="h-3 w-3" />
+            Full log instead
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function ScoreRing({ score, emoji, label, size = 100 }: { score: number; emoji: string; label: string; size?: number }) {
@@ -80,8 +181,16 @@ const SATELLITE_TIPS: Record<string, string> = {
   default: "🛰️ Log your wellness data to see your Brain & Body status.",
 };
 
-export function BrainBodyTracker({ userId, onLogWellness }: BrainBodyTrackerProps) {
+export function BrainBodyTracker({ userId, onLogWellness, onQuickLog, onImportHealth }: BrainBodyTrackerProps) {
   const { brainScore, bodyScore, factors, trend, hasData, hasHealthSync, isLoading } = useBrainBodyHealth(userId);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleQuickComplete = useCallback(async (sleep: number, movement: number, nutrition: number) => {
+    if (!onQuickLog) return;
+    setIsSubmitting(true);
+    await onQuickLog(sleep, movement, nutrition);
+    setIsSubmitting(false);
+  }, [onQuickLog]);
 
   if (isLoading) {
     return (
@@ -109,11 +218,10 @@ export function BrainBodyTracker({ userId, onLogWellness }: BrainBodyTrackerProp
       >
         <Card
           className={cn(
-            "cursor-pointer transition-shadow hover:shadow-md",
+            "transition-shadow hover:shadow-md",
             wellnessTheme.borderClass,
-            !hasData && "opacity-80"
+            isSubmitting && "opacity-60 pointer-events-none"
           )}
-          onClick={!hasData ? onLogWellness : undefined}
         >
           <CardContent className="p-5">
             {/* Header */}
@@ -156,19 +264,15 @@ export function BrainBodyTracker({ userId, onLogWellness }: BrainBodyTrackerProp
                 </p>
               </>
             ) : (
-              <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground mb-2">
-                  Log your wellness to see your health status
-                </p>
-                <p className="text-xs text-muted-foreground italic">
-                  {SATELLITE_TIPS.default}
-                </p>
-              </div>
+              <QuickCheckIn
+                onComplete={handleQuickComplete}
+                onLogInstead={onLogWellness}
+                onImport={onImportHealth}
+              />
             )}
           </CardContent>
         </Card>
       </motion.div>
-
     </>
   );
 }
