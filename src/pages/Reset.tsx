@@ -12,6 +12,7 @@ import { Day7Complete } from "@/components/Day7Complete";
 import { ResetComplete } from "@/components/ResetComplete";
 import { getJourneyById } from "@/lib/guidedJourneys";
 import { supabase } from "@/integrations/supabase/client";
+import { useSeason } from "@/hooks/useSeason";
 
 const Reset = () => {
   const navigate = useNavigate();
