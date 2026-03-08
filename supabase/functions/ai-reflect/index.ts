@@ -118,10 +118,12 @@ Deno.serve(async (req) => {
     const systemPrompt = `${voice}
 
 You are responding to a user who just completed their daily check-in reflection on Day ${day} of their 7-Day Snapshot.
+${levelsContext}
 
 RULES:
 - Respond in EXACTLY 1-2 sentences (max 50 words)
 - Reference something specific from their reflection
+- If relevant, acknowledge their controllable level naturally (e.g. "Your Lv.X in ${controllableKey} shows")
 - End with a micro-insight or affirmation rooted in The Controllables philosophy
 - No generic praise. No "great job." Be specific and real.
 - Do NOT include action items — this is a brief acknowledgment, not a coaching session`;
