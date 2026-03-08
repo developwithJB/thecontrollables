@@ -182,26 +182,62 @@ export function OnboardingArchetypeResult({
           transition={{ delay: 0.9 }}
           className="p-5 rounded-xl bg-card border border-border mb-8"
         >
-          {aiInterpretation ? (
-            <div className="flex items-start gap-3">
-              <span className="text-3xl shrink-0">{aiInterpretation.emoji}</span>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1.5">
-                  {aiInterpretation.name} says
+          <AnimatePresence mode="wait">
+            {isLoadingAI ? (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center gap-3"
+              >
+                <span className="text-3xl shrink-0">{weakestLabel.emoji}</span>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {weakestLabel.name} is reading your results
+                    {[0, 1, 2].map((i) => (
+                      <motion.span
+                        key={i}
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+                        className="inline-block"
+                      >
+                        .
+                      </motion.span>
+                    ))}
+                  </p>
+                </div>
+              </motion.div>
+            ) : aiInterpretation ? (
+              <motion.div
+                key="interpretation"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-start gap-3"
+              >
+                <span className="text-3xl shrink-0">{aiInterpretation.emoji}</span>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">
+                    {aiInterpretation.name} says
+                  </p>
+                  <p className="text-foreground text-sm leading-relaxed italic">
+                    "{aiInterpretation.text}"
+                  </p>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="fallback"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                <p className="text-sm text-muted-foreground mb-2">What this means</p>
+                <p className="text-foreground text-sm leading-relaxed">
+                  {archetypeInfo.recommendations[0]}
                 </p>
-                <p className="text-foreground text-sm leading-relaxed italic">
-                  "{aiInterpretation.text}"
-                </p>
-              </div>
-            </div>
-          ) : (
-            <>
-              <p className="text-sm text-muted-foreground mb-2">What this means</p>
-              <p className="text-foreground text-sm leading-relaxed">
-                {archetypeInfo.recommendations[0]}
-              </p>
-            </>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* Continue button */}
