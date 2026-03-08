@@ -20,6 +20,48 @@ const corsHeaders = {
 // Valid controllable types for validation
 const VALID_CONTROLLABLES = ['awareness', 'perspective', 'habit', 'wellness', 'environment'];
 
+const CONTROLLABLE_META: Record<string, { emoji: string; label: string }> = {
+  awareness: { emoji: '🦉', label: 'Awareness' },
+  perspective: { emoji: '🐢', label: 'Perspective' },
+  habit: { emoji: '🦈', label: 'Habit' },
+  wellness: { emoji: '🛰️', label: 'Wellness' },
+  environment: { emoji: '🚀', label: 'Environment' },
+};
+
+function getLevelFromXp(totalXp: number): number {
+  if (totalXp <= 0) return 1;
+  return Math.min(Math.max(Math.floor(Math.sqrt(totalXp / 25)), 1), 99);
+}
+
+async function fetchControllableLevelsContext(serviceClient: any, userId: string): Promise<string> {
+  const { data, error } = await serviceClient
+    .from('completed_actions')
+    .select('controllable, xp_awarded')
+    .eq('user_id', userId)
+    .not('controllable', 'is', null);
+
+  if (error || !data || data.length === 0) return '';
+
+  const xpMap: Record<string, number> = {};
+  for (const row of data) {
+    if (row.controllable) {
+      xpMap[row.controllable] = (xpMap[row.controllable] || 0) + row.xp_awarded;
+    }
+  }
+
+  const lines = Object.entries(CONTROLLABLE_META).map(([key, meta]) => {
+    const level = getLevelFromXp(xpMap[key] || 0);
+    return `- ${meta.emoji} ${meta.label}: Lv.${level}`;
+  });
+  const overall = Math.round(
+    Object.keys(CONTROLLABLE_META).reduce((s, k) => s + getLevelFromXp(xpMap[k] || 0), 0) / 5
+  );
+
+  return `\n\n[CONTROLLABLE LEVELS — Overall Build Lv.${overall}]
+${lines.join('\n')}
+Reference their levels naturally. Acknowledge growth ("You're Lv.${Math.max(...Object.keys(CONTROLLABLE_META).map(k => getLevelFromXp(xpMap[k] || 0)))} in your strongest area"). Call out low levels as growth opportunities, not failures.`;
+}
+
 // Input validation constants
 const MAX_MESSAGE_LENGTH = 4000;
 const MAX_MESSAGES_COUNT = 50;
@@ -636,7 +678,11 @@ Deno.serve(async (req) => {
     }
 
     // ============ BUILD SYSTEM PROMPT ============
-    const systemPrompt = buildSystemPrompt(body);
+    const [basePrompt, levelsContext] = await Promise.all([
+      Promise.resolve(buildSystemPrompt(body)),
+      fetchControllableLevelsContext(serviceClient, userId),
+    ]);
+    const systemPrompt = basePrompt + levelsContext;
 
     // Include session history for memory continuity
     const conversationMessages: Array<{role: string; content: string}> = [];
