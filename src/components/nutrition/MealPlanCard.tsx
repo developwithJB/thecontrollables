@@ -228,6 +228,53 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
               </div>
             </div>
 
+            {/* Calorie & Macro Targets */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Daily targets <span className="font-normal">(optional)</span></p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-muted-foreground">Calories</label>
+                  <input
+                    type="number"
+                    placeholder="2000"
+                    value={calorieTarget}
+                    onChange={(e) => setCalorieTarget(e.target.value)}
+                    className="w-full h-7 px-2 text-xs rounded-md border border-border/60 bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground">Protein (g)</label>
+                  <input
+                    type="number"
+                    placeholder="150"
+                    value={proteinTarget}
+                    onChange={(e) => setProteinTarget(e.target.value)}
+                    className="w-full h-7 px-2 text-xs rounded-md border border-border/60 bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground">Carbs (g)</label>
+                  <input
+                    type="number"
+                    placeholder="200"
+                    value={carbsTarget}
+                    onChange={(e) => setCarbsTarget(e.target.value)}
+                    className="w-full h-7 px-2 text-xs rounded-md border border-border/60 bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground">Fat (g)</label>
+                  <input
+                    type="number"
+                    placeholder="65"
+                    value={fatTarget}
+                    onChange={(e) => setFatTarget(e.target.value)}
+                    className="w-full h-7 px-2 text-xs rounded-md border border-border/60 bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="flex gap-2">
               <Button
                 variant="secondary"
