@@ -28,6 +28,9 @@ export interface MealPlanMeal {
   name: string;
   description: string;
   est_calories: number;
+  est_protein?: number;
+  est_carbs?: number;
+  est_fat?: number;
 }
 
 export interface MealPlan {
