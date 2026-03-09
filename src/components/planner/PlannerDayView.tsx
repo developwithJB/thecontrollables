@@ -35,6 +35,7 @@ interface PlannerDayViewProps {
 export const PlannerDayView = ({
   date,
   items,
+  activityItems = [],
   onToggleStatus,
   onEdit,
   onDelete,
