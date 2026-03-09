@@ -43,11 +43,13 @@ function ConfettiParticle({ emoji, delay, startX }: { emoji: string; delay: numb
   );
 }
 
-export function StreakCelebration({ milestone, xpBonus, onDismiss }: StreakCelebrationProps) {
+export function StreakCelebration({ milestone, xpBonus, displayName, onDismiss }: StreakCelebrationProps) {
   const [particles, setParticles] = useState<Array<{ id: number; emoji: string; delay: number; startX: number }>>([]);
+  const [isSharing, setIsSharing] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Generate confetti particles
     const newParticles = Array.from({ length: 24 }, (_, i) => ({
       id: i,
       emoji: CONFETTI_EMOJIS[Math.floor(Math.random() * CONFETTI_EMOJIS.length)],
@@ -56,10 +58,64 @@ export function StreakCelebration({ milestone, xpBonus, onDismiss }: StreakCeleb
     }));
     setParticles(newParticles);
 
-    // Auto dismiss after 3 seconds
-    const timer = setTimeout(onDismiss, 3000);
+    const timer = setTimeout(() => {
+      if (!isSharing) onDismiss();
+    }, 5000);
     return () => clearTimeout(timer);
-  }, [onDismiss]);
+  }, [onDismiss, isSharing]);
+
+  const generateImage = useCallback(async (): Promise<Blob | null> => {
+    if (!cardRef.current) return null;
+    try {
+      const canvas = await html2canvas(cardRef.current, {
+        scale: 2,
+        backgroundColor: null,
+        logging: false,
+      });
+      return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const handleShare = useCallback(async () => {
+    setIsSharing(true);
+    const blob = await generateImage();
+    if (!blob) {
+      toast({ title: "Couldn't generate image", variant: "destructive" });
+      setIsSharing(false);
+      return;
+    }
+
+    const file = new File([blob], `streak-${milestone}-days.png`, { type: "image/png" });
+
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({
+          title: `🔥 ${milestone}-Day Wellness Streak!`,
+          text: `I just hit a ${milestone}-day wellness streak on The Controllables!`,
+          files: [file],
+        });
+      } catch (e: any) {
+        if (e.name !== "AbortError") {
+          downloadBlob(blob);
+        }
+      }
+    } else {
+      downloadBlob(blob);
+    }
+    setIsSharing(false);
+  }, [generateImage, milestone, toast]);
+
+  const downloadBlob = (blob: Blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `streak-${milestone}-days.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Image downloaded!", description: "Share it on your socials 🔥" });
+  };
 
   return (
     <AnimatePresence>
@@ -68,19 +124,14 @@ export function StreakCelebration({ milestone, xpBonus, onDismiss }: StreakCeleb
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={onDismiss}
+        onClick={(e) => {
+          if (e.target === e.currentTarget && !isSharing) onDismiss();
+        }}
       >
-        {/* Confetti particles */}
         {particles.map((p) => (
-          <ConfettiParticle
-            key={p.id}
-            emoji={p.emoji}
-            delay={p.delay}
-            startX={p.startX}
-          />
+          <ConfettiParticle key={p.id} emoji={p.emoji} delay={p.delay} startX={p.startX} />
         ))}
 
-        {/* Central badge */}
         <motion.div
           className="relative z-10 flex flex-col items-center gap-4 p-8 rounded-2xl bg-card border border-border shadow-2xl"
           initial={{ scale: 0, rotate: -10 }}
@@ -115,15 +166,37 @@ export function StreakCelebration({ milestone, xpBonus, onDismiss }: StreakCeleb
             </motion.p>
           </div>
 
-          <motion.p
-            className="text-xs text-muted-foreground"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
+          <motion.div
+            className="flex gap-2 mt-2"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
           >
-            Tap to dismiss
-          </motion.p>
+            <Button
+              size="sm"
+              variant="default"
+              className="gap-2"
+              onClick={handleShare}
+              disabled={isSharing}
+            >
+              {navigator.share ? <Share2 className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+              {isSharing ? "Creating…" : "Share Streak"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={onDismiss}>
+              Dismiss
+            </Button>
+          </motion.div>
         </motion.div>
+
+        {/* Off-screen card for html2canvas capture */}
+        <div className="fixed" style={{ left: -9999, top: -9999 }}>
+          <ShareableStreakCard
+            ref={cardRef}
+            milestone={milestone}
+            xpBonus={xpBonus}
+            displayName={displayName}
+          />
+        </div>
       </motion.div>
     </AnimatePresence>
   );
