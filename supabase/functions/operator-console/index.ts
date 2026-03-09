@@ -422,6 +422,8 @@ Deno.serve(async (req) => {
     const buildCurrent = buildCurrentRes.data;
     const allBills = billsRes.data || [];
     const lastMealLog = lastMealRes.data;
+    const userObservations = observationsRes.data || [];
+    const userPreferences = preferencesRes.data || [];
 
     const wellnessLoggedToday = wellnessLogs.some((l: any) => l.log_date === today);
     const wellnessStreak = wellnessLogs.length;
