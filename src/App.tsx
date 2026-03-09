@@ -22,6 +22,7 @@ const Billing = lazy(() => import("./pages/Billing"));
 const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const QuickStart = lazy(() => import("./pages/QuickStart"));
+const Planner = lazy(() => import("./pages/Planner"));
 
 // Production-hardened query client configuration
 const queryClient = new QueryClient({
