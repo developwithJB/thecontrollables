@@ -107,6 +107,9 @@ import { SeasonComplete } from "@/components/SeasonComplete";
 import { useSeason } from "@/hooks/useSeason";
 import { WellnessStreakHistory } from "@/components/experience/WellnessStreakHistory";
 import { StreakCelebration } from "@/components/experience/StreakCelebration";
+import { DashboardModeToggle, type DashboardMode } from "@/components/dashboard/DashboardModeToggle";
+import { CommandModeView } from "@/components/dashboard/CommandModeView";
+import { ControlModeView } from "@/components/dashboard/ControlModeView";
 
 const STREAK_MILESTONE_XP: Record<number, number> = { 7: 50, 14: 100, 30: 200 };
 
@@ -120,6 +123,11 @@ export default function Dashboard() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [prevTab, setPrevTab] = useState<TabType | null>(null);
+  const [dashboardMode, setDashboardMode] = useState<DashboardMode>(() => {
+    try {
+      return (localStorage.getItem("dashboard_mode") as DashboardMode) || "command";
+    } catch { return "command"; }
+  });
   const [showJourneySwitcher, setShowJourneySwitcher] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [showMissionEdit, setShowMissionEdit] = useState(false);
@@ -764,6 +772,12 @@ export default function Dashboard() {
     setActiveTab(tab);
   }, [activeTab, trackTabChange]);
 
+  const handleDashboardModeChange = useCallback((mode: DashboardMode) => {
+    setDashboardMode(mode);
+    try { localStorage.setItem("dashboard_mode", mode); } catch {}
+    trackEvent("dashboard_mode", mode);
+  }, [trackEvent]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     toast({
@@ -862,6 +876,9 @@ export default function Dashboard() {
         <div className="max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Logo />
           <div className="flex items-center gap-2">
+            {activeTab === "dashboard" && (
+              <DashboardModeToggle mode={dashboardMode} onModeChange={handleDashboardModeChange} />
+            )}
             {/* Manual refresh button - always visible on mobile for stuck states */}
             <Button
               variant="ghost"
@@ -940,7 +957,57 @@ export default function Dashboard() {
               transition={{ duration: 0.3 }}
               className="space-y-4"
             >
-              {/* Welcome Back Banner - shows on first day back */}
+              {dashboardMode === "command" ? (
+                <CommandModeView
+                  userId={user?.id}
+                  hasActiveSession={!!activeSession && !isCompleted && !isExpired}
+                  todayResetCompleted={todayAlreadyCompleted}
+                  todayTimeLogged={!!todayTimeLog}
+                  todayPromiseMade={todayPromiseMade}
+                  pendingPromisesCount={pendingPromises.length}
+                  hasActiveQuest={!!activeQuest}
+                  wellnessLoggedToday={wellnessLogs.some(
+                    (l) => l.log_date === new Date().toLocaleDateString("sv-SE")
+                  )}
+                  askGuideCompleted={askGuideCompletedToday}
+                  onOpenReset={() => navigate("/reset")}
+                  onOpenTimeLog={() => {
+                    handleDashboardModeChange("control");
+                    setTimeout(() => {
+                      if (!showInsights) setShowInsights(true);
+                      requestAnimationFrame(() => {
+                        setTimeout(() => timeCurrencyRef.current?.openLogDialog(), 50);
+                      });
+                    }, 100);
+                  }}
+                  onOpenPromises={() => {
+                    handleDashboardModeChange("control");
+                    setTimeout(() => {
+                      if (!showInsights) setShowInsights(true);
+                      requestAnimationFrame(() => {
+                        setTimeout(() => integrityRef.current?.openDetailDialog(), 50);
+                      });
+                    }, 100);
+                  }}
+                  onOpenAIGuide={() => {
+                    trackGuideInteraction("open");
+                    aiGuidePanelRef.current?.open();
+                  }}
+                  onOpenWellness={() => {
+                    handleDashboardModeChange("control");
+                  }}
+                  onOpenMealPlan={() => navigate("/dashboard?tab=meals")}
+                  onOpenPlanner={() => navigate("/planner")}
+                  onOpenMoney={() => navigate("/money")}
+                  onOpenBuild={() => {
+                    handleDashboardModeChange("control");
+                    setTimeout(() => buildRef.current?.openDetailDialog(), 100);
+                  }}
+                  onSwitchToControl={() => handleDashboardModeChange("control")}
+                />
+              ) : (
+              <>
+              {/* === CONTROL MODE: Full scrollable dashboard === */}
               {showReturnBanner && <WelcomeBackBanner />}
 
               {/* Daily Alignment Spotlight - one-time dismissible card */}
@@ -1426,6 +1493,8 @@ export default function Dashboard() {
                     onMessageSent={handleAskGuideMessageSent}
                   />
                 </div>
+              )}
+              </>
               )}
             </motion.div>
           )}

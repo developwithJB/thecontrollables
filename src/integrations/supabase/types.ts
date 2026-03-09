@@ -2549,6 +2549,57 @@ export type Database = {
         }
         Relationships: []
       }
+      user_recipes: {
+        Row: {
+          calories: number | null
+          created_at: string
+          description: string | null
+          emoji: string | null
+          id: string
+          ingredients: Json | null
+          instructions: string | null
+          meal_type: string | null
+          name: string
+          prep_minutes: number | null
+          source: string | null
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calories?: number | null
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          ingredients?: Json | null
+          instructions?: string | null
+          meal_type?: string | null
+          name: string
+          prep_minutes?: number | null
+          source?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calories?: number | null
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          ingredients?: Json | null
+          instructions?: string | null
+          meal_type?: string | null
+          name?: string
+          prep_minutes?: number | null
+          source?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           granted_at: string | null
