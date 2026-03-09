@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Users, Copy, UserPlus, LogOut, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CircleLeaderboard } from "./CircleLeaderboard";
 import {
   AlertDialog,
   AlertDialogAction,
