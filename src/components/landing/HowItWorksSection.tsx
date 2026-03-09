@@ -1,34 +1,48 @@
 import { motion } from "framer-motion";
-import { Calendar, Brain, Camera, Layers } from "lucide-react";
+import { Calendar, Brain, Camera, Layers, DollarSign, Plug } from "lucide-react";
 
 const steps = [
   {
     icon: Calendar,
-    title: "Check In",
-    description: "A 5-minute daily ritual. Log how the day went. No essays. No pressure.",
+    title: "Plan Your Day",
+    description: "Open your Planner. See your tasks, events, and routines. Sync with Google Calendar if you want — or keep it simple.",
     color: "text-accent",
     bgColor: "bg-accent/10",
   },
   {
-    icon: Brain,
-    title: "Get Guided",
-    description: "The Dashboard notices what you actually do and suggests what to focus on next.",
+    icon: DollarSign,
+    title: "Know Your Money",
+    description: "Bills due, budget status, savings progress — all in one place. Import transactions or track manually.",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
+  },
+  {
+    icon: Plug,
+    title: "Connect Your Tools",
+    description: "Link Google Calendar, Gmail, Todoist, and Notion. Your existing tools feed into one unified dashboard.",
     color: "text-perspective",
     bgColor: "bg-perspective/10",
   },
   {
     icon: Camera,
-    title: "Take a Snapshot",
-    description: "Each week is a Snapshot. Seven days. One theme. Your first Snapshot is fully unlocked — all features, all guides.",
+    title: "Run a Snapshot",
+    description: "Each week is a 7-day focus period. Pick a theme, check in daily, and build proof you can show up.",
     color: "text-wellness",
     bgColor: "bg-wellness/10",
   },
   {
-    icon: Layers,
-    title: "Stack Proof",
-    description: "Your weeks stack into a quiet record of effort. The Dashboard remembers — even when you don't.",
+    icon: Brain,
+    title: "Get Guided",
+    description: "AI Guides notice what you actually do and help you focus on what matters. Human-centric, not robotic.",
     color: "text-habit",
     bgColor: "bg-habit/10",
+  },
+  {
+    icon: Layers,
+    title: "Stack Proof",
+    description: "Your days and weeks stack into a quiet record of effort. The Dashboard remembers — even when you don't.",
+    color: "text-environment",
+    bgColor: "bg-environment/10",
   },
 ];
 
@@ -53,7 +67,7 @@ export function HowItWorksSection() {
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: index * 0.15 }}
+              transition={{ duration: 0.4, delay: index * 0.1 }}
               className="flex items-start gap-4 p-4 rounded-xl bg-card border border-border"
             >
               <div className={`p-2.5 rounded-lg ${step.bgColor} shrink-0`}>

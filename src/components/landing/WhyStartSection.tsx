@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
 
 const reasons = [
-  "You keep trying to get back on track but can't find consistency",
+  "You're juggling too many apps and want one place for everything",
+  "You need to track money, time, and wellness — not just tasks",
+  "You want your calendar, tasks, and focus system connected",
   "You're tired of apps that gamify your life into stress",
-  "You want to rebuild self-trust, not just productivity",
-  "You need a quiet place to restart without judgment",
   "You believe small, imperfect action beats grand plans",
+  "You want to rebuild self-trust, not just productivity",
 ];
 
 export function WhyStartSection() {
@@ -22,7 +23,7 @@ export function WhyStartSection() {
           This is for you if...
         </h2>
         <p className="text-sm text-muted-foreground mb-6">
-          You don't need another todo app. You need a restart system.
+          You don't need another todo app. You need a Life OS.
         </p>
         
         <div className="space-y-3 text-left">
