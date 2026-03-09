@@ -48,26 +48,26 @@ const steps = [
 
 export function HowItWorksSection() {
   return (
-    <section className="py-12 px-6">
+    <section className="py-12 md:py-16 px-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-50px" }}
         transition={{ duration: 0.5 }}
-        className="max-w-md mx-auto"
+        className="max-w-md md:max-w-3xl lg:max-w-5xl mx-auto"
       >
-        <h2 className="font-display text-xl font-semibold text-center mb-8 text-foreground">
+        <h2 className="font-display text-xl md:text-2xl font-semibold text-center mb-8 text-foreground">
           How It Works
         </h2>
         
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {steps.map((step, index) => (
             <motion.div
               key={step.title}
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
+              transition={{ duration: 0.4, delay: index * 0.08 }}
               className="flex items-start gap-4 p-4 rounded-xl bg-card border border-border"
             >
               <div className={`p-2.5 rounded-lg ${step.bgColor} shrink-0`}>

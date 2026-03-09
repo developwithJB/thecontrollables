@@ -119,8 +119,8 @@ export default function Landing() {
         <TrustDisclosure />
 
         {/* Secondary CTA */}
-        <section className="py-8 px-6">
-          <div className="max-w-md mx-auto text-center space-y-4">
+        <section className="py-8 md:py-12 px-6">
+          <div className="max-w-md md:max-w-3xl lg:max-w-5xl mx-auto text-center space-y-4">
             <div className="space-y-2">
               <h3 className="font-display text-lg font-semibold text-foreground">Try your Life OS.</h3>
               <p className="text-sm text-muted-foreground">Full access for 7 days. No credit card. See what changes.</p>

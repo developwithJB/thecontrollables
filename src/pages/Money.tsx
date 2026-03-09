@@ -56,7 +56,7 @@ export default function Money() {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
+      <div className="max-w-lg md:max-w-4xl lg:max-w-6xl mx-auto px-4 pt-4 space-y-4">
         {/* Financial Controllables summary */}
         <FinancialControllables
           bills={bills}

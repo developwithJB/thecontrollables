@@ -36,7 +36,7 @@ export function PhilosophySection() {
           Built on principles from The Controllables book.
         </p>
         
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {principles.map((principle, index) => (
             <motion.div
               key={principle.title}

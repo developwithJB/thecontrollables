@@ -1649,7 +1649,7 @@ export default function Dashboard() {
       </main>
 
       {/* Footer with version on Guide tab and intentional usage microcopy after 5 visits */}
-      <footer className="max-w-md mx-auto px-6 py-6 text-center space-y-1">
+      <footer className="max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl mx-auto px-6 py-6 text-center space-y-1">
         {dashboardVisitCount > 5 && (
           <p className="text-xs text-muted-foreground/60">
             Quiet momentum. One check-in at a time.

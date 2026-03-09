@@ -97,29 +97,29 @@ const coreFeatures = [
 
 export function FeatureGrid() {
   return (
-    <section className="py-12 px-6 bg-muted/30">
+    <section className="py-12 md:py-16 px-6 bg-muted/30">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-50px" }}
         transition={{ duration: 0.5 }}
-        className="max-w-md mx-auto"
+        className="max-w-md md:max-w-3xl lg:max-w-5xl mx-auto"
       >
-        <h2 className="font-display text-xl font-semibold text-center mb-2 text-foreground">
+        <h2 className="font-display text-xl md:text-2xl font-semibold text-center mb-2 text-foreground">
           Everything You Need to Run Your Life
         </h2>
-        <p className="text-sm text-muted-foreground text-center mb-8">
+        <p className="text-sm md:text-base text-muted-foreground text-center mb-8">
           Planner, money, wellness, growth — all in one calm interface.
         </p>
         
-        <div className="grid gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {coreFeatures.map((feature, index) => (
             <motion.div
               key={feature.title}
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: index * 0.05 }}
+              transition={{ duration: 0.4, delay: index * 0.03 }}
               className="flex items-start gap-3 p-4 rounded-xl bg-card border border-border"
             >
               <div className="p-2 rounded-lg bg-primary/10 shrink-0">

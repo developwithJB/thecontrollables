@@ -75,13 +75,13 @@ export default function Integrations() {
 
         {/* Provider grid */}
         {isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-48 rounded-lg bg-muted/50 animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {ALL_PROVIDERS.map((provider) => (
               <ProviderCardWithLogs
                 key={provider}
