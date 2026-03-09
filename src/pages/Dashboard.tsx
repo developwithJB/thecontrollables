@@ -1698,7 +1698,7 @@ export default function Dashboard() {
           </p>
         )}
         <p className="text-xs text-muted-foreground">
-          © {new Date().getFullYear()} The Controllables
+          © {new Date().getFullYear()} AGB Coaching
           {activeTab === "guide" && (
             <span className="ml-2 text-muted-foreground/50">v{APP_VERSION}</span>
           )}
