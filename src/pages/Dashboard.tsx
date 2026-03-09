@@ -1494,6 +1494,11 @@ export default function Dashboard() {
                 </SuspenseExperienceComponent>
               )}
 
+              {/* Wellness Streak Heatmap - Paid only */}
+              {!isSimplifiedMode && isPaid && wellnessLogs.length > 0 && (
+                <WellnessStreakHistory recentLogs={wellnessLogs} streak={wellnessStreak} />
+              )}
+
               {/* Snapshot History - Visual Brick Stacking View */}
               {/* Show for ALL users who have completed their free trial (or paid users) */}
               {!isSimplifiedMode && user?.id && (isPaid || allSessions.some(s => s.status === "completed" || s.status === "expired")) && (
