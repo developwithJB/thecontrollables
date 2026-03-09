@@ -30,6 +30,7 @@ export const PlannerWeekGrid = ({
       {days.map((day) => {
         const dateKey = format(day, "yyyy-MM-dd");
         const items = itemsByDate[dateKey] ?? [];
+        const activity = activityByDate[dateKey] ?? [];
         const selected = isSameDay(day, selectedDate);
         const today = isToday(day);
 
