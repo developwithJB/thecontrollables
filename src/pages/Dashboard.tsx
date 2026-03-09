@@ -921,7 +921,7 @@ export default function Dashboard() {
       {/* Main Content with Pull-to-Refresh */}
       <main 
         ref={pullRefreshRef}
-        className="flex-1 max-w-md mx-auto px-6 py-6 w-full overflow-y-auto relative"
+        className="flex-1 max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl mx-auto px-6 py-6 w-full overflow-y-auto relative"
       >
         {/* Pull-to-Refresh Indicator */}
         <PullToRefreshIndicator
