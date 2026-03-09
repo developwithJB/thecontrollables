@@ -772,6 +772,12 @@ export default function Dashboard() {
     setActiveTab(tab);
   }, [activeTab, trackTabChange]);
 
+  const handleDashboardModeChange = useCallback((mode: DashboardMode) => {
+    setDashboardMode(mode);
+    try { localStorage.setItem("dashboard_mode", mode); } catch {}
+    trackEvent("dashboard_mode", mode);
+  }, [trackEvent]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     toast({
