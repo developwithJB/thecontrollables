@@ -245,7 +245,7 @@ export default function Dashboard() {
     isLoggingTime,
   } = useDashboardSummary(user?.id || null);
 
-  const { streak: wellnessStreak, logWellness } = useWellness(user?.id);
+  const { streak: wellnessStreak, logWellness, recentLogs: wellnessLogs, hitMilestone, clearMilestone } = useWellness(user?.id);
 
   // Build data for The Controllables
   const { currentBuild, buildLoading } = useBuildAssessment();
