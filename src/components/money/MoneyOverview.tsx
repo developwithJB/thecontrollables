@@ -48,14 +48,9 @@ export function MoneyOverview({ accounts, bills, subscriptions, goals }: MoneyOv
   const totalSavedTowardGoals = goals.reduce((sum, g) => sum + Number(g.current_amount), 0);
 
   const today = new Date();
-  const currentDay = today.getDate();
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
 
   const upcomingBills = bills
-    .filter((b) => {
-      const diff = b.due_date >= currentDay ? b.due_date - currentDay : daysInMonth - currentDay + b.due_date;
-      return diff <= 7;
-    })
+    .filter((b) => isBillDueWithinDays(b, 7))
     .sort((a, b) => a.due_date - b.due_date);
 
   const upcomingSubs = subscriptions
