@@ -12,6 +12,16 @@ import { APP_VERSION } from "@/lib/version";
 
 // Changelog entries - update this with each version
 const CHANGELOG: Record<string, { title: string; items: string[] }> = {
+  "1.8.0": {
+    title: "Operator Console",
+    items: [
+      "New Operator Console — see your best next move without typing",
+      "Structured AI suggestions: Plan, Focus, Recovery, Review modes",
+      "One-tap actions with deep links to Planner, Snapshot, Money, and more",
+      "Command shortcuts: 'replan my day', 'simplify today', 'I feel off'",
+      "Chat mode still available via 'Talk it through' — now secondary",
+    ],
+  },
   "1.7.0": {
     title: "Integration Hub",
     items: [

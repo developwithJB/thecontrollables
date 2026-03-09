@@ -79,6 +79,7 @@ const AppContent = () => {
           <Route path="/planner" element={<Planner />} />
           <Route path="/money" element={<Money />} />
           <Route path="/integrations" element={<Integrations />} />
+          <Route path="/operator" element={<Operator />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

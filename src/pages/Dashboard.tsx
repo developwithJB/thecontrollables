@@ -1408,13 +1408,11 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* The Controllables - Lazy loaded, Locked for free users */}
-              {entitlementsLoading ? (
-                <AIGuideSkeleton />
-              ) : (
-                <div data-testid="ai-guide-panel">
-                  <LazyAIGuidePanelWrapper
-                    ref={aiGuidePanelRef}
+              {/* Operator Console — structured AI experience */}
+              {!entitlementsLoading && (
+                <div data-testid="operator-console">
+                  <OperatorConsole
+                    userId={user?.id || null}
                     activeQuest={activeQuest}
                     totalXp={totalXp}
                     integrityScore={integrityScore}
@@ -1422,7 +1420,7 @@ export default function Dashboard() {
                     onXpEarned={handleOperatorInteraction}
                     isPaid={isPaid}
                     isTrialing={isTrialing}
-                    onUpgrade={() => startCheckout(undefined, "ai_guide_panel")}
+                    onUpgrade={() => startCheckout(undefined, "operator_console")}
                     isCheckingOut={isCheckingOut}
                     hasActiveSnapshot={!!activeSession && !isCompleted}
                     onMessageSent={handleAskGuideMessageSent}
