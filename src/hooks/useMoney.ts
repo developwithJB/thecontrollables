@@ -442,17 +442,9 @@ export function useMoneySummary(userId: string | null) {
   const { buckets, isLoading: bucketsLoading } = useBudgetBuckets(userId);
   const { goals, isLoading: goalsLoading } = useSavingsGoals(userId);
 
-  const today = new Date();
-  const currentDay = today.getDate();
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-
   const summary = useMemo(() => {
-    // Bills due this week (within 7 days)
-    const billsDueThisWeek = bills.filter((b) => {
-      const dueDay = b.due_date;
-      const diff = dueDay >= currentDay ? dueDay - currentDay : daysInMonth - currentDay + dueDay;
-      return diff <= 7;
-    });
+    // Bills due this week (within 7 days) — frequency-aware
+    const billsDueThisWeek = bills.filter((b) => isBillDueWithinDays(b, 7));
 
     // Monthly subscription total
     const monthlySubsTotal = subscriptions.reduce((sum, s) => {
