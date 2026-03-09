@@ -1070,6 +1070,116 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_connections: {
+        Row: {
+          access_token: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          last_synced_at: string | null
+          metadata: Json | null
+          provider: string
+          provider_account_id: string | null
+          refresh_token: string | null
+          scopes: string[] | null
+          status: string
+          token_expires_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          last_synced_at?: string | null
+          metadata?: Json | null
+          provider: string
+          provider_account_id?: string | null
+          refresh_token?: string | null
+          scopes?: string[] | null
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          last_synced_at?: string | null
+          metadata?: Json | null
+          provider?: string
+          provider_account_id?: string | null
+          refresh_token?: string | null
+          scopes?: string[] | null
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      integration_sync_logs: {
+        Row: {
+          completed_at: string | null
+          connection_id: string
+          error_message: string | null
+          id: string
+          items_created: number | null
+          items_processed: number | null
+          items_skipped: number | null
+          items_updated: number | null
+          metadata: Json | null
+          provider: string
+          started_at: string | null
+          status: string
+          sync_type: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          connection_id: string
+          error_message?: string | null
+          id?: string
+          items_created?: number | null
+          items_processed?: number | null
+          items_skipped?: number | null
+          items_updated?: number | null
+          metadata?: Json | null
+          provider: string
+          started_at?: string | null
+          status: string
+          sync_type: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          connection_id?: string
+          error_message?: string | null
+          id?: string
+          items_created?: number | null
+          items_processed?: number | null
+          items_skipped?: number | null
+          items_updated?: number | null
+          metadata?: Json | null
+          provider?: string
+          started_at?: string | null
+          status?: string
+          sync_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_sync_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integrity_logs: {
         Row: {
           created_at: string
