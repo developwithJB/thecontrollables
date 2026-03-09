@@ -329,8 +329,17 @@ export const CommandModeView = ({
     setCompletedIds((prev) => new Set(prev).add(currentAction.id));
   }, [currentAction, onNavigateReset, onOpenReset]);
 
+  const [showMealSwiper, setShowMealSwiper] = useState(false);
+  const [acceptedMeals, setAcceptedMeals] = useState<SwipeMeal[]>([]);
+
+  const handleMealAccept = useCallback((meal: SwipeMeal) => {
+    setAcceptedMeals((prev) => [...prev, meal]);
+  }, []);
+  const handleMealReject = useCallback((_meal: SwipeMeal) => {}, []);
+  const handleMealSave = useCallback((_meal: SwipeMeal) => {}, []);
+
   const quickActions = [
-    { icon: UtensilsCrossed, label: "Eat", onClick: onOpenMealPlan },
+    { icon: UtensilsCrossed, label: "Eat", onClick: () => setShowMealSwiper((p) => !p) },
     { icon: CalendarDays, label: "Plan", onClick: onOpenPlanner },
     { icon: BarChart3, label: "Review", onClick: onSwitchToControl },
     { icon: DollarSign, label: "Money", onClick: onOpenMoney },
@@ -352,7 +361,6 @@ export const CommandModeView = ({
         onSkip={handleSkip}
         isExpanded={isExpanded}
       >
-        {/* Inline forms */}
         {expandedActionId === "wellness-log" && onLogWellness && (
           <InlineWellnessForm onLog={onLogWellness} onDone={handleComplete} />
         )}
@@ -363,6 +371,41 @@ export const CommandModeView = ({
           <InlinePromiseReview promises={pendingPromises} onResolve={onResolvePromise} onDone={handleComplete} />
         )}
       </FocusedActionCard>
+
+      {/* Inline Meal Swiper */}
+      <AnimatePresence>
+        {showMealSwiper && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden mt-4"
+          >
+            <div className="flex items-center justify-between mb-2 px-1">
+              <h3 className="text-sm font-semibold text-foreground">Pick your meals</h3>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowMealSwiper(false)}>
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+            {acceptedMeals.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-3 px-1">
+                {acceptedMeals.map((m) => (
+                  <span key={m.id} className="text-[10px] px-2 py-0.5 rounded-full bg-accent/20 text-accent-foreground">
+                    {m.emoji} {m.name}
+                  </span>
+                ))}
+              </div>
+            )}
+            <MealSwiper
+              meals={SAMPLE_MEALS}
+              onAccept={handleMealAccept}
+              onReject={handleMealReject}
+              onSaveToLibrary={handleMealSave}
+              currentMealType="meal"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Quick-access bar */}
       <motion.div
@@ -376,7 +419,7 @@ export const CommandModeView = ({
           {quickActions.map(({ icon: Icon, label, onClick }) => (
             <Button
               key={label}
-              variant="outline"
+              variant={label === "Eat" && showMealSwiper ? "default" : "outline"}
               size="sm"
               onClick={onClick}
               className="gap-1.5 text-xs"
