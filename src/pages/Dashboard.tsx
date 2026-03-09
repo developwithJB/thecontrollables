@@ -123,6 +123,11 @@ export default function Dashboard() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [prevTab, setPrevTab] = useState<TabType | null>(null);
+  const [dashboardMode, setDashboardMode] = useState<DashboardMode>(() => {
+    try {
+      return (localStorage.getItem("dashboard_mode") as DashboardMode) || "command";
+    } catch { return "command"; }
+  });
   const [showJourneySwitcher, setShowJourneySwitcher] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [showMissionEdit, setShowMissionEdit] = useState(false);
