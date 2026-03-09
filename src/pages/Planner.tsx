@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { SplashScreen } from "@/components/SplashScreen";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, RotateCcw, Settings, BarChart3 } from "lucide-react";
+import { ArrowLeft, Plus, RotateCcw, Settings, BarChart3, UtensilsCrossed } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 
