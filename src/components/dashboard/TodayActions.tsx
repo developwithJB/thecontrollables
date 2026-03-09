@@ -66,11 +66,7 @@ interface TodayActionsProps {
   // Action callbacks for clickable items
   onOpenTimeLog?: () => void;
   onOpenPromises?: () => void;
-  onOpenAIGuide?: () => void;
-  onOpenBuild?: () => void;
-  
-  // External signal that user sent a message to The Controllables
-  askGuideCompleted?: boolean;
+   onOpenBuild?: () => void;
   
   // Day 7 celebration callback - triggered when all tasks are done on Day 7
   onDay7AllComplete?: () => void;
@@ -114,9 +110,7 @@ export function TodayActions({
   missionTitle,
   onOpenTimeLog,
   onOpenPromises,
-  onOpenAIGuide,
-  onOpenBuild,
-  askGuideCompleted,
+   onOpenBuild,
   onDay7AllComplete,
 }: TodayActionsProps) {
   const navigate = useNavigate();
@@ -146,11 +140,6 @@ export function TodayActions({
     new Date(buildLastUpdatedAt).toLocaleDateString("sv-SE") === todayLocal;
   const reviewBuildCompleted = reviewBuildDoneToday || buildUpdatedToday;
 
-  // Day 5 "Ask The Controllables" completion: treat as complete if user sent a message today
-  const askGuideStorageKey = userId
-    ? `today_actions_ask_guide_${userId}_${todayLocal}`
-    : null;
-  const [askGuideDoneToday, setAskGuideDoneToday] = useState(false);
 
   // Journey action completion tracking
   const journeyActionKey = userId && journeyId
@@ -187,29 +176,6 @@ export function TodayActions({
     setReviewBuildDoneToday(true);
   }, [buildUpdatedToday, reviewBuildStorageKey]);
 
-  // Read ask guide completion from localStorage on mount
-  useEffect(() => {
-    if (!askGuideStorageKey) return;
-    try {
-      const stored = localStorage.getItem(askGuideStorageKey) === "1";
-      setAskGuideDoneToday(stored);
-    } catch {
-      // ignore
-    }
-  }, [askGuideStorageKey]);
-  
-  // Sync from external prop when parent notifies a message was sent
-  // Also persist to localStorage so it survives re-renders
-  useEffect(() => {
-    if (askGuideCompleted && askGuideStorageKey) {
-      setAskGuideDoneToday(true);
-      try {
-        localStorage.setItem(askGuideStorageKey, "1");
-      } catch {
-        // ignore
-      }
-    }
-  }, [askGuideCompleted, askGuideStorageKey]);
 
   // Get today's content for display
   const getTodayInfo = () => {
@@ -331,17 +297,6 @@ export function TodayActions({
   // Day-based bonus actions (vary by day to encourage different features)
   // Only add bonus actions if we have an active session
   if (hasActiveSession && !isResetCompleted && !isResetExpired) {
-    // "Ask The Controllables" — available EVERY day (AI-forward)
-    actions.push({
-      id: "ask-guide",
-      label: "Ask The Controllables",
-      sublabel: askGuideDoneToday ? "Completed" : `Get guidance from today's operator`,
-      icon: <Sparkles className="w-4 h-4" />,
-      completed: askGuideDoneToday,
-      timeEstimate: "3 min",
-      action: onOpenAIGuide,
-    });
-
     // Day 1: Encourage making a promise
     if (currentDay === 1) {
       actions.push({

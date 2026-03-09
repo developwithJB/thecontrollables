@@ -122,15 +122,6 @@ function buildRulesPlan(context: {
     });
   }
 
-  if (topThree.length < 3) {
-    topThree.push({
-      id: "ask_guide",
-      title: "Ask The Controllables one question",
-      reason: "Your AI guide is ready to help you navigate today",
-      source: "Guide",
-      deep_link: "/dashboard",
-    });
-  }
 
   const quickWins: QuickWin[] = [];
   if (!wellnessLoggedToday) {

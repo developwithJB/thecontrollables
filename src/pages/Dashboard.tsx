@@ -139,32 +139,6 @@ export default function Dashboard() {
   const buildRef = useRef<BuildOverviewModuleHandle>(null);
   const aiGuidePanelRef = useRef<AIGuidePanelHandle>(null);
   
-  // Track when user sends a message to The Controllables today (for Today Actions completion)
-  const todayLocal = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD (local)
-  const askGuideStorageKey = user?.id ? `today_actions_ask_guide_${user.id}_${todayLocal}` : null;
-  const [askGuideCompletedToday, setAskGuideCompletedToday] = useState(false);
-  
-  // Read initial value from localStorage
-  useEffect(() => {
-    if (!askGuideStorageKey) return;
-    try {
-      setAskGuideCompletedToday(localStorage.getItem(askGuideStorageKey) === "1");
-    } catch {
-      // ignore
-    }
-  }, [askGuideStorageKey]);
-  
-  // Handler to mark ask guide as completed
-  const handleAskGuideMessageSent = useCallback(() => {
-    if (askGuideStorageKey) {
-      try {
-        localStorage.setItem(askGuideStorageKey, "1");
-      } catch {
-        // ignore
-      }
-    }
-    setAskGuideCompletedToday(true);
-  }, [askGuideStorageKey]);
   
   // Track dashboard visits for conditional microcopy placement
   const dashboardVisitCount = useDashboardVisitCount();
@@ -969,8 +943,7 @@ export default function Dashboard() {
                   wellnessLoggedToday={wellnessLogs.some(
                     (l) => l.log_date === new Date().toLocaleDateString("sv-SE")
                   )}
-                  askGuideCompleted={askGuideCompletedToday}
-                  pendingPromises={pendingPromises.map((p) => ({ id: p.id, promise_text: p.promise_text, promised_at: p.promised_at }))}
+                   pendingPromises={pendingPromises.map((p) => ({ id: p.id, promise_text: p.promise_text, promised_at: p.promised_at }))}
                   onLogTime={handleLogTime}
                   onLogWellness={logWellness}
                   onResolvePromise={handleResolvePromise}
@@ -1110,7 +1083,7 @@ export default function Dashboard() {
                   pendingPromisesCount={pendingPromises.length}
                   todayPromiseMade={todayPromiseMade}
                    todayXpEarned={xpLogs
-                    .filter((log) => new Date(log.created_at).toLocaleDateString("sv-SE") === todayLocal)
+                    .filter((log) => new Date(log.created_at).toLocaleDateString("sv-SE") === new Date().toLocaleDateString("sv-SE"))
                     .reduce((sum, log) => sum + log.amount, 0)}
                   buildLastUpdatedAt={currentBuild?.updated_at ?? null}
                   journeyId={activeSession?.journey_id ?? undefined}
@@ -1142,14 +1115,8 @@ export default function Dashboard() {
                       integrityRef.current?.openDetailDialog();
                     }
                   }}
-                  onOpenAIGuide={() => {
-                    trackGuideInteraction("open");
-                    // Stay on dashboard tab and open The Controllables messenger
-                    aiGuidePanelRef.current?.open();
-                  }}
                   onOpenBuild={() => buildRef.current?.openDetailDialog()}
-                  askGuideCompleted={askGuideCompletedToday}
-                  onDay7AllComplete={triggerDay7Celebration}
+                   onDay7AllComplete={triggerDay7Celebration}
                 />
               )}
 
@@ -1495,7 +1462,7 @@ export default function Dashboard() {
                     onUpgrade={() => startCheckout(undefined, "operator_console")}
                     isCheckingOut={isCheckingOut}
                     hasActiveSnapshot={!!activeSession && !isCompleted}
-                    onMessageSent={handleAskGuideMessageSent}
+                    onMessageSent={() => {}}
                   />
                 </div>
               )}
