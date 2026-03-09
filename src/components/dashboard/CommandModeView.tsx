@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import { FocusedActionCard, type FocusedAction } from "./FocusedActionCard";
+import { ControllableHub } from "./ControllableHub";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -274,24 +275,11 @@ export const CommandModeView = ({
       });
     }
 
-    if (!askGuideCompleted) {
-      actions.push({
-        id: "ask-guide",
-        type: "guide",
-        title: "Ask The Controllables",
-        subtitle: "Get guidance on what to focus on today.",
-        emoji: "🧭",
-        xp: 5,
-        onAction: onOpenAIGuide,
-        actionLabel: "Open Guide",
-      });
-    }
-
     return actions;
   }, [
     hasActiveSession, todayResetCompleted, wellnessLoggedToday,
-    todayTimeLogged, pendingPromisesCount, askGuideCompleted,
-    onNavigateReset, onOpenReset, onOpenAIGuide,
+    todayTimeLogged, pendingPromisesCount,
+    onNavigateReset, onOpenReset,
   ]);
 
   const activeActions = useMemo(
@@ -430,25 +418,37 @@ export const CommandModeView = ({
         onChange={handleHealthImport}
       />
 
-      <FocusedActionCard
-        action={wrappedAction}
-        queueLength={activeActions.length}
-        completedCount={completedIds.size}
-        onSkip={handleSkip}
-        isExpanded={isExpanded}
+      {/* Controllable Hub — always visible as the primary focus section */}
+      <ControllableHub
         userId={userId}
+        completedCount={completedIds.size}
         onNavigate={handleHubNavigate}
-      >
-        {expandedActionId === "wellness-log" && onLogWellness && (
-          <InlineWellnessForm onLog={onLogWellness} onDone={handleComplete} />
-        )}
-        {expandedActionId === "time-log" && onLogTime && (
-          <InlineTimeLogForm onLog={onLogTime} onDone={handleComplete} />
-        )}
-        {expandedActionId === "promise-review" && onResolvePromise && (
-          <InlinePromiseReview promises={pendingPromises} onResolve={onResolvePromise} onDone={handleComplete} />
-        )}
-      </FocusedActionCard>
+      />
+
+      {/* Remaining action cards below the hub */}
+      {wrappedAction && (
+        <div className="mt-6">
+          <FocusedActionCard
+            action={wrappedAction}
+            queueLength={activeActions.length}
+            completedCount={completedIds.size}
+            onSkip={handleSkip}
+            isExpanded={isExpanded}
+            userId={userId}
+            onNavigate={handleHubNavigate}
+          >
+            {expandedActionId === "wellness-log" && onLogWellness && (
+              <InlineWellnessForm onLog={onLogWellness} onDone={handleComplete} />
+            )}
+            {expandedActionId === "time-log" && onLogTime && (
+              <InlineTimeLogForm onLog={onLogTime} onDone={handleComplete} />
+            )}
+            {expandedActionId === "promise-review" && onResolvePromise && (
+              <InlinePromiseReview promises={pendingPromises} onResolve={onResolvePromise} onDone={handleComplete} />
+            )}
+          </FocusedActionCard>
+        </div>
+      )}
 
       {/* Inline Meal Swiper */}
       <AnimatePresence>
