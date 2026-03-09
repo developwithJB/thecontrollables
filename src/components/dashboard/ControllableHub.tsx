@@ -55,6 +55,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
   const [isLoading, setIsLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { toast } = useToast();
 
   const activeC = CONTROLLABLES.find((c) => c.key === activeControllable);
 
