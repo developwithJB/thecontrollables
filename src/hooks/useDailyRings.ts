@@ -209,5 +209,6 @@ export function useDailyRings(userId?: string) {
     completeRing,
     isCompleted,
     definitions: RING_DEFINITIONS,
+    rowId,
   };
 }
