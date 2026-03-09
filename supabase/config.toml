@@ -56,3 +56,15 @@ verify_jwt = false
 
 [functions.parse-health-export]
 verify_jwt = false
+
+[functions.integration-oauth-start]
+verify_jwt = false
+
+[functions.integration-oauth-callback]
+verify_jwt = false
+
+[functions.integration-sync]
+verify_jwt = false
+
+[functions.integration-disconnect]
+verify_jwt = false

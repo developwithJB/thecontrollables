@@ -12,6 +12,16 @@ import { APP_VERSION } from "@/lib/version";
 
 // Changelog entries - update this with each version
 const CHANGELOG: Record<string, { title: string; items: string[] }> = {
+  "1.7.0": {
+    title: "Integration Hub",
+    items: [
+      "New Integration Hub — connect Google Calendar, Gmail, Todoist, and Notion",
+      "Sync calendar events and tasks directly into your Planner",
+      "Gmail inbox summary powers your Daily OS (read-only, no content stored)",
+      "Export weekly reviews and Vault entries to Notion",
+      "All provider health visible from one page — connect, sync, disconnect",
+    ],
+  },
   "1.6.1": {
     title: "Money Hub",
     items: [
