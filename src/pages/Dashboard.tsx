@@ -60,6 +60,7 @@ import { TrialCompleteCard } from "@/components/dashboard/TrialCompleteCard";
 import { DailyBriefingCard } from "@/components/dashboard/DailyBriefingCard";
 import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
 import { BrainBodyTracker } from "@/components/dashboard/BrainBodyTracker";
+import { WellnessGoalsCard } from "@/components/dashboard/WellnessGoalsCard";
 import { WeeklyWellnessReport } from "@/components/dashboard/WeeklyWellnessReport";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DailyAlignmentPromo } from "@/components/dashboard/DailyAlignmentPromo";
