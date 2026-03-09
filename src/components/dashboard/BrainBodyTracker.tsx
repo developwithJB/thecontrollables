@@ -17,6 +17,7 @@ interface BrainBodyTrackerProps {
   onLogWellness?: () => void;
   onQuickLog?: (sleep: number, movement: number, nutrition: number) => Promise<boolean>;
   onImportHealth?: () => void;
+  streak?: number;
 }
 
 const QUICK_STEPS = [
@@ -227,7 +228,7 @@ const SATELLITE_TIPS: Record<string, string> = {
   default: "🛰️ Log your wellness data to see your Brain & Body status.",
 };
 
-export function BrainBodyTracker({ userId, onLogWellness, onQuickLog, onImportHealth }: BrainBodyTrackerProps) {
+export function BrainBodyTracker({ userId, onLogWellness, onQuickLog, onImportHealth, streak = 0 }: BrainBodyTrackerProps) {
   const { brainScore, bodyScore, factors, trend, hasData, hasHealthSync, isLoading } = useBrainBodyHealth(userId);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -277,6 +278,18 @@ export function BrainBodyTracker({ userId, onLogWellness, onQuickLog, onImportHe
                 <h3 className="text-sm font-semibold text-foreground">Brain & Body</h3>
                 <span className={`text-xs font-medium ${wellnessTheme.textClass}`}>{wellnessTheme.emoji} {wellnessTheme.label}</span>
                 <ControllableLevelBadge controllable="wellness" />
+                {hasData && streak > 0 && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className={cn(
+                      "inline-flex items-center gap-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full bg-accent text-accent-foreground",
+                      [3, 7, 14, 30].includes(streak) && "animate-pulse"
+                    )}
+                  >
+                    🔥 {streak}
+                  </motion.span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {hasData && (

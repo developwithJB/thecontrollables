@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -11,6 +11,38 @@ export interface WellnessLog {
   nutrition_rating: number | null;
   notes: string | null;
   created_at: string;
+}
+
+const STREAK_MILESTONES: Record<number, number> = {
+  3: 25,
+  7: 50,
+  14: 100,
+  30: 200,
+};
+
+function calculateStreak(logs: WellnessLog[]): number {
+  if (logs.length === 0) return 0;
+
+  const dates = [...new Set(logs.map(l => l.log_date))].sort().reverse();
+  const today = new Date().toISOString().split("T")[0];
+
+  // Grace period: streak is valid if most recent log is today or yesterday
+  const mostRecent = dates[0];
+  const diffMs = new Date(today).getTime() - new Date(mostRecent).getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays > 1) return 0;
+
+  let streak = 1;
+  for (let i = 0; i < dates.length - 1; i++) {
+    const curr = new Date(dates[i]).getTime();
+    const prev = new Date(dates[i + 1]).getTime();
+    if (curr - prev === 86400000) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
 }
 
 export function useWellness(userId: string | undefined) {
@@ -30,7 +62,7 @@ export function useWellness(userId: string | undefined) {
         .select("*")
         .eq("user_id", userId)
         .order("log_date", { ascending: false })
-        .limit(7);
+        .limit(60);
 
       if (error) throw error;
 
@@ -49,6 +81,8 @@ export function useWellness(userId: string | undefined) {
     fetchWellnessLogs();
   }, [fetchWellnessLogs]);
 
+  const streak = useMemo(() => calculateStreak(recentLogs), [recentLogs]);
+
   const logWellness = async (
     sleep: number,
     movement: number,
@@ -60,6 +94,8 @@ export function useWellness(userId: string | undefined) {
     try {
       const today = new Date().toISOString().split('T')[0];
       
+      const streakBefore = streak;
+
       const { data, error } = await supabase
         .from("wellness_logs")
         .upsert({
@@ -80,10 +116,26 @@ export function useWellness(userId: string | undefined) {
       setTodayLog(data);
       await fetchWellnessLogs();
       
+      // Calculate new streak after refresh
+      const newStreak = streakBefore + (todayLog ? 0 : 1);
+      const milestoneXp = STREAK_MILESTONES[newStreak];
+
+      if (milestoneXp) {
+        await supabase.from("xp_logs").insert({
+          user_id: userId,
+          amount: milestoneXp,
+          source: "wellness_streak",
+          description: `🔥 ${newStreak}-day wellness streak bonus`,
+        });
+      }
+
       const avgRating = ((sleep + movement + nutrition) / 3).toFixed(1);
+      const streakText = newStreak > 1 ? ` 🔥 ${newStreak}-day streak!` : "";
+      const xpText = milestoneXp ? ` +${milestoneXp} XP bonus` : "";
+
       toast({
         title: "Battery logged!",
-        description: `Current charge: ${avgRating}/5`,
+        description: `Current charge: ${avgRating}/5${streakText}${xpText}`,
       });
       
       return true;
@@ -117,6 +169,7 @@ export function useWellness(userId: string | undefined) {
     isLoading,
     logWellness,
     getAverageCharge,
+    streak,
     refetch: fetchWellnessLogs,
   };
 }
