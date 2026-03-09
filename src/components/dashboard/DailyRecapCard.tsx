@@ -17,8 +17,7 @@ export const DailyRecapCard = ({ userId, rings, completedCount, rowId, existingR
   const [recap, setRecap] = useState<string | null>(existingRecap || null);
   const [loading, setLoading] = useState(false);
 
-  // Don't show until 3+ rings completed
-  if (completedCount < 3 && !recap) return null;
+  const shouldShow = completedCount >= 3 || !!recap;
 
   const generateRecap = async () => {
     if (!userId || !rowId) return;
