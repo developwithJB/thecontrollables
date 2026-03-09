@@ -107,6 +107,9 @@ import { SeasonComplete } from "@/components/SeasonComplete";
 import { useSeason } from "@/hooks/useSeason";
 import { WellnessStreakHistory } from "@/components/experience/WellnessStreakHistory";
 import { StreakCelebration } from "@/components/experience/StreakCelebration";
+import { DashboardModeToggle, type DashboardMode } from "@/components/dashboard/DashboardModeToggle";
+import { CommandModeView } from "@/components/dashboard/CommandModeView";
+import { ControlModeView } from "@/components/dashboard/ControlModeView";
 
 const STREAK_MILESTONE_XP: Record<number, number> = { 7: 50, 14: 100, 30: 200 };
 
