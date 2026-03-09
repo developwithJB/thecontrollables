@@ -1720,6 +1720,14 @@ export type Database = {
         }
       }
       generate_invite_code: { Args: never; Returns: string }
+      get_circle_wellness_streaks: {
+        Args: { p_challenge_id: string }
+        Returns: {
+          display_name: string
+          streak: number
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

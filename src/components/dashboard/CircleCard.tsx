@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Users, Copy, UserPlus, LogOut, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CircleLeaderboard } from "./CircleLeaderboard";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +40,7 @@ interface CircleCardProps {
   showedUpTodayCount: number;
   currentDay: number;
   displayName: string;
+  currentUserId: string;
   currentJourneyId?: string | null;
   isCreatingCircle: boolean;
   isLeavingCircle: boolean;
@@ -50,6 +52,7 @@ interface CircleCardProps {
   joinDialogOpen?: boolean;
   onJoinDialogOpenChange?: (open: boolean) => void;
   initialJoinCode?: string;
+  streakLeaderboard?: { user_id: string; display_name: string | null; streak: number }[];
 }
 
 export function CircleCard({
@@ -58,6 +61,7 @@ export function CircleCard({
   showedUpTodayCount,
   currentDay,
   displayName,
+  currentUserId,
   currentJourneyId,
   isCreatingCircle,
   isLeavingCircle,
@@ -69,6 +73,7 @@ export function CircleCard({
   joinDialogOpen,
   onJoinDialogOpenChange,
   initialJoinCode,
+  streakLeaderboard = [],
 }: CircleCardProps) {
   const { toast } = useToast();
   const [showJoinDialog, setShowJoinDialog] = useState(false);
@@ -239,6 +244,9 @@ export function CircleCard({
             </AlertDialogContent>
           </AlertDialog>
         </div>
+
+        {/* Streak Leaderboard */}
+        <CircleLeaderboard entries={streakLeaderboard} currentUserId={currentUserId} />
       </CardContent>
     </Card>
   );

@@ -285,6 +285,7 @@ export default function Dashboard() {
     myCircle,
     circleMembers,
     showedUpTodayCount,
+    streakLeaderboard,
     createCircle,
     isCreatingCircle,
     joinCircle,
@@ -1206,6 +1207,8 @@ export default function Dashboard() {
                     }
                   }}
                   initialJoinCode={joinCodeFromUrl || undefined}
+                  currentUserId={user.id}
+                  streakLeaderboard={streakLeaderboard}
                 />
               )}
 
