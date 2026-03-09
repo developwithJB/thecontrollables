@@ -241,16 +241,25 @@ const Planner = () => {
               <RotateCcw className="h-4 w-4" />
             </Button>
             {!isMobile && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEditingItem(null);
-                  setEditorOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQuickAddOpen(true)}
+                >
+                  <UtensilsCrossed className="h-4 w-4 mr-1" /> Quick Log
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditingItem(null);
+                    setEditorOpen(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Add
+                </Button>
+              </>
             )}
           </div>
         </div>
