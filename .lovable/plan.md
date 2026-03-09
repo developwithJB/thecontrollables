@@ -1,142 +1,164 @@
 
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-# Upgrade 5 Rings Into Real Problem-Solving Tools
+## Overview
 
-## Summary
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-Replace each ring's simple text prompt with a purpose-built interactive tool. Add 5 new tables for rich data storage. Keep `daily_rings` as the completion anchor. Each ring tool saves structured data to its own table AND marks the ring complete.
+---
 
-## Phase 1 Scope (This Implementation)
+## Part 1: AI Insight Engine
 
-### Database: 5 New Tables
+### New Edge Function: `admin-insights`
 
-```sql
--- 1. Circuit Check entries (Notice ring)
-CREATE TABLE public.notice_entries (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  entry_date date NOT NULL DEFAULT CURRENT_DATE,
-  mood text NOT NULL,          -- 'calm','anxious','frustrated','energized','flat','overwhelmed'
-  energy_level integer NOT NULL, -- 1-5
-  stress_level integer NOT NULL, -- 1-5
-  dominant_emotion text,
-  note text,
-  interpretation text,         -- AI or rule-based reading
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+**File: `supabase/functions/admin-insights/index.ts`**
 
--- 2. Reframe entries (Choose ring)
-CREATE TABLE public.reframe_entries (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  entry_date date NOT NULL DEFAULT CURRENT_DATE,
-  situation text NOT NULL,
-  fear_story text NOT NULL,
-  reframe_what_else text,
-  reframe_teaching text,
-  reframe_best_self text,
-  reframe_love_response text,
-  scenario_tag text,           -- 'work_conflict','feeling_behind','relationship','setback','self_doubt','other'
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
 
--- 3. Proof actions (Prove ring)
-CREATE TABLE public.proof_actions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  action_date date NOT NULL DEFAULT CURRENT_DATE,
-  proof_action text NOT NULL,
-  category text,               -- 'work','fitness','relationships','recovery','discipline'
-  completed boolean NOT NULL DEFAULT false,
-  completed_at timestamptz,
-  reflection text,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
 
--- 4. Recharge logs (Charge ring)
-CREATE TABLE public.recharge_logs (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  log_date date NOT NULL DEFAULT CURRENT_DATE,
-  recharge_type text NOT NULL,  -- 'movement','hydration','sleep','nutrition','sunlight','breathwork','recovery'
-  note text,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+[structured data blob]
 
--- 5. Environment resets (Align ring)
-CREATE TABLE public.environment_resets (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  reset_date date NOT NULL DEFAULT CURRENT_DATE,
-  action_type text NOT NULL,    -- 'clean_space','reduce_distraction','set_boundary','reconnect_person','remove_drain'
-  category text NOT NULL,       -- 'physical_space','people','digital','schedule','boundaries'
-  note text,
-  energizing text,              -- "What is energizing you?"
-  draining text,                -- "What is draining you?"
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+Return insights as structured tool output.
 ```
 
-Each table gets RLS: users can INSERT, SELECT, UPDATE their own rows.
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-### New Components (5 Ring Tools)
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-| Component | Ring | What it does |
-|-----------|------|-------------|
-| `NoticeCheckInCard.tsx` | Notice | Mood selector (6 emoji options), energy slider (1-5), stress slider (1-5), dominant emotion text, optional note. On submit: rule-based interpretation shown ("You may be running on fear" / "You look steady and grounded" / "Low energy detected" / "Mental overload may be building"). Saves to `notice_entries`, completes ring. |
-| `ReframeStudioCard.tsx` | Choose | Step 1: "What happened?" + "What story are you telling yourself?". Step 2: 4 guided reframe fields. Scenario tag selector. Before/after mini-view on completion. Saves to `reframe_entries`, completes ring. |
-| `ProofActionCard.tsx` | Prove | Set one proof action ("What is one action that proves who you are becoming today?"). Category tag. Mark complete with optional reflection. Identity reinforcement copy on completion. Saves to `proof_actions`, completes ring. |
-| `RechargeEngineCard.tsx` | Charge | Grid of 7 recharge action chips (movement, hydration, sleep, nutrition, sunlight, breathwork, recovery). Tap one+ to log. Ring fills on first selection. Saves each to `recharge_logs`, completes ring. If Notice logged low energy, show nudge copy. |
-| `EnvironmentResetCard.tsx` | Align | Action type selector (5 options). Category selector (5 options). Optional note. "What is energizing you?" / "What is draining you?" fields. Saves to `environment_resets`, completes ring. |
+### New Admin Component: AI Insights Panel
 
-### Files to Create
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-| File | Purpose |
-|------|---------|
-| `src/components/dashboard/NoticeCheckInCard.tsx` | Circuit Check tool |
-| `src/components/dashboard/ReframeStudioCard.tsx` | Reframe Studio tool |
-| `src/components/dashboard/ProofActionCard.tsx` | Proof of Self tool |
-| `src/components/dashboard/RechargeEngineCard.tsx` | Recharge Engine tool |
-| `src/components/dashboard/EnvironmentResetCard.tsx` | Environment Reset tool |
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-### Files to Edit
+### Integration into Admin.tsx
 
-| File | Change |
-|------|--------|
-| `src/components/dashboard/RingActionCard.tsx` | Replace inline forms with new tool components. `getEmbeddedTracker` routes each ring key to its dedicated tool component. Remove old `InlineWellnessForm`, `InlineTimeLogForm`, `InlinePromiseReview`, `InlineScreenTimeForm`. |
-| `src/components/dashboard/DailyRings.tsx` | Pass `noticeData` (today's notice entry if exists) to Charge card for low-energy nudge. |
-| `src/hooks/useDailyRings.ts` | Update `RING_DEFINITIONS` prompts/meanings to match new tool language. |
-| `src/components/dashboard/CommandModeView.tsx` | No structural changes needed — rings already handle everything. |
-| DB migration | Create 5 tables + RLS policies. |
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
-### Interpretation Logic (Notice — rule-based, no AI needed)
+---
 
-```
-if stress >= 4 → "Mental overload may be building"
-if energy <= 2 → "Low energy detected — consider recharging"
-if mood in ['anxious','frustrated','overwhelmed'] → "You may be running on fear"
-else → "You look steady and grounded"
-```
+## Part 2: Enhanced Action Center
 
-### Ring Definition Updates
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
 
-| Ring | New meaning | New prompt |
-|------|-------------|-----------|
-| Notice | "Scan your internal system — catch fear circuits before they take over." | "Run a Circuit Check" |
-| Choose | "Reframe the story. Move from fear to love." | "Open the Reframe Studio" |
-| Prove | "One action that proves who you're becoming." | "Set your Proof Action" |
-| Charge | "Recharge your system with one physical win." | "Open the Recharge Engine" |
-| Align | "Shape your environment to support growth." | "Run an Environment Reset" |
+Replace the three "Coming soon" cards with working functionality:
 
-### What Stays Unchanged
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
 
-- `daily_rings` table and `useDailyRings` hook logic (completion tracking)
-- `DailyRecapCard`, `WeeklyRecapCard` (they read from `daily_rings`)
-- `CommandModeView` structure
-- All existing tables (`wellness_logs`, `time_logs`, `completed_actions`, etc.)
-- Control Mode, Experience tab, all other pages
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
 
-### Copy Direction
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
 
-All component copy uses Controllables language: "fear circuits," "love circuits," "Fully Charged," "proof, not theory," "edge out the Ego." Applied sparingly — one phrase per completion, not plastered everywhere.
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
 
+---
+
+## Part 3: Landing Page Updates
+
+**File: `src/pages/Landing.tsx`**
+
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+
+**File: `src/components/landing/FeatureGrid.tsx`**
+
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+
+**File: `src/components/landing/HowItWorksSection.tsx`**
+
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.

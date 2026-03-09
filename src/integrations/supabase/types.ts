@@ -1094,6 +1094,42 @@ export type Database = {
         }
         Relationships: []
       }
+      environment_resets: {
+        Row: {
+          action_type: string
+          category: string
+          created_at: string
+          draining: string | null
+          energizing: string | null
+          id: string
+          note: string | null
+          reset_date: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          category: string
+          created_at?: string
+          draining?: string | null
+          energizing?: string | null
+          id?: string
+          note?: string | null
+          reset_date?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          category?: string
+          created_at?: string
+          draining?: string | null
+          energizing?: string | null
+          id?: string
+          note?: string | null
+          reset_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       financial_accounts: {
         Row: {
           account_name: string
@@ -1490,6 +1526,45 @@ export type Database = {
         }
         Relationships: []
       }
+      notice_entries: {
+        Row: {
+          created_at: string
+          dominant_emotion: string | null
+          energy_level: number
+          entry_date: string
+          id: string
+          interpretation: string | null
+          mood: string
+          note: string | null
+          stress_level: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dominant_emotion?: string | null
+          energy_level: number
+          entry_date?: string
+          id?: string
+          interpretation?: string | null
+          mood: string
+          note?: string | null
+          stress_level: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dominant_emotion?: string | null
+          energy_level?: number
+          entry_date?: string
+          id?: string
+          interpretation?: string | null
+          mood?: string
+          note?: string | null
+          stress_level?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       operator_suggestions: {
         Row: {
           alternate_actions: Json | null
@@ -1838,6 +1913,42 @@ export type Database = {
         }
         Relationships: []
       }
+      proof_actions: {
+        Row: {
+          action_date: string
+          category: string | null
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          proof_action: string
+          reflection: string | null
+          user_id: string
+        }
+        Insert: {
+          action_date?: string
+          category?: string | null
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          proof_action: string
+          reflection?: string | null
+          user_id: string
+        }
+        Update: {
+          action_date?: string
+          category?: string | null
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          proof_action?: string
+          reflection?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth_key: string
@@ -1864,6 +1975,33 @@ export type Database = {
           id?: string
           p256dh_key?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recharge_logs: {
+        Row: {
+          created_at: string
+          id: string
+          log_date: string
+          note: string | null
+          recharge_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          log_date?: string
+          note?: string | null
+          recharge_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          log_date?: string
+          note?: string | null
+          recharge_type?: string
           user_id?: string
         }
         Relationships: []
@@ -1927,6 +2065,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      reframe_entries: {
+        Row: {
+          created_at: string
+          entry_date: string
+          fear_story: string
+          id: string
+          reframe_best_self: string | null
+          reframe_love_response: string | null
+          reframe_teaching: string | null
+          reframe_what_else: string | null
+          scenario_tag: string | null
+          situation: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entry_date?: string
+          fear_story: string
+          id?: string
+          reframe_best_self?: string | null
+          reframe_love_response?: string | null
+          reframe_teaching?: string | null
+          reframe_what_else?: string | null
+          scenario_tag?: string | null
+          situation: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entry_date?: string
+          fear_story?: string
+          id?: string
+          reframe_best_self?: string | null
+          reframe_love_response?: string | null
+          reframe_teaching?: string | null
+          reframe_what_else?: string | null
+          scenario_tag?: string | null
+          situation?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       reset_sessions: {
         Row: {

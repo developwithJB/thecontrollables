@@ -1,18 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDailyRings, RING_DEFINITIONS, type RingKey } from "@/hooks/useDailyRings";
 import { RingActionCard } from "./RingActionCard";
 import { cn } from "@/lib/utils";
 import { DailyRecapCard } from "./DailyRecapCard";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DailyRingsProps {
   userId?: string;
-  // Embedded tracker handlers passed through to RingActionCard
-  onLogWellness?: (sleep: number, movement: number, nutrition: number, notes?: string) => Promise<boolean>;
-  onLogTime?: (data: { invested: number; wasted: number; notes?: string }) => Promise<any>;
-  onLogScreenTime?: (hours: number, category: string) => Promise<void>;
-  pendingPromises?: Array<{ id: string; promise_text: string; promised_at: string }>;
-  onResolvePromise?: (data: { promiseId: string; kept: boolean }) => void;
 }
 
 const RING_CONFIGS = [
@@ -40,21 +35,9 @@ const BG_COLOR_MAP: Record<string, string> = {
 };
 
 function RingSVG({
-  radius,
-  strokeWidth,
-  progress,
-  color,
-  bgColor,
-  onClick,
-  isActive,
+  radius, strokeWidth, progress, color, bgColor, onClick, isActive,
 }: {
-  radius: number;
-  strokeWidth: number;
-  progress: number;
-  color: string;
-  bgColor: string;
-  onClick: () => void;
-  isActive: boolean;
+  radius: number; strokeWidth: number; progress: number; color: string; bgColor: string; onClick: () => void; isActive: boolean;
 }) {
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - progress);
@@ -76,16 +59,28 @@ function RingSVG({
   );
 }
 
-export const DailyRings = ({
-  userId,
-  onLogWellness,
-  onLogTime,
-  onLogScreenTime,
-  pendingPromises,
-  onResolvePromise,
-}: DailyRingsProps) => {
+export const DailyRings = ({ userId }: DailyRingsProps) => {
   const { rings, completedCount, statusLabel, completeRing, isCompleted, loading, definitions, rowId } = useDailyRings(userId);
   const [activeRing, setActiveRing] = useState<RingKey | null>(null);
+  const [lowEnergy, setLowEnergy] = useState(false);
+
+  // Check if today's notice entry has low energy
+  useEffect(() => {
+    if (!userId) return;
+    const todayStr = new Date().toLocaleDateString("sv-SE");
+    const check = async () => {
+      const { data } = await supabase
+        .from("notice_entries" as any)
+        .select("energy_level")
+        .eq("user_id", userId)
+        .eq("entry_date", todayStr)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data && (data as any).energy_level <= 2) setLowEnergy(true);
+    };
+    check();
+  }, [userId, rings.notice_completed]);
 
   if (loading) {
     return (
@@ -191,11 +186,8 @@ export const DailyRings = ({
               definition={definitions.find((d) => d.key === activeRing)!}
               onComplete={(response) => handleComplete(activeRing, response)}
               onDismiss={() => setActiveRing(null)}
-              onLogWellness={onLogWellness}
-              onLogTime={onLogTime}
-              onLogScreenTime={onLogScreenTime}
-              pendingPromises={pendingPromises}
-              onResolvePromise={onResolvePromise}
+              userId={userId}
+              lowEnergy={lowEnergy}
             />
           </motion.div>
         )}
@@ -214,14 +206,14 @@ export const DailyRings = ({
       {/* Motivational footer */}
       {completedCount > 0 && completedCount < 5 && (
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-muted-foreground text-center">
-          {5 - completedCount} ring{5 - completedCount > 1 ? "s" : ""} to go. Small actions. Fully Charged life.
+          {5 - completedCount} ring{5 - completedCount > 1 ? "s" : ""} to go. Small actions, big shifts.
         </motion.p>
       )}
 
       {isFullyCharged && (
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-2">
           <p className="text-sm font-semibold text-accent">🔥 All 5 rings filled. You're Fully Charged today.</p>
-          <p className="text-xs text-muted-foreground mt-1">Your daily actions power your Dashboard.</p>
+          <p className="text-xs text-muted-foreground mt-1">Your daily reps power the whole system.</p>
         </motion.div>
       )}
     </div>
