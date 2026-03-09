@@ -20,6 +20,9 @@ const STREAK_MILESTONES: Record<number, number> = {
   30: 200,
 };
 
+// Milestones that trigger celebration animation
+const CELEBRATION_MILESTONES = [7, 14, 30];
+
 function calculateStreak(logs: WellnessLog[]): number {
   if (logs.length === 0) return 0;
 
@@ -49,7 +52,16 @@ export function useWellness(userId: string | undefined) {
   const [todayLog, setTodayLog] = useState<WellnessLog | null>(null);
   const [recentLogs, setRecentLogs] = useState<WellnessLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hitMilestone, setHitMilestone] = useState<number | null>(null);
   const { toast } = useToast();
+
+  // Auto-reset hitMilestone after 3 seconds
+  useEffect(() => {
+    if (hitMilestone !== null) {
+      const timer = setTimeout(() => setHitMilestone(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [hitMilestone]);
 
   const fetchWellnessLogs = useCallback(async () => {
     if (!userId) return;
@@ -129,6 +141,11 @@ export function useWellness(userId: string | undefined) {
         });
       }
 
+      // Trigger celebration for big milestones (7, 14, 30)
+      if (CELEBRATION_MILESTONES.includes(newStreak)) {
+        setHitMilestone(newStreak);
+      }
+
       const avgRating = ((sleep + movement + nutrition) / 3).toFixed(1);
       const streakText = newStreak > 1 ? ` 🔥 ${newStreak}-day streak!` : "";
       const xpText = milestoneXp ? ` +${milestoneXp} XP bonus` : "";
@@ -170,6 +187,8 @@ export function useWellness(userId: string | undefined) {
     logWellness,
     getAverageCharge,
     streak,
+    hitMilestone,
+    clearMilestone: () => setHitMilestone(null),
     refetch: fetchWellnessLogs,
   };
 }
