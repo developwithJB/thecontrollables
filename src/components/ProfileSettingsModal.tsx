@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { LogOut, Moon, Sun, CreditCard, Mail, Calendar, Bell, Smartphone, Plug } from "lucide-react";
 import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush } from "@/lib/pushNotifications";
 import { HealthDataSync } from "@/components/dashboard/HealthDataSync";
+import { ObservationsSettingsCard } from "@/components/settings/ObservationsSettingsCard";
+import { useObservations } from "@/hooks/useObservations";
 import {
   Dialog,
   DialogContent,
