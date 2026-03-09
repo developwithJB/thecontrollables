@@ -417,12 +417,17 @@ export const CommandModeView = ({
         onChange={handleHealthImport}
       />
 
-      {/* Controllable Hub — always visible as the primary focus section */}
-      <ControllableHub
-        userId={userId}
-        completedCount={completedIds.size}
-        onNavigate={handleHubNavigate}
-      />
+      {/* Daily Rings — the hero of Command Mode */}
+      <DailyRings userId={userId} />
+
+      {/* Controllable Hub — below the rings */}
+      <div className="mt-8">
+        <ControllableHub
+          userId={userId}
+          completedCount={completedIds.size}
+          onNavigate={handleHubNavigate}
+        />
+      </div>
 
       {/* Remaining action cards below the hub */}
       {wrappedAction && (
