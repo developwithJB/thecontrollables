@@ -1317,7 +1317,7 @@ export default function Dashboard() {
                       </p>
 
                       {/* 2x2 Grid - compact state indicators */}
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                         {/* Top-left: Your Build */}
                         {buildLoading ? (
                           <SmallModuleSkeleton />
