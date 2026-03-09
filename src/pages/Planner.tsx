@@ -320,6 +320,7 @@ const Planner = () => {
           <PlannerDayView
             date={selectedDate}
             items={dayItems}
+            activityItems={dayActivity}
             onToggleStatus={handleToggleStatus}
             onEdit={handleEdit}
             onDelete={handleDelete}
