@@ -45,35 +45,16 @@ export const FocusedActionCard = ({
   onTellMore,
   isExpanded,
   children,
+  userId,
+  onNavigate,
 }: FocusedActionCardProps) => {
   if (!action) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-col items-center justify-center py-16 text-center"
-      >
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", delay: 0.2 }}
-          className="w-16 h-16 rounded-full bg-perspective/20 flex items-center justify-center mb-4"
-        >
-          <Check className="w-8 h-8 text-perspective" />
-        </motion.div>
-        <h2 className="font-display text-xl font-semibold text-foreground mb-2">
-          You're caught up.
-        </h2>
-        <p className="text-sm text-muted-foreground max-w-xs">
-          Nothing needs your attention right now. Come back later or switch to All mode to explore.
-        </p>
-        {completedCount > 0 && (
-          <div className="flex items-center gap-1 mt-4 text-xs text-muted-foreground">
-            <Zap className="w-3 h-3 text-accent" />
-            {completedCount} action{completedCount !== 1 ? "s" : ""} completed today
-          </div>
-        )}
-      </motion.div>
+      <ControllableHub
+        userId={userId}
+        completedCount={completedCount}
+        onNavigate={onNavigate}
+      />
     );
   }
 
