@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import { FocusedActionCard, type FocusedAction } from "./FocusedActionCard";
+import { ControllableHub } from "./ControllableHub";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
