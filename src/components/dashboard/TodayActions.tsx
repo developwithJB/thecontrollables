@@ -140,11 +140,6 @@ export function TodayActions({
     new Date(buildLastUpdatedAt).toLocaleDateString("sv-SE") === todayLocal;
   const reviewBuildCompleted = reviewBuildDoneToday || buildUpdatedToday;
 
-  // Day 5 "Ask The Controllables" completion: treat as complete if user sent a message today
-  const askGuideStorageKey = userId
-    ? `today_actions_ask_guide_${userId}_${todayLocal}`
-    : null;
-  const [askGuideDoneToday, setAskGuideDoneToday] = useState(false);
 
   // Journey action completion tracking
   const journeyActionKey = userId && journeyId
