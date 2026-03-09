@@ -943,8 +943,7 @@ export default function Dashboard() {
                   wellnessLoggedToday={wellnessLogs.some(
                     (l) => l.log_date === new Date().toLocaleDateString("sv-SE")
                   )}
-                  askGuideCompleted={askGuideCompletedToday}
-                  pendingPromises={pendingPromises.map((p) => ({ id: p.id, promise_text: p.promise_text, promised_at: p.promised_at }))}
+                   pendingPromises={pendingPromises.map((p) => ({ id: p.id, promise_text: p.promise_text, promised_at: p.promised_at }))}
                   onLogTime={handleLogTime}
                   onLogWellness={logWellness}
                   onResolvePromise={handleResolvePromise}
