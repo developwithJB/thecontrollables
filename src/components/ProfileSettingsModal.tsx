@@ -419,6 +419,19 @@ export function ProfileSettingsModal({
             {/* Divider */}
             <div className="border-t border-border" />
 
+            {/* Integrations */}
+            <Button
+              variant="outline"
+              onClick={() => {
+                onOpenChange(false);
+                navigate("/integrations");
+              }}
+              className="w-full"
+            >
+              <Plug className="w-4 h-4 mr-2" />
+              Integrations
+            </Button>
+
             {/* Billing */}
             <Button
               variant="outline"
