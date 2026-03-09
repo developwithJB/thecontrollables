@@ -1,164 +1,104 @@
 
-# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-## Overview
+# Responsive Layout Overhaul — Desktop, Tablet, and Large Screen Support
 
-Three interconnected deliverables:
-1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
-2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
-3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
+## Problem
 
----
+Every page and component uses `max-w-md` (448px) as its container width. On anything larger than a phone, this creates a narrow strip of content floating in empty space. The app looks broken on tablets, laptops, and especially large screens / smart displays.
 
-## Part 1: AI Insight Engine
+## Strategy
 
-### New Edge Function: `admin-insights`
+Rather than redesigning every component, we make the **container widths responsive** and add **multi-column layouts at breakpoints** where cards can flow side-by-side. The mobile experience stays identical.
 
-**File: `supabase/functions/admin-insights/index.ts`**
+### Breakpoint Tiers
 
-This function:
-1. Verifies the caller is an admin (same pattern as `admin-analytics`)
-2. Queries aggregated metrics from the last 7 days using the service role client:
-   - `app_events` grouped by `event_name` and day-of-week
-   - `completed_actions` grouped by `controllable`
-   - `daily_resets` count per user (for retention correlation)
-   - `reset_sessions` completion rates
-   - `user_entitlements` conversion data
-   - `user_onboarding` activation delays
-3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
-   - 3 behavioral insights
-   - 2 retention risks
-   - 2 growth opportunities
-   - 1 experiment recommendation
-4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
-5. Returns the insights directly (no caching table needed initially -- can add later)
+| Breakpoint | Width | Layout |
+|---|---|---|
+| Mobile (default) | < 768px | Single column, current behavior |
+| Tablet (`md`) | 768px–1279px | Wider container, 2-column card grid |
+| Desktop (`lg`) | 1280px–1919px | Sidebar nav + 2-col content area |
+| Large/TV (`xl`) | 1920px+ | 3-column dashboard, bigger type |
 
-**Prompt structure:**
-```
-You are a product analytics advisor for a personal growth app called The Controllables.
-Given the following 7-day metrics, generate actionable insights.
+## Changes
 
-[structured data blob]
+### 1. Dashboard Page (`src/pages/Dashboard.tsx`)
 
-Return insights as structured tool output.
-```
+**Header / Tab bar / Main / Footer**: Replace all `max-w-md` with `max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl`.
 
-**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+**Dashboard tab content**: Wrap the card stack in a responsive grid:
+- Mobile: single column (`space-y-4`)
+- Tablet: `md:grid md:grid-cols-2 md:gap-4` — cards flow into two columns
+- Desktop: `lg:grid-cols-3` — three columns for information-dense view
 
-**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+Group cards into "primary" (Today Actions, Daily OS, Greeting) that span full width, and "secondary" (Planner, Money, Wellness, Brain/Body, etc.) that fill the grid.
 
-### New Admin Component: AI Insights Panel
+**Experience tab**: Similar 2-col grid for history cards at `md`.
 
-**File: `src/components/admin/AIInsightsPanel.tsx`**
+**Insights 2x2 grid**: Already grid-cols-2; at `lg` expand to grid-cols-4 (all four modules in one row).
 
-- A card with "Weekly Intelligence" header and a "Generate Insights" button
-- On click, calls the `admin-insights` edge function
-- Displays results in categorized sections:
-  - Behavioral Insights (brain icon, blue accent)
-  - Retention Risks (alert icon, amber accent)
-  - Growth Opportunities (trending-up icon, green accent)
-  - Experiment Recommendation (flask icon, purple accent)
-- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
-- Loading state with skeleton cards
-- Error state with retry button
-- "Last generated" timestamp display
+### 2. Landing Page (`src/pages/Landing.tsx`)
 
-### Integration into Admin.tsx
+- Nav: `max-w-md md:max-w-3xl lg:max-w-5xl`
+- Hero section: wider container, larger text at `md` and `lg` (`md:text-4xl lg:text-5xl`)
+- Controllables grid: stays 2-col on mobile, becomes `md:grid-cols-3 lg:grid-cols-5` (all five in one row on desktop)
+- Remove the awkward centered 5th card — at `md+` all five fit in one row
 
-- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
-- The tab renders `<AIInsightsPanel />`
+### 3. Landing Sub-Sections
 
----
+**`HowItWorksSection.tsx`**, **`FeatureGrid.tsx`**, **`WhyStartSection.tsx`**, **`PhilosophySection.tsx`**, **`TrustDisclosure.tsx`**: Replace `max-w-md` with `max-w-md md:max-w-3xl lg:max-w-5xl`.
 
-## Part 2: Enhanced Action Center
+**FeatureGrid**: Items go `md:grid-cols-2 lg:grid-cols-3` instead of stacked.
 
-**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
+### 4. Money Page (`src/pages/Money.tsx`)
 
-Replace the three "Coming soon" cards with working functionality:
+Replace `max-w-lg` with `max-w-lg md:max-w-4xl lg:max-w-6xl`. Tab content areas use `md:grid md:grid-cols-2 md:gap-4` where applicable (e.g., overview + controllables side by side, bills + subscriptions side by side).
 
-### A. Send Nudge Campaign
-- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
-- Confirmation dialog before sending
-- Calls the existing `send-daily-nudge` edge function for each selected user
-- Shows progress and results
+### 5. Planner Page (`src/pages/Planner.tsx`)
 
-### B. Grant Trial Extension
-- Search for a specific user by email
-- Set extension duration (7 days, 14 days, 30 days)
-- Calls `admin-users?action=grant_access` with an `expires_at` parameter
-- Confirmation toast on success
+Already has a week grid view. At `lg+`, give the day view and week grid more horizontal room by widening the container.
 
-### C. Export with More Segments
-- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
-- Risk tier data fetched from `admin-analytics?resource=retention_radar`
-- CSV includes: email, signup date, last active, risk tier, paid status, source
+### 6. Integrations Page (`src/pages/Integrations.tsx`)
 
-### D. Quick Stats Bar
-- Show counts above the action cards: Total Users, Free, Paid, At Risk
-- Derived from the `users` prop already passed in
+Provider card grid: `md:grid-cols-2 lg:grid-cols-4` so all four providers show in one row on desktop.
 
----
+### 7. Auth Page
 
-## Part 3: Landing Page Updates
+Widen auth container slightly at `md` for a more balanced look.
 
-**File: `src/pages/Landing.tsx`**
+### 8. Global CSS / Tailwind Config
 
-Update the hero copy to reflect the free trial:
-- Change hero tagline to emphasize "Try the full experience free for 7 days"
-- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
-- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+No config changes needed — standard Tailwind breakpoints are sufficient.
 
-**File: `src/components/landing/FeatureGrid.tsx`**
+### 9. Typography Scaling
 
-- Update the Free/Premium labeling:
-  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
-  - "Experience History" -- add "Free during trial" badge
-  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+Add responsive text sizes to key headings:
+- Hero: `text-2xl md:text-4xl lg:text-5xl`
+- Section headings: `text-xl md:text-2xl`
+- Body/descriptions: `text-sm md:text-base`
 
-**File: `src/components/landing/HowItWorksSection.tsx`**
+This ensures large screens don't feel like zoomed-in phone screens.
 
-- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+## Files to Modify
 
----
+| File | Change |
+|---|---|
+| `src/pages/Dashboard.tsx` | Responsive containers + multi-column card grid |
+| `src/pages/Landing.tsx` | Wider hero, responsive controllables grid |
+| `src/components/landing/HowItWorksSection.tsx` | Wider container + grid |
+| `src/components/landing/FeatureGrid.tsx` | Wider container + multi-col grid |
+| `src/components/landing/WhyStartSection.tsx` | Wider container |
+| `src/components/landing/PhilosophySection.tsx` | Wider container |
+| `src/components/landing/TrustDisclosure.tsx` | Wider container |
+| `src/pages/Money.tsx` | Wider container + 2-col tab content |
+| `src/pages/Planner.tsx` | Wider container |
+| `src/pages/Integrations.tsx` | Responsive provider grid |
+| `src/pages/Auth.tsx` | Slightly wider at md |
 
-## Part 4: README Update
+## Design Principles
 
-**File: `README.md`**
+- Mobile layout is untouched — no regression risk
+- Cards themselves don't need internal redesign; they already use relative widths
+- The grid system handles distribution automatically
+- Large screens show more information density, not just bigger whitespace
+- Smart display / kitchen TV use case benefits from the 3-col layout with larger text
 
-Update to v1.5.0 reflecting all recent changes:
-
-1. **Version bump**: `v1.4.1` to `v1.5.0`
-2. **New section: "Admin Command Center"** after Technical Reference:
-   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
-   - Mention the `admin-analytics` and `admin-insights` edge functions
-   - Document the AI Insight Engine capability
-3. **Update "Free vs. Premium" table**:
-   - Add "7-Day Free Trial" row explaining full access during first Snapshot
-   - Update AI Guide from "---" to "5 msgs/day during trial"
-   - Update Experience History from "---" to "During trial"
-4. **Update Backend Functions table**:
-   - Add `admin-analytics` -- Admin data aggregation and executive metrics
-   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
-5. **Update Key Data Tables**:
-   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
-   - Add `ai_usage_logs` -- Daily AI message tracking
-6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
-
----
-
-## Technical Summary
-
-| File | Change | Type |
-|------|--------|------|
-| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
-| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
-| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
-| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
-| `src/pages/Admin.tsx` | Add Insights tab | Edit |
-| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
-| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
-| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
-| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
-| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
-
-No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
