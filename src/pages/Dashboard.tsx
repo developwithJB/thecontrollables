@@ -1117,10 +1117,6 @@ export default function Dashboard() {
                 <WellnessGoalsCard userId={user.id} />
               )}
 
-              {/* Weekly Wellness Report */}
-              {user?.id && (
-                <WeeklyWellnessReport userId={user.id} />
-              )}
 
               {user?.id && !entitlementsLoading && (
                 <MealPlanCard
