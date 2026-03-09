@@ -211,43 +211,46 @@ const Planner = () => {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col relative">
+      <div className="fixed inset-0 grid-bg pointer-events-none opacity-20" />
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-lg font-semibold">Planner</h1>
-          <span className="text-xs text-muted-foreground">
-            {format(weekRange.days[0], "MMM d")} – {format(weekRange.days[6], "MMM d")}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant={showPvA ? "default" : "ghost"}
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setShowPvA((v) => !v)}
-            title="Plan vs Actual"
-          >
-            <BarChart3 className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRoutineManagerOpen(true)}>
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-          {!isMobile && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setEditingItem(null);
-                setEditorOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4 mr-1" /> Add
+      <div className="os-header">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/dashboard")}>
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-          )}
+            <h1 className="text-lg font-display font-semibold">Planner</h1>
+            <span className="text-xs text-muted-foreground font-mono">
+              {format(weekRange.days[0], "MMM d")} – {format(weekRange.days[6], "MMM d")}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant={showPvA ? "default" : "ghost"}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setShowPvA((v) => !v)}
+              title="Plan vs Actual"
+            >
+              <BarChart3 className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRoutineManagerOpen(true)}>
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+            {!isMobile && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setEditingItem(null);
+                  setEditorOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

@@ -1,184 +1,164 @@
 
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-# Full Page Audit + Futuristic "Life OS" Visual Overhaul
+## Overview
 
-## Page Audit — Keep, Merge, or Cut
-
-| Page | Verdict | Reason |
-|------|---------|--------|
-| **Landing** (`/`) | **KEEP** — Redesign | Conversion page. Needs futuristic premium feel instead of generic SaaS. |
-| **Auth** (`/auth`) | **KEEP** — Restyle | Essential. Desktop split-panel is good. Needs glassmorphism treatment. |
-| **QuickStart** (`/quick-start`) | **KEEP** | Pre-auth onboarding funnel, feature-flagged. Light restyle only. |
-| **Dashboard** (`/dashboard`) | **KEEP** — Major restyle | Core hub. 1800 lines, too sprawling but functionally correct. Needs futuristic card system and tighter visual hierarchy. |
-| **Reset** (`/reset`) | **KEEP** | 7-day Snapshot ritual — unique to the product. Restyle cards. |
-| **Planner** (`/planner`) | **KEEP** | Core Life OS module. Restyle header + cards. |
-| **Money** (`/money`) | **KEEP** | Core Life OS module. Restyle header + cards. |
-| **Integrations** (`/integrations`) | **MERGE into Dashboard Settings** | Only 4 providers. Low usage standalone page. Move into Profile Settings modal as a tab. |
-| **Operator** (`/operator`) | **MERGE into Dashboard** | Already have `OperatorConsole` inline on Dashboard. Standalone page is redundant — remove route. |
-| **Billing** (`/billing`) | **KEEP** — Restyle | Needed for subscription management. Light glassmorphism pass. |
-| **Admin** (`/admin`) | **KEEP** | Internal tool. No visual changes needed. |
-| **NotFound** | **KEEP** | Restyle to match new theme. |
-
-**Result: Remove 2 routes** (`/integrations`, `/operator`), move their functionality inline.
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
 ---
 
-## Futuristic Design System — "Cockpit OS" Theme
+## Part 1: AI Insight Engine
 
-The visual overhaul centers on making the app feel like a premium, dark-first operating system — something between Arc browser, Linear, and a Tesla dashboard.
+### New Edge Function: `admin-insights`
 
-### Design Tokens (CSS Variables)
+**File: `supabase/functions/admin-insights/index.ts`**
 
-Update `src/index.css` dark theme to be the **default** and make it feel premium:
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
 
-- **Background**: Near-black with subtle blue undertone (`222 47% 5%`)
-- **Cards**: Glassmorphic panels with `backdrop-blur-xl`, subtle gradient borders, and faint inner glow
-- **Accent**: Shift from flat blue to an electric cyan-to-blue gradient
-- **Borders**: Replace solid borders with gradient borders using `border-image` or pseudo-elements
-- **Typography**: Add monospace font (`JetBrains Mono`) for data/numbers alongside existing Space Grotesk
-- **Shadows**: Replace box-shadows with colored glow effects (`0 0 30px hsl(accent/0.15)`)
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
 
-### New CSS Utilities
+[structured data blob]
 
-```css
-/* Glassmorphic card */
-.glass-card {
-  background: hsl(var(--card) / 0.6);
-  backdrop-filter: blur(20px);
-  border: 1px solid hsl(var(--border) / 0.3);
-  box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.05),
-              0 0 30px -10px hsl(var(--accent) / 0.1);
-}
-
-/* Gradient border effect */
-.gradient-border {
-  position: relative;
-  border: 1px solid transparent;
-  background-clip: padding-box;
-}
-.gradient-border::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: linear-gradient(135deg, hsl(var(--accent) / 0.3), transparent 60%);
-  z-index: -1;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  padding: 1px;
-}
-
-/* Stat number styling */
-.stat-value {
-  font-family: 'JetBrains Mono', monospace;
-  letter-spacing: -0.02em;
-}
+Return insights as structured tool output.
 ```
 
-### Tailwind Config Additions
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-Add to `tailwind.config.ts`:
-- New keyframe: `glow-pulse` — subtle accent glow that breathes
-- New keyframe: `scan-line` — horizontal light sweep across cards on load
-- New animation utilities for both
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
----
+### New Admin Component: AI Insights Panel
 
-## Specific Page Changes
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-### 1. Landing Page — Premium Conversion
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-- Replace flat white hero with dark gradient + animated mesh/grid background (CSS only, no canvas)
-- Controllable cards: glass panels with colored accent glow per controllable
-- CTA button: gradient background with glow shadow, subtle pulse animation
-- "How it Works" section: numbered steps with a vertical glowing line connector
-- Add subtle grid pattern overlay to background sections
+### Integration into Admin.tsx
 
-### 2. Dashboard — Command Center
-
-- **Header**: Glass panel with blur, thin gradient bottom border
-- **Tab bar**: Replace pill buttons with underline-style tabs that have a glowing accent indicator
-- **Command Mode rings**: Add radial gradient glow behind the ring SVG
-- **Ring action cards**: Glass cards with left accent border that pulses when actionable
-- **Daily/Weekly recap**: Dark glass card with accent top border gradient
-- **Control Mode grid**: Cards get glass treatment + subtle scan-line animation on mount
-
-### 3. Auth Page
-
-- Left branding panel: animated gradient mesh background instead of flat primary color
-- Right form panel: glass card floating on dark background
-- Input fields: dark background with subtle inner glow on focus
-
-### 4. Planner
-
-- Header: glass panel matching dashboard
-- Day view items: glass cards with status-colored left border
-- Activity items: keep transparency system, add glow to confirmed items
-- FAB: gradient background with glow shadow
-
-### 5. Money Hub
-
-- Tab system: match dashboard underline style
-- Overview cards: glass panels with colored accent per category
-- Transaction rows: subtle hover glow
-
-### 6. NotFound
-
-- Dark background with large glowing "404" in accent color
-- Subtle grid pattern background
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
 ---
 
-## Integrations Merge
+## Part 2: Enhanced Action Center
 
-Move provider cards into `ProfileSettingsModal.tsx` as a new "Connections" tab. Reuse existing `ProviderCard` component. Remove `/integrations` route and page file.
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
 
-## Operator Merge
+Replace the three "Coming soon" cards with working functionality:
 
-Already inline via `OperatorConsole` on the Dashboard. Remove `/operator` route and page file. Update any `navigate("/operator")` calls to scroll to the console section.
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
+
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
+
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
+
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
 
 ---
 
-## Files to Create
+## Part 3: Landing Page Updates
 
-| File | Purpose |
-|------|---------|
-| None | All changes are to existing files + CSS |
+**File: `src/pages/Landing.tsx`**
 
-## Files to Edit
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
 
-| File | Change |
-|------|--------|
-| `src/index.css` | New dark-first tokens, glass utilities, gradient borders, glow animations, grid pattern |
-| `tailwind.config.ts` | New keyframes (glow-pulse, scan-line), font family for mono |
-| `index.html` | Add JetBrains Mono font link |
-| `src/App.tsx` | Remove `/integrations` and `/operator` routes |
-| `src/pages/Landing.tsx` | Dark hero, glass controllable cards, glowing CTA, grid background |
-| `src/pages/Auth.tsx` | Glass form card, gradient mesh branding panel |
-| `src/pages/Dashboard.tsx` | Glass header/tabs, remove Integrations nav link, remove Operator nav |
-| `src/pages/Planner.tsx` | Glass header + cards |
-| `src/pages/Money.tsx` | Glass header + tab restyle |
-| `src/pages/Billing.tsx` | Glass card treatment |
-| `src/pages/NotFound.tsx` | Dark glowing 404 |
-| `src/components/ProfileSettingsModal.tsx` | Add "Connections" tab with provider cards |
-| `src/components/dashboard/CommandModeView.tsx` | Glass ring area, glow effects |
-| `src/components/dashboard/DailyRings.tsx` | Radial glow behind ring SVG |
-| `src/components/dashboard/RingActionCard.tsx` | Glass card + pulse border |
-| `src/components/dashboard/DailyRecapCard.tsx` | Glass + gradient top border |
-| `src/components/dashboard/WeeklyRecapCard.tsx` | Glass + gradient top border |
-| `src/components/planner/PlannerDayView.tsx` | Glass card items |
-| `src/components/planner/ActivityItemRow.tsx` | Glow on confirmed items |
-| `src/components/planner/PlannerFab.tsx` | Gradient + glow |
-| `src/components/ui/card.tsx` | Add `glass` variant |
-| `src/components/ui/button.tsx` | Add `glow` variant |
+**File: `src/components/landing/FeatureGrid.tsx`**
 
-## Implementation Order
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
 
-1. CSS foundation (tokens, utilities, animations) — everything cascades from this
-2. Landing page — first impression
-3. Auth page — second touchpoint
-4. Dashboard (header, tabs, Command Mode) — daily driver
-5. Planner + Money — secondary modules
-6. Merge Integrations + remove Operator route
-7. Billing + NotFound — cleanup
+**File: `src/components/landing/HowItWorksSection.tsx`**
 
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
