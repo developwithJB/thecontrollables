@@ -352,10 +352,21 @@ const Planner = () => {
       {/* FAB for mobile */}
       {isMobile && (
         <PlannerFab
-          onClick={() => {
+          onAddTask={() => {
             setEditingItem(null);
             setEditorOpen(true);
           }}
+          onQuickAdd={() => setQuickAddOpen(true)}
+        />
+      )}
+
+      {/* Quick add sheet */}
+      {user && (
+        <QuickAddSheet
+          open={quickAddOpen}
+          onClose={() => setQuickAddOpen(false)}
+          userId={user.id}
+          selectedDate={selectedDateKey}
         />
       )}
 
