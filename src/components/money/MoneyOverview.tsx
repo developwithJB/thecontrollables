@@ -2,6 +2,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import type { FinancialAccount, RecurringBill, Subscription, SavingsGoal } from "@/hooks/useMoney";
 
+function parseDateLocal(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function computeNextBillingDate(startDate: string, cycle: string): Date {
+  const [y, m, d] = startDate.split("-").map(Number);
+  let next = new Date(y, m - 1, d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  while (next <= today) {
+    if (cycle === "yearly") next.setFullYear(next.getFullYear() + 1);
+    else next.setMonth(next.getMonth() + 1);
+  }
+  return next;
+}
+
 interface MoneyOverviewProps {
   accounts: FinancialAccount[];
   bills: RecurringBill[];
@@ -42,11 +59,15 @@ export function MoneyOverview({ accounts, bills, subscriptions, goals }: MoneyOv
 
   const upcomingSubs = subscriptions
     .filter((s) => {
-      const nextDate = new Date(s.next_billing_date);
+      const nextDate = computeNextBillingDate(s.next_billing_date, s.billing_cycle || "monthly");
       const diffDays = Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       return diffDays >= 0 && diffDays <= 14;
     })
-    .sort((a, b) => new Date(a.next_billing_date).getTime() - new Date(b.next_billing_date).getTime());
+    .sort((a, b) => {
+      const aNext = computeNextBillingDate(a.next_billing_date, a.billing_cycle || "monthly");
+      const bNext = computeNextBillingDate(b.next_billing_date, b.billing_cycle || "monthly");
+      return aNext.getTime() - bNext.getTime();
+    });
 
   return (
     <div className="space-y-4">
@@ -99,11 +120,11 @@ export function MoneyOverview({ accounts, bills, subscriptions, goals }: MoneyOv
       {/* Cashflow calendar - upcoming */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Coming Up This Week</CardTitle>
+          <CardTitle className="text-sm font-medium">Coming Up</CardTitle>
         </CardHeader>
         <CardContent>
           {upcomingBills.length === 0 && upcomingSubs.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-2">Nothing due this week — you're ahead of it.</p>
+            <p className="text-sm text-muted-foreground py-2">Nothing due soon — you're ahead of it.</p>
           ) : (
             <div className="space-y-2">
               {upcomingBills.map((bill) => (
@@ -115,15 +136,20 @@ export function MoneyOverview({ accounts, bills, subscriptions, goals }: MoneyOv
                   <span className="text-sm font-medium text-foreground">${Number(bill.amount).toFixed(2)}</span>
                 </div>
               ))}
-              {upcomingSubs.map((sub) => (
-                <div key={sub.id} className="flex items-center justify-between py-1.5">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{sub.service_name}</p>
-                    <p className="text-xs text-muted-foreground">Renews {new Date(sub.next_billing_date).toLocaleDateString()}</p>
+              {upcomingSubs.map((sub) => {
+                const nextDate = computeNextBillingDate(sub.next_billing_date, sub.billing_cycle || "monthly");
+                return (
+                  <div key={sub.id} className="flex items-center justify-between py-1.5">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{sub.service_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Renews {nextDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </p>
+                    </div>
+                    <span className="text-sm font-medium text-foreground">${Number(sub.amount).toFixed(2)}</span>
                   </div>
-                  <span className="text-sm font-medium text-foreground">${Number(sub.amount).toFixed(2)}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
