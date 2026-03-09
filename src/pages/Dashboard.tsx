@@ -139,32 +139,6 @@ export default function Dashboard() {
   const buildRef = useRef<BuildOverviewModuleHandle>(null);
   const aiGuidePanelRef = useRef<AIGuidePanelHandle>(null);
   
-  // Track when user sends a message to The Controllables today (for Today Actions completion)
-  const todayLocal = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD (local)
-  const askGuideStorageKey = user?.id ? `today_actions_ask_guide_${user.id}_${todayLocal}` : null;
-  const [askGuideCompletedToday, setAskGuideCompletedToday] = useState(false);
-  
-  // Read initial value from localStorage
-  useEffect(() => {
-    if (!askGuideStorageKey) return;
-    try {
-      setAskGuideCompletedToday(localStorage.getItem(askGuideStorageKey) === "1");
-    } catch {
-      // ignore
-    }
-  }, [askGuideStorageKey]);
-  
-  // Handler to mark ask guide as completed
-  const handleAskGuideMessageSent = useCallback(() => {
-    if (askGuideStorageKey) {
-      try {
-        localStorage.setItem(askGuideStorageKey, "1");
-      } catch {
-        // ignore
-      }
-    }
-    setAskGuideCompletedToday(true);
-  }, [askGuideStorageKey]);
   
   // Track dashboard visits for conditional microcopy placement
   const dashboardVisitCount = useDashboardVisitCount();
