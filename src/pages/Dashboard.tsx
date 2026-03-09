@@ -102,6 +102,10 @@ import { useCircle } from "@/hooks/useCircle";
 import { SeasonBanner } from "@/components/dashboard/SeasonBanner";
 import { SeasonComplete } from "@/components/SeasonComplete";
 import { useSeason } from "@/hooks/useSeason";
+import { WellnessStreakHistory } from "@/components/experience/WellnessStreakHistory";
+import { StreakCelebration } from "@/components/experience/StreakCelebration";
+
+const STREAK_MILESTONE_XP: Record<number, number> = { 7: 50, 14: 100, 30: 200 };
 
 type TabType = "dashboard" | "experience" | "guide";
 
