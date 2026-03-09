@@ -61,6 +61,7 @@ export function CircleCard({
   showedUpTodayCount,
   currentDay,
   displayName,
+  currentUserId,
   currentJourneyId,
   isCreatingCircle,
   isLeavingCircle,
@@ -72,6 +73,7 @@ export function CircleCard({
   joinDialogOpen,
   onJoinDialogOpenChange,
   initialJoinCode,
+  streakLeaderboard = [],
 }: CircleCardProps) {
   const { toast } = useToast();
   const [showJoinDialog, setShowJoinDialog] = useState(false);
