@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        mono: ["'JetBrains Mono'", "'Fira Code'", "monospace"],
+        display: ["'Space Grotesk'", "system-ui", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -65,44 +69,44 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
         "pulse-glow": {
           "0%, 100%": {
-            boxShadow: "0 0 8px rgba(102, 189, 239, 0.3)",
+            boxShadow: "0 0 8px hsl(199 78% 55% / 0.3)",
           },
           "50%": {
-            boxShadow: "0 0 16px rgba(102, 189, 239, 0.5)",
+            boxShadow: "0 0 20px hsl(199 78% 55% / 0.5)",
           },
         },
         "micro-bounce": {
-          "0%, 100%": {
-            transform: "translateY(0)",
-          },
-          "50%": {
-            transform: "translateY(-2px)",
-          },
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-2px)" },
         },
         "shimmer": {
-          "0%": {
-            backgroundPosition: "-200% 0",
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        "glow-pulse": {
+          "0%, 100%": {
+            boxShadow: "0 0 12px hsl(199 78% 55% / 0.15)",
           },
-          "100%": {
-            backgroundPosition: "200% 0",
+          "50%": {
+            boxShadow: "0 0 28px hsl(199 78% 55% / 0.35)",
           },
+        },
+        "scan-line": {
+          "0%": { left: "-100%" },
+          "100%": { left: "200%" },
+        },
+        "mesh-drift": {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
         },
       },
       animation: {
@@ -111,6 +115,9 @@ export default {
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         "micro-bounce": "micro-bounce 0.3s ease-out",
         "shimmer": "shimmer 2s linear infinite",
+        "glow-pulse": "glow-pulse 3s ease-in-out infinite",
+        "scan-line": "scan-line 3s ease-in-out",
+        "mesh-drift": "mesh-drift 8s ease-in-out infinite",
       },
     },
   },
