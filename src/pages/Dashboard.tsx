@@ -1118,6 +1118,10 @@ export default function Dashboard() {
                 <WellnessGoalsCard userId={user.id} />
               )}
 
+              {/* Today's Plan */}
+              {user?.id && (
+                <PlannerCard userId={user.id} />
+              )}
 
               {user?.id && !entitlementsLoading && (
                 <MealPlanCard
