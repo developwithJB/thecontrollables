@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { FocusedActionCard, type FocusedAction } from "./FocusedActionCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,14 @@ import {
   Battery,
   Check,
   X,
+  HeartPulse,
+  Smartphone,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 // Sample meals for the swiper — in production these come from AI/recipe library
 const SAMPLE_MEALS: SwipeMeal[] = [
@@ -179,6 +185,7 @@ const InlinePromiseReview = ({ promises, onResolve, onDone }: { promises: Array<
 };
 
 export const CommandModeView = ({
+  userId,
   hasActiveSession,
   todayResetCompleted,
   todayTimeLogged,
@@ -331,6 +338,10 @@ export const CommandModeView = ({
 
   const [showMealSwiper, setShowMealSwiper] = useState(false);
   const [acceptedMeals, setAcceptedMeals] = useState<SwipeMeal[]>([]);
+  const [showScreenTimeForm, setShowScreenTimeForm] = useState(false);
+  const [isImportingHealth, setIsImportingHealth] = useState(false);
+  const healthFileRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const handleMealAccept = useCallback((meal: SwipeMeal) => {
     setAcceptedMeals((prev) => [...prev, meal]);
@@ -338,12 +349,68 @@ export const CommandModeView = ({
   const handleMealReject = useCallback((_meal: SwipeMeal) => {}, []);
   const handleMealSave = useCallback((_meal: SwipeMeal) => {}, []);
 
+  // Health data import handler
+  const handleHealthImport = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+    setIsImportingHealth(true);
+    try {
+      const text = await file.text();
+      const { data, error } = await supabase.functions.invoke("parse-health-export", {
+        body: { xml: text },
+      });
+      if (error) throw error;
+      toast({ title: "Health data imported", description: `${data?.records_imported ?? 0} records processed.` });
+    } catch (err) {
+      console.error("Health import error:", err);
+      toast({ title: "Import failed", description: "Could not parse health data. Make sure it's an Apple Health XML export.", variant: "destructive" });
+    } finally {
+      setIsImportingHealth(false);
+      if (healthFileRef.current) healthFileRef.current.value = "";
+    }
+  }, [userId, toast]);
+
+  // Screen time manual entry
+  const handleScreenTimeSave = useCallback(async (hours: number, category: string) => {
+    if (!userId) return;
+    try {
+      await supabase.from("health_sync_data").insert({
+        user_id: userId,
+        sync_date: new Date().toLocaleDateString("sv-SE"),
+        source: "screentime",
+        raw_data: { hours, category },
+        active_minutes: Math.round(hours * 60),
+      });
+      toast({ title: "Screen time logged", description: `${hours}h of ${category} recorded.` });
+      setShowScreenTimeForm(false);
+    } catch {
+      toast({ title: "Error", description: "Could not save screen time.", variant: "destructive" });
+    }
+  }, [userId, toast]);
+
+  // Navigation handler for ControllableHub chat
+  const handleHubNavigate = useCallback((destination: string) => {
+    const routes: Record<string, () => void> = {
+      reset: onOpenReset,
+      wellness: onOpenWellness,
+      time: onOpenTimeLog,
+      promises: onOpenPromises,
+      meals: onOpenMealPlan,
+      planner: onOpenPlanner,
+      money: onOpenMoney,
+      build: onOpenBuild,
+      guide: onOpenAIGuide,
+    };
+    const handler = routes[destination];
+    if (handler) { handler(); } else { onSwitchToControl(); }
+  }, [onOpenReset, onOpenWellness, onOpenTimeLog, onOpenPromises, onOpenMealPlan, onOpenPlanner, onOpenMoney, onOpenBuild, onOpenAIGuide, onSwitchToControl]);
+
   const quickActions = [
-    { icon: UtensilsCrossed, label: "Eat", onClick: () => setShowMealSwiper((p) => !p) },
-    { icon: CalendarDays, label: "Plan", onClick: onOpenPlanner },
-    { icon: BarChart3, label: "Review", onClick: onSwitchToControl },
-    { icon: DollarSign, label: "Money", onClick: onOpenMoney },
-    { icon: Brain, label: "Build", onClick: onOpenBuild },
+    { icon: UtensilsCrossed, label: "Eat", onClick: () => setShowMealSwiper((p) => !p), active: showMealSwiper },
+    { icon: CalendarDays, label: "Plan", onClick: onOpenPlanner, active: false },
+    { icon: HeartPulse, label: "Health", onClick: () => healthFileRef.current?.click(), active: isImportingHealth },
+    { icon: Smartphone, label: "Screen", onClick: () => setShowScreenTimeForm((p) => !p), active: showScreenTimeForm },
+    { icon: Brain, label: "Build", onClick: onOpenBuild, active: false },
   ];
 
   const wrappedAction = currentAction
@@ -354,12 +421,23 @@ export const CommandModeView = ({
 
   return (
     <div className="flex flex-col min-h-[60vh] justify-center">
+      {/* Hidden file input for health import */}
+      <input
+        ref={healthFileRef}
+        type="file"
+        accept=".xml,.zip"
+        className="hidden"
+        onChange={handleHealthImport}
+      />
+
       <FocusedActionCard
         action={wrappedAction}
         queueLength={activeActions.length}
         completedCount={completedIds.size}
         onSkip={handleSkip}
         isExpanded={isExpanded}
+        userId={userId}
+        onNavigate={handleHubNavigate}
       >
         {expandedActionId === "wellness-log" && onLogWellness && (
           <InlineWellnessForm onLog={onLogWellness} onDone={handleComplete} />
@@ -407,6 +485,21 @@ export const CommandModeView = ({
         )}
       </AnimatePresence>
 
+      {/* Inline Screen Time Form */}
+      <AnimatePresence>
+        {showScreenTimeForm && (
+          <InlineScreenTimeForm onSave={handleScreenTimeSave} onClose={() => setShowScreenTimeForm(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Health import loading indicator */}
+      {isImportingHealth && (
+        <div className="flex items-center justify-center gap-2 mt-4 text-xs text-muted-foreground">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          Parsing health data...
+        </div>
+      )}
+
       {/* Quick-access bar */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -416,10 +509,10 @@ export const CommandModeView = ({
       >
         <p className="text-xs text-muted-foreground text-center mb-3">I want to...</p>
         <div className="flex justify-center gap-2 flex-wrap">
-          {quickActions.map(({ icon: Icon, label, onClick }) => (
+          {quickActions.map(({ icon: Icon, label, onClick, active }) => (
             <Button
               key={label}
-              variant={label === "Eat" && showMealSwiper ? "default" : "outline"}
+              variant={active ? "default" : "outline"}
               size="sm"
               onClick={onClick}
               className="gap-1.5 text-xs"
@@ -431,5 +524,62 @@ export const CommandModeView = ({
         </div>
       </motion.div>
     </div>
+  );
+};
+
+// Inline screen time entry form
+const InlineScreenTimeForm = ({ onSave, onClose }: { onSave: (hours: number, category: string) => void; onClose: () => void }) => {
+  const [hours, setHours] = useState("");
+  const [category, setCategory] = useState("social");
+
+  const categories = [
+    { value: "social", label: "Social Media" },
+    { value: "entertainment", label: "Entertainment" },
+    { value: "productivity", label: "Productivity" },
+    { value: "other", label: "Other" },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      className="overflow-hidden mt-4"
+    >
+      <div className="max-w-sm mx-auto space-y-3 p-4 rounded-xl border border-border bg-card">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Smartphone className="w-4 h-4 text-muted-foreground" />
+            <h3 className="text-sm font-semibold text-foreground">Log Screen Time</h3>
+          </div>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+            <X className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Hours today</label>
+          <Input type="number" value={hours} onChange={(e) => setHours(e.target.value)} placeholder="2.5" className="h-8 text-sm" step="0.5" min="0" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Category</label>
+          <div className="flex gap-1.5 flex-wrap">
+            {categories.map((c) => (
+              <Button
+                key={c.value}
+                variant={category === c.value ? "default" : "outline"}
+                size="sm"
+                className="text-[10px] h-6 px-2"
+                onClick={() => setCategory(c.value)}
+              >
+                {c.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+        <Button onClick={() => onSave(Number(hours) || 0, category)} disabled={!hours} className="w-full" size="sm">
+          Log Screen Time
+        </Button>
+      </div>
+    </motion.div>
   );
 };
