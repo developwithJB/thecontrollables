@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Check, SkipForward, MessageCircle, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
-import { ControllableHub } from "./ControllableHub";
 
 export interface FocusedAction {
   id: string;
@@ -49,13 +48,7 @@ export const FocusedActionCard = ({
   onNavigate,
 }: FocusedActionCardProps) => {
   if (!action) {
-    return (
-      <ControllableHub
-        userId={userId}
-        completedCount={completedCount}
-        onNavigate={onNavigate}
-      />
-    );
+    return null;
   }
 
   const gradient = action.controllable
