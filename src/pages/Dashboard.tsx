@@ -1734,6 +1734,15 @@ export default function Dashboard() {
           onDismiss={() => setShowSeasonComplete(false)}
         />
       )}
+
+      {/* Wellness Streak Celebration Overlay */}
+      {hitMilestone && (
+        <StreakCelebration
+          milestone={hitMilestone}
+          xpBonus={STREAK_MILESTONE_XP[hitMilestone] || 0}
+          onDismiss={clearMilestone}
+        />
+      )}
     </div>
   );
 }
