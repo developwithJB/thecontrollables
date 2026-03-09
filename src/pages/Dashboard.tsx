@@ -1120,6 +1120,11 @@ export default function Dashboard() {
                 />
               )}
 
+              {/* Wellness Goals */}
+              {user?.id && (
+                <WellnessGoalsCard userId={user.id} />
+              )}
+
               {/* Weekly Wellness Report */}
               {user?.id && (
                 <WeeklyWellnessReport userId={user.id} />
