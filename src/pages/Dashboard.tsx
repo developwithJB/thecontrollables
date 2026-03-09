@@ -1121,8 +1121,7 @@ export default function Dashboard() {
                     aiGuidePanelRef.current?.open();
                   }}
                   onOpenBuild={() => buildRef.current?.openDetailDialog()}
-                  askGuideCompleted={askGuideCompletedToday}
-                  onDay7AllComplete={triggerDay7Celebration}
+                   onDay7AllComplete={triggerDay7Celebration}
                 />
               )}
 

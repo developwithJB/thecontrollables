@@ -193,7 +193,6 @@ export const CommandModeView = ({
   pendingPromisesCount,
   hasActiveQuest,
   wellnessLoggedToday,
-  askGuideCompleted,
   pendingPromises = [],
   onLogTime,
   onLogWellness,

@@ -297,17 +297,6 @@ export function TodayActions({
   // Day-based bonus actions (vary by day to encourage different features)
   // Only add bonus actions if we have an active session
   if (hasActiveSession && !isResetCompleted && !isResetExpired) {
-    // "Ask The Controllables" — available EVERY day (AI-forward)
-    actions.push({
-      id: "ask-guide",
-      label: "Ask The Controllables",
-      sublabel: askGuideDoneToday ? "Completed" : `Get guidance from today's operator`,
-      icon: <Sparkles className="w-4 h-4" />,
-      completed: askGuideDoneToday,
-      timeEstimate: "3 min",
-      action: onOpenAIGuide,
-    });
-
     // Day 1: Encourage making a promise
     if (currentDay === 1) {
       actions.push({
