@@ -38,7 +38,7 @@ export function MoneyOverview({ accounts, bills, subscriptions, goals }: MoneyOv
 
   const netWorth = totalAssets - totalDebt;
 
-  const monthlyBills = bills.reduce((sum, b) => sum + Number(b.amount), 0);
+  const monthlyBills = bills.reduce((sum, b) => sum + billMonthlyCost(b), 0);
   const monthlySubs = subscriptions.reduce((sum, s) => {
     if (s.billing_cycle === "yearly") return sum + Number(s.amount) / 12;
     return sum + Number(s.amount);
