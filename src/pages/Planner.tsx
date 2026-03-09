@@ -108,6 +108,7 @@ const Planner = () => {
 
   const selectedDateKey = format(selectedDate, "yyyy-MM-dd");
   const dayItems = itemsByDate[selectedDateKey] ?? [];
+  const dayActivity = activityByDate[selectedDateKey] ?? [];
 
   // Derive Plan vs Actual data from planner items
   const pvaData = useMemo(() => {
