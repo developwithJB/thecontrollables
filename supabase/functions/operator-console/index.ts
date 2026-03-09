@@ -354,6 +354,8 @@ Deno.serve(async (req) => {
       buildCurrentRes,
       billsRes,
       lastMealRes,
+      observationsRes,
+      preferencesRes,
     ] = await Promise.all([
       admin
         .from("reset_sessions")
@@ -399,6 +401,18 @@ Deno.serve(async (req) => {
         .order("log_date", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      admin
+        .from("user_observations")
+        .select("observation_type, title, description, confidence, status")
+        .eq("user_id", userId)
+        .neq("status", "dismissed")
+        .gte("confidence", 0.65)
+        .order("last_seen_at", { ascending: false })
+        .limit(5),
+      admin
+        .from("user_preferences_inferred")
+        .select("preference_key, preference_value, confidence")
+        .eq("user_id", userId),
     ]);
 
     const activeSession = activeSessionRes.data;
