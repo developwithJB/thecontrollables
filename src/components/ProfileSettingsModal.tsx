@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { LogOut, Moon, Sun, CreditCard, Mail, Calendar, Bell, Smartphone, Plug } from "lucide-react";
 import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush } from "@/lib/pushNotifications";
 import { HealthDataSync } from "@/components/dashboard/HealthDataSync";
+import { ObservationsSettingsCard } from "@/components/settings/ObservationsSettingsCard";
+import { useObservations } from "@/hooks/useObservations";
 import {
   Dialog,
   DialogContent,
@@ -73,6 +75,8 @@ export function ProfileSettingsModal({
   const [pushToggling, setPushToggling] = useState(false);
   const [healthSyncOpen, setHealthSyncOpen] = useState(false);
   const { toast } = useToast();
+
+  const { observations, inferredPreferences, dismissObservation } = useObservations(userId);
 
   // Detect initial theme + push support
   useEffect(() => {
@@ -415,6 +419,13 @@ export function ProfileSettingsModal({
             >
               {isSaving ? "Saving..." : "Save Changes"}
             </Button>
+
+            {/* System Intelligence Settings */}
+            <ObservationsSettingsCard
+              observations={observations}
+              inferredPreferences={inferredPreferences}
+              onDismiss={dismissObservation}
+            />
 
             {/* Divider */}
             <div className="border-t border-border" />

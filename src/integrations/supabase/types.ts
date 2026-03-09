@@ -2238,6 +2238,57 @@ export type Database = {
         }
         Relationships: []
       }
+      user_observations: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          description: string | null
+          first_seen_at: string | null
+          id: string
+          last_seen_at: string | null
+          observation_type: string
+          occurrences: number | null
+          source: string
+          status: string
+          supporting_refs: Json | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          description?: string | null
+          first_seen_at?: string | null
+          id?: string
+          last_seen_at?: string | null
+          observation_type: string
+          occurrences?: number | null
+          source: string
+          status?: string
+          supporting_refs?: Json | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          description?: string | null
+          first_seen_at?: string | null
+          id?: string
+          last_seen_at?: string | null
+          observation_type?: string
+          occurrences?: number | null
+          source?: string
+          status?: string
+          supporting_refs?: Json | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_onboarding: {
         Row: {
           build_assessment_completed: boolean | null
@@ -2280,6 +2331,39 @@ export type Database = {
           simplified_mode_completed?: boolean
           user_id?: string
           welcome_foundation_progress?: Json | null
+        }
+        Relationships: []
+      }
+      user_preferences_inferred: {
+        Row: {
+          confidence: number | null
+          first_derived_at: string | null
+          id: string
+          last_updated_at: string | null
+          preference_key: string
+          preference_value: Json
+          source_observations: Json | null
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          first_derived_at?: string | null
+          id?: string
+          last_updated_at?: string | null
+          preference_key: string
+          preference_value: Json
+          source_observations?: Json | null
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          first_derived_at?: string | null
+          id?: string
+          last_updated_at?: string | null
+          preference_key?: string
+          preference_value?: Json
+          source_observations?: Json | null
+          user_id?: string
         }
         Relationships: []
       }

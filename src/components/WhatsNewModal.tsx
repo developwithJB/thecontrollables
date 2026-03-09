@@ -12,6 +12,16 @@ import { APP_VERSION } from "@/lib/version";
 
 // Changelog entries - update this with each version
 const CHANGELOG: Record<string, { title: string; items: string[] }> = {
+  "1.9.0": {
+    title: "System Intelligence",
+    items: [
+      "The app now quietly learns from your patterns — no extra work required",
+      "\"The system noticed...\" cards surface only when they can help your planning",
+      "Confirm or dismiss observations with a single tap",
+      "View what the system has learned in Profile Settings",
+      "Operator Console now uses your behavioral patterns to improve suggestions",
+    ],
+  },
   "1.8.0": {
     title: "Operator Console",
     items: [

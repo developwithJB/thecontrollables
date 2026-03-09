@@ -354,6 +354,8 @@ Deno.serve(async (req) => {
       buildCurrentRes,
       billsRes,
       lastMealRes,
+      observationsRes,
+      preferencesRes,
     ] = await Promise.all([
       admin
         .from("reset_sessions")
@@ -399,6 +401,18 @@ Deno.serve(async (req) => {
         .order("log_date", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      admin
+        .from("user_observations")
+        .select("observation_type, title, description, confidence, status")
+        .eq("user_id", userId)
+        .neq("status", "dismissed")
+        .gte("confidence", 0.65)
+        .order("last_seen_at", { ascending: false })
+        .limit(5),
+      admin
+        .from("user_preferences_inferred")
+        .select("preference_key, preference_value, confidence")
+        .eq("user_id", userId),
     ]);
 
     const activeSession = activeSessionRes.data;
@@ -408,6 +422,8 @@ Deno.serve(async (req) => {
     const buildCurrent = buildCurrentRes.data;
     const allBills = billsRes.data || [];
     const lastMealLog = lastMealRes.data;
+    const userObservations = observationsRes.data || [];
+    const userPreferences = preferencesRes.data || [];
 
     const wellnessLoggedToday = wellnessLogs.some((l: any) => l.log_date === today);
     const wellnessStreak = wellnessLogs.length;
@@ -475,6 +491,13 @@ ${mode === "recovery" ? "Prioritize wellness and minimal commitments. Be gentle.
 ${mode === "focus" ? "Keep only top 2 items. Defer everything else." : ""}
 ${mode === "review" ? "Scan all areas for gaps and missed items." : ""}`;
 
+        const observationsSummary = userObservations.length > 0
+          ? `\nSystem observations: ${userObservations.map((o: any) => `${o.title} (${Math.round(o.confidence * 100)}% confidence)`).join("; ")}`
+          : "";
+        const preferencesSummary = userPreferences.length > 0
+          ? `\nLearned preferences: ${userPreferences.map((p: any) => `${p.preference_key}: ${JSON.stringify(p.preference_value)}`).join("; ")}`
+          : "";
+
         const userPrompt = `Today: ${today}
 Active Snapshot: ${activeSession ? `Day ${activeSession.current_day}, Journey: ${activeSession.journey_id || "none"}` : "None"}
 Planner items today (${plannerItems.length}): ${plannerItems.slice(0, 5).map((i: any) => `${i.title} [${i.status}]`).join(", ") || "none"}
@@ -483,7 +506,7 @@ Wellness logged today: ${wellnessLoggedToday}
 Wellness streak: ${wellnessStreak} days
 Build weakest: ${buildWeakest || "unknown"}
 Bills due this week: ${billsDueThisWeek.length > 0 ? billsDueThisWeek.map((b: any) => `${b.bill_name} ($${b.amount})`).join(", ") : "none"}
-Last meal log: ${lastMealLog?.log_date || "never"}`;
+Last meal log: ${lastMealLog?.log_date || "never"}${observationsSummary}${preferencesSummary}`;
 
         const aiRes = await fetch(
           "https://ai.gateway.lovable.dev/v1/chat/completions",
