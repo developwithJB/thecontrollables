@@ -8,10 +8,29 @@ import {
   Shield, 
   Sparkles, 
   MessageCircle,
-  Mail
+  Mail,
+  Calendar,
+  DollarSign,
+  Plug,
+  Heart
 } from "lucide-react";
 
 const coreFeatures = [
+  {
+    icon: Calendar,
+    title: "Planner",
+    description: "Your daily command center. Tasks, time blocks, routines — synced with Google Calendar and Todoist if you want.",
+  },
+  {
+    icon: DollarSign,
+    title: "Money Hub",
+    description: "Track bills, subscriptions, budgets, and savings goals. Import bank transactions via CSV. See what's due and where you stand.",
+  },
+  {
+    icon: Plug,
+    title: "Integration Hub",
+    description: "Connect Google Calendar, Gmail, Todoist, and Notion. Sync events, import tasks, get inbox summaries, export to Notion.",
+  },
   {
     icon: Camera,
     title: "7-Day Snapshots",
@@ -19,18 +38,23 @@ const coreFeatures = [
   },
   {
     icon: BarChart3,
-    title: "Your Build Assessment",
+    title: "Build Assessment",
     description: "See which Controllable needs attention. Are you depleted in Wellness? Struggling with Habit? Know where to focus first.",
   },
   {
+    icon: Heart,
+    title: "Brain & Body Tracker",
+    description: "Log sleep, movement, and nutrition. Import from Apple Health or Google Fit. See how wellness affects everything else.",
+  },
+  {
     icon: Target,
-    title: "Today's Actions",
-    description: "One primary task each day. No overwhelm. If you do one thing today, make it count.",
+    title: "Daily OS",
+    description: "Your prioritized daily actions, briefing, and Gmail summary (if connected). One clear starting point each morning.",
   },
   {
     icon: Clock,
     title: "Time Reflection",
-    description: "Log yesterday's focus level. A simple daily reflection that reveals patterns over time.",
+    description: "Log minutes invested vs. wasted. A simple daily reflection that reveals patterns over time.",
   },
   {
     icon: Shield,
@@ -40,7 +64,7 @@ const coreFeatures = [
   {
     icon: Sparkles,
     title: "7-Day Free Trial",
-    description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps.",
+    description: "Get full access to every feature for your first week. No credit card required. Upgrade only if it helps.",
     trialBadge: true,
   },
   {
@@ -52,8 +76,8 @@ const coreFeatures = [
   },
   {
     icon: MessageCircle,
-    title: "The Controllables Guides",
-    description: "Five focused voices — Awareness, Perspective, Habit, Wellness, Environment — trained on behavior change principles. Not a chatbot. A thinking partner.",
+    title: "AI Guides",
+    description: "Five focused voices — Awareness, Perspective, Habit, Wellness, Environment — trained on behavior change principles. A thinking partner.",
     premium: true,
     trialAccess: true,
   },
@@ -66,7 +90,7 @@ const coreFeatures = [
   {
     icon: Mail,
     title: "Daily Alignment",
-    description: "A personalized morning email with scripture, a growth reflection, and one clear action — built from your Snapshot progress, Build scores, and check-in history. Delivered at 6 AM your time.",
+    description: "A personalized morning email with scripture, a growth reflection, and one clear action — built from your data. Delivered at 6 AM your time.",
     premium: true,
   },
 ];
@@ -82,10 +106,10 @@ export function FeatureGrid() {
         className="max-w-md mx-auto"
       >
         <h2 className="font-display text-xl font-semibold text-center mb-2 text-foreground">
-          Everything You Need to Restart
+          Everything You Need to Run Your Life
         </h2>
         <p className="text-sm text-muted-foreground text-center mb-8">
-          Simple tools that help you rebuild momentum — without the noise.
+          Planner, money, wellness, growth — all in one calm interface.
         </p>
         
         <div className="grid gap-3">

@@ -1,16 +1,16 @@
-# The Controllables — v1.5.0
+# The Dashboard — v1.7.0
 
-**A shame-free personal accountability system built around what you can control.**
+**Your Life OS. Planner. Money. Wellness. Growth.**
 
 🌐 [thecontrollables.lovable.app](https://thecontrollables.lovable.app)
 
 ---
 
-## What Is The Controllables?
+## What Is The Dashboard?
 
-The Controllables is a mobile-first Progressive Web App (PWA) for personal growth and habit accountability. Instead of tracking goals with deadlines or streaks that punish missed days, it focuses entirely on **what you can control** — your daily choices.
+The Dashboard is a mobile-first Progressive Web App (PWA) that brings your entire life into one calm interface. It's not just a habit tracker or a todo app — it's a **Life Operating System** that connects your calendar, finances, wellness, and personal growth.
 
-Everything in the app is organized around five **Controllables**:
+Built around **The Controllables** philosophy (from the book), everything centers on what you can actually control:
 
 | Emoji | Controllable | Focus |
 |-------|-------------|-------|
@@ -20,51 +20,111 @@ Everything in the app is organized around five **Controllables**:
 | 🛰️ | **Wellness** | Sleep, movement, and nutrition |
 | 🚀 | **Environment** | The spaces, people, and inputs around you |
 
-### The Hierarchy
+---
 
-The app follows a three-level philosophy:
+## Core Modules
+
+### 📅 Planner
+
+Your daily command center for tasks, events, and routines.
+
+- **Daily & weekly views** with drag-to-reorder
+- **Time blocks** with start/end times
+- **Routines** that auto-populate daily
+- **Google Calendar sync** — bidirectional read/write
+- **Todoist import** — pull tasks into your planner
+- **Energy-level tagging** for tasks
+- **Promise linking** — connect tasks to your integrity commitments
+
+### 💰 Money Hub
+
+Financial awareness without the shame.
+
+- **Accounts** — checking, savings, credit, cash, investments
+- **Transactions** — manual entry or CSV import from any bank
+- **Budget buckets** — monthly targets by category with spend tracking
+- **Bills & subscriptions** — see what's due and when
+- **Savings goals** — track progress toward targets
+- **Financial Controllables** — actionable insights like "3 bills due this week"
+
+### 🔌 Integration Hub
+
+Connect the tools you already use.
+
+| Provider | Capability |
+|----------|-----------|
+| **Google Calendar** | Read/write events and time blocks to your Planner |
+| **Gmail** | Read-only daily inbox summary (unread, starred, needs-reply) for Daily OS |
+| **Todoist** | Import active tasks into Planner |
+| **Notion** | Export weekly reviews and Vault entries to a chosen database |
+
+All OAuth tokens stored securely server-side. Provider failures never break dashboard load.
+
+### 📸 Snapshots
+
+7-day themed focus periods — the heart of personal growth.
+
+- **36 Snapshots** across 6 buckets (Reset, Momentum, Clarity, Energy, Integrity, Growth)
+- **Goal-based browsing** — "Stop vaping," "Sleep better," "Rebuild confidence"
+- **Custom Snapshots** — create your own with Premium
+- **Day-relative timing** — start any day, end 7 days later
+- **Certificates** — downloadable proof of completion
+
+### 🧠 Daily OS
+
+Your prioritized starting point each morning.
+
+- **Today's Actions** — primary task highlighted, secondary marked optional
+- **Daily Briefing** — AI-generated context for your day
+- **Gmail Summary** — unread, starred, needs-reply (if connected)
+- **Time Currency** — log invested vs. wasted minutes
+- **Integrity Meter** — your promise-keeping rate
+
+### ❤️ Brain & Body Tracker
+
+Wellness as a controllable, not a chore.
+
+- **Sleep, movement, nutrition ratings** — simple 1-5 scales
+- **Apple Health / Google Fit import** — sync steps, sleep, heart rate
+- **Weekly patterns** — see which days you thrive
+- **Streak tracking** — optional, never punishing
+
+### 🎯 Build Assessment
+
+Know where you stand across all 5 Controllables.
+
+- **20 questions** scored 1-5
+- **13 archetypes** describe your current Build (Stable, Burnout Risk, Low Battery, etc.)
+- **Radar visualization** of your scores
+- **Periodic retakes** to track growth over time
+
+### 🤖 AI Guides
+
+Contextual assistance grounded in The Controllables framework.
+
+- **5 distinct voices** — one for each Controllable
+- **Context-aware** — knows your Snapshot, Build, recent activity
+- **Human-centric tone** — helpful, not robotic
+- **5 messages/day** during trial, 25 with Premium
+
+---
+
+## The Philosophy
+
+### Hierarchy
 
 ```
 Mission (Direction)      — Your north star. Not a deadline, just a heading.
   └─ Snapshot (Weekly)   — A 7-day themed focus period.
-       └─ Daily Check-In — Today's single set of actions. That's it.
+       └─ Daily Check-In — Today's single set of actions.
 ```
 
-**Mission** is a persistent direction like "Build discipline" or "Reclaim energy." It never expires.
-**Snapshots** give you a concrete weekly theme. **Daily Check-Ins** keep it to ~5 minutes a day.
+### Core Principles
 
----
-
-## Getting Started
-
-### 1. Sign Up
-
-Create an account with your email. You'll verify your address before signing in.
-
-### 2. Build Assessment
-
-Answer **20 questions** across the 5 Controllables. Each question is scored 1–5, giving you a baseline picture of where you stand today.
-
-### 3. Your Archetype
-
-Based on your assessment, you receive one of **13 archetypes** that describe your current Build:
-
-- Stable Build, Awareness Gap, Perspective Drift, Habit Stall, Wellness Debt, Environment Drag
-- The Overthinker, Burnout Risk, Coasting, Survival Mode, Low Battery Mode, Lone Wolf, Fresh Start
-
-Your archetype isn't a label — it's a starting point. It changes as you retake assessments.
-
-### 4. Day 0 Orientation
-
-Before your first Snapshot begins, you'll see an orientation that sets expectations:
-
-- **"One Snapshot per week."** — A focused 7-day theme.
-- **"About 5 minutes per day."** — Not a lifestyle overhaul.
-- **"No catching up. Just today."** — Missed days are invisible. Only today matters.
-
-### 5. Choose Your First Snapshot
-
-Browse the Snapshot library and pick a theme that resonates. Then set your **Mission** — a direction, not a task.
+- **Data, Not Failure** — Missed days are never highlighted. Every Snapshot is recorded as proof you started.
+- **Today Only** — No catching up. Yesterday is data. Tomorrow doesn't exist yet.
+- **Direction, Not Tasks** — Your Mission is a heading, not a checklist.
+- **Human-Centric Language** — No "AI vibes." The Dashboard notices patterns, not "adaptive intelligence."
 
 ---
 
@@ -72,320 +132,132 @@ Browse the Snapshot library and pick a theme that resonates. Then set your **Mis
 
 New users get **full access to every feature** during their first Snapshot — no credit card required.
 
-During the trial:
-- All 36+ Snapshots unlocked
-- AI Guide available (5 messages/day)
-- Experience History and Activity Patterns accessible
-- Personalized Insights generated
-- Certificates downloadable
+| Feature | Free | Trial | Premium |
+|---------|------|-------|---------|
+| Planner | ✅ | ✅ | ✅ |
+| Money Hub | ✅ | ✅ | ✅ |
+| Integration Hub | ✅ | ✅ | ✅ |
+| Build Assessment | ✅ | ✅ | ✅ |
+| Daily OS | ✅ | ✅ | ✅ |
+| Time Currency | ✅ | ✅ | ✅ |
+| Integrity Meter | ✅ | ✅ | ✅ |
+| Snapshots Available | 1 | All 36 | All 36 + Custom |
+| Experience History | — | ✅ | ✅ |
+| AI Guides | — | 5 msgs/day | 25 msgs/day |
+| Certificates | — | ✅ | ✅ |
+| Daily Alignment Emails | — | — | ✅ |
 
-After 7 days, the account enters a review-only state. Interactive features are gated behind a paywall, and a Trial Completion Card summarizes progress and encourages upgrading.
-
----
-
-## The Snapshot System
-
-A **Snapshot** is a 7-day themed focus period. It starts on whatever day you begin (not a fixed Monday) and ends seven days later.
-
-### 36 Snapshots Across 6 Buckets
-
-| Bucket | Focus |
-|--------|-------|
-| **Reset & Re-Entry** | Coming back after a gap, rebuilding gently |
-| **Momentum & Consistency** | Sustaining progress without pressure |
-| **Clarity & Perspective** | Reframing, slowing down, noticing |
-| **Energy & Care** | Sleep, movement, nutrition, recovery |
-| **Integrity & Self-Trust** | Keeping promises to yourself |
-| **Growth & Expansion** | Stretching into new territory |
-
-### Browsing Modes
-
-- **By Goal** — 16+ life intentions organized into three buckets:
-  - *Break a Habit* (Stop vaping, Drink less, Reduce screen time, etc.)
-  - *Shift Mindset* (👑 Always Get Better, Rebuild confidence, etc.)
-  - *Build a Habit* (Move more, Sleep better, Eat cleaner, etc.)
-
-- **By State** — Browse by the 6 framework-based Buckets above.
-
-### Specialized Habit-Breaking Snapshots
-
-Four Snapshots designed specifically for breaking habits:
-
-1. **Replace the Trigger** — Swap the cue-response loop
-2. **Delay the Impulse** — Build the pause between urge and action
-3. **Environment Reset** — Remove friction for good choices, add it for bad ones
-4. **Urge Surfing Week** — Ride the wave without acting
-
-### Build Your Own
-
-Premium users can create a **Custom Snapshot** with their own title, Controllable focus, and daily intentions.
-
----
-
-## Daily Rituals
-
-### Today's Actions Hub
-
-The dashboard centers around **Today's Actions** — a prioritized list of your daily rituals.
-
-- **Primary Action** — The single most important thing, highlighted at the top: *"If you do one thing today, do this."*
-- **Secondary Actions** — Marked as optional. Complete what you can.
-
-### The Core Rituals
-
-| Ritual | What It Is |
-|--------|-----------|
-| **Snapshot Check-In** | Confirm you showed up for today's Snapshot theme |
-| **Yesterday's Reflection** | A brief look back at the previous day |
-| **Promise Review** | Did you keep the promise you made yesterday? |
-| **New Promise** | Make one small promise for tomorrow |
-| **Time Currency** | Log minutes invested (growth) vs. wasted (drift) |
-
-### Integrity Meter
-
-Tracks your **promise-keeping rate**. Every promise you make and keep (or break) is recorded. The meter reflects your self-trust over time — not as judgment, but as data.
-
-### Completion Flow
-
-When all daily actions are done:
-
-> **"Day X done. Come back tomorrow."**
-
-On Day 7, if all actions are complete, you unlock a **Snapshot celebration** — a milestone summary with a downloadable certificate.
+**Pricing:** $9.99/mo or $79.99/yr (saves ~33%)
 
 ---
 
 ## Daily Alignment (Premium)
 
-A personalized morning email delivered at **6:00 AM your local time**, built from your real progress data.
+A personalized morning email at **6:00 AM your local time**:
 
-Each Daily Alignment includes:
-
-- **Scripture** — Themed to your lowest Controllable score or active Mission
-- **Growth Reflection** — AI-generated insight based on your Snapshot progress and recent check-ins
-- **Guided Question** — A thought prompt for the day
-- **Micro Action** — One small, concrete step you can take today
-- **Evening Prompt** — A brief reflection to close your day
-
-Daily Alignment is powered by AI (Gemini 2.5 Flash) and personalized using your Build scores, Snapshot theme, and check-in history. Activate it from the Dashboard spotlight card or in Profile settings.
+- **Scripture** — themed to your lowest Controllable or Mission
+- **Growth Reflection** — AI-generated from your Snapshot progress
+- **Guided Question** — thought prompt for the day
+- **Micro Action** — one concrete step
+- **Evening Prompt** — brief reflection to close your day
 
 ---
 
-## Email Nudge System
-
-The app sends daily reminder emails to keep you on track during active Snapshots.
-
-### How It Works
-
-- **Timing**: Emails are sent at **7:00 AM** in the user's local timezone
-- **Content**: Day-specific context lines (Day 1 orientation, Day 4 normalization, Day 7 closure)
-- **Deduplication**: Atomic insert pattern with a unique constraint on `(user_id, nudge_date)` — no duplicate emails ever
-- **Suppression**: If your daily tasks are already complete, the nudge is marked `skipped` instead of sent
-- **Re-engagement**: Users between Snapshots receive a *"Start your next Snapshot"* email instead of being ignored
-
-### Nudge Statuses
-
-| Status | Meaning |
-|--------|---------|
-| `sent` | Email delivered successfully |
-| `skipped` | Suppressed (tasks already done or other criteria) |
-| `failed` | Delivery error |
-
----
-
-## Dashboard Modules
-
-### Greeting Banner
-Personalized greeting with your XP level and streak flames. Shows your current Snapshot name and day number.
-
-### XP & Momentum
-Track experience points earned from completing daily actions, check-ins, and promises kept. Momentum visualizes your consistency trend.
-
-### Build Overview
-Your 5 Controllable scores displayed as a radar/bar view with your current archetype. Retake the assessment periodically to see growth.
-
-### Time Currency
-A reflection module showing your invested vs. wasted time ratio. Not a productivity tracker — a self-awareness tool.
-
-### Integrity Meter
-Your promise-keeping percentage. Visual feedback on how often you follow through on what you tell yourself you'll do.
-
-### Analytics Section
-A collapsible section labeled *"When you want more insight"* containing deeper stats and patterns. Hidden by default to keep the daily view calm.
-
----
-
-## Experience Tab (Premium)
-
-The **Your Story** tab is where your history lives.
-
-### Snapshot History
-Every completed and ended Snapshot is recorded:
-- ✅ Completed 7-day Snapshots show a 🏆 trophy badge and "Proof Recorded" label
-- Incomplete Snapshots are still visible — they're data, not failure
-
-### Activity Patterns
-- **Weekly Pattern View** — Clickable day circles showing your activity distribution
-- **Day Detail Drawer** — Tap any day to see exactly what you did
-
-### Insights at a Glance
-- Current streak and longest streak
-- Best day of the week
-- Trends and projections
-- AI-generated behavioral insights that surface patterns you might not notice
-
-### Certificates
-Downloadable proof-of-completion for every finished Snapshot. Includes your display name, dates, XP earned, and badges.
-
----
-
-## AI Guide
-
-### Ask The Controllables
-
-A built-in AI chat that understands your context:
-- Your current Snapshot and day number
-- Your Build Assessment scores
-- Your recent activity and patterns
-
-It provides guidance grounded in the Controllables framework — not generic advice. The tone is human, grounded, and non-preachy.
-
----
-
-## Welcome Back Flow
-
-If you've been away for **3 or more days**, the app greets you with a shame-free re-entry:
-
-1. **Welcome Screen** — *"Welcome back. You didn't lose anything."*
-2. **Optional Focus Reset** — Choose to continue your current Snapshot or start fresh
-3. **Dashboard Banner** — A temporary *"Coming back counts."* message that disappears after your first action
-
-The flow appears once per return gap. Missed days are never counted, highlighted, or mentioned elsewhere. Session transitions now properly refresh the dashboard — no more stale data after starting a new Snapshot.
-
----
-
-## Free vs. Premium
-
-| Feature | Free | 7-Day Trial | Premium |
-|---------|------|-------------|---------|
-| Build Assessment | ✅ | ✅ | ✅ |
-| XP Tracking | ✅ | ✅ | ✅ |
-| Time Currency | ✅ | ✅ | ✅ |
-| Integrity Meter | ✅ | ✅ | ✅ |
-| Daily Check-Ins | ✅ | ✅ | ✅ |
-| Email Nudge Reminders | ✅ | ✅ | ✅ |
-| Snapshots Available | 1 | All 36 | All 36 + Custom |
-| Experience History | — | ✅ | ✅ |
-| AI Guide | — | 5 msgs/day | 25 msgs/day |
-| Badges | — | ✅ | ✅ |
-| Certificates | — | ✅ | ✅ |
-| Momentum Analytics | — | ✅ | ✅ |
-| Activity Patterns | — | ✅ | ✅ |
-| AI Insights | — | ✅ | ✅ |
-| Daily Alignment Emails | — | — | ✅ |
-
-**Pricing:**
-- Monthly: **$9.99/mo**
-- Yearly: **$79.99/yr** (saves ~33%, equivalent to $6.67/mo)
-
----
-
-## Admin Command Center
-
-The admin panel is a 10-tab intelligence system for monitoring and managing the app:
-
-| Tab | Purpose |
-|-----|---------|
-| **Overview** | Executive metrics — DAU/WAU/MAU, activation, conversion, churn, MRR |
-| **Funnel** | Activation funnel visualization with drop-off analysis |
-| **Behavior** | Controllable usage patterns, action flows, user activity heatmaps |
-| **Retention** | Risk-tier scoring (healthy/slipping/at_risk/dormant) per user |
-| **Revenue** | Cohort conversion analysis, MRR tracking, days-to-convert |
-| **Insights** | AI-generated weekly behavioral insights, retention risks, and growth opportunities |
-| **Health** | Error monitoring, page performance, event volume |
-| **Nudges** | Email delivery monitoring, coverage rates, potential issues |
-| **Users** | User management with grant/revoke access controls |
-| **Actions** | Nudge campaigns, trial extensions, CSV export |
-
-
-### AI Insight Engine
-
-The Insights tab generates on-demand intelligence from 7-day aggregated metrics using AI (Gemini 3 Flash). Each generation produces:
-
-- **3 Behavioral Insights** — Patterns in user behavior (e.g., "Users who log Perspective 3x weekly retain 42% longer")
-- **2 Retention Risks** — Emerging churn signals
-- **2 Growth Opportunities** — Untapped potential
-- **1 Experiment Recommendation** — A testable hypothesis
-
-No PII is sent to AI — only aggregated counts and distributions.
-
----
-
-## Technical Reference
-
-### Stack
+## Technical Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React 18, TypeScript, Vite |
 | Styling | Tailwind CSS, shadcn/ui, Framer Motion |
 | Backend | Lovable Cloud (Postgres, Auth, Edge Functions) |
-| PWA | Service worker, offline support, installable, pull-to-refresh |
+| PWA | Service worker, offline support, installable |
 
-### Backend Functions
+### Edge Functions
 
 | Function | Purpose |
 |----------|---------|
 | `ai-chat` | Controllables-aware AI guidance |
-| `create-checkout` | Stripe checkout session creation |
-| `check-payment` | Payment verification and entitlement granting |
-| `customer-portal` | Stripe billing portal access |
+| `ai-briefing` | Daily OS briefing generation |
+| `ai-meal-plan` / `ai-meal-analyze` | Nutrition planning |
+| `ai-grocery-list` | Shopping list generation |
+| `ai-reflect` | Guided reflection prompts |
+| `daily-os-plan` | Daily action prioritization |
 | `dashboard-summary` | Aggregated dashboard data |
+| `integration-oauth-start/callback` | OAuth flows for all providers |
+| `integration-sync` | Provider-specific sync logic |
+| `integration-disconnect` | Token revocation |
 | `generate-certificate` | Snapshot completion certificates |
-| `generate-insights` | AI-powered behavioral insights |
-| `generate-snapshot-insight` | Per-Snapshot AI analysis |
-| `generate-calendar-reminder` | .ics file generation for daily reminders |
-| `send-daily-nudge` | Daily reminder emails + re-engagement nudges |
-| `admin-users` | Admin user management |
-| `admin-analytics` | Admin data aggregation and executive metrics |
-| `admin-insights` | AI-powered weekly behavioral insights for admins |
-
+| `generate-insights` | AI behavioral insights |
+| `send-daily-nudge` | Email reminders |
+| `create-checkout` / `check-payment` / `customer-portal` | Stripe integration |
+| `admin-*` | Admin analytics and management |
 
 ### Key Data Tables
 
 | Table | Purpose |
 |-------|---------|
-| `reset_sessions` | Active and historical Snapshot sessions |
-| `daily_resets` | Daily check-in completions |
-| `completed_actions` | Individual action completions with XP |
-| `integrity_logs` | Promise tracking (made, kept, broken) |
-| `time_logs` | Invested vs. wasted time entries |
-| `build_assessments` / `build_scores` | Assessment responses and computed scores |
-| `user_build_current` | Current Build scores (snapshot for dashboard) |
-| `user_entitlements` | Free trial and premium access |
-| `xp_logs` | XP earning history |
-| `wellness_logs` | Sleep, movement, nutrition ratings |
-| `main_quests` | Active Mission (Direction) |
-| `email_nudge_logs` | Nudge delivery tracking (sent, skipped, failed) |
-| `daily_alignment_logs` | Daily Alignment email content and delivery |
-| `daily_scriptures` | Scripture rotation for Daily Alignment |
-| `ai_usage_logs` | Daily AI message tracking |
+| `planner_items` | Tasks, events, routines |
+| `planner_routines` | Recurring task definitions |
+| `planner_connections` | Calendar OAuth tokens |
+| `financial_accounts` | Bank/cash accounts |
+| `transactions` | Financial transactions |
+| `budget_buckets` | Budget categories |
+| `recurring_bills` / `subscriptions` | Bills and subscriptions |
+| `savings_goals` | Savings targets |
+| `integration_connections` | OAuth for all providers |
+| `integration_sync_logs` | Sync history |
+| `reset_sessions` | Active Snapshots |
+| `daily_resets` | Daily check-ins |
+| `wellness_logs` | Sleep, movement, nutrition |
+| `health_sync_data` | Imported wearable data |
+| `build_assessments` / `build_scores` | Assessment data |
+| `integrity_logs` | Promise tracking |
+| `time_logs` | Invested vs. wasted time |
+| `daily_os_plans` | AI-generated daily plans |
+| `daily_briefings` | Daily briefing content |
 
 ---
 
-## Philosophy
+## Admin Command Center
 
-### Data, Not Failure
-Missed days are never highlighted, counted down, or turned into guilt. Every Snapshot — completed or not — is recorded as proof you started.
+10-tab intelligence system for monitoring and managing the app:
 
-### Today Only
-No catching up. No shifting goalposts. The only day that matters is today. Yesterday is data. Tomorrow doesn't exist yet.
+| Tab | Purpose |
+|-----|---------|
+| **Overview** | DAU/WAU/MAU, activation, conversion, churn, MRR |
+| **Funnel** | Activation funnel with drop-off analysis |
+| **Behavior** | Usage patterns and activity heatmaps |
+| **Retention** | Risk-tier scoring per user |
+| **Revenue** | Cohort analysis, MRR tracking |
+| **Insights** | AI-generated behavioral insights |
+| **Health** | Error monitoring, page performance |
+| **Nudges** | Email delivery monitoring |
+| **Users** | User management with access controls |
+| **Actions** | Campaigns, trial extensions, CSV export |
 
-### Direction, Not Tasks
-Your Mission is a heading, not a checklist. There's no progress bar, no countdown, no deadline. You're pointed somewhere — that's enough.
+---
 
-### Human-Centric Language
-The app avoids "AI vibes." Instead of *"Our adaptive intelligence analyzes your patterns,"* you'll see *"The Dashboard notices what works for you."* The guides are helpful tools, not impersonal smart systems.
+## Welcome Back Flow
+
+If you've been away for **3+ days**, the app greets you shame-free:
+
+1. **Welcome Screen** — *"Welcome back. You didn't lose anything."*
+2. **Optional Focus Reset** — Continue or start fresh
+3. **Dashboard Banner** — *"Coming back counts."*
+
+Missed days are never counted or highlighted.
+
+---
+
+## Philosophy in Action
+
+The Dashboard embodies **The Controllables** book philosophy:
+
+- Focus on what you can control
+- Small, imperfect action beats grand plans
+- Self-trust is rebuilt through kept promises
+- Direction matters more than deadlines
+- Today is the only day that matters
 
 ---
 
