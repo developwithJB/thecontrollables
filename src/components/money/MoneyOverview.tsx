@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import type { FinancialAccount, RecurringBill, Subscription, SavingsGoal } from "@/hooks/useMoney";
+import { billMonthlyCost, isBillDueWithinDays, getBillDisplayLabel } from "@/lib/billHelpers";
 
 function parseDateLocal(dateStr: string): Date {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -37,7 +38,7 @@ export function MoneyOverview({ accounts, bills, subscriptions, goals }: MoneyOv
 
   const netWorth = totalAssets - totalDebt;
 
-  const monthlyBills = bills.reduce((sum, b) => sum + Number(b.amount), 0);
+  const monthlyBills = bills.reduce((sum, b) => sum + billMonthlyCost(b), 0);
   const monthlySubs = subscriptions.reduce((sum, s) => {
     if (s.billing_cycle === "yearly") return sum + Number(s.amount) / 12;
     return sum + Number(s.amount);
@@ -47,14 +48,9 @@ export function MoneyOverview({ accounts, bills, subscriptions, goals }: MoneyOv
   const totalSavedTowardGoals = goals.reduce((sum, g) => sum + Number(g.current_amount), 0);
 
   const today = new Date();
-  const currentDay = today.getDate();
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
 
   const upcomingBills = bills
-    .filter((b) => {
-      const diff = b.due_date >= currentDay ? b.due_date - currentDay : daysInMonth - currentDay + b.due_date;
-      return diff <= 7;
-    })
+    .filter((b) => isBillDueWithinDays(b, 7))
     .sort((a, b) => a.due_date - b.due_date);
 
   const upcomingSubs = subscriptions
@@ -131,7 +127,7 @@ export function MoneyOverview({ accounts, bills, subscriptions, goals }: MoneyOv
                 <div key={bill.id} className="flex items-center justify-between py-1.5">
                   <div>
                     <p className="text-sm font-medium text-foreground">{bill.bill_name}</p>
-                    <p className="text-xs text-muted-foreground">Due on the {bill.due_date}{getOrdinal(bill.due_date)}</p>
+                    <p className="text-xs text-muted-foreground">{getBillDisplayLabel(bill)}</p>
                   </div>
                   <span className="text-sm font-medium text-foreground">${Number(bill.amount).toFixed(2)}</span>
                 </div>
@@ -158,12 +154,3 @@ export function MoneyOverview({ accounts, bills, subscriptions, goals }: MoneyOv
   );
 }
 
-function getOrdinal(n: number): string {
-  if (n > 3 && n < 21) return "th";
-  switch (n % 10) {
-    case 1: return "st";
-    case 2: return "nd";
-    case 3: return "rd";
-    default: return "th";
-  }
-}

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, CheckCircle2, Receipt, CreditCard } from "lucide-react";
 import type { RecurringBill, Subscription } from "@/hooks/useMoney";
+import { DAY_NAMES, getBillDisplayLabel, isBillPaidRecently } from "@/lib/billHelpers";
 
 function computeNextBillingDate(startDate: string, cycle: string): string {
   const [y, m, d] = startDate.split("-").map(Number);
@@ -19,14 +20,9 @@ function computeNextBillingDate(startDate: string, cycle: string): string {
   return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`;
 }
 
-function parseDateLocal(dateStr: string): Date {
+function formatShortDate(dateStr: string): Date {
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d);
-}
-
-function formatShortDate(dateStr: string): string {
-  const date = parseDateLocal(dateStr);
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 interface BillsSubscriptionsProps {
@@ -46,17 +42,21 @@ export function BillsSubscriptions({
   const [billName, setBillName] = useState("");
   const [billAmount, setBillAmount] = useState("");
   const [billDueDate, setBillDueDate] = useState("");
+  const [billFrequency, setBillFrequency] = useState("monthly");
   const [subName, setSubName] = useState("");
   const [subAmount, setSubAmount] = useState("");
   const [subCycle, setSubCycle] = useState("monthly");
   const [subStartDate, setSubStartDate] = useState("");
 
-  const today = new Date();
-
   const handleAddBill = () => {
     if (!billName.trim() || !billAmount || !billDueDate) return;
-    onCreateBill({ bill_name: billName.trim(), amount: parseFloat(billAmount), due_date: parseInt(billDueDate) });
-    setBillName(""); setBillAmount(""); setBillDueDate("");
+    onCreateBill({
+      bill_name: billName.trim(),
+      amount: parseFloat(billAmount),
+      due_date: parseInt(billDueDate),
+      frequency: billFrequency,
+    });
+    setBillName(""); setBillAmount(""); setBillDueDate(""); setBillFrequency("monthly");
     setShowAddBill(false);
   };
 
@@ -72,6 +72,8 @@ export function BillsSubscriptions({
     if (s.billing_cycle === "yearly") return sum + Number(s.amount) / 12;
     return sum + Number(s.amount);
   }, 0);
+
+  const isWeeklyOrBiweekly = billFrequency === "weekly" || billFrequency === "biweekly";
 
   return (
     <div className="space-y-6">
@@ -91,9 +93,31 @@ export function BillsSubscriptions({
           <Card className="mb-3">
             <CardContent className="pt-4 space-y-3">
               <Input placeholder="Bill name" value={billName} onChange={(e) => setBillName(e.target.value)} />
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Frequency</Label>
+                <Select value={billFrequency} onValueChange={(v) => { setBillFrequency(v); setBillDueDate(""); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="biweekly">Every 2 Weeks</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <Input type="number" placeholder="Amount ($)" value={billAmount} onChange={(e) => setBillAmount(e.target.value)} />
-                <Input type="number" placeholder="Due date (1-31)" min={1} max={31} value={billDueDate} onChange={(e) => setBillDueDate(e.target.value)} />
+                {isWeeklyOrBiweekly ? (
+                  <Select value={billDueDate} onValueChange={setBillDueDate}>
+                    <SelectTrigger><SelectValue placeholder="Day of week" /></SelectTrigger>
+                    <SelectContent>
+                      {DAY_NAMES.map((name, i) => (
+                        <SelectItem key={i} value={String(i)}>{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input type="number" placeholder="Due date (1-31)" min={1} max={31} value={billDueDate} onChange={(e) => setBillDueDate(e.target.value)} />
+                )}
               </div>
               <div className="flex gap-2">
                 <Button size="sm" onClick={handleAddBill}>Save</Button>
@@ -108,17 +132,17 @@ export function BillsSubscriptions({
         ) : (
           <div className="space-y-2">
             {bills.map((bill) => {
-              const isPaidThisMonth = bill.last_paid_date && new Date(bill.last_paid_date).getMonth() === today.getMonth();
+              const isPaid = isBillPaidRecently(bill);
               return (
                 <Card key={bill.id}>
                   <CardContent className="py-3 px-4 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-foreground">{bill.bill_name}</p>
                       <p className="text-xs text-muted-foreground">
-                        Due on the {bill.due_date}{getOrdinal(bill.due_date)} · ${Number(bill.amount).toFixed(2)}
+                        {getBillDisplayLabel(bill)}
                       </p>
                     </div>
-                    {isPaidThisMonth ? (
+                    {isPaid ? (
                       <span className="text-xs text-primary flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Paid</span>
                     ) : (
                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onMarkBillPaid(bill.id)}>
@@ -180,13 +204,14 @@ export function BillsSubscriptions({
           <div className="space-y-2">
             {subscriptions.map((sub) => {
               const nextDate = computeNextBillingDate(sub.next_billing_date, sub.billing_cycle || "monthly");
+              const nd = formatShortDate(nextDate);
               return (
                 <Card key={sub.id}>
                   <CardContent className="py-3 px-4 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-foreground">{sub.service_name}</p>
                       <p className="text-xs text-muted-foreground">
-                        ${Number(sub.amount).toFixed(2)}/{sub.billing_cycle === "yearly" ? "yr" : "mo"} · Renews {formatShortDate(nextDate)}
+                        ${Number(sub.amount).toFixed(2)}/{sub.billing_cycle === "yearly" ? "yr" : "mo"} · Renews {nd.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </p>
                     </div>
                     <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground" onClick={() => onCancelSubscription(sub.id)}>
@@ -201,14 +226,4 @@ export function BillsSubscriptions({
       </div>
     </div>
   );
-}
-
-function getOrdinal(n: number): string {
-  if (n > 3 && n < 21) return "th";
-  switch (n % 10) {
-    case 1: return "st";
-    case 2: return "nd";
-    case 3: return "rd";
-    default: return "th";
-  }
 }
