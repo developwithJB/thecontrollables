@@ -165,7 +165,7 @@ export function useTransactions(userId: string | null, options?: { accountId?: s
   });
 
   const addTransaction = useMutation({
-    mutationFn: async (txn: Omit<Transaction, "id" | "user_id" | "created_at" | "is_pending" | "external_transaction_id">) => {
+    mutationFn: async (txn: { description: string; amount: number; transaction_date: string; category?: string | null; budget_bucket_id?: string | null; account_id?: string | null }) => {
       const { data, error } = await supabase
         .from("transactions")
         .insert({ ...txn, user_id: userId! })

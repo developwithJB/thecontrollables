@@ -1125,6 +1125,11 @@ export default function Dashboard() {
                 <PlannerCard userId={user.id} />
               )}
 
+              {/* Money Hub */}
+              {user?.id && (
+                <MoneyCard userId={user.id} />
+              )}
+
               {user?.id && !entitlementsLoading && (
                 <MealPlanCard
                   userId={user.id}
