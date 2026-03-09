@@ -55,14 +55,14 @@ export default function Landing() {
 
       {/* Hero Content */}
       <main className="flex-1">
-        <section className="px-6 py-10 max-w-md mx-auto w-full">
+        <section className="px-6 py-10 md:py-16 lg:py-20 max-w-md md:max-w-3xl lg:max-w-5xl mx-auto w-full">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-8"
+            className="text-center mb-8 md:mb-12"
           >
-            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-3 text-balance">
+            <h1 className="font-display text-2xl md:text-4xl lg:text-5xl font-bold text-foreground mb-3 md:mb-5 text-balance">
               Your Life OS.
               <br />
               <span className="text-accent">Planner. Money. Wellness. Growth.</span>
