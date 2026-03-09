@@ -20,6 +20,8 @@ import {
   type UpdatePlannerItemInput,
 } from "@/hooks/usePlanner";
 
+import { usePlannerActivity, groupActivityByDate } from "@/hooks/usePlannerActivity";
+
 import { PlannerDateStrip } from "@/components/planner/PlannerDateStrip";
 import { PlannerDayView } from "@/components/planner/PlannerDayView";
 import { PlannerWeekGrid } from "@/components/planner/PlannerWeekGrid";
@@ -72,6 +74,14 @@ const Planner = () => {
   const { routines, createRoutine, deleteRoutine } = usePlannerRoutines(user?.id);
   const { connections, startGoogleCalSync, triggerSync } = usePlannerConnections(user?.id);
 
+  // Activity from other systems (rings, meals, actions)
+  const { data: activityItems = [] } = usePlannerActivity(
+    weekRange.start,
+    weekRange.end,
+    user?.id
+  );
+  const activityByDate = useMemo(() => groupActivityByDate(activityItems), [activityItems]);
+
   // Group items by date
   const itemsByDate = useMemo(() => {
     const map: Record<string, PlannerItem[]> = {};
@@ -85,14 +95,20 @@ const Planner = () => {
 
   const itemCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    for (const [key, arr] of Object.entries(itemsByDate)) {
-      counts[key] = arr.length;
+    // Combine planner items + activity counts
+    const allDateKeys = new Set([
+      ...Object.keys(itemsByDate),
+      ...Object.keys(activityByDate),
+    ]);
+    for (const key of allDateKeys) {
+      counts[key] = (itemsByDate[key]?.length ?? 0) + (activityByDate[key]?.length ?? 0);
     }
     return counts;
-  }, [itemsByDate]);
+  }, [itemsByDate, activityByDate]);
 
   const selectedDateKey = format(selectedDate, "yyyy-MM-dd");
   const dayItems = itemsByDate[selectedDateKey] ?? [];
+  const dayActivity = activityByDate[selectedDateKey] ?? [];
 
   // Derive Plan vs Actual data from planner items
   const pvaData = useMemo(() => {
@@ -284,6 +300,7 @@ const Planner = () => {
               selectedDate={selectedDate}
               onSelect={setSelectedDate}
               itemsByDate={itemsByDate}
+              activityByDate={activityByDate}
             />
 
             {/* Calendar connect below week grid on desktop */}
@@ -304,6 +321,7 @@ const Planner = () => {
           <PlannerDayView
             date={selectedDate}
             items={dayItems}
+            activityItems={dayActivity}
             onToggleStatus={handleToggleStatus}
             onEdit={handleEdit}
             onDelete={handleDelete}

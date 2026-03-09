@@ -16,12 +16,15 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { PlannerItemRow } from "./PlannerItemRow";
+import { ActivityItemRow } from "./ActivityItemRow";
 import type { PlannerItem } from "@/hooks/usePlanner";
+import type { ActivityItem } from "@/hooks/usePlannerActivity";
 import { CalendarOff } from "lucide-react";
 
 interface PlannerDayViewProps {
   date: Date;
   items: PlannerItem[];
+  activityItems?: ActivityItem[];
   onToggleStatus: (item: PlannerItem) => void;
   onEdit: (item: PlannerItem) => void;
   onDelete: (id: string) => void;
@@ -32,6 +35,7 @@ interface PlannerDayViewProps {
 export const PlannerDayView = ({
   date,
   items,
+  activityItems = [],
   onToggleStatus,
   onEdit,
   onDelete,
@@ -68,7 +72,7 @@ export const PlannerDayView = ({
     <div className="flex-1 px-4 py-3">
       <h2 className="text-base font-semibold text-foreground mb-3">{todayLabel}</h2>
 
-      {sortedItems.length === 0 ? (
+      {sortedItems.length === 0 && activityItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <CalendarOff className="h-10 w-10 text-muted-foreground/30 mb-3" />
           <p className="text-sm text-muted-foreground">Nothing planned yet</p>
@@ -77,29 +81,46 @@ export const PlannerDayView = ({
           </p>
         </div>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={sortedItems.map((i) => i.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <div className="space-y-2">
-              {sortedItems.map((item) => (
-                <PlannerItemRow
-                  key={item.id}
-                  item={item}
-                  onToggleStatus={onToggleStatus}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  onReschedule={onReschedule}
-                />
-              ))}
+        <>
+          {sortedItems.length > 0 && (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={sortedItems.map((i) => i.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-2">
+                  {sortedItems.map((item) => (
+                    <PlannerItemRow
+                      key={item.id}
+                      item={item}
+                      onToggleStatus={onToggleStatus}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                      onReschedule={onReschedule}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
+
+          {activityItems.length > 0 && (
+            <div className={sortedItems.length > 0 ? "mt-4" : ""}>
+              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Activity Log
+              </h3>
+              <div className="space-y-1.5">
+                {activityItems.map((item) => (
+                  <ActivityItemRow key={item.id} item={item} />
+                ))}
+              </div>
             </div>
-          </SortableContext>
-        </DndContext>
+          )}
+        </>
       )}
     </div>
   );
