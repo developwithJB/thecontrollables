@@ -74,7 +74,7 @@ export default function Landing() {
           </motion.div>
 
           {/* The Controllables Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8 md:mb-12 md:max-w-2xl lg:max-w-none mx-auto">
+          <div className="flex flex-wrap justify-center gap-3 mb-8 md:mb-12 md:max-w-2xl lg:max-w-none mx-auto [&>*]:w-[calc(50%-0.375rem)] md:[&>*]:w-[calc(33.333%-0.5rem)] lg:[&>*]:w-[calc(20%-0.6rem)]">
             {controllables.map((c, i) => (
               <ControllableGuideCard
                 key={c.name}
