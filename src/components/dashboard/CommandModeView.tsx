@@ -401,7 +401,8 @@ export const CommandModeView = ({
       build: onOpenBuild,
       guide: onOpenAIGuide,
     };
-    routes[destination]?.() || onSwitchToControl();
+    const handler = routes[destination];
+    if (handler) { handler(); } else { onSwitchToControl(); }
   }, [onOpenReset, onOpenWellness, onOpenTimeLog, onOpenPromises, onOpenMealPlan, onOpenPlanner, onOpenMoney, onOpenBuild, onOpenAIGuide, onSwitchToControl]);
 
   const quickActions = [
