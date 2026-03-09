@@ -970,6 +970,11 @@ export default function Dashboard() {
                     (l) => l.log_date === new Date().toLocaleDateString("sv-SE")
                   )}
                   askGuideCompleted={askGuideCompletedToday}
+                  pendingPromises={pendingPromises.map((p) => ({ id: p.id, promise_text: p.promise_text, promised_at: p.promised_at }))}
+                  onLogTime={handleLogTime}
+                  onLogWellness={logWellness}
+                  onResolvePromise={handleResolvePromise}
+                  onNavigateReset={() => navigate("/reset")}
                   onOpenReset={() => navigate("/reset")}
                   onOpenTimeLog={() => {
                     handleDashboardModeChange("control");
