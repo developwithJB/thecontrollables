@@ -102,6 +102,10 @@ import { useCircle } from "@/hooks/useCircle";
 import { SeasonBanner } from "@/components/dashboard/SeasonBanner";
 import { SeasonComplete } from "@/components/SeasonComplete";
 import { useSeason } from "@/hooks/useSeason";
+import { WellnessStreakHistory } from "@/components/experience/WellnessStreakHistory";
+import { StreakCelebration } from "@/components/experience/StreakCelebration";
+
+const STREAK_MILESTONE_XP: Record<number, number> = { 7: 50, 14: 100, 30: 200 };
 
 type TabType = "dashboard" | "experience" | "guide";
 
@@ -245,7 +249,7 @@ export default function Dashboard() {
     isLoggingTime,
   } = useDashboardSummary(user?.id || null);
 
-  const { streak: wellnessStreak, logWellness } = useWellness(user?.id);
+  const { streak: wellnessStreak, logWellness, recentLogs: wellnessLogs, hitMilestone, clearMilestone } = useWellness(user?.id);
 
   // Build data for The Controllables
   const { currentBuild, buildLoading } = useBuildAssessment();
@@ -1490,6 +1494,11 @@ export default function Dashboard() {
                 </SuspenseExperienceComponent>
               )}
 
+              {/* Wellness Streak Heatmap - Paid only */}
+              {!isSimplifiedMode && isPaid && wellnessLogs.length > 0 && (
+                <WellnessStreakHistory recentLogs={wellnessLogs} streak={wellnessStreak} />
+              )}
+
               {/* Snapshot History - Visual Brick Stacking View */}
               {/* Show for ALL users who have completed their free trial (or paid users) */}
               {!isSimplifiedMode && user?.id && (isPaid || allSessions.some(s => s.status === "completed" || s.status === "expired")) && (
@@ -1728,6 +1737,15 @@ export default function Dashboard() {
             navigate("/dashboard?maintenanceMode=true");
           }}
           onDismiss={() => setShowSeasonComplete(false)}
+        />
+      )}
+
+      {/* Wellness Streak Celebration Overlay */}
+      {hitMilestone && (
+        <StreakCelebration
+          milestone={hitMilestone}
+          xpBonus={STREAK_MILESTONE_XP[hitMilestone] || 0}
+          onDismiss={clearMilestone}
         />
       )}
     </div>
