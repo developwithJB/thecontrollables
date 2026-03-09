@@ -1,164 +1,222 @@
 
-# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
+## Plan: Vault Module — Unified Searchable Life Record
 
-## Overview
+### What already exists (federation sources, no duplication)
+- `daily_resets` — reflection, commitment, release text per Snapshot day
+- `integrity_logs` — promises, kept/broken status
+- `guide_sessions` — AI chat message history (JSONB `messages` array)
+- `reset_sessions` — Snapshot metadata (start, journey, status)
+- `wellness_logs` — daily sleep/movement/nutrition + notes
+- `planner_items` — tasks and time blocks with notes
 
-Three interconnected deliverables:
-1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
-2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
-3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
+### New tables needed
+1. **`vault_entries`** — first-class freeform entries (note, journal, weekly_review)
+2. **`vault_saved_views`** — saved filter presets (optional, v1 stub)
 
 ---
 
-## Part 1: AI Insight Engine
+### Phase 1: Database Migration
 
-### New Edge Function: `admin-insights`
+```sql
+CREATE TABLE public.vault_entries (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  entry_type  TEXT NOT NULL DEFAULT 'note',
+  -- CHECK: 'note' | 'journal' | 'reflection' | 'weekly_review'
+  title       TEXT,
+  body        TEXT NOT NULL DEFAULT '',
+  tags        TEXT[] NOT NULL DEFAULT '{}',
+  is_pinned   BOOLEAN NOT NULL DEFAULT false,
+  is_favorite BOOLEAN NOT NULL DEFAULT false,
+  controllable TEXT,       -- awareness | perspective | habit | wellness | environment
+  snapshot_id UUID,        -- links to reset_sessions.id
+  season_id   UUID,        -- links to seasons.id
+  source_ref  JSONB,       -- { table, row_id } for federated items
+  entry_date  DATE NOT NULL DEFAULT CURRENT_DATE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
-**File: `supabase/functions/admin-insights/index.ts`**
+CREATE TABLE public.vault_saved_views (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name       TEXT NOT NULL,
+  filters    JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
-This function:
-1. Verifies the caller is an admin (same pattern as `admin-analytics`)
-2. Queries aggregated metrics from the last 7 days using the service role client:
-   - `app_events` grouped by `event_name` and day-of-week
-   - `completed_actions` grouped by `controllable`
-   - `daily_resets` count per user (for retention correlation)
-   - `reset_sessions` completion rates
-   - `user_entitlements` conversion data
-   - `user_onboarding` activation delays
-3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
-   - 3 behavioral insights
-   - 2 retention risks
-   - 2 growth opportunities
-   - 1 experiment recommendation
-4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
-5. Returns the insights directly (no caching table needed initially -- can add later)
-
-**Prompt structure:**
+-- RLS on both: standard user CRUD own rows
+-- updated_at trigger on vault_entries
 ```
-You are a product analytics advisor for a personal growth app called The Controllables.
-Given the following 7-day metrics, generate actionable insights.
 
-[structured data blob]
+---
 
-Return insights as structured tool output.
+### Phase 2: Edge Function — `vault-weekly-review`
+
+Generates a weekly review from real activity, not generic prose.
+
+**Gathers from existing tables for the target week:**
+- `daily_resets` (reflections + commitments for that week)
+- `integrity_logs` (promises made/kept that week)
+- `planner_items` (completed/skipped tasks)
+- `wellness_logs` (avg sleep/movement/nutrition)
+- `xp_logs` (total earned + sources)
+- `completed_actions` (snapshot actions done)
+- existing `vault_entries` for the week
+
+**Returns structured JSON:**
+```json
+{
+  "summary": "...",
+  "highlights": ["..."],
+  "patterns": ["..."],
+  "next_week_intention": "..."
+}
+```
+Saves result as a `vault_entry` with `entry_type='weekly_review'` to prevent re-generation.
+
+Uses `LOVABLE_API_KEY` (already configured) with `google/gemini-2.5-flash-lite`.
+
+**Deterministic fallback** (no AI): template-filled using raw counts and real text from existing tables.
+
+---
+
+### Phase 3: React Hook — `useVault.ts`
+
+**`useVaultTimeline(userId, filters)`**
+- Fetches `vault_entries` filtered by type/date/controllable/season/snapshot + pagination
+- Client-side search across title/body/tags using lowercased string matching (fast for v1; no FTS needed at this scale)
+
+**`useVaultEntry()`** — create, update, delete, pin/unpin, favorite mutations
+
+**`useVaultWeeklyReview(userId, weekStart)`** — triggers edge function, checks if review already exists for the week before generating
+
+**`useVaultQuickCapture()`** — lightweight mutation for the dashboard capture bar
+
+**Federation view** — a `useFederatedTimeline` helper that queries federated sources (wellness notes, promises, AI sessions) and merges them with `vault_entries` in JS, sorted by date. No materialized view or DB copy — pure client federation with React Query.
+
+Federated item types mapped to Vault display:
+| Source table | Vault type label |
+|---|---|
+| `daily_resets` | `reflection` |
+| `integrity_logs` | `promise` |
+| `guide_sessions` | `ai_action` |
+| `wellness_logs` | note (wellness) |
+| `vault_entries` | note/journal/weekly_review |
+
+---
+
+### Phase 4: Vault Page — `src/pages/Vault.tsx`
+
+**Route:** `/vault`
+
+**Mobile layout:**
+```text
+┌─────────────────────────────┐
+│ [← Back]  Vault  [+ Capture]│
+│ ┌───────────────────────────┐
+│ │ [Search bar]              │
+│ └───────────────────────────┘
+│ [All] [Notes] [Reflections] [Promises] [AI] [Reviews]
+│ ─── filter chips ───────────────────────────────
+│  Apr Wellness note…         📌 May 3
+│  Burnout reflection…            Apr 28
+│  "I will stop…" (promise)       Apr 22
+│  Weekly Review Apr 14–20        Apr 20
+│  Guide: On habit…               Apr 18
+└─────────────────────────────┘
 ```
 
-**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+**Desktop split layout:**
+- Left panel: timeline + search/filter sidebar
+- Right panel: entry detail or editor
 
-**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+**Components:**
+```
+src/pages/Vault.tsx
+src/hooks/useVault.ts
+src/components/vault/VaultTimeline.tsx        — scrollable feed
+src/components/vault/VaultEntryCard.tsx       — single timeline item
+src/components/vault/VaultEntryEditor.tsx     — create/edit sheet
+src/components/vault/VaultSearchBar.tsx       — search + filter strip
+src/components/vault/VaultFilterPanel.tsx     — type/date/controllable/season filters
+src/components/vault/VaultQuickCapture.tsx    — inline capture widget (also used on dashboard)
+src/components/vault/WeeklyReviewCard.tsx     — generated review display
+src/components/vault/VaultEmptyState.tsx      — contextual empty state per filter
+```
 
-### New Admin Component: AI Insights Panel
+**Search behavior:**
+- Searches `title`, `body`, `tags` client-side across all loaded entries (vault_entries + federated)
+- Debounced 200ms
+- Highlights matching text in results
+- Example: "burnout" → finds daily_reset reflections + vault notes containing the word
 
-**File: `src/components/admin/AIInsightsPanel.tsx`**
-
-- A card with "Weekly Intelligence" header and a "Generate Insights" button
-- On click, calls the `admin-insights` edge function
-- Displays results in categorized sections:
-  - Behavioral Insights (brain icon, blue accent)
-  - Retention Risks (alert icon, amber accent)
-  - Growth Opportunities (trending-up icon, green accent)
-  - Experiment Recommendation (flask icon, purple accent)
-- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
-- Loading state with skeleton cards
-- Error state with retry button
-- "Last generated" timestamp display
-
-### Integration into Admin.tsx
-
-- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
-- The tab renders `<AIInsightsPanel />`
-
----
-
-## Part 2: Enhanced Action Center
-
-**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
-
-Replace the three "Coming soon" cards with working functionality:
-
-### A. Send Nudge Campaign
-- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
-- Confirmation dialog before sending
-- Calls the existing `send-daily-nudge` edge function for each selected user
-- Shows progress and results
-
-### B. Grant Trial Extension
-- Search for a specific user by email
-- Set extension duration (7 days, 14 days, 30 days)
-- Calls `admin-users?action=grant_access` with an `expires_at` parameter
-- Confirmation toast on success
-
-### C. Export with More Segments
-- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
-- Risk tier data fetched from `admin-analytics?resource=retention_radar`
-- CSV includes: email, signup date, last active, risk tier, paid status, source
-
-### D. Quick Stats Bar
-- Show counts above the action cards: Total Users, Free, Paid, At Risk
-- Derived from the `users` prop already passed in
+**Filters:**
+- Type tabs (chips)
+- Date range picker (this week / last week / last 30 days / custom)
+- Controllable multi-select
+- Snapshot selector
+- Pinned / Favorites toggle
 
 ---
 
-## Part 3: Landing Page Updates
+### Phase 5: Dashboard Quick Capture
 
-**File: `src/pages/Landing.tsx`**
+**`VaultQuickCapture` on Dashboard** — a single-line "Capture a thought…" text input that expands on focus into a minimal write mode:
+- Title (optional)
+- Body (required, 3+ lines)
+- Type selector (note / journal / reflection)
+- Tags chips
+- Submit instantly → creates `vault_entry` → toast confirmation with "View in Vault" link
 
-Update the hero copy to reflect the free trial:
-- Change hero tagline to emphasize "Try the full experience free for 7 days"
-- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
-- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
-
-**File: `src/components/landing/FeatureGrid.tsx`**
-
-- Update the Free/Premium labeling:
-  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
-  - "Experience History" -- add "Free during trial" badge
-  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
-
-**File: `src/components/landing/HowItWorksSection.tsx`**
-
-- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+Positioned between `PlannerCard` and `MealPlanCard` in `Dashboard.tsx`. Compact by default, does not add visual weight to the home screen.
 
 ---
 
-## Part 4: README Update
+### Phase 6: Dashboard Vault Link
 
-**File: `README.md`**
+Add a small **"Vault"** entry point in the dashboard's navigation section (alongside existing Planner link / quick-access icons) and a compact **"Your Vault"** section showing:
+- Count of entries this week
+- Last pinned entry teaser (1 line)
+- Link to `/vault`
 
-Update to v1.5.0 reflecting all recent changes:
-
-1. **Version bump**: `v1.4.1` to `v1.5.0`
-2. **New section: "Admin Command Center"** after Technical Reference:
-   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
-   - Mention the `admin-analytics` and `admin-insights` edge functions
-   - Document the AI Insight Engine capability
-3. **Update "Free vs. Premium" table**:
-   - Add "7-Day Free Trial" row explaining full access during first Snapshot
-   - Update AI Guide from "---" to "5 msgs/day during trial"
-   - Update Experience History from "---" to "During trial"
-4. **Update Backend Functions table**:
-   - Add `admin-analytics` -- Admin data aggregation and executive metrics
-   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
-5. **Update Key Data Tables**:
-   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
-   - Add `ai_usage_logs` -- Daily AI message tracking
-6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+This is a single small card, not a full module expansion.
 
 ---
 
-## Technical Summary
+### Phase 7: App.tsx Route
 
-| File | Change | Type |
-|------|--------|------|
-| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
-| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
-| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
-| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
-| `src/pages/Admin.tsx` | Add Insights tab | Edit |
-| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
-| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
-| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
-| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
-| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+Add lazy-loaded `/vault` route with same auth guard pattern as `/planner`.
 
-No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
+---
+
+### Phase 8: Telemetry
+
+Track: `vault_entry_created`, `vault_entry_pinned`, `vault_quick_capture_used`, `vault_search_executed`, `vault_weekly_review_generated`, `vault_filter_applied`.
+
+---
+
+### Phase 9: README + What's New
+
+- Update `APP_VERSION` to `1.6.0`
+- Add `"1.6.0"` entry to `CHANGELOG` in `WhatsNewModal.tsx`
+- Update README with Vault feature description
+
+---
+
+### Files summary
+
+| Action | Path |
+|---|---|
+| Migration | `supabase/migrations/..._vault_tables.sql` |
+| Create | `supabase/functions/vault-weekly-review/index.ts` |
+| Create | `supabase/config.toml` — add `[functions.vault-weekly-review]` |
+| Create | `src/hooks/useVault.ts` |
+| Create | `src/pages/Vault.tsx` |
+| Create | `src/components/vault/` (7 component files) |
+| Edit | `src/App.tsx` — add `/vault` route |
+| Edit | `src/pages/Dashboard.tsx` — add VaultQuickCapture + VaultCard |
+| Edit | `src/components/WhatsNewModal.tsx` — add 1.6.0 entry |
+| Edit | `src/lib/version.ts` — bump to 1.6.0 |
+
+**No changes to existing source-of-truth tables.** All federated reads are SELECT-only.
