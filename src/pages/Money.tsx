@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, LayoutDashboard, PieChart, Receipt, Target, List, Settings } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, Receipt, Target } from "lucide-react";
 import { SplashScreen } from "@/components/SplashScreen";
 import { useFinancialAccounts, useTransactions, useBudgetBuckets, useRecurringBills, useSubscriptions, useSavingsGoals } from "@/hooks/useMoney";
 import { MoneyOverview } from "@/components/money/MoneyOverview";
@@ -75,50 +75,44 @@ export default function Money() {
           />
         )}
 
-        {/* Tabs */}
+        {/* Tabs — simplified to 3 */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-5">
-            <TabsTrigger value="overview" className="text-xs px-1">
-              <LayoutDashboard className="h-3.5 w-3.5 sm:mr-1" />
-              <span className="hidden sm:inline">Overview</span>
+          <TabsList className="w-full grid grid-cols-3">
+            <TabsTrigger value="overview" className="text-xs">
+              <LayoutDashboard className="h-3.5 w-3.5 mr-1.5" />
+              Overview
             </TabsTrigger>
-            <TabsTrigger value="budget" className="text-xs px-1">
-              <PieChart className="h-3.5 w-3.5 sm:mr-1" />
-              <span className="hidden sm:inline">Budget</span>
+            <TabsTrigger value="bills" className="text-xs">
+              <Receipt className="h-3.5 w-3.5 mr-1.5" />
+              Bills & Subs
             </TabsTrigger>
-            <TabsTrigger value="bills" className="text-xs px-1">
-              <Receipt className="h-3.5 w-3.5 sm:mr-1" />
-              <span className="hidden sm:inline">Bills</span>
-            </TabsTrigger>
-            <TabsTrigger value="goals" className="text-xs px-1">
-              <Target className="h-3.5 w-3.5 sm:mr-1" />
-              <span className="hidden sm:inline">Goals</span>
-            </TabsTrigger>
-            <TabsTrigger value="transactions" className="text-xs px-1">
-              <List className="h-3.5 w-3.5 sm:mr-1" />
-              <span className="hidden sm:inline">History</span>
+            <TabsTrigger value="goals" className="text-xs">
+              <Target className="h-3.5 w-3.5 mr-1.5" />
+              Goals
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="mt-4">
+          <TabsContent value="overview" className="mt-4 space-y-4">
             <MoneyOverview accounts={accounts} bills={bills} subscriptions={subscriptions} goals={goals} />
-            <div className="mt-4">
-              <AccountManager
-                accounts={accounts}
-                onCreateAccount={(a) => createAccount.mutate(a)}
-                onDeleteAccount={(id) => deleteAccount.mutate(id)}
-                isCreating={createAccount.isPending}
-              />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="budget" className="mt-4">
+            <AccountManager
+              accounts={accounts}
+              onCreateAccount={(a) => createAccount.mutate(a)}
+              onDeleteAccount={(id) => deleteAccount.mutate(id)}
+              isCreating={createAccount.isPending}
+            />
             <BudgetManager
               buckets={buckets}
               transactions={transactions}
               onCreateBucket={(b) => createBucket.mutate(b)}
               onDeleteBucket={(id) => deleteBucket.mutate(id)}
               isCreating={createBucket.isPending}
+            />
+            <TransactionHistory
+              transactions={transactions}
+              buckets={buckets}
+              onAddTransaction={(t) => addTransaction.mutate(t)}
+              onShowImport={() => setShowImporter(true)}
+              isAdding={addTransaction.isPending}
             />
           </TabsContent>
 
@@ -140,16 +134,6 @@ export default function Money() {
               onUpdateGoal={(u) => updateGoal.mutate(u)}
               onCompleteGoal={(id) => completeGoal.mutate(id)}
               isCreating={createGoal.isPending}
-            />
-          </TabsContent>
-
-          <TabsContent value="transactions" className="mt-4">
-            <TransactionHistory
-              transactions={transactions}
-              buckets={buckets}
-              onAddTransaction={(t) => addTransaction.mutate(t)}
-              onShowImport={() => setShowImporter(true)}
-              isAdding={addTransaction.isPending}
             />
           </TabsContent>
         </Tabs>

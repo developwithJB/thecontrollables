@@ -2,9 +2,32 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, CheckCircle2, Receipt, CreditCard } from "lucide-react";
 import type { RecurringBill, Subscription } from "@/hooks/useMoney";
+
+function computeNextBillingDate(startDate: string, cycle: string): string {
+  const [y, m, d] = startDate.split("-").map(Number);
+  let next = new Date(y, m - 1, d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  while (next <= today) {
+    if (cycle === "yearly") next.setFullYear(next.getFullYear() + 1);
+    else next.setMonth(next.getMonth() + 1);
+  }
+  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`;
+}
+
+function parseDateLocal(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function formatShortDate(dateStr: string): string {
+  const date = parseDateLocal(dateStr);
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 interface BillsSubscriptionsProps {
   bills: RecurringBill[];
@@ -26,10 +49,9 @@ export function BillsSubscriptions({
   const [subName, setSubName] = useState("");
   const [subAmount, setSubAmount] = useState("");
   const [subCycle, setSubCycle] = useState("monthly");
-  const [subNextDate, setSubNextDate] = useState("");
+  const [subStartDate, setSubStartDate] = useState("");
 
   const today = new Date();
-  const currentDay = today.getDate();
 
   const handleAddBill = () => {
     if (!billName.trim() || !billAmount || !billDueDate) return;
@@ -39,9 +61,10 @@ export function BillsSubscriptions({
   };
 
   const handleAddSub = () => {
-    if (!subName.trim() || !subAmount || !subNextDate) return;
-    onCreateSubscription({ service_name: subName.trim(), amount: parseFloat(subAmount), billing_cycle: subCycle, next_billing_date: subNextDate });
-    setSubName(""); setSubAmount(""); setSubNextDate("");
+    if (!subName.trim() || !subAmount || !subStartDate) return;
+    const nextDate = computeNextBillingDate(subStartDate, subCycle);
+    onCreateSubscription({ service_name: subName.trim(), amount: parseFloat(subAmount), billing_cycle: subCycle, next_billing_date: nextDate });
+    setSubName(""); setSubAmount(""); setSubStartDate("");
     setShowAddSub(false);
   };
 
@@ -139,7 +162,10 @@ export function BillsSubscriptions({
                   </SelectContent>
                 </Select>
               </div>
-              <Input type="date" value={subNextDate} onChange={(e) => setSubNextDate(e.target.value)} />
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">When did this start?</Label>
+                <Input type="date" value={subStartDate} onChange={(e) => setSubStartDate(e.target.value)} />
+              </div>
               <div className="flex gap-2">
                 <Button size="sm" onClick={handleAddSub}>Save</Button>
                 <Button size="sm" variant="ghost" onClick={() => setShowAddSub(false)}>Cancel</Button>
@@ -152,21 +178,24 @@ export function BillsSubscriptions({
           <Card><CardContent className="py-6 text-center text-sm text-muted-foreground">No subscriptions tracked yet.</CardContent></Card>
         ) : (
           <div className="space-y-2">
-            {subscriptions.map((sub) => (
-              <Card key={sub.id}>
-                <CardContent className="py-3 px-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{sub.service_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      ${Number(sub.amount).toFixed(2)}/{sub.billing_cycle === "yearly" ? "yr" : "mo"} · Next: {new Date(sub.next_billing_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground" onClick={() => onCancelSubscription(sub.id)}>
-                    Cancel
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+            {subscriptions.map((sub) => {
+              const nextDate = computeNextBillingDate(sub.next_billing_date, sub.billing_cycle || "monthly");
+              return (
+                <Card key={sub.id}>
+                  <CardContent className="py-3 px-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{sub.service_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        ${Number(sub.amount).toFixed(2)}/{sub.billing_cycle === "yearly" ? "yr" : "mo"} · Renews {formatShortDate(nextDate)}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground" onClick={() => onCancelSubscription(sub.id)}>
+                      Cancel
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
