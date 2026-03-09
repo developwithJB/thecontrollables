@@ -1745,6 +1745,7 @@ export default function Dashboard() {
         <StreakCelebration
           milestone={hitMilestone}
           xpBonus={STREAK_MILESTONE_XP[hitMilestone] || 0}
+          displayName={circleDisplayName}
           onDismiss={clearMilestone}
         />
       )}
