@@ -1,222 +1,255 @@
 
-## Plan: Vault Module — Unified Searchable Life Record
+# Money Hub - Financial Life Management Module
 
-### What already exists (federation sources, no duplication)
-- `daily_resets` — reflection, commitment, release text per Snapshot day
-- `integrity_logs` — promises, kept/broken status
-- `guide_sessions` — AI chat message history (JSONB `messages` array)
-- `reset_sessions` — Snapshot metadata (start, journey, status)
-- `wellness_logs` — daily sleep/movement/nutrition + notes
-- `planner_items` — tasks and time blocks with notes
+## Technical Analysis
 
-### New tables needed
-1. **`vault_entries`** — first-class freeform entries (note, journal, weekly_review)
-2. **`vault_saved_views`** — saved filter presets (optional, v1 stub)
+After exploring the codebase, I can see The Controllables follows these patterns:
+- Dashboard cards use hooks like `useDashboardSummary` for data fetching
+- Each major feature has its own page route (Dashboard, Planner, Reset, etc.)
+- Database tables follow RLS patterns with user-scoped data
+- Components are organized in feature folders under `src/components/`
+- Hooks are centralized in `src/hooks/`
 
----
+## Database Schema Design
 
-### Phase 1: Database Migration
-
+**Core Tables:**
 ```sql
-CREATE TABLE public.vault_entries (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  entry_type  TEXT NOT NULL DEFAULT 'note',
-  -- CHECK: 'note' | 'journal' | 'reflection' | 'weekly_review'
-  title       TEXT,
-  body        TEXT NOT NULL DEFAULT '',
-  tags        TEXT[] NOT NULL DEFAULT '{}',
-  is_pinned   BOOLEAN NOT NULL DEFAULT false,
-  is_favorite BOOLEAN NOT NULL DEFAULT false,
-  controllable TEXT,       -- awareness | perspective | habit | wellness | environment
-  snapshot_id UUID,        -- links to reset_sessions.id
-  season_id   UUID,        -- links to seasons.id
-  source_ref  JSONB,       -- { table, row_id } for federated items
-  entry_date  DATE NOT NULL DEFAULT CURRENT_DATE,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+-- Account types: checking, savings, credit, cash, investment, manual
+CREATE TABLE financial_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  account_type TEXT NOT NULL, -- checking, savings, credit, cash, investment, manual
+  account_name TEXT NOT NULL,
+  current_balance DECIMAL(12,2) DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  bank_connection_id UUID, -- NULL for manual, future Plaid integration
+  account_number_last4 TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE TABLE public.vault_saved_views (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  name       TEXT NOT NULL,
-  filters    JSONB NOT NULL DEFAULT '{}',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+-- All financial transactions (manual + future bank sync)
+CREATE TABLE transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  account_id UUID REFERENCES financial_accounts(id) ON DELETE CASCADE,
+  amount DECIMAL(12,2) NOT NULL, -- negative for expenses, positive for income
+  description TEXT NOT NULL,
+  category TEXT, -- groceries, rent, income, etc
+  transaction_date DATE NOT NULL,
+  is_pending BOOLEAN DEFAULT false,
+  external_transaction_id TEXT, -- for bank sync later
+  budget_bucket_id UUID, -- link to budget for categorization
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- RLS on both: standard user CRUD own rows
--- updated_at trigger on vault_entries
+-- Budget categories with monthly targets
+CREATE TABLE budget_buckets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  bucket_name TEXT NOT NULL, -- "Groceries", "Rent", "Entertainment"
+  monthly_target DECIMAL(10,2) DEFAULT 0,
+  bucket_type TEXT DEFAULT 'expense', -- expense, income, savings
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Fixed recurring expenses
+CREATE TABLE recurring_bills (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  bill_name TEXT NOT NULL, -- "Electric Bill", "Mortgage"
+  amount DECIMAL(10,2) NOT NULL,
+  due_date INTEGER NOT NULL, -- day of month (1-31)
+  frequency TEXT DEFAULT 'monthly', -- monthly, quarterly, yearly
+  category TEXT,
+  account_id UUID REFERENCES financial_accounts(id),
+  is_active BOOLEAN DEFAULT true,
+  last_paid_date DATE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Subscriptions (special case of recurring bills)
+CREATE TABLE subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  service_name TEXT NOT NULL, -- "Netflix", "Spotify"
+  amount DECIMAL(10,2) NOT NULL,
+  billing_cycle TEXT DEFAULT 'monthly', -- monthly, yearly
+  next_billing_date DATE NOT NULL,
+  account_id UUID REFERENCES financial_accounts(id),
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Savings targets
+CREATE TABLE savings_goals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  goal_name TEXT NOT NULL, -- "Emergency Fund", "Vacation"
+  target_amount DECIMAL(12,2) NOT NULL,
+  current_amount DECIMAL(12,2) DEFAULT 0,
+  target_date DATE,
+  monthly_contribution DECIMAL(10,2) DEFAULT 0,
+  linked_account_id UUID REFERENCES financial_accounts(id),
+  is_completed BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
 ```
 
----
+## Edge Function - CSV Import
 
-### Phase 2: Edge Function — `vault-weekly-review`
+**`money-csv-import`** - Processes bank CSV files:
+- Detects common CSV formats (Bank of America, Chase, Wells Fargo, etc.)
+- Maps columns to transaction fields
+- Validates and imports transactions
+- Returns success/error report with duplicate detection
 
-Generates a weekly review from real activity, not generic prose.
+## React Hooks Architecture
 
-**Gathers from existing tables for the target week:**
-- `daily_resets` (reflections + commitments for that week)
-- `integrity_logs` (promises made/kept that week)
-- `planner_items` (completed/skipped tasks)
-- `wellness_logs` (avg sleep/movement/nutrition)
-- `xp_logs` (total earned + sources)
-- `completed_actions` (snapshot actions done)
-- existing `vault_entries` for the week
+**`src/hooks/useMoney.ts`**
+- `useFinancialAccounts()` - CRUD for accounts
+- `useTransactions(accountId?, dateRange?)` - paginated transaction history
+- `useBudgetBuckets()` - budget categories with spend tracking
+- `useRecurringBills()` - bills due tracking
+- `useSubscriptions()` - subscription management
+- `useSavingsGoals()` - goals with progress calculation
+- `useMoneySummary()` - dashboard card data aggregation
+- `useCSVImport()` - file upload and processing
 
-**Returns structured JSON:**
-```json
-{
-  "summary": "...",
-  "highlights": ["..."],
-  "patterns": ["..."],
-  "next_week_intention": "..."
-}
+## Dashboard Integration
+
+**`src/components/dashboard/MoneyCard.tsx`** - Compact financial summary:
+- Bills due this week (count + total amount)
+- Monthly budget status (% spent)
+- Next subscription renewal
+- Biggest savings goal progress
+- Link to full Money Hub
+
+Position after `PlannerCard` in `Dashboard.tsx`
+
+## Money Hub Page Structure
+
+**`src/pages/Money.tsx`** - Main financial dashboard with tabs:
+
+1. **Overview Tab**
+   - Net worth summary (assets - debts)
+   - Cash flow calendar (next 30 days)
+   - Quick actions (add transaction, pay bill, update budget)
+
+2. **Budget Tab**
+   - Monthly budget vs actual spending by category
+   - Budget performance charts
+   - Add/edit budget buckets
+
+3. **Bills & Subscriptions Tab**
+   - Upcoming bills calendar view
+   - Subscription management (active/paused)
+   - Bill payment tracking
+
+4. **Goals Tab**
+   - Savings goals with progress bars
+   - Goal timeline and contribution tracking
+   - Add new financial goals
+
+5. **Transactions Tab**
+   - Transaction history with filtering
+   - CSV import interface
+   - Manual transaction entry
+
+## UI Components Structure
+
 ```
-Saves result as a `vault_entry` with `entry_type='weekly_review'` to prevent re-generation.
-
-Uses `LOVABLE_API_KEY` (already configured) with `google/gemini-2.5-flash-lite`.
-
-**Deterministic fallback** (no AI): template-filled using raw counts and real text from existing tables.
-
----
-
-### Phase 3: React Hook — `useVault.ts`
-
-**`useVaultTimeline(userId, filters)`**
-- Fetches `vault_entries` filtered by type/date/controllable/season/snapshot + pagination
-- Client-side search across title/body/tags using lowercased string matching (fast for v1; no FTS needed at this scale)
-
-**`useVaultEntry()`** — create, update, delete, pin/unpin, favorite mutations
-
-**`useVaultWeeklyReview(userId, weekStart)`** — triggers edge function, checks if review already exists for the week before generating
-
-**`useVaultQuickCapture()`** — lightweight mutation for the dashboard capture bar
-
-**Federation view** — a `useFederatedTimeline` helper that queries federated sources (wellness notes, promises, AI sessions) and merges them with `vault_entries` in JS, sorted by date. No materialized view or DB copy — pure client federation with React Query.
-
-Federated item types mapped to Vault display:
-| Source table | Vault type label |
-|---|---|
-| `daily_resets` | `reflection` |
-| `integrity_logs` | `promise` |
-| `guide_sessions` | `ai_action` |
-| `wellness_logs` | note (wellness) |
-| `vault_entries` | note/journal/weekly_review |
-
----
-
-### Phase 4: Vault Page — `src/pages/Vault.tsx`
-
-**Route:** `/vault`
-
-**Mobile layout:**
-```text
-┌─────────────────────────────┐
-│ [← Back]  Vault  [+ Capture]│
-│ ┌───────────────────────────┐
-│ │ [Search bar]              │
-│ └───────────────────────────┘
-│ [All] [Notes] [Reflections] [Promises] [AI] [Reviews]
-│ ─── filter chips ───────────────────────────────
-│  Apr Wellness note…         📌 May 3
-│  Burnout reflection…            Apr 28
-│  "I will stop…" (promise)       Apr 22
-│  Weekly Review Apr 14–20        Apr 20
-│  Guide: On habit…               Apr 18
-└─────────────────────────────┘
+src/components/money/
+├── MoneyOverview.tsx          // Net worth + cash flow calendar
+├── BudgetManager.tsx          // Budget buckets and spending
+├── BillsCalendar.tsx          // Recurring bills due dates
+├── SubscriptionsList.tsx      // Active subscriptions management
+├── SavingsGoals.tsx           // Goals with progress tracking
+├── TransactionHistory.tsx     // Filterable transaction list
+├── TransactionImporter.tsx    // CSV upload and processing
+├── AccountManager.tsx         // Add/edit financial accounts
+├── MoneyQuickActions.tsx      // Common actions (pay, transfer, etc)
+└── FinancialControllables.tsx // AI-like insights without doom language
 ```
 
-**Desktop split layout:**
-- Left panel: timeline + search/filter sidebar
-- Right panel: entry detail or editor
+## Key Features Implementation
 
-**Components:**
-```
-src/pages/Vault.tsx
-src/hooks/useVault.ts
-src/components/vault/VaultTimeline.tsx        — scrollable feed
-src/components/vault/VaultEntryCard.tsx       — single timeline item
-src/components/vault/VaultEntryEditor.tsx     — create/edit sheet
-src/components/vault/VaultSearchBar.tsx       — search + filter strip
-src/components/vault/VaultFilterPanel.tsx     — type/date/controllable/season filters
-src/components/vault/VaultQuickCapture.tsx    — inline capture widget (also used on dashboard)
-src/components/vault/WeeklyReviewCard.tsx     — generated review display
-src/components/vault/VaultEmptyState.tsx      — contextual empty state per filter
-```
+**CSV Import Logic:**
+- Detect delimiter (comma, semicolon, tab)
+- Map common column headers to transaction fields
+- Handle various date formats
+- Validate amounts and detect currency symbols
+- Show preview before final import
+- Track import sources to prevent duplicates
 
-**Search behavior:**
-- Searches `title`, `body`, `tags` client-side across all loaded entries (vault_entries + federated)
-- Debounced 200ms
-- Highlights matching text in results
-- Example: "burnout" → finds daily_reset reflections + vault notes containing the word
+**Financial Controllables Summary:**
+- "3 bills due this week" (actionable)
+- "Grocery budget 80% used" (awareness)
+- "Emergency fund 2 months away" (progress)
+- No shame language - focus on next actions
 
-**Filters:**
-- Type tabs (chips)
-- Date range picker (this week / last week / last 30 days / custom)
-- Controllable multi-select
-- Snapshot selector
-- Pinned / Favorites toggle
+**Cashflow Calendar:**
+- Visual calendar showing money in/out by day
+- Bills due dates with amounts
+- Paycheck dates
+- Subscription renewals
 
----
+## Integration Points
 
-### Phase 5: Dashboard Quick Capture
+**Planner Module Connection:**
+- Link bill due dates to planner as reminders
+- Connect savings contributions to planner goals
+- Budget review as recurring planner task
 
-**`VaultQuickCapture` on Dashboard** — a single-line "Capture a thought…" text input that expands on focus into a minimal write mode:
-- Title (optional)
-- Body (required, 3+ lines)
-- Type selector (note / journal / reflection)
-- Tags chips
-- Submit instantly → creates `vault_entry` → toast confirmation with "View in Vault" link
+**Dashboard Summary:**
+- Total monthly subscriptions
+- Bills due count (this week)
+- Budget health (green/yellow/red status)
+- Primary savings goal progress
 
-Positioned between `PlannerCard` and `MealPlanCard` in `Dashboard.tsx`. Compact by default, does not add visual weight to the home screen.
+**Version Management:**
+- Update to v1.6.1 (Money Hub launch)
+- Add to WhatsNew modal
+- Update navigation to include Money link
 
----
-
-### Phase 6: Dashboard Vault Link
-
-Add a small **"Vault"** entry point in the dashboard's navigation section (alongside existing Planner link / quick-access icons) and a compact **"Your Vault"** section showing:
-- Count of entries this week
-- Last pinned entry teaser (1 line)
-- Link to `/vault`
-
-This is a single small card, not a full module expansion.
-
----
-
-### Phase 7: App.tsx Route
-
-Add lazy-loaded `/vault` route with same auth guard pattern as `/planner`.
-
----
-
-### Phase 8: Telemetry
-
-Track: `vault_entry_created`, `vault_entry_pinned`, `vault_quick_capture_used`, `vault_search_executed`, `vault_weekly_review_generated`, `vault_filter_applied`.
-
----
-
-### Phase 9: README + What's New
-
-- Update `APP_VERSION` to `1.6.0`
-- Add `"1.6.0"` entry to `CHANGELOG` in `WhatsNewModal.tsx`
-- Update README with Vault feature description
-
----
-
-### Files summary
+## Files to Create/Modify
 
 | Action | Path |
-|---|---|
-| Migration | `supabase/migrations/..._vault_tables.sql` |
-| Create | `supabase/functions/vault-weekly-review/index.ts` |
-| Create | `supabase/config.toml` — add `[functions.vault-weekly-review]` |
-| Create | `src/hooks/useVault.ts` |
-| Create | `src/pages/Vault.tsx` |
-| Create | `src/components/vault/` (7 component files) |
-| Edit | `src/App.tsx` — add `/vault` route |
-| Edit | `src/pages/Dashboard.tsx` — add VaultQuickCapture + VaultCard |
-| Edit | `src/components/WhatsNewModal.tsx` — add 1.6.0 entry |
-| Edit | `src/lib/version.ts` — bump to 1.6.0 |
+|--------|------|
+| Migration | `supabase/migrations/..._money_hub_tables.sql` |
+| Create | `supabase/functions/money-csv-import/index.ts` |
+| Create | `src/hooks/useMoney.ts` |
+| Create | `src/pages/Money.tsx` |
+| Create | `src/components/money/` (9 component files) |
+| Create | `src/components/dashboard/MoneyCard.tsx` |
+| Edit | `src/App.tsx` - add `/money` route |
+| Edit | `src/pages/Dashboard.tsx` - add MoneyCard |
+| Edit | `src/components/WhatsNewModal.tsx` - add v1.6.1 |
+| Edit | `src/lib/version.ts` - bump version |
 
-**No changes to existing source-of-truth tables.** All federated reads are SELECT-only.
+## Design Philosophy
+
+**Manual-First Approach:**
+- All data entry starts manual
+- Bank connection fields prepared but unused
+- CSV import as primary bulk import method
+- Future Plaid integration won't require schema changes
+
+**Non-Shaming Language:**
+- "Budget awareness" not "overspending"
+- "Optimize" not "fix" 
+- "Building toward" not "behind on"
+- Focus on next action, not failure
+
+**Controllables Integration:**
+- Financial wellness as another controllable area
+- Money decisions impact other life areas
+- Track financial habits like other habits
+- Connect to overall life balance
+
+This creates a comprehensive financial management module that feels native to The Controllables while being ready for future banking integrations.
