@@ -185,6 +185,7 @@ const InlinePromiseReview = ({ promises, onResolve, onDone }: { promises: Array<
 };
 
 export const CommandModeView = ({
+  userId,
   hasActiveSession,
   todayResetCompleted,
   todayTimeLogged,
