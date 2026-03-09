@@ -1,11 +1,11 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { format, addWeeks, subWeeks } from "date-fns";
+import { format, addWeeks, subWeeks, isToday, isBefore, startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { SplashScreen } from "@/components/SplashScreen";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, RotateCcw, Settings } from "lucide-react";
+import { ArrowLeft, Plus, RotateCcw, Settings, BarChart3 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,6 +27,7 @@ import { PlannerItemEditor } from "@/components/planner/PlannerItemEditor";
 import { PlannerFab } from "@/components/planner/PlannerFab";
 import { PlannerRoutineManager } from "@/components/planner/PlannerRoutineManager";
 import { PlannerCalendarConnect } from "@/components/planner/PlannerCalendarConnect";
+import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 
 const Planner = () => {
   const navigate = useNavigate();
