@@ -74,6 +74,14 @@ const Planner = () => {
   const { routines, createRoutine, deleteRoutine } = usePlannerRoutines(user?.id);
   const { connections, startGoogleCalSync, triggerSync } = usePlannerConnections(user?.id);
 
+  // Activity from other systems (rings, meals, actions)
+  const { data: activityItems = [] } = usePlannerActivity(
+    weekRange.start,
+    weekRange.end,
+    user?.id
+  );
+  const activityByDate = useMemo(() => groupActivityByDate(activityItems), [activityItems]);
+
   // Group items by date
   const itemsByDate = useMemo(() => {
     const map: Record<string, PlannerItem[]> = {};
@@ -87,11 +95,16 @@ const Planner = () => {
 
   const itemCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    for (const [key, arr] of Object.entries(itemsByDate)) {
-      counts[key] = arr.length;
+    // Combine planner items + activity counts
+    const allDateKeys = new Set([
+      ...Object.keys(itemsByDate),
+      ...Object.keys(activityByDate),
+    ]);
+    for (const key of allDateKeys) {
+      counts[key] = (itemsByDate[key]?.length ?? 0) + (activityByDate[key]?.length ?? 0);
     }
     return counts;
-  }, [itemsByDate]);
+  }, [itemsByDate, activityByDate]);
 
   const selectedDateKey = format(selectedDate, "yyyy-MM-dd");
   const dayItems = itemsByDate[selectedDateKey] ?? [];
