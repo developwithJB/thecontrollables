@@ -892,7 +892,7 @@ export default function Dashboard() {
 
       {/* Tab Navigation */}
       <div className="sticky top-[calc(65px+env(safe-area-inset-top))] z-40 bg-background/80 backdrop-blur-lg border-b">
-        <div className="max-w-md mx-auto px-6">
+        <div className="max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl mx-auto px-6">
           <div className="flex gap-1 py-2">
             {[
               { id: "dashboard" as TabType, label: "Dashboard", icon: "🎮" },
