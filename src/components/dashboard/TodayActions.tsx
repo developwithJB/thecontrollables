@@ -66,11 +66,7 @@ interface TodayActionsProps {
   // Action callbacks for clickable items
   onOpenTimeLog?: () => void;
   onOpenPromises?: () => void;
-  onOpenAIGuide?: () => void;
-  onOpenBuild?: () => void;
-  
-  // External signal that user sent a message to The Controllables
-  askGuideCompleted?: boolean;
+   onOpenBuild?: () => void;
   
   // Day 7 celebration callback - triggered when all tasks are done on Day 7
   onDay7AllComplete?: () => void;
