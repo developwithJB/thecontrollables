@@ -1,9 +1,10 @@
 import { useState, useMemo, useCallback } from "react";
 import { FocusedActionCard, type FocusedAction } from "./FocusedActionCard";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { MealSwiper, type SwipeMeal } from "@/components/nutrition/MealSwiper";
 import {
   UtensilsCrossed,
   CalendarDays,
@@ -15,8 +16,19 @@ import {
   Apple,
   Battery,
   Check,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Sample meals for the swiper — in production these come from AI/recipe library
+const SAMPLE_MEALS: SwipeMeal[] = [
+  { id: "m1", name: "Greek Yogurt Power Bowl", description: "Protein-packed yogurt with berries, granola, and honey drizzle.", calories: 380, prepMinutes: 5, mealType: "breakfast", tags: ["high-protein", "quick"], emoji: "🥣" },
+  { id: "m2", name: "Grilled Chicken Wrap", description: "Whole wheat wrap with grilled chicken, avocado, and fresh greens.", calories: 520, prepMinutes: 15, mealType: "lunch", tags: ["balanced", "meal-prep"], emoji: "🌯" },
+  { id: "m3", name: "Salmon & Quinoa Bowl", description: "Pan-seared salmon over quinoa with roasted vegetables.", calories: 610, prepMinutes: 25, mealType: "dinner", tags: ["omega-3", "whole-grain"], emoji: "🐟" },
+  { id: "m4", name: "Overnight Oats", description: "Oats soaked in almond milk with chia seeds, banana, and peanut butter.", calories: 420, prepMinutes: 5, mealType: "breakfast", tags: ["fiber", "no-cook"], emoji: "🥜" },
+  { id: "m5", name: "Turkey & Veggie Stir-Fry", description: "Lean turkey with bell peppers, broccoli, and teriyaki glaze.", calories: 480, prepMinutes: 20, mealType: "dinner", tags: ["lean", "veggie-rich"], emoji: "🥦" },
+  { id: "m6", name: "Mediterranean Salad", description: "Mixed greens, feta, olives, cucumber, and lemon-herb dressing.", calories: 340, prepMinutes: 10, mealType: "lunch", tags: ["fresh", "light"], emoji: "🥗" },
+];
 
 interface CommandModeViewProps {
   userId?: string;
@@ -317,8 +329,17 @@ export const CommandModeView = ({
     setCompletedIds((prev) => new Set(prev).add(currentAction.id));
   }, [currentAction, onNavigateReset, onOpenReset]);
 
+  const [showMealSwiper, setShowMealSwiper] = useState(false);
+  const [acceptedMeals, setAcceptedMeals] = useState<SwipeMeal[]>([]);
+
+  const handleMealAccept = useCallback((meal: SwipeMeal) => {
+    setAcceptedMeals((prev) => [...prev, meal]);
+  }, []);
+  const handleMealReject = useCallback((_meal: SwipeMeal) => {}, []);
+  const handleMealSave = useCallback((_meal: SwipeMeal) => {}, []);
+
   const quickActions = [
-    { icon: UtensilsCrossed, label: "Eat", onClick: onOpenMealPlan },
+    { icon: UtensilsCrossed, label: "Eat", onClick: () => setShowMealSwiper((p) => !p) },
     { icon: CalendarDays, label: "Plan", onClick: onOpenPlanner },
     { icon: BarChart3, label: "Review", onClick: onSwitchToControl },
     { icon: DollarSign, label: "Money", onClick: onOpenMoney },
@@ -340,7 +361,6 @@ export const CommandModeView = ({
         onSkip={handleSkip}
         isExpanded={isExpanded}
       >
-        {/* Inline forms */}
         {expandedActionId === "wellness-log" && onLogWellness && (
           <InlineWellnessForm onLog={onLogWellness} onDone={handleComplete} />
         )}
@@ -351,6 +371,41 @@ export const CommandModeView = ({
           <InlinePromiseReview promises={pendingPromises} onResolve={onResolvePromise} onDone={handleComplete} />
         )}
       </FocusedActionCard>
+
+      {/* Inline Meal Swiper */}
+      <AnimatePresence>
+        {showMealSwiper && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden mt-4"
+          >
+            <div className="flex items-center justify-between mb-2 px-1">
+              <h3 className="text-sm font-semibold text-foreground">Pick your meals</h3>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowMealSwiper(false)}>
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+            {acceptedMeals.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-3 px-1">
+                {acceptedMeals.map((m) => (
+                  <span key={m.id} className="text-[10px] px-2 py-0.5 rounded-full bg-accent/20 text-accent-foreground">
+                    {m.emoji} {m.name}
+                  </span>
+                ))}
+              </div>
+            )}
+            <MealSwiper
+              meals={SAMPLE_MEALS}
+              onAccept={handleMealAccept}
+              onReject={handleMealReject}
+              onSaveToLibrary={handleMealSave}
+              currentMealType="meal"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Quick-access bar */}
       <motion.div
@@ -364,7 +419,7 @@ export const CommandModeView = ({
           {quickActions.map(({ icon: Icon, label, onClick }) => (
             <Button
               key={label}
-              variant="outline"
+              variant={label === "Eat" && showMealSwiper ? "default" : "outline"}
               size="sm"
               onClick={onClick}
               className="gap-1.5 text-xs"
