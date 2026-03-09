@@ -68,7 +68,7 @@ export default function Landing() {
               <span className="text-accent">Planner. Money. Wellness. Growth.</span>
             </h1>
 
-            <p className="text-muted-foreground text-sm leading-relaxed text-balance max-w-xs mx-auto mb-4">
+            <p className="text-muted-foreground text-sm md:text-base lg:text-lg leading-relaxed text-balance max-w-xs md:max-w-lg mx-auto mb-4">
               Plan your day, track your finances, sync your calendar, and grow through 7-day focus Snapshots — all in one calm place. Full access for 7 days. No credit card.
             </p>
           </motion.div>
