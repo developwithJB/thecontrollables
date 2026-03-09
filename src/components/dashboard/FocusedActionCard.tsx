@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Check, SkipForward, MessageCircle, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ReactNode } from "react";
 
 export interface FocusedAction {
   id: string;
@@ -21,6 +22,8 @@ interface FocusedActionCardProps {
   completedCount: number;
   onSkip: () => void;
   onTellMore?: () => void;
+  isExpanded?: boolean;
+  children?: ReactNode;
 }
 
 const controllableGradients: Record<string, string> = {
@@ -37,6 +40,8 @@ export const FocusedActionCard = ({
   completedCount,
   onSkip,
   onTellMore,
+  isExpanded,
+  children,
 }: FocusedActionCardProps) => {
   if (!action) {
     return (
@@ -57,7 +62,7 @@ export const FocusedActionCard = ({
           You're caught up.
         </h2>
         <p className="text-sm text-muted-foreground max-w-xs">
-          Nothing needs your attention right now. Come back later or switch to Control mode to explore.
+          Nothing needs your attention right now. Come back later or switch to All mode to explore.
         </p>
         {completedCount > 0 && (
           <div className="flex items-center gap-1 mt-4 text-xs text-muted-foreground">
@@ -103,55 +108,69 @@ export const FocusedActionCard = ({
         {/* Main card */}
         <div
           className={cn(
-            "w-full max-w-sm rounded-2xl border bg-gradient-to-b p-8 text-center",
+            "w-full max-w-sm rounded-2xl border bg-gradient-to-b p-6 text-center",
             gradient
           )}
         >
-          <span className="text-4xl mb-4 block">{action.emoji}</span>
-          <h2 className="font-display text-lg font-semibold text-foreground mb-2">
+          <span className="text-4xl mb-3 block">{action.emoji}</span>
+          <h2 className="font-display text-lg font-semibold text-foreground mb-1">
             {action.title}
           </h2>
-          <p className="text-sm text-muted-foreground mb-6">
+          <p className="text-sm text-muted-foreground mb-4">
             {action.subtitle}
           </p>
 
-          {action.xp && (
-            <div className="flex items-center justify-center gap-1 text-xs text-accent mb-4">
+          {action.xp && !isExpanded && (
+            <div className="flex items-center justify-center gap-1 text-xs text-accent mb-3">
               <Zap className="w-3 h-3" />
               +{action.xp} XP
             </div>
           )}
 
-          <Button
-            onClick={action.onAction}
-            className="w-full mb-3"
-            size="lg"
-          >
-            {action.actionLabel || "Do it"}
-          </Button>
-
-          <div className="flex items-center justify-center gap-4">
-            <button
-              onClick={onSkip}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          {/* Inline expanded content */}
+          {isExpanded && children ? (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-2 text-left"
             >
-              <SkipForward className="w-3 h-3" />
-              Skip
-            </button>
-            {onTellMore && (
+              {children}
+            </motion.div>
+          ) : (
+            <Button
+              onClick={action.onAction}
+              className="w-full mb-3"
+              size="lg"
+            >
+              {action.actionLabel || "Do it"}
+            </Button>
+          )}
+
+          {!isExpanded && (
+            <div className="flex items-center justify-center gap-4">
               <button
-                onClick={onTellMore}
+                onClick={onSkip}
                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                <MessageCircle className="w-3 h-3" />
-                Tell me more
+                <SkipForward className="w-3 h-3" />
+                Skip
               </button>
-            )}
-          </div>
+              {onTellMore && (
+                <button
+                  onClick={onTellMore}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <MessageCircle className="w-3 h-3" />
+                  Tell me more
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Queue count */}
-        {queueLength > 1 && (
+        {queueLength > 1 && !isExpanded && (
           <p className="text-xs text-muted-foreground mt-4">
             {queueLength - 1} more action{queueLength > 2 ? "s" : ""} after this
           </p>
