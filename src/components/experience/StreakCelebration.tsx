@@ -1,10 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flame } from "lucide-react";
+import { Flame, Share2, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ShareableStreakCard } from "./ShareableStreakCard";
+import html2canvas from "html2canvas";
+import { useToast } from "@/hooks/use-toast";
 
 interface StreakCelebrationProps {
   milestone: number;
   xpBonus: number;
+  displayName?: string;
   onDismiss: () => void;
 }
 
