@@ -844,16 +844,18 @@ export default function Dashboard() {
   const todayAlreadyCompleted = completedDays.some((d) => d.day_number === currentDay);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header - with safe area support for iOS PWA */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b pt-[env(safe-area-inset-top)]">
+    <div className="min-h-screen bg-background flex flex-col relative">
+      {/* Subtle grid bg */}
+      <div className="fixed inset-0 grid-bg pointer-events-none opacity-20" />
+
+      {/* Header - OS style glass */}
+      <header className="os-header pt-[env(safe-area-inset-top)]">
         <div className="max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between overflow-hidden">
           <Logo />
           <div className="flex items-center gap-2">
             {activeTab === "dashboard" && (
               <DashboardModeToggle mode={dashboardMode} onModeChange={handleDashboardModeChange} />
             )}
-            {/* Manual refresh button - always visible on mobile for stuck states */}
             <Button
               variant="ghost"
               size="icon"
@@ -882,10 +884,10 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Tab Navigation */}
-      <div className="sticky top-[calc(65px+env(safe-area-inset-top))] z-40 bg-background/80 backdrop-blur-lg border-b">
+      {/* Tab Navigation - underline style */}
+      <div className="sticky top-[calc(57px+env(safe-area-inset-top))] z-40 backdrop-blur-xl border-b" style={{ background: 'hsl(var(--background) / 0.7)', borderColor: 'hsl(var(--border) / 0.4)' }}>
         <div className="max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl mx-auto px-6">
-          <div className="flex gap-1 py-2">
+          <div className="flex gap-0">
             {[
               { id: "dashboard" as TabType, label: "Dashboard", icon: "🎮" },
               { id: "experience" as TabType, label: "Experience", icon: "✨" },
@@ -895,14 +897,12 @@ export default function Dashboard() {
                 key={tab.id}
                 data-testid={`tab-${tab.id}`}
                 onClick={() => handleTabChange(tab.id)}
-                whileTap={{ scale: 0.95 }}
-                className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all ${
-                  activeTab === tab.id
-                    ? "bg-accent text-accent-foreground shadow-[0_0_12px_hsl(var(--accent)/0.3)]"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                whileTap={{ scale: 0.97 }}
+                className={`os-tab flex-1 text-center ${
+                  activeTab === tab.id ? "os-tab-active" : ""
                 }`}
               >
-                <span className="mr-1">{tab.icon}</span>
+                <span className="mr-1.5">{tab.icon}</span>
                 {tab.label}
               </motion.button>
             ))}

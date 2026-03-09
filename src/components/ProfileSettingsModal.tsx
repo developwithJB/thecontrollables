@@ -430,18 +430,28 @@ export function ProfileSettingsModal({
             {/* Divider */}
             <div className="border-t border-border" />
 
-            {/* Integrations */}
-            <Button
-              variant="outline"
-              onClick={() => {
-                onOpenChange(false);
-                navigate("/integrations");
-              }}
-              className="w-full"
-            >
-              <Plug className="w-4 h-4 mr-2" />
-              Integrations
-            </Button>
+            {/* Integrations - inline section */}
+            <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border/50">
+              <div className="flex items-center gap-2 mb-1">
+                <Plug className="w-4 h-4 text-muted-foreground" />
+                <Label className="font-medium">Connections</Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Connect external services to enhance your experience.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onOpenChange(false);
+                  navigate("/integrations");
+                }}
+                className="w-full"
+              >
+                <Plug className="w-4 h-4 mr-2" />
+                Manage Connections
+              </Button>
+            </div>
 
             {/* Billing */}
             <Button

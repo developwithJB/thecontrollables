@@ -45,14 +45,15 @@ export default function Money() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 relative">
+      <div className="fixed inset-0 grid-bg pointer-events-none opacity-20" />
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border">
+      <div className="os-header">
         <div className="max-w-lg md:max-w-4xl lg:max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/dashboard")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-lg font-semibold text-foreground">Money Hub</h1>
+          <h1 className="text-lg font-display font-semibold text-foreground">Money Hub</h1>
         </div>
       </div>
 
