@@ -110,9 +110,7 @@ export function TodayActions({
   missionTitle,
   onOpenTimeLog,
   onOpenPromises,
-  onOpenAIGuide,
-  onOpenBuild,
-  askGuideCompleted,
+   onOpenBuild,
   onDay7AllComplete,
 }: TodayActionsProps) {
   const navigate = useNavigate();
