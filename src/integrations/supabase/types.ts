@@ -992,6 +992,7 @@ export type Database = {
           choose_completed: boolean
           choose_response: string | null
           created_at: string
+          daily_recap: string | null
           id: string
           notice_completed: boolean
           notice_response: string | null
@@ -1009,6 +1010,7 @@ export type Database = {
           choose_completed?: boolean
           choose_response?: string | null
           created_at?: string
+          daily_recap?: string | null
           id?: string
           notice_completed?: boolean
           notice_response?: string | null
@@ -1026,6 +1028,7 @@ export type Database = {
           choose_completed?: boolean
           choose_response?: string | null
           created_at?: string
+          daily_recap?: string | null
           id?: string
           notice_completed?: boolean
           notice_response?: string | null

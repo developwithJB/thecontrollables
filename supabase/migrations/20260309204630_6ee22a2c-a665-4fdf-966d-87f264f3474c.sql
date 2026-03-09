@@ -1,0 +1,1 @@
+ALTER TABLE public.daily_rings ADD COLUMN daily_recap text NULL;
