@@ -63,6 +63,7 @@ import { BrainBodyTracker } from "@/components/dashboard/BrainBodyTracker";
 import { useWellness } from "@/hooks/useWellness";
 import { WellnessGoalsCard } from "@/components/dashboard/WellnessGoalsCard";
 import { PlannerCard } from "@/components/dashboard/PlannerCard";
+import { MoneyCard } from "@/components/dashboard/MoneyCard";
 
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DailyAlignmentPromo } from "@/components/dashboard/DailyAlignmentPromo";
@@ -1122,6 +1123,11 @@ export default function Dashboard() {
               {/* Today's Plan */}
               {user?.id && (
                 <PlannerCard userId={user.id} />
+              )}
+
+              {/* Money Hub */}
+              {user?.id && (
+                <MoneyCard userId={user.id} />
               )}
 
               {user?.id && !entitlementsLoading && (

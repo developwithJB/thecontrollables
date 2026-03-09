@@ -12,6 +12,15 @@ import { APP_VERSION } from "@/lib/version";
 
 // Changelog entries - update this with each version
 const CHANGELOG: Record<string, { title: string; items: string[] }> = {
+  "1.6.1": {
+    title: "Money Hub",
+    items: [
+      "New Money Hub — track bills, subscriptions, budgets, and savings goals",
+      "CSV import for bank transactions",
+      "Financial Controllables summary with actionable insights",
+      "Dashboard card shows what's due and where you stand",
+    ],
+  },
   "1.4.0": {
     title: "Daily Alignment",
     items: [

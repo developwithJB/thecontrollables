@@ -4,7 +4,7 @@
 // - MAJOR: Breaking changes or major feature overhauls
 // - MINOR: New features, significant improvements
 // - PATCH: Bug fixes, small improvements
-export const APP_VERSION = "1.5.0";
+export const APP_VERSION = "1.6.1";
 
 // Check if running as installed PWA
 export const isStandalonePWA = (): boolean => {

@@ -1,255 +1,164 @@
 
-# Money Hub - Financial Life Management Module
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-## Technical Analysis
+## Overview
 
-After exploring the codebase, I can see The Controllables follows these patterns:
-- Dashboard cards use hooks like `useDashboardSummary` for data fetching
-- Each major feature has its own page route (Dashboard, Planner, Reset, etc.)
-- Database tables follow RLS patterns with user-scoped data
-- Components are organized in feature folders under `src/components/`
-- Hooks are centralized in `src/hooks/`
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-## Database Schema Design
+---
 
-**Core Tables:**
-```sql
--- Account types: checking, savings, credit, cash, investment, manual
-CREATE TABLE financial_accounts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  account_type TEXT NOT NULL, -- checking, savings, credit, cash, investment, manual
-  account_name TEXT NOT NULL,
-  current_balance DECIMAL(12,2) DEFAULT 0,
-  is_active BOOLEAN DEFAULT true,
-  bank_connection_id UUID, -- NULL for manual, future Plaid integration
-  account_number_last4 TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+## Part 1: AI Insight Engine
 
--- All financial transactions (manual + future bank sync)
-CREATE TABLE transactions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  account_id UUID REFERENCES financial_accounts(id) ON DELETE CASCADE,
-  amount DECIMAL(12,2) NOT NULL, -- negative for expenses, positive for income
-  description TEXT NOT NULL,
-  category TEXT, -- groceries, rent, income, etc
-  transaction_date DATE NOT NULL,
-  is_pending BOOLEAN DEFAULT false,
-  external_transaction_id TEXT, -- for bank sync later
-  budget_bucket_id UUID, -- link to budget for categorization
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+### New Edge Function: `admin-insights`
 
--- Budget categories with monthly targets
-CREATE TABLE budget_buckets (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  bucket_name TEXT NOT NULL, -- "Groceries", "Rent", "Entertainment"
-  monthly_target DECIMAL(10,2) DEFAULT 0,
-  bucket_type TEXT DEFAULT 'expense', -- expense, income, savings
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+**File: `supabase/functions/admin-insights/index.ts`**
 
--- Fixed recurring expenses
-CREATE TABLE recurring_bills (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  bill_name TEXT NOT NULL, -- "Electric Bill", "Mortgage"
-  amount DECIMAL(10,2) NOT NULL,
-  due_date INTEGER NOT NULL, -- day of month (1-31)
-  frequency TEXT DEFAULT 'monthly', -- monthly, quarterly, yearly
-  category TEXT,
-  account_id UUID REFERENCES financial_accounts(id),
-  is_active BOOLEAN DEFAULT true,
-  last_paid_date DATE,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
 
--- Subscriptions (special case of recurring bills)
-CREATE TABLE subscriptions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  service_name TEXT NOT NULL, -- "Netflix", "Spotify"
-  amount DECIMAL(10,2) NOT NULL,
-  billing_cycle TEXT DEFAULT 'monthly', -- monthly, yearly
-  next_billing_date DATE NOT NULL,
-  account_id UUID REFERENCES financial_accounts(id),
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
 
--- Savings targets
-CREATE TABLE savings_goals (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  goal_name TEXT NOT NULL, -- "Emergency Fund", "Vacation"
-  target_amount DECIMAL(12,2) NOT NULL,
-  current_amount DECIMAL(12,2) DEFAULT 0,
-  target_date DATE,
-  monthly_contribution DECIMAL(10,2) DEFAULT 0,
-  linked_account_id UUID REFERENCES financial_accounts(id),
-  is_completed BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+[structured data blob]
+
+Return insights as structured tool output.
 ```
 
-## Edge Function - CSV Import
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-**`money-csv-import`** - Processes bank CSV files:
-- Detects common CSV formats (Bank of America, Chase, Wells Fargo, etc.)
-- Maps columns to transaction fields
-- Validates and imports transactions
-- Returns success/error report with duplicate detection
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-## React Hooks Architecture
+### New Admin Component: AI Insights Panel
 
-**`src/hooks/useMoney.ts`**
-- `useFinancialAccounts()` - CRUD for accounts
-- `useTransactions(accountId?, dateRange?)` - paginated transaction history
-- `useBudgetBuckets()` - budget categories with spend tracking
-- `useRecurringBills()` - bills due tracking
-- `useSubscriptions()` - subscription management
-- `useSavingsGoals()` - goals with progress calculation
-- `useMoneySummary()` - dashboard card data aggregation
-- `useCSVImport()` - file upload and processing
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-## Dashboard Integration
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-**`src/components/dashboard/MoneyCard.tsx`** - Compact financial summary:
-- Bills due this week (count + total amount)
-- Monthly budget status (% spent)
-- Next subscription renewal
-- Biggest savings goal progress
-- Link to full Money Hub
+### Integration into Admin.tsx
 
-Position after `PlannerCard` in `Dashboard.tsx`
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
-## Money Hub Page Structure
+---
 
-**`src/pages/Money.tsx`** - Main financial dashboard with tabs:
+## Part 2: Enhanced Action Center
 
-1. **Overview Tab**
-   - Net worth summary (assets - debts)
-   - Cash flow calendar (next 30 days)
-   - Quick actions (add transaction, pay bill, update budget)
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
 
-2. **Budget Tab**
-   - Monthly budget vs actual spending by category
-   - Budget performance charts
-   - Add/edit budget buckets
+Replace the three "Coming soon" cards with working functionality:
 
-3. **Bills & Subscriptions Tab**
-   - Upcoming bills calendar view
-   - Subscription management (active/paused)
-   - Bill payment tracking
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
 
-4. **Goals Tab**
-   - Savings goals with progress bars
-   - Goal timeline and contribution tracking
-   - Add new financial goals
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
 
-5. **Transactions Tab**
-   - Transaction history with filtering
-   - CSV import interface
-   - Manual transaction entry
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
 
-## UI Components Structure
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
 
-```
-src/components/money/
-├── MoneyOverview.tsx          // Net worth + cash flow calendar
-├── BudgetManager.tsx          // Budget buckets and spending
-├── BillsCalendar.tsx          // Recurring bills due dates
-├── SubscriptionsList.tsx      // Active subscriptions management
-├── SavingsGoals.tsx           // Goals with progress tracking
-├── TransactionHistory.tsx     // Filterable transaction list
-├── TransactionImporter.tsx    // CSV upload and processing
-├── AccountManager.tsx         // Add/edit financial accounts
-├── MoneyQuickActions.tsx      // Common actions (pay, transfer, etc)
-└── FinancialControllables.tsx // AI-like insights without doom language
-```
+---
 
-## Key Features Implementation
+## Part 3: Landing Page Updates
 
-**CSV Import Logic:**
-- Detect delimiter (comma, semicolon, tab)
-- Map common column headers to transaction fields
-- Handle various date formats
-- Validate amounts and detect currency symbols
-- Show preview before final import
-- Track import sources to prevent duplicates
+**File: `src/pages/Landing.tsx`**
 
-**Financial Controllables Summary:**
-- "3 bills due this week" (actionable)
-- "Grocery budget 80% used" (awareness)
-- "Emergency fund 2 months away" (progress)
-- No shame language - focus on next actions
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
 
-**Cashflow Calendar:**
-- Visual calendar showing money in/out by day
-- Bills due dates with amounts
-- Paycheck dates
-- Subscription renewals
+**File: `src/components/landing/FeatureGrid.tsx`**
 
-## Integration Points
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
 
-**Planner Module Connection:**
-- Link bill due dates to planner as reminders
-- Connect savings contributions to planner goals
-- Budget review as recurring planner task
+**File: `src/components/landing/HowItWorksSection.tsx`**
 
-**Dashboard Summary:**
-- Total monthly subscriptions
-- Bills due count (this week)
-- Budget health (green/yellow/red status)
-- Primary savings goal progress
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
 
-**Version Management:**
-- Update to v1.6.1 (Money Hub launch)
-- Add to WhatsNew modal
-- Update navigation to include Money link
+---
 
-## Files to Create/Modify
+## Part 4: README Update
 
-| Action | Path |
-|--------|------|
-| Migration | `supabase/migrations/..._money_hub_tables.sql` |
-| Create | `supabase/functions/money-csv-import/index.ts` |
-| Create | `src/hooks/useMoney.ts` |
-| Create | `src/pages/Money.tsx` |
-| Create | `src/components/money/` (9 component files) |
-| Create | `src/components/dashboard/MoneyCard.tsx` |
-| Edit | `src/App.tsx` - add `/money` route |
-| Edit | `src/pages/Dashboard.tsx` - add MoneyCard |
-| Edit | `src/components/WhatsNewModal.tsx` - add v1.6.1 |
-| Edit | `src/lib/version.ts` - bump version |
+**File: `README.md`**
 
-## Design Philosophy
+Update to v1.5.0 reflecting all recent changes:
 
-**Manual-First Approach:**
-- All data entry starts manual
-- Bank connection fields prepared but unused
-- CSV import as primary bulk import method
-- Future Plaid integration won't require schema changes
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
 
-**Non-Shaming Language:**
-- "Budget awareness" not "overspending"
-- "Optimize" not "fix" 
-- "Building toward" not "behind on"
-- Focus on next action, not failure
+---
 
-**Controllables Integration:**
-- Financial wellness as another controllable area
-- Money decisions impact other life areas
-- Track financial habits like other habits
-- Connect to overall life balance
+## Technical Summary
 
-This creates a comprehensive financial management module that feels native to The Controllables while being ready for future banking integrations.
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
