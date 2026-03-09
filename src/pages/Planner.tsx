@@ -20,6 +20,8 @@ import {
   type UpdatePlannerItemInput,
 } from "@/hooks/usePlanner";
 
+import { usePlannerActivity, groupActivityByDate } from "@/hooks/usePlannerActivity";
+
 import { PlannerDateStrip } from "@/components/planner/PlannerDateStrip";
 import { PlannerDayView } from "@/components/planner/PlannerDayView";
 import { PlannerWeekGrid } from "@/components/planner/PlannerWeekGrid";
