@@ -76,6 +76,8 @@ export function ProfileSettingsModal({
   const [healthSyncOpen, setHealthSyncOpen] = useState(false);
   const { toast } = useToast();
 
+  const { observations, inferredPreferences, dismissObservation } = useObservations(userId);
+
   // Detect initial theme + push support
   useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains("dark");
