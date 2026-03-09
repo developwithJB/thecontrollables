@@ -1462,7 +1462,7 @@ export default function Dashboard() {
                     onUpgrade={() => startCheckout(undefined, "operator_console")}
                     isCheckingOut={isCheckingOut}
                     hasActiveSnapshot={!!activeSession && !isCompleted}
-                    onMessageSent={handleAskGuideMessageSent}
+                    onMessageSent={() => {}}
                   />
                 </div>
               )}
