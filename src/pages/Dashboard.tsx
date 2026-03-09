@@ -285,6 +285,7 @@ export default function Dashboard() {
     myCircle,
     circleMembers,
     showedUpTodayCount,
+    streakLeaderboard,
     createCircle,
     isCreatingCircle,
     joinCircle,
