@@ -722,6 +722,39 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_os_plans: {
+        Row: {
+          created_at: string
+          id: string
+          interactions: Json
+          plan_data: Json
+          plan_date: string
+          refresh_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interactions?: Json
+          plan_data?: Json
+          plan_date?: string
+          refresh_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interactions?: Json
+          plan_data?: Json
+          plan_date?: string
+          refresh_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_readings: {
         Row: {
           completion_button_text: string
