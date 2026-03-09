@@ -16,12 +16,15 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { PlannerItemRow } from "./PlannerItemRow";
+import { ActivityItemRow } from "./ActivityItemRow";
 import type { PlannerItem } from "@/hooks/usePlanner";
+import type { ActivityItem } from "@/hooks/usePlannerActivity";
 import { CalendarOff } from "lucide-react";
 
 interface PlannerDayViewProps {
   date: Date;
   items: PlannerItem[];
+  activityItems?: ActivityItem[];
   onToggleStatus: (item: PlannerItem) => void;
   onEdit: (item: PlannerItem) => void;
   onDelete: (id: string) => void;
