@@ -57,7 +57,7 @@ import { TrialCompleteCard } from "@/components/dashboard/TrialCompleteCard";
 
 // JourneyChangesLog removed - consolidated into Activity History
 
-import { DailyBriefingCard } from "@/components/dashboard/DailyBriefingCard";
+import { DailyOSCard } from "@/components/dashboard/DailyOSCard";
 import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
 import { BrainBodyTracker } from "@/components/dashboard/BrainBodyTracker";
 import { useWellness } from "@/hooks/useWellness";
@@ -1078,13 +1078,14 @@ export default function Dashboard() {
                 />
               )}
 
-              {/* AI Morning Briefing Card */}
-              {user?.id && !entitlementsLoading && !!activeSession && !isCompleted && !isExpired && (
-                <DailyBriefingCard
+              {/* Daily Operating System Card */}
+              {user?.id && !entitlementsLoading && (
+                <DailyOSCard
+                  userId={user.id}
                   isPaid={isPaid}
                   isTrialing={isTrialing}
                   hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
-                  onUpgrade={() => startCheckout(undefined, "daily_briefing")}
+                  onUpgrade={() => startCheckout(undefined, "daily_os")}
                 />
               )}
 
