@@ -44,7 +44,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
       {/* Navigation */}
-      <nav className="flex items-center justify-between px-6 py-4 max-w-md mx-auto w-full">
+      <nav className="flex items-center justify-between px-6 py-4 max-w-md md:max-w-3xl lg:max-w-5xl mx-auto w-full">
         <Logo />
         <Link to="/auth">
           <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
