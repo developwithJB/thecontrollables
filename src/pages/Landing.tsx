@@ -42,9 +42,17 @@ export default function Landing() {
   const quickStartEnabled = onboardingQuickStartEnabled();
 
   return (
-    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
+    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden relative">
+      {/* Grid background overlay */}
+      <div className="fixed inset-0 grid-bg pointer-events-none opacity-50" />
+      
+      {/* Ambient glow */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] pointer-events-none opacity-40">
+        <div className="w-full h-full bg-[radial-gradient(ellipse_at_center,hsl(var(--accent)/0.15),transparent_70%)]" />
+      </div>
+
       {/* Navigation */}
-      <nav className="flex items-center justify-between px-6 py-4 max-w-md md:max-w-3xl lg:max-w-5xl mx-auto w-full">
+      <nav className="relative z-10 flex items-center justify-between px-6 py-4 max-w-md md:max-w-3xl lg:max-w-5xl mx-auto w-full">
         <Logo />
         <Link to="/auth">
           <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
@@ -54,7 +62,7 @@ export default function Landing() {
       </nav>
 
       {/* Hero Content */}
-      <main className="flex-1">
+      <main className="flex-1 relative z-10">
         <section className="px-6 py-10 md:py-16 lg:py-20 max-w-md md:max-w-3xl lg:max-w-5xl mx-auto w-full">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -95,7 +103,7 @@ export default function Landing() {
             className="space-y-3 max-w-md mx-auto"
           >
             <Link to={quickStartEnabled ? "/quick-start" : "/auth?mode=signup"} onClick={() => trackEvent("cta", "cta_click", { cta_label: "Start with a 7-Day Snapshot", position: "hero" })}>
-              <Button size="lg" className="w-full h-14 text-base font-medium group">
+              <Button variant="glow" size="lg" className="w-full h-14 text-base font-medium group">
                 Start your free 7-Day Trial
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
@@ -128,7 +136,7 @@ export default function Landing() {
 
             <div className="space-y-3">
               <Link to={quickStartEnabled ? "/quick-start" : "/auth?mode=signup"} onClick={() => trackEvent("cta", "cta_click", { cta_label: "Start your free 7-Day Trial", position: "bottom" })}>
-                <Button size="lg" className="w-full h-12 text-base font-medium group">
+                <Button variant="glow" size="lg" className="w-full h-12 text-base font-medium group">
                   Start your free 7-Day Trial
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
@@ -151,7 +159,7 @@ export default function Landing() {
       </main>
 
       {/* Footer */}
-      <footer className="px-6 py-8 text-center space-y-3 border-t border-border/30">
+      <footer className="relative z-10 px-6 py-8 text-center space-y-3 border-t border-border/30">
         <p className="text-xs text-muted-foreground">
           Questions? Message us on Instagram{" "}
           <a
