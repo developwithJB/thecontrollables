@@ -87,11 +87,6 @@ export const CommandModeView = ({
       {/* Daily Rings — the ENTIRE daily flow */}
       <DailyRings
         userId={userId}
-        onLogWellness={onLogWellness}
-        onLogTime={onLogTime}
-        onLogScreenTime={handleScreenTimeSave}
-        pendingPromises={pendingPromises}
-        onResolvePromise={onResolvePromise}
       />
 
       {/* Weekly Review Card */}
