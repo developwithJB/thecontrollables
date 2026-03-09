@@ -1155,6 +1155,225 @@ export type Database = {
         }
         Relationships: []
       }
+      planner_connections: {
+        Row: {
+          access_token: string | null
+          calendar_ids: Json | null
+          created_at: string
+          id: string
+          is_active: boolean
+          last_synced_at: string | null
+          provider: string
+          provider_account_id: string | null
+          refresh_token: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          calendar_ids?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          provider: string
+          provider_account_id?: string | null
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          calendar_ids?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          provider?: string
+          provider_account_id?: string | null
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      planner_items: {
+        Row: {
+          completed_at: string | null
+          connection_id: string | null
+          created_at: string
+          description: string | null
+          end_time: string | null
+          energy_level: string | null
+          external_event_id: string | null
+          id: string
+          item_type: Database["public"]["Enums"]["planner_item_type"]
+          promise_id: string | null
+          routine_id: string | null
+          scheduled_date: string
+          skipped_at: string | null
+          snapshot_action_ref: Json | null
+          sort_order: number
+          start_time: string | null
+          status: Database["public"]["Enums"]["planner_item_status"]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          connection_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_time?: string | null
+          energy_level?: string | null
+          external_event_id?: string | null
+          id?: string
+          item_type?: Database["public"]["Enums"]["planner_item_type"]
+          promise_id?: string | null
+          routine_id?: string | null
+          scheduled_date: string
+          skipped_at?: string | null
+          snapshot_action_ref?: Json | null
+          sort_order?: number
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["planner_item_status"]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          connection_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_time?: string | null
+          energy_level?: string | null
+          external_event_id?: string | null
+          id?: string
+          item_type?: Database["public"]["Enums"]["planner_item_type"]
+          promise_id?: string | null
+          routine_id?: string | null
+          scheduled_date?: string
+          skipped_at?: string | null
+          snapshot_action_ref?: Json | null
+          sort_order?: number
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["planner_item_status"]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planner_items_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "planner_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planner_items_promise_id_fkey"
+            columns: ["promise_id"]
+            isOneToOne: false
+            referencedRelation: "integrity_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planner_items_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "planner_routines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planner_routines: {
+        Row: {
+          created_at: string
+          default_end_time: string | null
+          default_start_time: string | null
+          description: string | null
+          energy_level: string | null
+          id: string
+          is_active: boolean
+          recurrence: string
+          recurrence_days: number[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_end_time?: string | null
+          default_start_time?: string | null
+          description?: string | null
+          energy_level?: string | null
+          id?: string
+          is_active?: boolean
+          recurrence?: string
+          recurrence_days?: number[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          default_end_time?: string | null
+          default_start_time?: string | null
+          description?: string | null
+          energy_level?: string | null
+          id?: string
+          is_active?: boolean
+          recurrence?: string
+          recurrence_days?: number[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      planner_sync_logs: {
+        Row: {
+          connection_id: string
+          errors: Json | null
+          events_imported: number | null
+          events_updated: number | null
+          id: string
+          synced_at: string
+          user_id: string
+        }
+        Insert: {
+          connection_id: string
+          errors?: Json | null
+          events_imported?: number | null
+          events_updated?: number | null
+          id?: string
+          synced_at?: string
+          user_id: string
+        }
+        Update: {
+          connection_id?: string
+          errors?: Json | null
+          events_imported?: number | null
+          events_updated?: number | null
+          id?: string
+          synced_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planner_sync_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "planner_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1743,6 +1962,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      planner_item_status: "todo" | "in_progress" | "done" | "skipped"
+      planner_item_type:
+        | "task"
+        | "time_block"
+        | "routine_instance"
+        | "external_event"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1871,6 +2096,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      planner_item_status: ["todo", "in_progress", "done", "skipped"],
+      planner_item_type: [
+        "task",
+        "time_block",
+        "routine_instance",
+        "external_event",
+      ],
     },
   },
 } as const
