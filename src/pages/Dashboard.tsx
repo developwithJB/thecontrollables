@@ -1086,35 +1086,20 @@ export default function Dashboard() {
               {user?.id && (
                 <BrainBodyTracker
                   userId={user.id}
+                  streak={wellnessStreak}
                   onLogWellness={() => {
-                    // Open wellness logger via insights section
                     if (!showInsights) {
                       setShowInsights(true);
                     }
                   }}
                   onQuickLog={async (sleep, movement, nutrition) => {
-                    try {
-                      const today = new Date().toISOString().split('T')[0];
-                      const { error } = await supabase
-                        .from("wellness_logs")
-                        .upsert({
-                          user_id: user.id,
-                          log_date: today,
-                          sleep_rating: sleep,
-                          movement_rating: movement,
-                          nutrition_rating: nutrition,
-                        }, { onConflict: "user_id,log_date" });
-                      if (error) throw error;
+                    const success = await logWellness(sleep, movement, nutrition);
+                    if (success) {
                       queryClient.invalidateQueries({ queryKey: ["brain-body-wellness", user.id] });
-                      toast({ title: "Battery logged!", description: `Charge: ${((sleep + movement + nutrition) / 3).toFixed(1)}/5` });
-                      return true;
-                    } catch {
-                      toast({ title: "Failed to log", description: "Please try again.", variant: "destructive" });
-                      return false;
                     }
+                    return success;
                   }}
                   onImportHealth={() => {
-                    // Open insights section which contains HealthDataSync
                     if (!showInsights) {
                       setShowInsights(true);
                     }
