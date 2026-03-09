@@ -1,164 +1,195 @@
 
-# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-## Overview
+# Operator Console — Structured AI Experience (v1.8.0)
 
-Three interconnected deliverables:
-1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
-2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
-3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
+## What Changes
 
----
+The current AI experience is chat-first: users open a panel, pick a guide, type a message. The Operator Console flips this. Users see a structured card with today's priority, attention items, and one-tap actions. No typing required. Chat becomes a secondary "Talk it through" mode.
 
-## Part 1: AI Insight Engine
+## Architecture
 
-### New Edge Function: `admin-insights`
+The existing `DailyOSCard` already returns structured JSON (top_three, quick_wins, blockers, fallback_plan) from the `daily-os-plan` edge function. The Operator Console builds on this pattern but adds:
+- A unified recommendation engine that synthesizes signals from snapshot state, planner, money, wellness, build scores, and guide memory
+- Structured response modes (Decision, Plan, Recovery, Focus, Review)
+- Persistence for accepted/snoozed/dismissed suggestions
+- A compact command input for natural-language shortcuts
 
-**File: `supabase/functions/admin-insights/index.ts`**
+## Database Schema
 
-This function:
-1. Verifies the caller is an admin (same pattern as `admin-analytics`)
-2. Queries aggregated metrics from the last 7 days using the service role client:
-   - `app_events` grouped by `event_name` and day-of-week
-   - `completed_actions` grouped by `controllable`
-   - `daily_resets` count per user (for retention correlation)
-   - `reset_sessions` completion rates
-   - `user_entitlements` conversion data
-   - `user_onboarding` activation delays
-3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
-   - 3 behavioral insights
-   - 2 retention risks
-   - 2 growth opportunities
-   - 1 experiment recommendation
-4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
-5. Returns the insights directly (no caching table needed initially -- can add later)
-
-**Prompt structure:**
-```
-You are a product analytics advisor for a personal growth app called The Controllables.
-Given the following 7-day metrics, generate actionable insights.
-
-[structured data blob]
-
-Return insights as structured tool output.
+```sql
+-- Operator suggestions with lifecycle tracking
+CREATE TABLE public.operator_suggestions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  suggestion_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  mode TEXT NOT NULL, -- decision, plan, recovery, focus, review
+  headline TEXT NOT NULL,
+  summary TEXT,
+  rationale TEXT, -- why this was recommended
+  recommended_actions JSONB DEFAULT '[]', -- [{id, label, deep_link, xp_reward}]
+  alternate_actions JSONB DEFAULT '[]',
+  warnings JSONB DEFAULT '[]',
+  confidence NUMERIC(3,2) DEFAULT 0.5,
+  status TEXT NOT NULL DEFAULT 'pending', -- pending, accepted, snoozed, dismissed, completed
+  status_changed_at TIMESTAMPTZ,
+  generated_by TEXT DEFAULT 'ai', -- ai or rules
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, suggestion_date, mode)
+);
+-- RLS: user CRUD own rows
 ```
 
-**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+## Edge Function: `operator-console`
 
-**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+Returns structured JSON, never free-form text. Accepts optional `command` parameter for natural-language shortcuts.
 
-### New Admin Component: AI Insights Panel
+**Input:**
+```json
+{
+  "command": "replan my day" | "simplify today" | "what am I missing" | "prep tomorrow" | "I feel off" | null,
+  "localDate": "2026-03-09",
+  "timezone": "America/New_York"
+}
+```
 
-**File: `src/components/admin/AIInsightsPanel.tsx`**
+**Output:**
+```json
+{
+  "mode": "plan",
+  "headline": "Your afternoon is overloaded",
+  "summary": "3 planner items overlap with a bill due today. Move the wellness log to morning.",
+  "rationale": "Based on your planner having 5 items after 2pm and your Electric Bill due today",
+  "recommended_actions": [
+    { "id": "r1", "label": "Move wellness log to 8am", "deep_link": "/planner", "xp_reward": 5 },
+    { "id": "r2", "label": "Pay Electric Bill ($120)", "deep_link": "/money", "xp_reward": 10 }
+  ],
+  "alternate_actions": [
+    { "id": "a1", "label": "Skip wellness today", "deep_link": null }
+  ],
+  "warnings": ["You haven't logged meals in 3 days"],
+  "fallback_if_low_energy": {
+    "label": "Just do your snapshot check-in",
+    "deep_link": "/reset"
+  },
+  "confidence": 0.82,
+  "generated_by": "ai"
+}
+```
 
-- A card with "Weekly Intelligence" header and a "Generate Insights" button
-- On click, calls the `admin-insights` edge function
-- Displays results in categorized sections:
-  - Behavioral Insights (brain icon, blue accent)
-  - Retention Risks (alert icon, amber accent)
-  - Growth Opportunities (trending-up icon, green accent)
-  - Experiment Recommendation (flask icon, purple accent)
-- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
-- Loading state with skeleton cards
-- Error state with retry button
-- "Last generated" timestamp display
+**Context gathering** (server-side, single function):
+- Active snapshot state + current day
+- Today's planner items
+- Pending promises + due dates
+- Bills due this week
+- Wellness streak + last log
+- Build scores (weakest controllable)
+- Recent guide session themes
+- Money: budget utilization
+- Last meal log date
 
-### Integration into Admin.tsx
+**Rule-based fallback** when AI unavailable:
+- Prioritize by: uncompleted snapshot > overdue promises > bills due today > missed wellness > planner items
+- Mode defaults to "plan"
 
-- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
-- The tab renders `<AIInsightsPanel />`
+**Command routing:**
+| Command | Mode | Behavior |
+|---------|------|----------|
+| `replan my day` | Plan | Regenerate with current state |
+| `simplify today` | Focus | Keep only top 2 items, defer rest |
+| `what am I missing` | Review | Scan all modules for gaps |
+| `prep tomorrow` | Plan | Generate tomorrow's plan |
+| `I feel off` | Recovery | Low-energy suggestions, wellness-first |
 
----
+## React Components
 
-## Part 2: Enhanced Action Center
+### `src/components/dashboard/OperatorConsole.tsx`
+The primary card, replacing the AIGuidePanel position on the dashboard.
 
-**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
+Structure:
+- **Header**: "Operator" label + mode badge (Plan/Focus/Recovery/etc) + confidence dot
+- **Headline**: Bold, 1-line summary of what matters now
+- **Rationale**: Small text explaining why (grounded in data)
+- **Recommended Actions**: Chips/buttons with deep links, one-tap to execute or navigate
+- **Warnings**: Amber badges for attention items
+- **Low Energy Fallback**: Single button at bottom
+- **Command Input**: Compact text field with preset chip suggestions ("replan", "simplify", etc)
+- **"Talk it through" link**: Opens existing AIGuidePanel in a sheet/drawer
 
-Replace the three "Coming soon" cards with working functionality:
+States: loading skeleton, empty (no data yet), error (graceful message), populated.
 
-### A. Send Nudge Campaign
-- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
-- Confirmation dialog before sending
-- Calls the existing `send-daily-nudge` edge function for each selected user
-- Shows progress and results
+### `src/components/dashboard/OperatorCommandInput.tsx`
+Compact input with preset command chips. On submit, calls `operator-console` edge function with the command string.
 
-### B. Grant Trial Extension
-- Search for a specific user by email
-- Set extension duration (7 days, 14 days, 30 days)
-- Calls `admin-users?action=grant_access` with an `expires_at` parameter
-- Confirmation toast on success
+### Refactored `AIGuidePanel`
+Stays as-is internally but is no longer the primary surface. It's opened via a "Talk it through" button from the Operator Console or from the Guide tab.
 
-### C. Export with More Segments
-- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
-- Risk tier data fetched from `admin-analytics?resource=retention_radar`
-- CSV includes: email, signup date, last active, risk tier, paid status, source
+## Hook: `src/hooks/useOperatorConsole.ts`
 
-### D. Quick Stats Bar
-- Show counts above the action cards: Total Users, Free, Paid, At Risk
-- Derived from the `users` prop already passed in
+```typescript
+useOperatorConsole(userId) → {
+  suggestion, isLoading, error,
+  acceptAction(actionId),
+  snoozeAction(actionId),
+  dismissSuggestion(),
+  sendCommand(command),
+  isCommandLoading
+}
+```
 
----
+Uses React Query with 10-minute stale time (same as Daily OS). Persists interaction states to `operator_suggestions` table.
 
-## Part 3: Landing Page Updates
+## Dashboard Integration
 
-**File: `src/pages/Landing.tsx`**
+In `Dashboard.tsx`, the Operator Console card replaces the current position of `DailyBriefingCard` + `AIGuidePanel` at the bottom. The flow becomes:
 
-Update the hero copy to reflect the free trial:
-- Change hero tagline to emphasize "Try the full experience free for 7 days"
-- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
-- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+1. **TodayActions** (checklist — unchanged)
+2. **Secondary grid** (Planner, Money, Wellness, etc — unchanged)
+3. **OperatorConsole** (new — replaces DailyBriefing + AIGuidePanel position)
 
-**File: `src/components/landing/FeatureGrid.tsx`**
+The `DailyBriefingCard` content gets absorbed into the Operator Console headline/summary. The `AIGuidePanel` moves into a drawer triggered from the console.
 
-- Update the Free/Premium labeling:
-  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
-  - "Experience History" -- add "Free during trial" badge
-  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+The Guide tab stays unchanged (Controllable Levels, Game Rules, Manual).
 
-**File: `src/components/landing/HowItWorksSection.tsx`**
+## `/operator` Route
 
-- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+A full-screen version of the Operator Console with expanded detail:
+- Full action history (today's accepted/snoozed/dismissed)
+- Command history
+- Link back to dashboard
 
----
+Lazy-loaded in `App.tsx`.
 
-## Part 4: README Update
+## Telemetry
 
-**File: `README.md`**
+Track via existing `app_events`:
+- `operator_suggestion_shown` (mode, confidence)
+- `operator_action_accepted` (action_id, deep_link)
+- `operator_action_snoozed`
+- `operator_suggestion_dismissed`
+- `operator_command_sent` (command text)
+- `operator_chat_opened` (fallback to chat)
 
-Update to v1.5.0 reflecting all recent changes:
+## Files Summary
 
-1. **Version bump**: `v1.4.1` to `v1.5.0`
-2. **New section: "Admin Command Center"** after Technical Reference:
-   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
-   - Mention the `admin-analytics` and `admin-insights` edge functions
-   - Document the AI Insight Engine capability
-3. **Update "Free vs. Premium" table**:
-   - Add "7-Day Free Trial" row explaining full access during first Snapshot
-   - Update AI Guide from "---" to "5 msgs/day during trial"
-   - Update Experience History from "---" to "During trial"
-4. **Update Backend Functions table**:
-   - Add `admin-analytics` -- Admin data aggregation and executive metrics
-   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
-5. **Update Key Data Tables**:
-   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
-   - Add `ai_usage_logs` -- Daily AI message tracking
-6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+| Action | Path |
+|--------|------|
+| Migration | `supabase/migrations/..._operator_console.sql` |
+| Create | `supabase/functions/operator-console/index.ts` |
+| Create | `src/hooks/useOperatorConsole.ts` |
+| Create | `src/components/dashboard/OperatorConsole.tsx` |
+| Create | `src/components/dashboard/OperatorCommandInput.tsx` |
+| Create | `src/pages/Operator.tsx` |
+| Edit | `src/pages/Dashboard.tsx` — replace DailyBriefing+AIGuidePanel with OperatorConsole |
+| Edit | `src/App.tsx` — add `/operator` route |
+| Edit | `src/lib/version.ts` — bump to 1.8.0 |
+| Edit | `src/components/WhatsNewModal.tsx` — v1.8.0 entry |
+| Edit | `README.md` — document Operator Console |
 
----
+## Design Rules
 
-## Technical Summary
+- No placeholder or "coming soon" UI
+- Every action chip navigates or performs a real action
+- Rule-based fallback always works even if AI is down
+- Operator Console never blocks dashboard load (independent query)
+- Chat mode is one tap away but never the default view
 
-| File | Change | Type |
-|------|--------|------|
-| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
-| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
-| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
-| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
-| `src/pages/Admin.tsx` | Add Insights tab | Edit |
-| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
-| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
-| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
-| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
-| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
-
-No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
