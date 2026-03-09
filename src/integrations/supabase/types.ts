@@ -238,6 +238,89 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_run_steps: {
+        Row: {
+          affected_system: string
+          completed_at: string | null
+          error_message: string | null
+          id: string
+          result: Json | null
+          run_id: string
+          started_at: string | null
+          status: string
+          step_key: string
+        }
+        Insert: {
+          affected_system: string
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          result?: Json | null
+          run_id: string
+          started_at?: string | null
+          status?: string
+          step_key: string
+        }
+        Update: {
+          affected_system?: string
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          result?: Json | null
+          run_id?: string
+          started_at?: string | null
+          status?: string
+          step_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_run_steps_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "automation_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          inputs: Json | null
+          recipe_key: string
+          result: Json | null
+          started_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          inputs?: Json | null
+          recipe_key: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          inputs?: Json | null
+          recipe_key?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       budget_buckets: {
         Row: {
           bucket_name: string
@@ -2238,6 +2321,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_modes: {
+        Row: {
+          activated_at: string
+          active_mode: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          previous_mode: string | null
+          reasons: Json
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string
+          active_mode?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          previous_mode?: string | null
+          reasons?: Json
+          source?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated_at?: string
+          active_mode?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          previous_mode?: string | null
+          reasons?: Json
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_observations: {
         Row: {
           confidence: number | null
@@ -2331,6 +2453,66 @@ export type Database = {
           simplified_mode_completed?: boolean
           user_id?: string
           welcome_foundation_progress?: Json | null
+        }
+        Relationships: []
+      }
+      user_predictions: {
+        Row: {
+          accuracy_evaluated_at: string | null
+          confidence: number
+          created_at: string
+          explanation: string | null
+          forecast: string
+          id: string
+          intervention_deep_link: string | null
+          intervention_taken: boolean | null
+          intervention_taken_at: string | null
+          prediction_accurate: boolean | null
+          prediction_date: string
+          prediction_type: string
+          reasons: Json
+          recommended_intervention: string | null
+          updated_at: string
+          urgency: string
+          user_id: string
+        }
+        Insert: {
+          accuracy_evaluated_at?: string | null
+          confidence?: number
+          created_at?: string
+          explanation?: string | null
+          forecast: string
+          id?: string
+          intervention_deep_link?: string | null
+          intervention_taken?: boolean | null
+          intervention_taken_at?: string | null
+          prediction_accurate?: boolean | null
+          prediction_date?: string
+          prediction_type: string
+          reasons?: Json
+          recommended_intervention?: string | null
+          updated_at?: string
+          urgency?: string
+          user_id: string
+        }
+        Update: {
+          accuracy_evaluated_at?: string | null
+          confidence?: number
+          created_at?: string
+          explanation?: string | null
+          forecast?: string
+          id?: string
+          intervention_deep_link?: string | null
+          intervention_taken?: boolean | null
+          intervention_taken_at?: string | null
+          prediction_accurate?: boolean | null
+          prediction_date?: string
+          prediction_type?: string
+          reasons?: Json
+          recommended_intervention?: string | null
+          updated_at?: string
+          urgency?: string
+          user_id?: string
         }
         Relationships: []
       }

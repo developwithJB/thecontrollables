@@ -12,6 +12,16 @@ import { APP_VERSION } from "@/lib/version";
 
 // Changelog entries - update this with each version
 const CHANGELOG: Record<string, { title: string; items: string[] }> = {
+  "2.0.0": {
+    title: "Predictive Intelligence, Adaptive Modes & Automations",
+    items: [
+      "The app now predicts drift, burnout, and opportunity windows before they happen",
+      "Adaptive Modes — Focus, Recovery, Maintenance, Social, Travel — reshape the dashboard to match your state",
+      "One-tap automations: lighten your day, prep tomorrow, build a focus block, and more",
+      "Predictions are grounded in your real data, not generic advice",
+      "Manual mode override always respected — you stay in control",
+    ],
+  },
   "1.9.0": {
     title: "System Intelligence",
     items: [
