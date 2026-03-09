@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import type { FinancialAccount, RecurringBill, Subscription, SavingsGoal } from "@/hooks/useMoney";
+import { billMonthlyCost, isBillDueWithinDays, getBillDisplayLabel } from "@/lib/billHelpers";
 
 function parseDateLocal(dateStr: string): Date {
   const [y, m, d] = dateStr.split("-").map(Number);
