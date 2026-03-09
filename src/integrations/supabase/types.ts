@@ -238,6 +238,47 @@ export type Database = {
         }
         Relationships: []
       }
+      budget_buckets: {
+        Row: {
+          bucket_name: string
+          bucket_type: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          monthly_target: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bucket_name: string
+          bucket_type?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          monthly_target?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bucket_name?: string
+          bucket_type?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          monthly_target?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_buckets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       build_answers: {
         Row: {
           assessment_id: string
@@ -913,6 +954,53 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_accounts: {
+        Row: {
+          account_name: string
+          account_number_last4: string | null
+          account_type: string
+          bank_connection_id: string | null
+          created_at: string | null
+          current_balance: number | null
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          account_name: string
+          account_number_last4?: string | null
+          account_type: string
+          bank_connection_id?: string | null
+          created_at?: string | null
+          current_balance?: number | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          account_name?: string
+          account_number_last4?: string | null
+          account_type?: string
+          bank_connection_id?: string | null
+          created_at?: string | null
+          current_balance?: number | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guide_sessions: {
         Row: {
           context: string | null
@@ -1476,6 +1564,66 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_bills: {
+        Row: {
+          account_id: string | null
+          amount: number
+          bill_name: string
+          category: string | null
+          created_at: string | null
+          due_date: number
+          frequency: string | null
+          id: string
+          is_active: boolean | null
+          last_paid_date: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          bill_name: string
+          category?: string | null
+          created_at?: string | null
+          due_date: number
+          frequency?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_paid_date?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          bill_name?: string
+          category?: string | null
+          created_at?: string | null
+          due_date?: number
+          frequency?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_paid_date?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_bills_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "financial_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_bills_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reset_sessions: {
         Row: {
           completed_at: string | null
@@ -1541,6 +1689,63 @@ export type Database = {
           },
         ]
       }
+      savings_goals: {
+        Row: {
+          created_at: string | null
+          current_amount: number | null
+          goal_name: string
+          id: string
+          is_completed: boolean | null
+          linked_account_id: string | null
+          monthly_contribution: number | null
+          target_amount: number
+          target_date: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_amount?: number | null
+          goal_name: string
+          id?: string
+          is_completed?: boolean | null
+          linked_account_id?: string | null
+          monthly_contribution?: number | null
+          target_amount: number
+          target_date?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_amount?: number | null
+          goal_name?: string
+          id?: string
+          is_completed?: boolean | null
+          linked_account_id?: string | null
+          monthly_contribution?: number | null
+          target_amount?: number
+          target_date?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "savings_goals_linked_account_id_fkey"
+            columns: ["linked_account_id"]
+            isOneToOne: false
+            referencedRelation: "financial_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_goals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seasons: {
         Row: {
           completed_at: string | null
@@ -1571,6 +1776,60 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          account_id: string | null
+          amount: number
+          billing_cycle: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          next_billing_date: string
+          service_name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          billing_cycle?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          next_billing_date: string
+          service_name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          billing_cycle?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          next_billing_date?: string
+          service_name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "financial_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       time_logs: {
         Row: {
           created_at: string
@@ -1600,6 +1859,70 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      transactions: {
+        Row: {
+          account_id: string | null
+          amount: number
+          budget_bucket_id: string | null
+          category: string | null
+          created_at: string | null
+          description: string
+          external_transaction_id: string | null
+          id: string
+          is_pending: boolean | null
+          transaction_date: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          budget_bucket_id?: string | null
+          category?: string | null
+          created_at?: string | null
+          description: string
+          external_transaction_id?: string | null
+          id?: string
+          is_pending?: boolean | null
+          transaction_date: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          budget_bucket_id?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string
+          external_transaction_id?: string | null
+          id?: string
+          is_pending?: boolean | null
+          transaction_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "financial_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_budget_bucket_id_fkey"
+            columns: ["budget_bucket_id"]
+            isOneToOne: false
+            referencedRelation: "budget_buckets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_badges: {
         Row: {
@@ -1816,6 +2139,99 @@ export type Database = {
           granted_by?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vault_entries: {
+        Row: {
+          body: string
+          controllable: string | null
+          created_at: string
+          entry_date: string
+          entry_type: string
+          id: string
+          is_favorite: boolean
+          is_pinned: boolean
+          season_id: string | null
+          snapshot_id: string | null
+          source_ref: Json | null
+          tags: string[]
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          controllable?: string | null
+          created_at?: string
+          entry_date?: string
+          entry_type?: string
+          id?: string
+          is_favorite?: boolean
+          is_pinned?: boolean
+          season_id?: string | null
+          snapshot_id?: string | null
+          source_ref?: Json | null
+          tags?: string[]
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          controllable?: string | null
+          created_at?: string
+          entry_date?: string
+          entry_type?: string
+          id?: string
+          is_favorite?: boolean
+          is_pinned?: boolean
+          season_id?: string | null
+          snapshot_id?: string | null
+          source_ref?: Json | null
+          tags?: string[]
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_entries_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vault_entries_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "reset_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vault_saved_views: {
+        Row: {
+          created_at: string
+          filters: Json
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name?: string
           user_id?: string
         }
         Relationships: []
