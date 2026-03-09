@@ -163,7 +163,7 @@ export default function Landing() {
             @agbcoaching
           </a>
         </p>
-        <p className="text-xs text-muted-foreground/70">© {new Date().getFullYear()} The Controllables</p>
+        <p className="text-xs text-muted-foreground/70">© {new Date().getFullYear()} AGB Coaching</p>
       </footer>
     </div>
   );
