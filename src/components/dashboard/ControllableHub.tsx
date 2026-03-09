@@ -2,9 +2,10 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Zap, Loader2 } from "lucide-react";
+import { Send, Zap, Loader2, UtensilsCrossed } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 type ControllableKey = "awareness" | "perspective" | "habit" | "wellness" | "environment";
 
@@ -54,6 +55,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
   const [isLoading, setIsLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { toast } = useToast();
 
   const activeC = CONTROLLABLES.find((c) => c.key === activeControllable);
 
@@ -91,6 +93,9 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
     setInput("");
     setIsLoading(true);
 
+    // Detect if this is a food logging message
+    const isFoodLog = controllable === "wellness" && /\b(log|ate|had|eat|lunch|dinner|breakfast|snack|steak|chicken|eggs|rice|salad|meal)\b/i.test(text);
+
     try {
       const { data, error } = await supabase.functions.invoke("ai-chat", {
         body: {
@@ -102,6 +107,25 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
       if (error) throw error;
       const reply = data?.reply || data?.message || "I'm here. Could you tell me more?";
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+
+      // Show confirmation toast for food logs
+      if (isFoodLog) {
+        toast({
+          title: "🛰️ Meal logged",
+          description: "View your daily fuel check to see all logged meals.",
+          action: onNavigate ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1 h-7 text-xs"
+              onClick={() => onNavigate("meal-tracker")}
+            >
+              <UtensilsCrossed className="w-3 h-3" />
+              View Meals
+            </Button>
+          ) : undefined,
+        });
+      }
     } catch (err) {
       console.error("Chat error:", err);
       setMessages((prev) => [
@@ -111,7 +135,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
     } finally {
       setIsLoading(false);
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading, toast, onNavigate]);
 
   const handleSend = useCallback(() => {
     if (!input.trim()) return;

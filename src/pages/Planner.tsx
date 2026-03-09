@@ -1,11 +1,11 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { format, addWeeks, subWeeks } from "date-fns";
+import { format, addWeeks, subWeeks, isToday, isBefore, startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { SplashScreen } from "@/components/SplashScreen";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, RotateCcw, Settings } from "lucide-react";
+import { ArrowLeft, Plus, RotateCcw, Settings, BarChart3 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,12 +27,14 @@ import { PlannerItemEditor } from "@/components/planner/PlannerItemEditor";
 import { PlannerFab } from "@/components/planner/PlannerFab";
 import { PlannerRoutineManager } from "@/components/planner/PlannerRoutineManager";
 import { PlannerCalendarConnect } from "@/components/planner/PlannerCalendarConnect";
+import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 
 const Planner = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const [showPvA, setShowPvA] = useState(false);
 
   // Auth check
   const { data: user, isLoading: userLoading } = useQuery({
@@ -91,6 +93,34 @@ const Planner = () => {
 
   const selectedDateKey = format(selectedDate, "yyyy-MM-dd");
   const dayItems = itemsByDate[selectedDateKey] ?? [];
+
+  // Derive Plan vs Actual data from planner items
+  const pvaData = useMemo(() => {
+    const today = startOfDay(new Date());
+    return weekRange.days.map((date) => {
+      const key = format(date, "yyyy-MM-dd");
+      const dayItems = itemsByDate[key] ?? [];
+      const isPast = isBefore(date, today) && !isToday(date);
+      return {
+        date,
+        items: dayItems.map((item) => {
+          let status: "done" | "partial" | "missed" | "planned" = "planned";
+          if (item.status === "done") status = "done";
+          else if (item.status === "skipped") status = "partial";
+          else if (isPast) status = "missed";
+          return {
+            id: item.id,
+            title: item.title,
+            plannedTime: item.start_time ?? undefined,
+            actualTime: item.completed_at ? format(new Date(item.completed_at), "HH:mm") : undefined,
+            status,
+            type: item.item_type as "task" | "time_block" | "routine_instance" | "external_event",
+          };
+        }),
+      };
+    });
+  }, [weekRange.days, itemsByDate]);
+
 
   // Handlers
   const handleToggleStatus = useCallback(
@@ -178,6 +208,15 @@ const Planner = () => {
           </span>
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            variant={showPvA ? "default" : "ghost"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setShowPvA((v) => !v)}
+            title="Plan vs Actual"
+          >
+            <BarChart3 className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRoutineManagerOpen(true)}>
             <RotateCcw className="h-4 w-4" />
           </Button>
@@ -206,6 +245,13 @@ const Planner = () => {
           onNextWeek={() => setReferenceDate((d) => addWeeks(d, 1))}
           itemCounts={itemCounts}
         />
+      )}
+
+      {/* Plan vs Actual overlay */}
+      {showPvA && (
+        <div className="px-4 py-3 border-b border-border bg-card/50">
+          <PlanVsActualView days={pvaData} view="week" />
+        </div>
       )}
 
       {/* Main content */}
