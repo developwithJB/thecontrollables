@@ -274,24 +274,11 @@ export const CommandModeView = ({
       });
     }
 
-    if (!askGuideCompleted) {
-      actions.push({
-        id: "ask-guide",
-        type: "guide",
-        title: "Ask The Controllables",
-        subtitle: "Get guidance on what to focus on today.",
-        emoji: "🧭",
-        xp: 5,
-        onAction: onOpenAIGuide,
-        actionLabel: "Open Guide",
-      });
-    }
-
     return actions;
   }, [
     hasActiveSession, todayResetCompleted, wellnessLoggedToday,
-    todayTimeLogged, pendingPromisesCount, askGuideCompleted,
-    onNavigateReset, onOpenReset, onOpenAIGuide,
+    todayTimeLogged, pendingPromisesCount,
+    onNavigateReset, onOpenReset,
   ]);
 
   const activeActions = useMemo(
