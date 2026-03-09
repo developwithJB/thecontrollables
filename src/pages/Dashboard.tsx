@@ -943,6 +943,7 @@ export default function Dashboard() {
               {showReturnBanner && <WelcomeBackBanner />}
 
               {/* Daily Alignment Spotlight - one-time dismissible card */}
+              {/* Primary cards span full width, secondary cards go into responsive grid */}
               {user?.id && !entitlementsLoading && (
                 <DailyAlignmentSpotlight
                   userId={user.id}
