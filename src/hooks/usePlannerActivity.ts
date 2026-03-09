@@ -6,10 +6,12 @@ export interface ActivityItem {
   id: string;
   title: string;
   subtitle: string | null;
-  source: "ring" | "wellness" | "meal" | "action";
+  detail?: string | null;
+  source: "ring" | "wellness" | "meal" | "action" | "recharge" | "notice";
   time: string; // ISO timestamp
   dateKey: string; // yyyy-MM-dd
   isConfirmed: boolean;
+  meta?: Record<string, any>;
 }
 
 export const usePlannerActivity = (
@@ -33,30 +35,111 @@ export const usePlannerActivity = (
         for (const ring of rings) {
           const dateKey = ring.ring_date;
           const ringNames = [
-            { key: "notice", label: "Notice Ring", field: "notice_completed", response: "notice_response" },
-            { key: "choose", label: "Choose Ring", field: "choose_completed", response: "choose_response" },
-            { key: "prove", label: "Prove Ring", field: "prove_completed", response: "prove_response" },
-            { key: "charge", label: "Charge Ring", field: "charge_completed", response: "charge_response" },
-            { key: "align", label: "Align Ring", field: "align_completed", response: "align_response" },
+            { key: "notice", label: "Circuit Check", field: "notice_completed", response: "notice_response" },
+            { key: "choose", label: "Reframe Studio", field: "choose_completed", response: "choose_response" },
+            { key: "prove", label: "Proof Action", field: "prove_completed", response: "prove_response" },
+            { key: "charge", label: "Recharge", field: "charge_completed", response: "charge_response" },
+            { key: "align", label: "Environment Reset", field: "align_completed", response: "align_response" },
           ] as const;
 
           for (const r of ringNames) {
             const completed = (ring as any)[r.field] as boolean;
+            if (!completed) continue; // Only show completed rings
             const response = (ring as any)[r.response] as string | null;
             items.push({
               id: `ring-${ring.id}-${r.key}`,
-              title: completed ? `✓ ${r.label}` : r.label,
-              subtitle: response ? (response.length > 60 ? response.slice(0, 60) + "…" : response) : null,
+              title: `✓ ${r.label}`,
+              subtitle: response ? (response.length > 80 ? response.slice(0, 80) + "…" : response) : null,
               source: "ring",
               time: ring.updated_at || ring.created_at,
               dateKey,
-              isConfirmed: completed,
+              isConfirmed: true,
             });
           }
         }
       }
 
-      // 2. Completed actions
+      // 2. Wellness logs (sleep, movement, nutrition)
+      const { data: wellness } = await supabase
+        .from("wellness_logs")
+        .select("*")
+        .gte("log_date", startDate)
+        .lte("log_date", endDate);
+
+      if (wellness) {
+        for (const log of wellness as any[]) {
+          const parts: string[] = [];
+          if (log.sleep_rating) parts.push(`Sleep ${log.sleep_rating}/5`);
+          if (log.movement_rating) parts.push(`Movement ${log.movement_rating}/5`);
+          if (log.nutrition_rating) parts.push(`Nutrition ${log.nutrition_rating}/5`);
+
+          items.push({
+            id: `wellness-${log.id}`,
+            title: "Wellness Log",
+            subtitle: parts.join(" · ") || "Logged",
+            detail: log.notes || null,
+            source: "wellness",
+            time: log.created_at,
+            dateKey: log.log_date,
+            isConfirmed: true,
+            meta: { sleep: log.sleep_rating, movement: log.movement_rating, nutrition: log.nutrition_rating },
+          });
+        }
+      }
+
+      // 3. Recharge logs
+      const { data: recharges } = await supabase
+        .from("recharge_logs" as any)
+        .select("*")
+        .gte("log_date", startDate)
+        .lte("log_date", endDate);
+
+      if (recharges) {
+        // Group by date
+        const byDate: Record<string, any[]> = {};
+        for (const r of recharges as any[]) {
+          const d = r.log_date;
+          if (!byDate[d]) byDate[d] = [];
+          byDate[d].push(r);
+        }
+        for (const [dateKey, logs] of Object.entries(byDate)) {
+          const types = logs.map((l: any) => l.recharge_type).join(", ");
+          items.push({
+            id: `recharge-${dateKey}`,
+            title: `⚡ Recharged`,
+            subtitle: types,
+            source: "recharge",
+            time: logs[0].created_at,
+            dateKey,
+            isConfirmed: true,
+          });
+        }
+      }
+
+      // 4. Notice entries (Circuit Checks)
+      const { data: notices } = await supabase
+        .from("notice_entries" as any)
+        .select("*")
+        .gte("entry_date", startDate)
+        .lte("entry_date", endDate);
+
+      if (notices) {
+        for (const n of notices as any[]) {
+          items.push({
+            id: `notice-${n.id}`,
+            title: "🦉 Circuit Check",
+            subtitle: `${n.mood} · Energy ${n.energy_level}/5 · Stress ${n.stress_level}/5`,
+            detail: n.interpretation || null,
+            source: "notice",
+            time: n.created_at,
+            dateKey: n.entry_date,
+            isConfirmed: true,
+            meta: { mood: n.mood, energy: n.energy_level, stress: n.stress_level },
+          });
+        }
+      }
+
+      // 5. Completed actions
       const { data: actions } = await supabase
         .from("completed_actions")
         .select("*")
@@ -65,7 +148,6 @@ export const usePlannerActivity = (
 
       if (actions) {
         for (const action of actions) {
-          // Skip planner-originated actions to avoid duplicates
           if (action.action_text?.startsWith("Planner:")) continue;
           items.push({
             id: `action-${action.id}`,
@@ -79,7 +161,7 @@ export const usePlannerActivity = (
         }
       }
 
-      // 3. Meal plans
+      // 6. Meal plans — show actual food names
       const { data: meals } = await supabase
         .from("meal_plans")
         .select("*")
@@ -89,21 +171,52 @@ export const usePlannerActivity = (
       if (meals) {
         for (const meal of meals) {
           const mealsArr = Array.isArray(meal.meals) ? meal.meals : [];
-          const mealTypes = mealsArr
-            .map((m: any) => m?.meal_type || m?.type)
-            .filter(Boolean)
-            .join(", ");
+          const mealLines: string[] = [];
+          for (const m of mealsArr as any[]) {
+            const type = m?.meal_type || m?.type || "Meal";
+            const name = m?.name || m?.title || m?.recipe_name || "";
+            if (name) {
+              mealLines.push(`${type}: ${name}`);
+            } else {
+              mealLines.push(type);
+            }
+          }
           items.push({
             id: `meal-${meal.id}`,
-            title: "Meal Plan",
-            subtitle: mealTypes || `${mealsArr.length} meal(s)`,
+            title: "🍽️ Meal Plan",
+            subtitle: mealLines.length > 0 ? mealLines.join(" · ") : `${mealsArr.length} meal(s)`,
+            detail: mealLines.length > 2 ? mealLines.join("\n") : null,
             source: "meal",
             time: meal.created_at,
             dateKey: meal.plan_date,
-            isConfirmed: true, // meal plans are logged = confirmed
+            isConfirmed: true,
           });
         }
       }
+
+      // 7. Meal logs (photos/descriptions)
+      const { data: mealLogs } = await supabase
+        .from("meal_logs")
+        .select("*")
+        .gte("log_date", startDate)
+        .lte("log_date", endDate);
+
+      if (mealLogs) {
+        for (const log of mealLogs) {
+          items.push({
+            id: `meallog-${log.id}`,
+            title: `🍴 ${log.meal_type.charAt(0).toUpperCase() + log.meal_type.slice(1)}`,
+            subtitle: log.description || "Logged",
+            source: "meal",
+            time: log.created_at,
+            dateKey: log.log_date,
+            isConfirmed: true,
+          });
+        }
+      }
+
+      // Sort by time descending within each day
+      items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
       return items;
     },
