@@ -23,6 +23,7 @@ export const PlannerWeekGrid = ({
   selectedDate,
   onSelect,
   itemsByDate,
+  activityByDate = {},
 }: PlannerWeekGridProps) => {
   return (
     <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden border border-border">
