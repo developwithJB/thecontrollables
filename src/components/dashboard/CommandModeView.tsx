@@ -1,9 +1,10 @@
 import { useState, useMemo, useCallback } from "react";
 import { FocusedActionCard, type FocusedAction } from "./FocusedActionCard";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { MealSwiper, type SwipeMeal } from "@/components/nutrition/MealSwiper";
 import {
   UtensilsCrossed,
   CalendarDays,
@@ -15,8 +16,19 @@ import {
   Apple,
   Battery,
   Check,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Sample meals for the swiper — in production these come from AI/recipe library
+const SAMPLE_MEALS: SwipeMeal[] = [
+  { id: "m1", name: "Greek Yogurt Power Bowl", description: "Protein-packed yogurt with berries, granola, and honey drizzle.", calories: 380, prepMinutes: 5, mealType: "breakfast", tags: ["high-protein", "quick"], emoji: "🥣" },
+  { id: "m2", name: "Grilled Chicken Wrap", description: "Whole wheat wrap with grilled chicken, avocado, and fresh greens.", calories: 520, prepMinutes: 15, mealType: "lunch", tags: ["balanced", "meal-prep"], emoji: "🌯" },
+  { id: "m3", name: "Salmon & Quinoa Bowl", description: "Pan-seared salmon over quinoa with roasted vegetables.", calories: 610, prepMinutes: 25, mealType: "dinner", tags: ["omega-3", "whole-grain"], emoji: "🐟" },
+  { id: "m4", name: "Overnight Oats", description: "Oats soaked in almond milk with chia seeds, banana, and peanut butter.", calories: 420, prepMinutes: 5, mealType: "breakfast", tags: ["fiber", "no-cook"], emoji: "🥜" },
+  { id: "m5", name: "Turkey & Veggie Stir-Fry", description: "Lean turkey with bell peppers, broccoli, and teriyaki glaze.", calories: 480, prepMinutes: 20, mealType: "dinner", tags: ["lean", "veggie-rich"], emoji: "🥦" },
+  { id: "m6", name: "Mediterranean Salad", description: "Mixed greens, feta, olives, cucumber, and lemon-herb dressing.", calories: 340, prepMinutes: 10, mealType: "lunch", tags: ["fresh", "light"], emoji: "🥗" },
+];
 
 interface CommandModeViewProps {
   userId?: string;
