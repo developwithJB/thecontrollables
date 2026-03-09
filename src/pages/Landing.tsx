@@ -73,7 +73,7 @@ export default function Landing() {
             <h1 className="font-display text-2xl md:text-4xl lg:text-5xl font-bold text-foreground mb-3 md:mb-5 text-balance">
               Your Life OS.
               <br />
-              <span className="text-accent">Planner. Money. Wellness. Growth.</span>
+              <span className="text-accent">Wellness. Growth. Planner. Wealth.</span>
             </h1>
 
             <p className="text-muted-foreground text-sm md:text-base lg:text-lg leading-relaxed text-balance max-w-xs md:max-w-lg mx-auto mb-4">
