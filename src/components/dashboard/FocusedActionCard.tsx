@@ -25,6 +25,8 @@ interface FocusedActionCardProps {
   onTellMore?: () => void;
   isExpanded?: boolean;
   children?: ReactNode;
+  userId?: string;
+  onNavigate?: (destination: string) => void;
 }
 
 const controllableGradients: Record<string, string> = {
