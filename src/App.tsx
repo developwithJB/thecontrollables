@@ -25,6 +25,7 @@ const QuickStart = lazy(() => import("./pages/QuickStart"));
 const Planner = lazy(() => import("./pages/Planner"));
 const Money = lazy(() => import("./pages/Money"));
 const Integrations = lazy(() => import("./pages/Integrations"));
+const Operator = lazy(() => import("./pages/Operator"));
 
 // Production-hardened query client configuration
 const queryClient = new QueryClient({
