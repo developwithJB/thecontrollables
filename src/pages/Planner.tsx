@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { SplashScreen } from "@/components/SplashScreen";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, RotateCcw, Settings, BarChart3 } from "lucide-react";
+import { ArrowLeft, Plus, RotateCcw, Settings, BarChart3, UtensilsCrossed } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,6 +27,7 @@ import { PlannerDayView } from "@/components/planner/PlannerDayView";
 import { PlannerWeekGrid } from "@/components/planner/PlannerWeekGrid";
 import { PlannerItemEditor } from "@/components/planner/PlannerItemEditor";
 import { PlannerFab } from "@/components/planner/PlannerFab";
+import { QuickAddSheet } from "@/components/planner/QuickAddSheet";
 import { PlannerRoutineManager } from "@/components/planner/PlannerRoutineManager";
 import { PlannerCalendarConnect } from "@/components/planner/PlannerCalendarConnect";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
@@ -37,6 +38,7 @@ const Planner = () => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const [showPvA, setShowPvA] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   // Auth check
   const { data: user, isLoading: userLoading } = useQuery({
@@ -239,16 +241,25 @@ const Planner = () => {
               <RotateCcw className="h-4 w-4" />
             </Button>
             {!isMobile && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEditingItem(null);
-                  setEditorOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQuickAddOpen(true)}
+                >
+                  <UtensilsCrossed className="h-4 w-4 mr-1" /> Quick Log
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditingItem(null);
+                    setEditorOpen(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Add
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -350,10 +361,21 @@ const Planner = () => {
       {/* FAB for mobile */}
       {isMobile && (
         <PlannerFab
-          onClick={() => {
+          onAddTask={() => {
             setEditingItem(null);
             setEditorOpen(true);
           }}
+          onQuickAdd={() => setQuickAddOpen(true)}
+        />
+      )}
+
+      {/* Quick add sheet */}
+      {user && (
+        <QuickAddSheet
+          open={quickAddOpen}
+          onClose={() => setQuickAddOpen(false)}
+          userId={user.id}
+          selectedDate={selectedDateKey}
         />
       )}
 
