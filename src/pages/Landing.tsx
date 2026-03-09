@@ -92,7 +92,7 @@ export default function Landing() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.6 }}
-            className="space-y-3"
+            className="space-y-3 max-w-md mx-auto"
           >
             <Link to={quickStartEnabled ? "/quick-start" : "/auth?mode=signup"} onClick={() => trackEvent("cta", "cta_click", { cta_label: "Start with a 7-Day Snapshot", position: "hero" })}>
               <Button size="lg" className="w-full h-14 text-base font-medium group">
