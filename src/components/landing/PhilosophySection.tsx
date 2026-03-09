@@ -21,22 +21,22 @@ const principles = [
 
 export function PhilosophySection() {
   return (
-    <section className="py-12 px-6">
+    <section className="py-12 md:py-16 px-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-50px" }}
         transition={{ duration: 0.5 }}
-        className="max-w-md mx-auto"
+        className="max-w-md md:max-w-3xl lg:max-w-5xl mx-auto"
       >
-        <h2 className="font-display text-xl font-semibold text-center mb-2 text-foreground">
+        <h2 className="font-display text-xl md:text-2xl font-semibold text-center mb-2 text-foreground">
           The Philosophy
         </h2>
         <p className="text-sm text-muted-foreground text-center mb-8">
           Built on principles from The Controllables book.
         </p>
         
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {principles.map((principle, index) => (
             <motion.div
               key={principle.title}

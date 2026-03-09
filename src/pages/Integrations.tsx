@@ -57,7 +57,7 @@ export default function Integrations() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-3xl md:max-w-5xl lg:max-w-7xl mx-auto px-4 py-6 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
@@ -75,13 +75,13 @@ export default function Integrations() {
 
         {/* Provider grid */}
         {isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-48 rounded-lg bg-muted/50 animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {ALL_PROVIDERS.map((provider) => (
               <ProviderCardWithLogs
                 key={provider}

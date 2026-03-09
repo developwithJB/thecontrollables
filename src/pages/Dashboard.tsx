@@ -858,7 +858,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header - with safe area support for iOS PWA */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b pt-[env(safe-area-inset-top)]">
-        <div className="max-w-md mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Logo />
           <div className="flex items-center gap-2">
             {/* Manual refresh button - always visible on mobile for stuck states */}
@@ -892,7 +892,7 @@ export default function Dashboard() {
 
       {/* Tab Navigation */}
       <div className="sticky top-[calc(65px+env(safe-area-inset-top))] z-40 bg-background/80 backdrop-blur-lg border-b">
-        <div className="max-w-md mx-auto px-6">
+        <div className="max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl mx-auto px-6">
           <div className="flex gap-1 py-2">
             {[
               { id: "dashboard" as TabType, label: "Dashboard", icon: "🎮" },
@@ -921,7 +921,7 @@ export default function Dashboard() {
       {/* Main Content with Pull-to-Refresh */}
       <main 
         ref={pullRefreshRef}
-        className="flex-1 max-w-md mx-auto px-6 py-6 w-full overflow-y-auto relative"
+        className="flex-1 max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl mx-auto px-6 py-6 w-full overflow-y-auto relative"
       >
         {/* Pull-to-Refresh Indicator */}
         <PullToRefreshIndicator
@@ -943,6 +943,7 @@ export default function Dashboard() {
               {showReturnBanner && <WelcomeBackBanner />}
 
               {/* Daily Alignment Spotlight - one-time dismissible card */}
+              {/* Primary cards span full width, secondary cards go into responsive grid */}
               {user?.id && !entitlementsLoading && (
                 <DailyAlignmentSpotlight
                   userId={user.id}
@@ -1079,79 +1080,81 @@ export default function Dashboard() {
                 />
               )}
 
-              {/* Daily Operating System Card */}
-              {user?.id && !entitlementsLoading && (
-                <DailyOSCard
-                  userId={user.id}
-                  isPaid={isPaid}
-                  isTrialing={isTrialing}
-                  hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
-                  onUpgrade={() => startCheckout(undefined, "daily_os")}
-                />
-              )}
+              {/* Secondary cards in responsive grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Daily Operating System Card */}
+                {user?.id && !entitlementsLoading && (
+                  <DailyOSCard
+                    userId={user.id}
+                    isPaid={isPaid}
+                    isTrialing={isTrialing}
+                    hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
+                    onUpgrade={() => startCheckout(undefined, "daily_os")}
+                  />
+                )}
 
-              {/* Brain & Body Health Tracker */}
-              {user?.id && (
-                <BrainBodyTracker
-                  userId={user.id}
-                  streak={wellnessStreak}
-                  onLogWellness={() => {
-                    if (!showInsights) {
-                      setShowInsights(true);
-                    }
-                  }}
-                  onQuickLog={async (sleep, movement, nutrition) => {
-                    const success = await logWellness(sleep, movement, nutrition);
-                    if (success) {
-                      queryClient.invalidateQueries({ queryKey: ["brain-body-wellness", user.id] });
-                    }
-                    return success;
-                  }}
-                  onImportHealth={() => {
-                    if (!showInsights) {
-                      setShowInsights(true);
-                    }
-                  }}
-                />
-              )}
+                {/* Brain & Body Health Tracker */}
+                {user?.id && (
+                  <BrainBodyTracker
+                    userId={user.id}
+                    streak={wellnessStreak}
+                    onLogWellness={() => {
+                      if (!showInsights) {
+                        setShowInsights(true);
+                      }
+                    }}
+                    onQuickLog={async (sleep, movement, nutrition) => {
+                      const success = await logWellness(sleep, movement, nutrition);
+                      if (success) {
+                        queryClient.invalidateQueries({ queryKey: ["brain-body-wellness", user.id] });
+                      }
+                      return success;
+                    }}
+                    onImportHealth={() => {
+                      if (!showInsights) {
+                        setShowInsights(true);
+                      }
+                    }}
+                  />
+                )}
 
-              {/* Wellness Goals */}
-              {user?.id && (
-                <WellnessGoalsCard userId={user.id} />
-              )}
+                {/* Wellness Goals */}
+                {user?.id && (
+                  <WellnessGoalsCard userId={user.id} />
+                )}
 
-              {/* Today's Plan */}
-              {user?.id && (
-                <PlannerCard userId={user.id} />
-              )}
+                {/* Today's Plan */}
+                {user?.id && (
+                  <PlannerCard userId={user.id} />
+                )}
 
-              {/* Money Hub */}
-              {user?.id && (
-                <MoneyCard userId={user.id} />
-              )}
+                {/* Money Hub */}
+                {user?.id && (
+                  <MoneyCard userId={user.id} />
+                )}
 
-              {user?.id && !entitlementsLoading && (
-                <MealPlanCard
-                  userId={user.id}
-                  isPaid={isPaid}
-                  onUpgrade={() => startCheckout(undefined, "meal_plan_card")}
-                />
-              )}
+                {user?.id && !entitlementsLoading && (
+                  <MealPlanCard
+                    userId={user.id}
+                    isPaid={isPaid}
+                    onUpgrade={() => startCheckout(undefined, "meal_plan_card")}
+                  />
+                )}
 
+                {/* Controllable Levels Teaser - links to Guide tab */}
+                {user?.id && (
+                  <ControllableLevelsTeaser
+                    userId={user.id}
+                    onNavigateToGuide={() => {
+                      setActiveTab("guide");
+                      trackEvent("navigation", "controllable_teaser_tap");
+                    }}
+                  />
+                )}
 
-              {/* Controllable Levels Teaser - links to Guide tab */}
-              {user?.id && (
-                <ControllableLevelsTeaser
-                  userId={user.id}
-                  onNavigateToGuide={() => {
-                    setActiveTab("guide");
-                    trackEvent("navigation", "controllable_teaser_tap");
-                  }}
-                />
-              )}
-
-              {/* Build Entry Point - shows if user hasn't done assessment */}
-              <BuildEntryPoint userId={user?.id} />
+                {/* Build Entry Point - shows if user hasn't done assessment */}
+                <BuildEntryPoint userId={user?.id} />
+              </div>
 
               {/* Daily Alignment promo for free users */}
               {!isPaid && !entitlementsLoading && showDashboardPaywallPromo && (
@@ -1316,7 +1319,7 @@ export default function Dashboard() {
                       </p>
 
                       {/* 2x2 Grid - compact state indicators */}
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                         {/* Top-left: Your Build */}
                         {buildLoading ? (
                           <SmallModuleSkeleton />
@@ -1648,7 +1651,7 @@ export default function Dashboard() {
       </main>
 
       {/* Footer with version on Guide tab and intentional usage microcopy after 5 visits */}
-      <footer className="max-w-md mx-auto px-6 py-6 text-center space-y-1">
+      <footer className="max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl mx-auto px-6 py-6 text-center space-y-1">
         {dashboardVisitCount > 5 && (
           <p className="text-xs text-muted-foreground/60">
             Quiet momentum. One check-in at a time.
