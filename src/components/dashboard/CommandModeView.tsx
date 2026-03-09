@@ -46,7 +46,6 @@ interface CommandModeViewProps {
   pendingPromisesCount: number;
   hasActiveQuest: boolean;
   wellnessLoggedToday: boolean;
-  askGuideCompleted: boolean;
   // Inline action data
   pendingPromises?: Array<{ id: string; promise_text: string; promised_at: string }>;
   // Inline action handlers
