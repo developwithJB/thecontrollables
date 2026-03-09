@@ -468,7 +468,7 @@ export function useMoneySummary(userId: string | null) {
       goalProgress,
       hasData: bills.length > 0 || subscriptions.length > 0 || buckets.length > 0 || goals.length > 0,
     };
-  }, [bills, subscriptions, buckets, goals, currentDay, daysInMonth]);
+  }, [bills, subscriptions, buckets, goals]);
 
   return {
     ...summary,
