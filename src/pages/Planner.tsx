@@ -94,6 +94,34 @@ const Planner = () => {
   const selectedDateKey = format(selectedDate, "yyyy-MM-dd");
   const dayItems = itemsByDate[selectedDateKey] ?? [];
 
+  // Derive Plan vs Actual data from planner items
+  const pvaData = useMemo(() => {
+    const today = startOfDay(new Date());
+    return weekRange.days.map((date) => {
+      const key = format(date, "yyyy-MM-dd");
+      const dayItems = itemsByDate[key] ?? [];
+      const isPast = isBefore(date, today) && !isToday(date);
+      return {
+        date,
+        items: dayItems.map((item) => {
+          let status: "done" | "partial" | "missed" | "planned" = "planned";
+          if (item.status === "done") status = "done";
+          else if (item.status === "skipped") status = "partial";
+          else if (isPast) status = "missed";
+          return {
+            id: item.id,
+            title: item.title,
+            plannedTime: item.start_time ?? undefined,
+            actualTime: item.completed_at ? format(new Date(item.completed_at), "HH:mm") : undefined,
+            status,
+            type: item.item_type as "task" | "time_block" | "routine_instance" | "external_event",
+          };
+        }),
+      };
+    });
+  }, [weekRange.days, itemsByDate]);
+
+
   // Handlers
   const handleToggleStatus = useCallback(
     (item: PlannerItem) => {
