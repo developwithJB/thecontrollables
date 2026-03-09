@@ -14,7 +14,18 @@ export interface Observation {
   occurrences: number;
   first_seen_at: string;
   last_seen_at: string;
-  supporting_refs: Array<{ table: string; id: string; context: string }>;
+  supporting_refs: unknown;
+}
+
+// Type guard for supporting_refs
+function parseSupportingRefs(refs: unknown): Array<{ table: string; id: string; context: string }> {
+  if (Array.isArray(refs)) {
+    return refs.filter(
+      (r): r is { table: string; id: string; context: string } =>
+        typeof r === "object" && r !== null && "table" in r && "id" in r && "context" in r
+    );
+  }
+  return [];
 }
 
 export interface InferredPreference {
