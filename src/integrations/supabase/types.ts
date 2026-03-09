@@ -1604,6 +1604,33 @@ export type Database = {
         }
         Relationships: []
       }
+      wellness_goals: {
+        Row: {
+          created_at: string
+          goal_type: string
+          id: string
+          target_value: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          goal_type: string
+          id?: string
+          target_value: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          goal_type?: string
+          id?: string
+          target_value?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       wellness_logs: {
         Row: {
           created_at: string
