@@ -71,6 +71,8 @@ export const DailyRecapCard = ({ userId, rings, completedCount, rowId, existingR
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [completedCount]);
 
+  if (!shouldShow) return null;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

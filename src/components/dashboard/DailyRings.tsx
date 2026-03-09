@@ -3,9 +3,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useDailyRings, RING_DEFINITIONS, type RingKey } from "@/hooks/useDailyRings";
 import { RingActionCard } from "./RingActionCard";
 import { cn } from "@/lib/utils";
+import { DailyRecapCard } from "./DailyRecapCard";
 
 interface DailyRingsProps {
   userId?: string;
+  // Embedded tracker handlers passed through to RingActionCard
+  onLogWellness?: (sleep: number, movement: number, nutrition: number, notes?: string) => Promise<boolean>;
+  onLogTime?: (data: { invested: number; wasted: number; notes?: string }) => Promise<any>;
+  onLogScreenTime?: (hours: number, category: string) => Promise<void>;
+  pendingPromises?: Array<{ id: string; promise_text: string; promised_at: string }>;
+  onResolvePromise?: (data: { promiseId: string; kept: boolean }) => void;
 }
 
 const RING_CONFIGS = [
@@ -54,24 +61,10 @@ function RingSVG({
 
   return (
     <g onClick={onClick} className="cursor-pointer">
-      {/* Background track */}
-      <circle
-        cx="110"
-        cy="110"
-        r={radius}
-        fill="none"
-        stroke={bgColor}
-        strokeWidth={strokeWidth}
-      />
-      {/* Progress arc */}
+      <circle cx="110" cy="110" r={radius} fill="none" stroke={bgColor} strokeWidth={strokeWidth} />
       <motion.circle
-        cx="110"
-        cy="110"
-        r={radius}
-        fill="none"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
+        cx="110" cy="110" r={radius} fill="none" stroke={color}
+        strokeWidth={strokeWidth} strokeLinecap="round"
         strokeDasharray={circumference}
         initial={{ strokeDashoffset: circumference }}
         animate={{ strokeDashoffset: offset }}
@@ -83,8 +76,15 @@ function RingSVG({
   );
 }
 
-export const DailyRings = ({ userId }: DailyRingsProps) => {
-  const { completedCount, statusLabel, completeRing, isCompleted, loading, definitions } = useDailyRings(userId);
+export const DailyRings = ({
+  userId,
+  onLogWellness,
+  onLogTime,
+  onLogScreenTime,
+  pendingPromises,
+  onResolvePromise,
+}: DailyRingsProps) => {
+  const { rings, completedCount, statusLabel, completeRing, isCompleted, loading, definitions, rowId } = useDailyRings(userId);
   const [activeRing, setActiveRing] = useState<RingKey | null>(null);
 
   if (loading) {
@@ -109,11 +109,7 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
   return (
     <div className="flex flex-col items-center gap-6">
       {/* Status banner */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center"
-      >
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
         <p className="text-xs text-muted-foreground tracking-wide uppercase">
           {isFullyCharged ? "Fully Charged ⚡" : "Fill your rings for today."}
         </p>
@@ -132,9 +128,7 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
             const completed = isCompleted(key);
             return (
               <RingSVG
-                key={key}
-                radius={radius}
-                strokeWidth={stroke}
+                key={key} radius={radius} strokeWidth={stroke}
                 progress={completed ? 1 : 0}
                 color={COLOR_MAP[def.controllable]}
                 bgColor={BG_COLOR_MAP[def.controllable]}
@@ -145,22 +139,16 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
           })}
         </svg>
 
-        {/* Center count */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <motion.span
             key={completedCount}
             initial={{ scale: 1.3, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className={cn(
-              "text-3xl font-bold",
-              isFullyCharged ? "text-accent" : "text-foreground"
-            )}
+            className={cn("text-3xl font-bold", isFullyCharged ? "text-accent" : "text-foreground")}
           >
             {completedCount}/5
           </motion.span>
-          <span className="text-[10px] text-muted-foreground font-medium mt-0.5">
-            {statusLabel}
-          </span>
+          <span className="text-[10px] text-muted-foreground font-medium mt-0.5">{statusLabel}</span>
         </div>
       </motion.div>
 
@@ -203,34 +191,37 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
               definition={definitions.find((d) => d.key === activeRing)!}
               onComplete={(response) => handleComplete(activeRing, response)}
               onDismiss={() => setActiveRing(null)}
+              onLogWellness={onLogWellness}
+              onLogTime={onLogTime}
+              onLogScreenTime={onLogScreenTime}
+              pendingPromises={pendingPromises}
+              onResolvePromise={onResolvePromise}
             />
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Daily Recap — shows after 3+ rings */}
+      <div className="w-full max-w-sm">
+        <DailyRecapCard
+          userId={userId}
+          rings={rings}
+          completedCount={completedCount}
+          rowId={rowId}
+        />
+      </div>
+
       {/* Motivational footer */}
       {completedCount > 0 && completedCount < 5 && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-xs text-muted-foreground text-center"
-        >
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-muted-foreground text-center">
           {5 - completedCount} ring{5 - completedCount > 1 ? "s" : ""} to go. Small actions. Fully Charged life.
         </motion.p>
       )}
 
       {isFullyCharged && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center py-2"
-        >
-          <p className="text-sm font-semibold text-accent">
-            🔥 All 5 rings filled. You're Fully Charged today.
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Your daily actions power your Dashboard.
-          </p>
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-2">
+          <p className="text-sm font-semibold text-accent">🔥 All 5 rings filled. You're Fully Charged today.</p>
+          <p className="text-xs text-muted-foreground mt-1">Your daily actions power your Dashboard.</p>
         </motion.div>
       )}
     </div>
