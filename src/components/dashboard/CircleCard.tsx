@@ -40,6 +40,7 @@ interface CircleCardProps {
   showedUpTodayCount: number;
   currentDay: number;
   displayName: string;
+  currentUserId: string;
   currentJourneyId?: string | null;
   isCreatingCircle: boolean;
   isLeavingCircle: boolean;
@@ -51,6 +52,7 @@ interface CircleCardProps {
   joinDialogOpen?: boolean;
   onJoinDialogOpenChange?: (open: boolean) => void;
   initialJoinCode?: string;
+  streakLeaderboard?: { user_id: string; display_name: string | null; streak: number }[];
 }
 
 export function CircleCard({
