@@ -876,6 +876,9 @@ export default function Dashboard() {
         <div className="max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Logo />
           <div className="flex items-center gap-2">
+            {activeTab === "dashboard" && (
+              <DashboardModeToggle mode={dashboardMode} onModeChange={handleDashboardModeChange} />
+            )}
             {/* Manual refresh button - always visible on mobile for stuck states */}
             <Button
               variant="ghost"
