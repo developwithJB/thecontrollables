@@ -417,25 +417,37 @@ export const CommandModeView = ({
         onChange={handleHealthImport}
       />
 
-      <FocusedActionCard
-        action={wrappedAction}
-        queueLength={activeActions.length}
-        completedCount={completedIds.size}
-        onSkip={handleSkip}
-        isExpanded={isExpanded}
+      {/* Controllable Hub — always visible as the primary focus section */}
+      <ControllableHub
         userId={userId}
+        completedCount={completedIds.size}
         onNavigate={handleHubNavigate}
-      >
-        {expandedActionId === "wellness-log" && onLogWellness && (
-          <InlineWellnessForm onLog={onLogWellness} onDone={handleComplete} />
-        )}
-        {expandedActionId === "time-log" && onLogTime && (
-          <InlineTimeLogForm onLog={onLogTime} onDone={handleComplete} />
-        )}
-        {expandedActionId === "promise-review" && onResolvePromise && (
-          <InlinePromiseReview promises={pendingPromises} onResolve={onResolvePromise} onDone={handleComplete} />
-        )}
-      </FocusedActionCard>
+      />
+
+      {/* Remaining action cards below the hub */}
+      {wrappedAction && (
+        <div className="mt-6">
+          <FocusedActionCard
+            action={wrappedAction}
+            queueLength={activeActions.length}
+            completedCount={completedIds.size}
+            onSkip={handleSkip}
+            isExpanded={isExpanded}
+            userId={userId}
+            onNavigate={handleHubNavigate}
+          >
+            {expandedActionId === "wellness-log" && onLogWellness && (
+              <InlineWellnessForm onLog={onLogWellness} onDone={handleComplete} />
+            )}
+            {expandedActionId === "time-log" && onLogTime && (
+              <InlineTimeLogForm onLog={onLogTime} onDone={handleComplete} />
+            )}
+            {expandedActionId === "promise-review" && onResolvePromise && (
+              <InlinePromiseReview promises={pendingPromises} onResolve={onResolvePromise} onDone={handleComplete} />
+            )}
+          </FocusedActionCard>
+        </div>
+      )}
 
       {/* Inline Meal Swiper */}
       <AnimatePresence>
