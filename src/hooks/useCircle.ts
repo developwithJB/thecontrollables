@@ -332,6 +332,24 @@ export function useCircle(userId: string | undefined, activeSessionId?: string) 
     };
   }, []);
 
+  // Fetch streak leaderboard
+  const { data: streakLeaderboard = [] } = useQuery({
+    queryKey: ["circle-streaks", myCircle?.id],
+    queryFn: async () => {
+      if (!myCircle) return [];
+      const { data, error } = await supabase.rpc("get_circle_wellness_streaks", {
+        p_challenge_id: myCircle.id,
+      });
+      if (error) {
+        console.error("Streak leaderboard error:", error);
+        return [];
+      }
+      return (data as { user_id: string; display_name: string | null; streak: number }[]) || [];
+    },
+    enabled: !!myCircle,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const showedUpTodayCount = circleMembers.filter((m) => m.showedUpToday).length;
 
   return {
@@ -340,6 +358,7 @@ export function useCircle(userId: string | undefined, activeSessionId?: string) 
     isLoadingCircle,
     isLoadingMembers,
     showedUpTodayCount,
+    streakLeaderboard,
     createCircle: createCircleMutation.mutate,
     isCreatingCircle: createCircleMutation.isPending,
     joinCircle: joinCircleMutation.mutate,
