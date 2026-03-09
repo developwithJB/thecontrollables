@@ -27,6 +27,7 @@ import { PlannerDayView } from "@/components/planner/PlannerDayView";
 import { PlannerWeekGrid } from "@/components/planner/PlannerWeekGrid";
 import { PlannerItemEditor } from "@/components/planner/PlannerItemEditor";
 import { PlannerFab } from "@/components/planner/PlannerFab";
+import { QuickAddSheet } from "@/components/planner/QuickAddSheet";
 import { PlannerRoutineManager } from "@/components/planner/PlannerRoutineManager";
 import { PlannerCalendarConnect } from "@/components/planner/PlannerCalendarConnect";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
