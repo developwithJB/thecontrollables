@@ -244,6 +244,9 @@ export function CircleCard({
             </AlertDialogContent>
           </AlertDialog>
         </div>
+
+        {/* Streak Leaderboard */}
+        <CircleLeaderboard entries={streakLeaderboard} currentUserId={currentUserId} />
       </CardContent>
     </Card>
   );

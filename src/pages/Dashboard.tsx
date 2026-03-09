@@ -1207,6 +1207,8 @@ export default function Dashboard() {
                     }
                   }}
                   initialJoinCode={joinCodeFromUrl || undefined}
+                  currentUserId={user.id}
+                  streakLeaderboard={streakLeaderboard}
                 />
               )}
 
