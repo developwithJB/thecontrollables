@@ -66,7 +66,7 @@ export const PlannerWeekGrid = ({
             </div>
 
             <div className="flex-1 space-y-0.5 overflow-hidden">
-              {items.slice(0, 4).map((item) => (
+              {items.slice(0, 3).map((item) => (
                 <div key={item.id} className="flex items-center gap-1 min-w-0">
                   {miniStatusIcon[item.status]}
                   <span className="text-[11px] truncate text-foreground/80">
@@ -74,9 +74,17 @@ export const PlannerWeekGrid = ({
                   </span>
                 </div>
               ))}
-              {items.length > 4 && (
+              {activity.length > 0 && (
+                <div className="flex items-center gap-1 min-w-0">
+                  <CheckCircle2 className="h-3 w-3 text-accent" />
+                  <span className="text-[11px] truncate text-muted-foreground">
+                    {activity.filter(a => a.isConfirmed).length} logged
+                  </span>
+                </div>
+              )}
+              {(items.length + activity.length) > 4 && (
                 <span className="text-[10px] text-muted-foreground">
-                  +{items.length - 4} more
+                  +{items.length + activity.length - 4} more
                 </span>
               )}
             </div>
