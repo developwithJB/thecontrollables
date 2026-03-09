@@ -983,6 +983,60 @@ export type Database = {
           },
         ]
       }
+      daily_rings: {
+        Row: {
+          align_completed: boolean
+          align_response: string | null
+          charge_completed: boolean
+          charge_response: string | null
+          choose_completed: boolean
+          choose_response: string | null
+          created_at: string
+          id: string
+          notice_completed: boolean
+          notice_response: string | null
+          prove_completed: boolean
+          prove_response: string | null
+          ring_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          align_completed?: boolean
+          align_response?: string | null
+          charge_completed?: boolean
+          charge_response?: string | null
+          choose_completed?: boolean
+          choose_response?: string | null
+          created_at?: string
+          id?: string
+          notice_completed?: boolean
+          notice_response?: string | null
+          prove_completed?: boolean
+          prove_response?: string | null
+          ring_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          align_completed?: boolean
+          align_response?: string | null
+          charge_completed?: boolean
+          charge_response?: string | null
+          choose_completed?: boolean
+          choose_response?: string | null
+          created_at?: string
+          id?: string
+          notice_completed?: boolean
+          notice_response?: string | null
+          prove_completed?: boolean
+          prove_response?: string | null
+          ring_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_scriptures: {
         Row: {
           created_at: string
