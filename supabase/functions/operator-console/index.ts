@@ -491,6 +491,13 @@ ${mode === "recovery" ? "Prioritize wellness and minimal commitments. Be gentle.
 ${mode === "focus" ? "Keep only top 2 items. Defer everything else." : ""}
 ${mode === "review" ? "Scan all areas for gaps and missed items." : ""}`;
 
+        const observationsSummary = userObservations.length > 0
+          ? `\nSystem observations: ${userObservations.map((o: any) => `${o.title} (${Math.round(o.confidence * 100)}% confidence)`).join("; ")}`
+          : "";
+        const preferencesSummary = userPreferences.length > 0
+          ? `\nLearned preferences: ${userPreferences.map((p: any) => `${p.preference_key}: ${JSON.stringify(p.preference_value)}`).join("; ")}`
+          : "";
+
         const userPrompt = `Today: ${today}
 Active Snapshot: ${activeSession ? `Day ${activeSession.current_day}, Journey: ${activeSession.journey_id || "none"}` : "None"}
 Planner items today (${plannerItems.length}): ${plannerItems.slice(0, 5).map((i: any) => `${i.title} [${i.status}]`).join(", ") || "none"}
@@ -499,7 +506,7 @@ Wellness logged today: ${wellnessLoggedToday}
 Wellness streak: ${wellnessStreak} days
 Build weakest: ${buildWeakest || "unknown"}
 Bills due this week: ${billsDueThisWeek.length > 0 ? billsDueThisWeek.map((b: any) => `${b.bill_name} ($${b.amount})`).join(", ") : "none"}
-Last meal log: ${lastMealLog?.log_date || "never"}`;
+Last meal log: ${lastMealLog?.log_date || "never"}${observationsSummary}${preferencesSummary}`;
 
         const aiRes = await fetch(
           "https://ai.gateway.lovable.dev/v1/chat/completions",

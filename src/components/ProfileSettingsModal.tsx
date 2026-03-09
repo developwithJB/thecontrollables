@@ -420,6 +420,13 @@ export function ProfileSettingsModal({
               {isSaving ? "Saving..." : "Save Changes"}
             </Button>
 
+            {/* System Intelligence Settings */}
+            <ObservationsSettingsCard
+              observations={observations}
+              inferredPreferences={inferredPreferences}
+              onDismiss={dismissObservation}
+            />
+
             {/* Divider */}
             <div className="border-t border-border" />
 
