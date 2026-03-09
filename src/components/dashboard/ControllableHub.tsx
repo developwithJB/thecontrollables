@@ -2,9 +2,10 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Zap, Loader2 } from "lucide-react";
+import { Send, Zap, Loader2, UtensilsCrossed } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 type ControllableKey = "awareness" | "perspective" | "habit" | "wellness" | "environment";
 
