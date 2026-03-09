@@ -1115,11 +1115,6 @@ export default function Dashboard() {
                       integrityRef.current?.openDetailDialog();
                     }
                   }}
-                  onOpenAIGuide={() => {
-                    trackGuideInteraction("open");
-                    // Stay on dashboard tab and open The Controllables messenger
-                    aiGuidePanelRef.current?.open();
-                  }}
                   onOpenBuild={() => buildRef.current?.openDetailDialog()}
                    onDay7AllComplete={triggerDay7Celebration}
                 />
