@@ -74,8 +74,8 @@ export default function Landing() {
           </motion.div>
 
           {/* The Controllables Grid */}
-          <div className="grid grid-cols-2 gap-3 mb-8">
-            {controllables.slice(0, 4).map((c, i) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8 md:mb-12 md:max-w-2xl lg:max-w-none mx-auto">
+            {controllables.map((c, i) => (
               <ControllableGuideCard
                 key={c.name}
                 type={c.type}
@@ -85,19 +85,6 @@ export default function Landing() {
                 index={i}
               />
             ))}
-          </div>
-
-          {/* Fifth controllable centered */}
-          <div className="flex justify-center mb-10">
-            <div className="w-[calc(50%-0.375rem)]">
-              <ControllableGuideCard
-                type={controllables[4].type}
-                emoji={controllables[4].emoji}
-                name={controllables[4].name}
-                tagline={controllables[4].tagline}
-                index={4}
-              />
-            </div>
           </div>
 
           {/* Primary CTA */}
