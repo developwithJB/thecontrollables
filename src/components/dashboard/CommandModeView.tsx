@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { FocusedActionCard, type FocusedAction } from "./FocusedActionCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,14 @@ import {
   Battery,
   Check,
   X,
+  HeartPulse,
+  Smartphone,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 // Sample meals for the swiper — in production these come from AI/recipe library
 const SAMPLE_MEALS: SwipeMeal[] = [
