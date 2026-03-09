@@ -25,6 +25,7 @@ const QuickStart = lazy(() => import("./pages/QuickStart"));
 const Planner = lazy(() => import("./pages/Planner"));
 const Money = lazy(() => import("./pages/Money"));
 const Integrations = lazy(() => import("./pages/Integrations"));
+const Operator = lazy(() => import("./pages/Operator"));
 
 // Production-hardened query client configuration
 const queryClient = new QueryClient({
@@ -78,6 +79,7 @@ const AppContent = () => {
           <Route path="/planner" element={<Planner />} />
           <Route path="/money" element={<Money />} />
           <Route path="/integrations" element={<Integrations />} />
+          <Route path="/operator" element={<Operator />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

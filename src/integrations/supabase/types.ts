@@ -1350,6 +1350,60 @@ export type Database = {
         }
         Relationships: []
       }
+      operator_suggestions: {
+        Row: {
+          alternate_actions: Json | null
+          confidence: number | null
+          created_at: string | null
+          generated_by: string | null
+          headline: string
+          id: string
+          mode: string
+          rationale: string | null
+          recommended_actions: Json | null
+          status: string
+          status_changed_at: string | null
+          suggestion_date: string
+          summary: string | null
+          user_id: string
+          warnings: Json | null
+        }
+        Insert: {
+          alternate_actions?: Json | null
+          confidence?: number | null
+          created_at?: string | null
+          generated_by?: string | null
+          headline: string
+          id?: string
+          mode: string
+          rationale?: string | null
+          recommended_actions?: Json | null
+          status?: string
+          status_changed_at?: string | null
+          suggestion_date?: string
+          summary?: string | null
+          user_id: string
+          warnings?: Json | null
+        }
+        Update: {
+          alternate_actions?: Json | null
+          confidence?: number | null
+          created_at?: string | null
+          generated_by?: string | null
+          headline?: string
+          id?: string
+          mode?: string
+          rationale?: string | null
+          recommended_actions?: Json | null
+          status?: string
+          status_changed_at?: string | null
+          suggestion_date?: string
+          summary?: string | null
+          user_id?: string
+          warnings?: Json | null
+        }
+        Relationships: []
+      }
       page_views: {
         Row: {
           created_at: string
