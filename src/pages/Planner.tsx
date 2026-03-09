@@ -300,6 +300,7 @@ const Planner = () => {
               selectedDate={selectedDate}
               onSelect={setSelectedDate}
               itemsByDate={itemsByDate}
+              activityByDate={activityByDate}
             />
 
             {/* Calendar connect below week grid on desktop */}
