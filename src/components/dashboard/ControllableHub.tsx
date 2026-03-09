@@ -93,6 +93,9 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
     setInput("");
     setIsLoading(true);
 
+    // Detect if this is a food logging message
+    const isFoodLog = controllable === "wellness" && /\b(log|ate|had|eat|lunch|dinner|breakfast|snack|steak|chicken|eggs|rice|salad|meal)\b/i.test(text);
+
     try {
       const { data, error } = await supabase.functions.invoke("ai-chat", {
         body: {
@@ -104,6 +107,25 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
       if (error) throw error;
       const reply = data?.reply || data?.message || "I'm here. Could you tell me more?";
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+
+      // Show confirmation toast for food logs
+      if (isFoodLog) {
+        toast({
+          title: "🛰️ Meal logged",
+          description: "View your daily fuel check to see all logged meals.",
+          action: onNavigate ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1 h-7 text-xs"
+              onClick={() => onNavigate("meal-tracker")}
+            >
+              <UtensilsCrossed className="w-3 h-3" />
+              View Meals
+            </Button>
+          ) : undefined,
+        });
+      }
     } catch (err) {
       console.error("Chat error:", err);
       setMessages((prev) => [
@@ -113,7 +135,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
     } finally {
       setIsLoading(false);
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading, toast, onNavigate]);
 
   const handleSend = useCallback(() => {
     if (!input.trim()) return;
