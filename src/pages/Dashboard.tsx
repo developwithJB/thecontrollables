@@ -957,7 +957,57 @@ export default function Dashboard() {
               transition={{ duration: 0.3 }}
               className="space-y-4"
             >
-              {/* Welcome Back Banner - shows on first day back */}
+              {dashboardMode === "command" ? (
+                <CommandModeView
+                  userId={user?.id}
+                  hasActiveSession={!!activeSession && !isCompleted && !isExpired}
+                  todayResetCompleted={todayAlreadyCompleted}
+                  todayTimeLogged={!!todayTimeLog}
+                  todayPromiseMade={todayPromiseMade}
+                  pendingPromisesCount={pendingPromises.length}
+                  hasActiveQuest={!!activeQuest}
+                  wellnessLoggedToday={wellnessLogs.some(
+                    (l) => l.log_date === new Date().toLocaleDateString("sv-SE")
+                  )}
+                  askGuideCompleted={askGuideCompletedToday}
+                  onOpenReset={() => navigate("/reset")}
+                  onOpenTimeLog={() => {
+                    handleDashboardModeChange("control");
+                    setTimeout(() => {
+                      if (!showInsights) setShowInsights(true);
+                      requestAnimationFrame(() => {
+                        setTimeout(() => timeCurrencyRef.current?.openLogDialog(), 50);
+                      });
+                    }, 100);
+                  }}
+                  onOpenPromises={() => {
+                    handleDashboardModeChange("control");
+                    setTimeout(() => {
+                      if (!showInsights) setShowInsights(true);
+                      requestAnimationFrame(() => {
+                        setTimeout(() => integrityRef.current?.openDetailDialog(), 50);
+                      });
+                    }, 100);
+                  }}
+                  onOpenAIGuide={() => {
+                    trackGuideInteraction("open");
+                    aiGuidePanelRef.current?.open();
+                  }}
+                  onOpenWellness={() => {
+                    handleDashboardModeChange("control");
+                  }}
+                  onOpenMealPlan={() => navigate("/dashboard?tab=meals")}
+                  onOpenPlanner={() => navigate("/planner")}
+                  onOpenMoney={() => navigate("/money")}
+                  onOpenBuild={() => {
+                    handleDashboardModeChange("control");
+                    setTimeout(() => buildRef.current?.openDetailDialog(), 100);
+                  }}
+                  onSwitchToControl={() => handleDashboardModeChange("control")}
+                />
+              ) : (
+              <>
+              {/* === CONTROL MODE: Full scrollable dashboard === */}
               {showReturnBanner && <WelcomeBackBanner />}
 
               {/* Daily Alignment Spotlight - one-time dismissible card */}
