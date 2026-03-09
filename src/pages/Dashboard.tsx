@@ -82,6 +82,7 @@ import {
 // Lazy load heavy components
 import { LazyAIGuidePanelWrapper } from "@/components/dashboard/LazyAIGuidePanel";
 import type { AIGuidePanelHandle } from "@/components/dashboard/AIGuidePanel";
+import { OperatorConsole } from "@/components/dashboard/OperatorConsole";
 import {
   LazyActivityHistory,
   LazyBadgesEarned,
