@@ -1080,79 +1080,81 @@ export default function Dashboard() {
                 />
               )}
 
-              {/* Daily Operating System Card */}
-              {user?.id && !entitlementsLoading && (
-                <DailyOSCard
-                  userId={user.id}
-                  isPaid={isPaid}
-                  isTrialing={isTrialing}
-                  hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
-                  onUpgrade={() => startCheckout(undefined, "daily_os")}
-                />
-              )}
+              {/* Secondary cards in responsive grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Daily Operating System Card */}
+                {user?.id && !entitlementsLoading && (
+                  <DailyOSCard
+                    userId={user.id}
+                    isPaid={isPaid}
+                    isTrialing={isTrialing}
+                    hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
+                    onUpgrade={() => startCheckout(undefined, "daily_os")}
+                  />
+                )}
 
-              {/* Brain & Body Health Tracker */}
-              {user?.id && (
-                <BrainBodyTracker
-                  userId={user.id}
-                  streak={wellnessStreak}
-                  onLogWellness={() => {
-                    if (!showInsights) {
-                      setShowInsights(true);
-                    }
-                  }}
-                  onQuickLog={async (sleep, movement, nutrition) => {
-                    const success = await logWellness(sleep, movement, nutrition);
-                    if (success) {
-                      queryClient.invalidateQueries({ queryKey: ["brain-body-wellness", user.id] });
-                    }
-                    return success;
-                  }}
-                  onImportHealth={() => {
-                    if (!showInsights) {
-                      setShowInsights(true);
-                    }
-                  }}
-                />
-              )}
+                {/* Brain & Body Health Tracker */}
+                {user?.id && (
+                  <BrainBodyTracker
+                    userId={user.id}
+                    streak={wellnessStreak}
+                    onLogWellness={() => {
+                      if (!showInsights) {
+                        setShowInsights(true);
+                      }
+                    }}
+                    onQuickLog={async (sleep, movement, nutrition) => {
+                      const success = await logWellness(sleep, movement, nutrition);
+                      if (success) {
+                        queryClient.invalidateQueries({ queryKey: ["brain-body-wellness", user.id] });
+                      }
+                      return success;
+                    }}
+                    onImportHealth={() => {
+                      if (!showInsights) {
+                        setShowInsights(true);
+                      }
+                    }}
+                  />
+                )}
 
-              {/* Wellness Goals */}
-              {user?.id && (
-                <WellnessGoalsCard userId={user.id} />
-              )}
+                {/* Wellness Goals */}
+                {user?.id && (
+                  <WellnessGoalsCard userId={user.id} />
+                )}
 
-              {/* Today's Plan */}
-              {user?.id && (
-                <PlannerCard userId={user.id} />
-              )}
+                {/* Today's Plan */}
+                {user?.id && (
+                  <PlannerCard userId={user.id} />
+                )}
 
-              {/* Money Hub */}
-              {user?.id && (
-                <MoneyCard userId={user.id} />
-              )}
+                {/* Money Hub */}
+                {user?.id && (
+                  <MoneyCard userId={user.id} />
+                )}
 
-              {user?.id && !entitlementsLoading && (
-                <MealPlanCard
-                  userId={user.id}
-                  isPaid={isPaid}
-                  onUpgrade={() => startCheckout(undefined, "meal_plan_card")}
-                />
-              )}
+                {user?.id && !entitlementsLoading && (
+                  <MealPlanCard
+                    userId={user.id}
+                    isPaid={isPaid}
+                    onUpgrade={() => startCheckout(undefined, "meal_plan_card")}
+                  />
+                )}
 
+                {/* Controllable Levels Teaser - links to Guide tab */}
+                {user?.id && (
+                  <ControllableLevelsTeaser
+                    userId={user.id}
+                    onNavigateToGuide={() => {
+                      setActiveTab("guide");
+                      trackEvent("navigation", "controllable_teaser_tap");
+                    }}
+                  />
+                )}
 
-              {/* Controllable Levels Teaser - links to Guide tab */}
-              {user?.id && (
-                <ControllableLevelsTeaser
-                  userId={user.id}
-                  onNavigateToGuide={() => {
-                    setActiveTab("guide");
-                    trackEvent("navigation", "controllable_teaser_tap");
-                  }}
-                />
-              )}
-
-              {/* Build Entry Point - shows if user hasn't done assessment */}
-              <BuildEntryPoint userId={user?.id} />
+                {/* Build Entry Point - shows if user hasn't done assessment */}
+                <BuildEntryPoint userId={user?.id} />
+              </div>
 
               {/* Daily Alignment promo for free users */}
               {!isPaid && !entitlementsLoading && showDashboardPaywallPromo && (
