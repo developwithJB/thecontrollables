@@ -873,7 +873,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header - with safe area support for iOS PWA */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b pt-[env(safe-area-inset-top)]">
-        <div className="max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between overflow-hidden">
           <Logo />
           <div className="flex items-center gap-2">
             {activeTab === "dashboard" && (
