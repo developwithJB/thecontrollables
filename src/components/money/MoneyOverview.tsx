@@ -127,7 +127,7 @@ export function MoneyOverview({ accounts, bills, subscriptions, goals }: MoneyOv
                 <div key={bill.id} className="flex items-center justify-between py-1.5">
                   <div>
                     <p className="text-sm font-medium text-foreground">{bill.bill_name}</p>
-                    <p className="text-xs text-muted-foreground">Due on the {bill.due_date}{getOrdinal(bill.due_date)}</p>
+                    <p className="text-xs text-muted-foreground">{getBillDisplayLabel(bill)}</p>
                   </div>
                   <span className="text-sm font-medium text-foreground">${Number(bill.amount).toFixed(2)}</span>
                 </div>
