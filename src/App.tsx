@@ -22,6 +22,7 @@ const Billing = lazy(() => import("./pages/Billing"));
 const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const QuickStart = lazy(() => import("./pages/QuickStart"));
+const Planner = lazy(() => import("./pages/Planner"));
 
 // Production-hardened query client configuration
 const queryClient = new QueryClient({
@@ -72,6 +73,7 @@ const AppContent = () => {
           <Route path="/reset" element={<Reset />} />
           <Route path="/billing" element={<Billing />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/planner" element={<Planner />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
