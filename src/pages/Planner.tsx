@@ -38,6 +38,7 @@ const Planner = () => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const [showPvA, setShowPvA] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   // Auth check
   const { data: user, isLoading: userLoading } = useQuery({
