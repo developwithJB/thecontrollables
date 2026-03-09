@@ -1078,13 +1078,14 @@ export default function Dashboard() {
                 />
               )}
 
-              {/* AI Morning Briefing Card */}
-              {user?.id && !entitlementsLoading && !!activeSession && !isCompleted && !isExpired && (
-                <DailyBriefingCard
+              {/* Daily Operating System Card */}
+              {user?.id && !entitlementsLoading && (
+                <DailyOSCard
+                  userId={user.id}
                   isPaid={isPaid}
                   isTrialing={isTrialing}
                   hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
-                  onUpgrade={() => startCheckout(undefined, "daily_briefing")}
+                  onUpgrade={() => startCheckout(undefined, "daily_os")}
                 />
               )}
 
