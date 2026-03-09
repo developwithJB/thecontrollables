@@ -1,164 +1,121 @@
 
-# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-## Overview
+# Unified Daily Hub — Merge Everything Into One Flow
 
-Three interconnected deliverables:
-1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
-2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
-3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
+## Problem
 
----
+The dashboard currently scatters daily actions across too many separate screens and modules: 5 Rings, wellness logging, time logging, screen time, meal planning, promise reviews, and reset check-ins all live in different places. The user has to mentally juggle multiple systems. It should feel like one clear daily flow with a single day summary and weekly review.
 
-## Part 1: AI Insight Engine
+## Solution
 
-### New Edge Function: `admin-insights`
+Merge all daily tracking into a **single unified "Today" view** in Command Mode. The 5 Rings become the organizing framework — each ring can auto-fill from its corresponding daily action. Add an AI-powered **Daily Recap** (end of day) and **Weekly Review** (end of week) that analyzes everything together.
 
-**File: `supabase/functions/admin-insights/index.ts`**
+## Architecture
 
-This function:
-1. Verifies the caller is an admin (same pattern as `admin-analytics`)
-2. Queries aggregated metrics from the last 7 days using the service role client:
-   - `app_events` grouped by `event_name` and day-of-week
-   - `completed_actions` grouped by `controllable`
-   - `daily_resets` count per user (for retention correlation)
-   - `reset_sessions` completion rates
-   - `user_entitlements` conversion data
-   - `user_onboarding` activation delays
-3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
-   - 3 behavioral insights
-   - 2 retention risks
-   - 2 growth opportunities
-   - 1 experiment recommendation
-4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
-5. Returns the insights directly (no caching table needed initially -- can add later)
-
-**Prompt structure:**
-```
-You are a product analytics advisor for a personal growth app called The Controllables.
-Given the following 7-day metrics, generate actionable insights.
-
-[structured data blob]
-
-Return insights as structured tool output.
+```text
+Command Mode Layout (new):
+┌─────────────────────────────┐
+│  DailyRings (hero, as-is)   │
+├─────────────────────────────┤
+│  Ring Action Cards           │
+│  (each ring expands inline   │
+│   with its relevant tracker) │
+│                              │
+│  Notice → reflection prompt  │
+│  Choose → perspective prompt │
+│  Prove  → promise/habit log  │
+│  Charge → wellness + meals   │
+│  Align  → screen time + env  │
+├─────────────────────────────┤
+│  Daily Recap Card            │
+│  (AI summary when 3+ done)   │
+├─────────────────────────────┤
+│  Weekly Review Card          │
+│  (AI summary, visible Sun+)  │
+└─────────────────────────────┘
 ```
 
-**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+## Detailed Changes
 
-**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+### 1. Enhance `RingActionCard.tsx` — Embed Relevant Trackers
 
-### New Admin Component: AI Insights Panel
+Each ring card becomes the **single entry point** for its related daily action. Instead of separate screens:
 
-**File: `src/components/admin/AIInsightsPanel.tsx`**
+| Ring | What gets embedded |
+|------|--------------------|
+| **Notice** | Existing reflection prompt (stays as-is) |
+| **Choose** | Existing perspective prompt (stays as-is) |
+| **Prove** | Inline promise review + habit log (move `InlinePromiseReview` here) |
+| **Charge** | Inline wellness form (sleep/movement/nutrition) + quick meal log (move `InlineWellnessForm` here) |
+| **Align** | Inline screen time form + environment prompt (move `InlineScreenTimeForm` here) |
 
-- A card with "Weekly Intelligence" header and a "Generate Insights" button
-- On click, calls the `admin-insights` edge function
-- Displays results in categorized sections:
-  - Behavioral Insights (brain icon, blue accent)
-  - Retention Risks (alert icon, amber accent)
-  - Growth Opportunities (trending-up icon, green accent)
-  - Experiment Recommendation (flask icon, purple accent)
-- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
-- Loading state with skeleton cards
-- Error state with retry button
-- "Last generated" timestamp display
+When a user completes the embedded tracker, the ring auto-fills. One action = one ring filled.
 
-### Integration into Admin.tsx
+### 2. Simplify `CommandModeView.tsx`
 
-- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
-- The tab renders `<AIInsightsPanel />`
+- Remove the separate `FocusedActionCard` queue — rings now handle all daily actions
+- Remove standalone quick-action buttons for Eat, Screen, Health (moved into ring cards)
+- Remove `ControllableHub` from Command Mode (it's operator/power-user — keep in Control Mode only)
+- Keep only: DailyRings hero → Daily Recap → Weekly Review
 
----
+### 3. New Component: `DailyRecapCard.tsx`
 
-## Part 2: Enhanced Action Center
+- Shows when 3+ rings completed OR at end of day
+- Calls existing `generate-insights` edge function with today's data (rings, wellness, time, promises)
+- Displays: "Today you noticed X, chose Y, proved Z. Your wellness battery was at 3.8/5. You invested 120 min and kept 2/2 promises."
+- Uses `google/gemini-2.5-flash` for fast, cheap generation
+- Stored in a new `daily_recaps` column on the existing `daily_rings` table (text, nullable)
 
-**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
+### 4. New Component: `WeeklyRecapCard.tsx`
 
-Replace the three "Coming soon" cards with working functionality:
+- Visible from Sunday onward (or when user has 5+ days of rings data in current week)
+- Aggregates: rings completion rate, wellness averages, time totals, promise-keeping rate
+- AI generates a 2-3 sentence weekly reflection
+- Uses the existing `WeeklyWellnessReport` data + rings data
+- Stored per-week (can use existing patterns or a simple localStorage cache)
 
-### A. Send Nudge Campaign
-- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
-- Confirmation dialog before sending
-- Calls the existing `send-daily-nudge` edge function for each selected user
-- Shows progress and results
+### 5. Update `useDailyRings.ts` — Wire to Existing Systems
 
-### B. Grant Trial Extension
-- Search for a specific user by email
-- Set extension duration (7 days, 14 days, 30 days)
-- Calls `admin-users?action=grant_access` with an `expires_at` parameter
-- Confirmation toast on success
+- When `charge` ring is completed via the wellness form, also call `logWellness()` so `wellness_logs` stays populated
+- When `prove` ring is completed via promise review, also call `resolvePromise()` so `integrity_logs` stays populated
+- When `align` ring is completed via screen time, also write to `health_sync_data`
+- This ensures backward compatibility — all existing analytics, streaks, and reports continue working
 
-### C. Export with More Segments
-- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
-- Risk tier data fetched from `admin-analytics?resource=retention_radar`
-- CSV includes: email, signup date, last active, risk tier, paid status, source
+### 6. DB Migration: Add `daily_recap` Column
 
-### D. Quick Stats Bar
-- Show counts above the action cards: Total Users, Free, Paid, At Risk
-- Derived from the `users` prop already passed in
+```sql
+ALTER TABLE public.daily_rings ADD COLUMN daily_recap text NULL;
+```
 
----
+No new table needed — the recap is per-day, per-user, which maps to the existing `daily_rings` row.
 
-## Part 3: Landing Page Updates
+## Files to Create
+| File | Purpose |
+|------|---------|
+| `src/components/dashboard/DailyRecapCard.tsx` | AI daily summary card |
+| `src/components/dashboard/WeeklyRecapCard.tsx` | AI weekly summary card |
 
-**File: `src/pages/Landing.tsx`**
+## Files to Edit
+| File | Change |
+|------|--------|
+| `src/components/dashboard/RingActionCard.tsx` | Embed wellness, time, promise, screen time forms per ring |
+| `src/components/dashboard/CommandModeView.tsx` | Remove FocusedActionCard queue, ControllableHub, standalone quick actions; add Recap cards |
+| `src/hooks/useDailyRings.ts` | Wire ring completions to existing data systems (wellness_logs, etc.) |
+| `src/components/dashboard/DailyRings.tsx` | Pass through additional handlers for embedded forms |
+| DB migration | Add `daily_recap` column |
 
-Update the hero copy to reflect the free trial:
-- Change hero tagline to emphasize "Try the full experience free for 7 days"
-- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
-- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+## What Stays Unchanged
+- Control Mode — untouched, all its cards remain
+- `wellness_logs`, `time_logs`, `integrity_logs` tables — still written to via ring actions
+- Experience tab — still reads from existing tables
+- All existing hooks (`useWellness`, `useDashboardSummary`, etc.) — still work
 
-**File: `src/components/landing/FeatureGrid.tsx`**
+## UX Result
+- User opens Command Mode → sees 5 rings
+- Taps "Charge" → sees wellness form embedded in ring card → fills it → ring fills + wellness logged
+- Taps "Prove" → sees promise review → resolves promises → ring fills + integrity updated  
+- Taps "Align" → logs screen time + environment note → ring fills
+- After 3+ rings: Daily Recap appears with AI analysis
+- On Sunday: Weekly Review shows aggregated insights
+- One screen. One flow. Clear what to do.
 
-- Update the Free/Premium labeling:
-  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
-  - "Experience History" -- add "Free during trial" badge
-  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
-
-**File: `src/components/landing/HowItWorksSection.tsx`**
-
-- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
-
----
-
-## Part 4: README Update
-
-**File: `README.md`**
-
-Update to v1.5.0 reflecting all recent changes:
-
-1. **Version bump**: `v1.4.1` to `v1.5.0`
-2. **New section: "Admin Command Center"** after Technical Reference:
-   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
-   - Mention the `admin-analytics` and `admin-insights` edge functions
-   - Document the AI Insight Engine capability
-3. **Update "Free vs. Premium" table**:
-   - Add "7-Day Free Trial" row explaining full access during first Snapshot
-   - Update AI Guide from "---" to "5 msgs/day during trial"
-   - Update Experience History from "---" to "During trial"
-4. **Update Backend Functions table**:
-   - Add `admin-analytics` -- Admin data aggregation and executive metrics
-   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
-5. **Update Key Data Tables**:
-   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
-   - Add `ai_usage_logs` -- Daily AI message tracking
-6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
-
----
-
-## Technical Summary
-
-| File | Change | Type |
-|------|--------|------|
-| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
-| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
-| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
-| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
-| `src/pages/Admin.tsx` | Add Insights tab | Edit |
-| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
-| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
-| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
-| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
-| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
-
-No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
