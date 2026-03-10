@@ -48,6 +48,7 @@ export const CommandModeView = ({
   onOpenBuild,
 }: CommandModeViewProps) => {
   const { toast } = useToast();
+  const [showIGProof, setShowIGProof] = useState(false);
 
   // Screen time logging handler
   const handleScreenTimeSave = useCallback(async (hours: number, category: string) => {
