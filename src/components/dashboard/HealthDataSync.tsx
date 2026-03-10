@@ -262,20 +262,24 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="apple" className="gap-1 text-[10px] px-1.5">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="whoop" className="gap-1 text-[10px] px-1">
+              <Activity className="h-3 w-3" />
+              WHOOP
+            </TabsTrigger>
+            <TabsTrigger value="apple" className="gap-1 text-[10px] px-1">
               <Apple className="h-3 w-3" />
               Apple
             </TabsTrigger>
-            <TabsTrigger value="google" className="gap-1 text-[10px] px-1.5">
+            <TabsTrigger value="google" className="gap-1 text-[10px] px-1">
               <Smartphone className="h-3 w-3" />
               Google
             </TabsTrigger>
-            <TabsTrigger value="fitbit" className="gap-1 text-[10px] px-1.5">
+            <TabsTrigger value="fitbit" className="gap-1 text-[10px] px-1">
               <Watch className="h-3 w-3" />
               Fitbit
             </TabsTrigger>
-            <TabsTrigger value="oura" className="gap-1 text-[10px] px-1.5">
+            <TabsTrigger value="oura" className="gap-1 text-[10px] px-1">
               <Watch className="h-3 w-3" />
               Oura
             </TabsTrigger>
