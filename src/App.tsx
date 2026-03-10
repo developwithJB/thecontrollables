@@ -24,7 +24,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const QuickStart = lazy(() => import("./pages/QuickStart"));
 const Planner = lazy(() => import("./pages/Planner"));
 const Money = lazy(() => import("./pages/Money"));
-// Integrations merged into ProfileSettingsModal; Operator merged into Dashboard
+const Integrations = lazy(() => import("./pages/Integrations"));
 
 // Production-hardened query client configuration
 const queryClient = new QueryClient({
@@ -77,7 +77,7 @@ const AppContent = () => {
           <Route path="/admin" element={<Admin />} />
           <Route path="/planner" element={<Planner />} />
           <Route path="/money" element={<Money />} />
-          {/* Integrations merged into ProfileSettingsModal; Operator merged into Dashboard */}
+          <Route path="/integrations" element={<Integrations />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
