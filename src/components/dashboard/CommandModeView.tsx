@@ -142,6 +142,7 @@ export const CommandModeView = ({
           <Brain className="w-3.5 h-3.5" />
           Build
         </Button>
+        <QuickHistoryEntry userId={userId} />
       </motion.div>
 
       {/* Ask Dashboard Bar */}
