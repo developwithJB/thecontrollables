@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
 
     if (popup) {
       return new Response(
-        `<!DOCTYPE html><html><body><script>window.opener.postMessage({type:"oauth-complete",provider:"${provider}"},"*");window.close();</script></body></html>`,
+        `<!DOCTYPE html><html><head><style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f8f9fa;color:#333;text-align:center}.msg{padding:2rem}h2{margin:0 0 .5rem}p{color:#666;font-size:.9rem}</style></head><body><div class="msg"><h2>✅ Connected!</h2><p>This window will close automatically…</p></div><script>try{window.opener&&window.opener.postMessage({type:"oauth-complete",provider:"${provider}"},"*")}catch(e){}setTimeout(function(){try{window.close()}catch(e){}},600);</script></body></html>`,
         { headers: { "Content-Type": "text/html" } }
       );
     }
