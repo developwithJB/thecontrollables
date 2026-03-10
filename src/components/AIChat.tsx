@@ -52,10 +52,10 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [planTier, setPlanTier] = useState<PlanTier>('free');
-  const [remainingMessages, setRemainingMessages] = useState<number>(PLAN_MONTHLY_LIMITS.free);
-  const [monthlyLimit, setMonthlyLimit] = useState<number>(PLAN_MONTHLY_LIMITS.free);
-  const [usedThisMonth, setUsedThisMonth] = useState<number>(0);
-  const [activeMonth, setActiveMonth] = useState<string>(getCurrentMonthKey());
+  const [remainingMessages, setRemainingMessages] = useState<number>(PLAN_DAILY_LIMITS.free);
+  const [dailyLimit, setDailyLimit] = useState<number>(PLAN_DAILY_LIMITS.free);
+  const [usedToday, setUsedToday] = useState<number>(0);
+  const [activeDay, setActiveDay] = useState<string>(getTodayKey());
   const [aiLocked, setAiLocked] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
