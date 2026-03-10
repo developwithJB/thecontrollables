@@ -16,7 +16,7 @@ interface BrainBodyTrackerProps {
   userId: string | undefined;
   onLogWellness?: () => void;
   onQuickLog?: (sleep: number, movement: number, nutrition: number) => Promise<boolean>;
-  onImportHealth?: () => void;
+  
   streak?: number;
 }
 
