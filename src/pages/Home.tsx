@@ -71,6 +71,7 @@ export default function Home() {
   const [showMissionEdit, setShowMissionEdit] = useState(false);
   const [editingMissionTitle, setEditingMissionTitle] = useState("");
   const [showInsights, setShowInsights] = useState(false);
+  const [showConfirmLastNight, setShowConfirmLastNight] = useState(false);
 
   const dashboardVisitCount = useDashboardVisitCount();
 
