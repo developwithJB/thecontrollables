@@ -102,6 +102,41 @@ serve(async (req) => {
 
     const upcomingPlanner = (plannerItems?.data || []).slice(0, 5).map((i: any) => `${i.scheduled_date}: ${i.title} (${i.status})`).join("; ");
 
+    // WHOOP biometric context
+    const whoopRecoveryData = whoopRecoveries.data || [];
+    const whoopSleepData = whoopSleeps.data || [];
+    const whoopCycleData = whoopCycles.data || [];
+    const hasWhoop = whoopRecoveryData.length > 0 || whoopSleepData.length > 0;
+
+    let whoopContext = "";
+    if (hasWhoop) {
+      const latestRecovery = whoopRecoveryData[0];
+      const latestSleep = whoopSleepData[0];
+      const latestCycle = whoopCycleData[0];
+      const recoveryTrend = whoopRecoveryData.map((r: any) => r.recovery_score).filter(Boolean);
+      const strainTrend = whoopCycleData.map((c: any) => c.strain).filter(Boolean);
+
+      whoopContext = `\nWHOOP Biometrics (latest):`;
+      if (latestRecovery) {
+        whoopContext += `\n- Recovery: ${latestRecovery.recovery_score}%`;
+        if (latestRecovery.hrv_rmssd_milli) whoopContext += `, HRV: ${latestRecovery.hrv_rmssd_milli}ms`;
+        if (latestRecovery.resting_heart_rate) whoopContext += `, RHR: ${latestRecovery.resting_heart_rate}bpm`;
+      }
+      if (latestSleep) {
+        whoopContext += `\n- Sleep Performance: ${latestSleep.sleep_performance_pct}%`;
+        if (latestSleep.sleep_efficiency_pct) whoopContext += `, Efficiency: ${latestSleep.sleep_efficiency_pct}%`;
+      }
+      if (latestCycle) {
+        whoopContext += `\n- Strain: ${latestCycle.strain}`;
+      }
+      if (recoveryTrend.length > 1) {
+        whoopContext += `\n- 7d Recovery trend: ${recoveryTrend.join(", ")}`;
+      }
+      if (strainTrend.length > 1) {
+        whoopContext += `\n- 7d Strain trend: ${strainTrend.join(", ")}`;
+      }
+    }
+
     const contextPrompt = `
 Today's date: ${todayStr}
 Rings completed today: ${completedCount}/5 (${todayRingsSummary})
@@ -114,7 +149,7 @@ Average energy (7d): ${avgEnergy}/5
 Average stress (7d): ${avgStress}/5
 Proof action completion rate (7d): ${proofCompletionRate}%
 ${snapshotContext}
-Upcoming planned items: ${upcomingPlanner || "none"}
+Upcoming planned items: ${upcomingPlanner || "none"}${whoopContext}
 `;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
