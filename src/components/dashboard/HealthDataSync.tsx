@@ -78,7 +78,7 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
     }
   }, []);
 
-  const handleSync = useCallback(async (provider: "fitbit" | "oura") => {
+  const handleSync = useCallback(async (provider: "fitbit" | "oura" | "whoop") => {
     setSyncing(provider);
     try {
       const { data, error } = await supabase.functions.invoke("wearable-sync", {
