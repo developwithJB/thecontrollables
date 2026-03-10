@@ -77,7 +77,7 @@ const AppContent = () => {
           <Route path="/admin" element={<Admin />} />
           <Route path="/planner" element={<Planner />} />
           <Route path="/money" element={<Money />} />
-          {/* Integrations merged into ProfileSettingsModal; Operator merged into Dashboard */}
+          <Route path="/integrations" element={<Integrations />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
