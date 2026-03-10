@@ -80,15 +80,15 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
   useEffect(() => {
     if (!isOpen) return;
 
-    const currentMonth = getCurrentMonthKey();
-    if (currentMonth !== activeMonth) {
-      setActiveMonth(currentMonth);
+    const today = getTodayKey();
+    if (today !== activeDay) {
+      setActiveDay(today);
       setLimitReached(false);
       setAiLocked(false);
-      setUsedThisMonth(0);
-      setRemainingMessages(PLAN_MONTHLY_LIMITS[planTier]);
+      setUsedToday(0);
+      setRemainingMessages(PLAN_DAILY_LIMITS[planTier]);
     }
-  }, [isOpen, activeMonth, planTier]);
+  }, [isOpen, activeDay, planTier]);
 
   const maybeWarnAtProCap = (nextPlanTier: PlanTier, remaining: number, monthKey: string) => {
     if (nextPlanTier !== 'pro' || remaining > 0) {
