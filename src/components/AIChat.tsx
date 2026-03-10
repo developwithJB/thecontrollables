@@ -49,6 +49,7 @@ const WELCOME_MESSAGES: Record<string, string> = {
 };
 
 export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeContext, onUpgrade }: AIChatProps) {
+  const queryClient = useQueryClient();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
