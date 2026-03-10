@@ -165,17 +165,27 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
               <button
                 onClick={() => setTab("my_posts")}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all",
+                  "flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[11px] font-medium transition-all",
                   tab === "my_posts" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <Grid3X3 className="w-3 h-3" />
-                My Posts
+                Posts
+              </button>
+              <button
+                onClick={() => setTab("my_stories")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[11px] font-medium transition-all",
+                  tab === "my_stories" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Film className="w-3 h-3" />
+                Stories
               </button>
               <button
                 onClick={() => setTab("caption")}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all",
+                  "flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[11px] font-medium transition-all",
                   tab === "caption" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -185,7 +195,7 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
               <button
                 onClick={() => setTab("screenshot")}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all",
+                  "flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[11px] font-medium transition-all",
                   tab === "screenshot" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
