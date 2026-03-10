@@ -56,6 +56,7 @@ import {
 } from "@/components/dashboard/DashboardSkeletons";
 import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
+import { ConfirmLastNightDialog } from "@/components/dashboard/ConfirmLastNightDialog";
 
 export default function Home() {
   usePageViewTracking("Home");
