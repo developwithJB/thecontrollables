@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
@@ -28,7 +27,9 @@ const PRESETS = {
     description: "Easy targets to build momentum",
     goals: {
       sleep_hours: 7,
-      steps: 6000,
+      active_minutes: 15,
+      strain_score: 6,
+      recovery_score: 50,
       sleep_rating: 3,
       movement_rating: 3,
       nutrition_rating: 3,
@@ -39,7 +40,9 @@ const PRESETS = {
     description: "Balanced targets for consistent improvement",
     goals: {
       sleep_hours: 8,
-      steps: 10000,
+      active_minutes: 30,
+      strain_score: 10,
+      recovery_score: 70,
       sleep_rating: 4,
       movement_rating: 4,
       nutrition_rating: 4,
@@ -50,7 +53,9 @@ const PRESETS = {
     description: "High targets for peak performance",
     goals: {
       sleep_hours: 8,
-      steps: 12000,
+      active_minutes: 60,
+      strain_score: 14,
+      recovery_score: 80,
       sleep_rating: 5,
       movement_rating: 5,
       nutrition_rating: 5,
@@ -60,11 +65,15 @@ const PRESETS = {
 
 const ALL_GOAL_TYPES: GoalType[] = [
   "sleep_hours",
-  "steps",
+  "active_minutes",
+  "strain_score",
+  "recovery_score",
   "sleep_rating",
   "movement_rating",
   "nutrition_rating",
 ];
+
+type GoalMap = Record<(typeof ALL_GOAL_TYPES)[number], number>;
 
 export function SetGoalsDialog({
   open,
@@ -73,32 +82,30 @@ export function SetGoalsDialog({
   onSave,
   isUpdating,
 }: SetGoalsDialogProps) {
-  const [localGoals, setLocalGoals] = useState<Record<GoalType, number>>({
-    sleep_hours: 8,
-    steps: 10000,
-    sleep_rating: 4,
-    movement_rating: 4,
-    nutrition_rating: 4,
-  });
+  const [localGoals, setLocalGoals] = useState<GoalMap>(() => buildDefaults());
+
+  function buildDefaults(): GoalMap {
+    const m = {} as GoalMap;
+    ALL_GOAL_TYPES.forEach((gt) => {
+      m[gt] = getGoalDefault(gt);
+    });
+    return m;
+  }
 
   // Initialize from existing goals
   useEffect(() => {
-    const initial: Record<GoalType, number> = {
-      sleep_hours: getGoalDefault("sleep_hours"),
-      steps: getGoalDefault("steps"),
-      sleep_rating: getGoalDefault("sleep_rating"),
-      movement_rating: getGoalDefault("movement_rating"),
-      nutrition_rating: getGoalDefault("nutrition_rating"),
-    };
+    const initial = buildDefaults();
     existingGoals.forEach((g) => {
-      initial[g.goal_type as GoalType] = g.target_value;
+      if (ALL_GOAL_TYPES.includes(g.goal_type as GoalType)) {
+        initial[g.goal_type as GoalType] = g.target_value;
+      }
     });
     setLocalGoals(initial);
   }, [existingGoals, open]);
 
   const applyPreset = (presetKey: keyof typeof PRESETS) => {
     const preset = PRESETS[presetKey];
-    setLocalGoals(preset.goals as Record<GoalType, number>);
+    setLocalGoals(preset.goals as GoalMap);
   };
 
   const handleSave = async () => {
@@ -110,9 +117,19 @@ export function SetGoalsDialog({
     onOpenChange(false);
   };
 
+  const sliderConfig: Record<string, { min: number; max: number; step: number; suffix: string }> = {
+    sleep_hours: { min: 5, max: 10, step: 0.5, suffix: "h" },
+    active_minutes: { min: 10, max: 120, step: 5, suffix: " min" },
+    strain_score: { min: 2, max: 21, step: 1, suffix: "/21" },
+    recovery_score: { min: 30, max: 100, step: 5, suffix: "%" },
+    sleep_rating: { min: 1, max: 5, step: 1, suffix: "/5" },
+    movement_rating: { min: 1, max: 5, step: 1, suffix: "/5" },
+    nutrition_rating: { min: 1, max: 5, step: 1, suffix: "/5" },
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Set Your Goals</DialogTitle>
           <DialogDescription>
@@ -136,100 +153,30 @@ export function SetGoalsDialog({
 
         {/* Goal inputs */}
         <div className="space-y-5 mt-4">
-          {/* Sleep Hours */}
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label className="text-sm">
-                {getGoalMeta("sleep_hours").icon} Sleep Hours
-              </Label>
-              <span className="text-sm font-medium text-muted-foreground">
-                {localGoals.sleep_hours}h
-              </span>
-            </div>
-            <Slider
-              value={[localGoals.sleep_hours]}
-              onValueChange={([v]) => setLocalGoals((prev) => ({ ...prev, sleep_hours: v }))}
-              min={5}
-              max={10}
-              step={0.5}
-            />
-          </div>
-
-          {/* Steps */}
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label className="text-sm">
-                {getGoalMeta("steps").icon} Daily Steps
-              </Label>
-              <span className="text-sm font-medium text-muted-foreground">
-                {localGoals.steps.toLocaleString()}
-              </span>
-            </div>
-            <Slider
-              value={[localGoals.steps]}
-              onValueChange={([v]) => setLocalGoals((prev) => ({ ...prev, steps: v }))}
-              min={3000}
-              max={20000}
-              step={500}
-            />
-          </div>
-
-          {/* Sleep Rating */}
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label className="text-sm">
-                {getGoalMeta("sleep_rating").icon} Sleep Quality
-              </Label>
-              <span className="text-sm font-medium text-muted-foreground">
-                {localGoals.sleep_rating}/5
-              </span>
-            </div>
-            <Slider
-              value={[localGoals.sleep_rating]}
-              onValueChange={([v]) => setLocalGoals((prev) => ({ ...prev, sleep_rating: v }))}
-              min={1}
-              max={5}
-              step={1}
-            />
-          </div>
-
-          {/* Movement Rating */}
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label className="text-sm">
-                {getGoalMeta("movement_rating").icon} Movement
-              </Label>
-              <span className="text-sm font-medium text-muted-foreground">
-                {localGoals.movement_rating}/5
-              </span>
-            </div>
-            <Slider
-              value={[localGoals.movement_rating]}
-              onValueChange={([v]) => setLocalGoals((prev) => ({ ...prev, movement_rating: v }))}
-              min={1}
-              max={5}
-              step={1}
-            />
-          </div>
-
-          {/* Nutrition Rating */}
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label className="text-sm">
-                {getGoalMeta("nutrition_rating").icon} Nutrition
-              </Label>
-              <span className="text-sm font-medium text-muted-foreground">
-                {localGoals.nutrition_rating}/5
-              </span>
-            </div>
-            <Slider
-              value={[localGoals.nutrition_rating]}
-              onValueChange={([v]) => setLocalGoals((prev) => ({ ...prev, nutrition_rating: v }))}
-              min={1}
-              max={5}
-              step={1}
-            />
-          </div>
+          {ALL_GOAL_TYPES.map((gt) => {
+            const meta = getGoalMeta(gt);
+            const config = sliderConfig[gt];
+            return (
+              <div key={gt} className="space-y-2">
+                <div className="flex justify-between">
+                  <Label className="text-sm">
+                    {meta.icon} {meta.label}
+                  </Label>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {gt === "sleep_hours" ? localGoals[gt] : Math.round(localGoals[gt])}
+                    {config.suffix}
+                  </span>
+                </div>
+                <Slider
+                  value={[localGoals[gt]]}
+                  onValueChange={([v]) => setLocalGoals((prev) => ({ ...prev, [gt]: v }))}
+                  min={config.min}
+                  max={config.max}
+                  step={config.step}
+                />
+              </div>
+            );
+          })}
         </div>
 
         <div className="flex gap-2 mt-4">

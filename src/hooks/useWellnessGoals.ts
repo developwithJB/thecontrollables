@@ -1,7 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type GoalType = "sleep_hours" | "steps" | "sleep_rating" | "movement_rating" | "nutrition_rating";
+export type GoalType =
+  | "sleep_hours"
+  | "steps"
+  | "active_minutes"
+  | "strain_score"
+  | "recovery_score"
+  | "sleep_rating"
+  | "movement_rating"
+  | "nutrition_rating";
 
 export interface WellnessGoal {
   id: string;
@@ -23,6 +31,9 @@ export interface GoalProgress {
 const GOAL_DEFAULTS: Record<GoalType, number> = {
   sleep_hours: 8,
   steps: 10000,
+  active_minutes: 30,
+  strain_score: 10,
+  recovery_score: 70,
   sleep_rating: 4,
   movement_rating: 4,
   nutrition_rating: 4,
@@ -31,6 +42,9 @@ const GOAL_DEFAULTS: Record<GoalType, number> = {
 const GOAL_LABELS: Record<GoalType, { label: string; unit: string; icon: string }> = {
   sleep_hours: { label: "Sleep", unit: "hrs", icon: "😴" },
   steps: { label: "Steps", unit: "", icon: "🚶" },
+  active_minutes: { label: "Active Minutes", unit: "min", icon: "⏱️" },
+  strain_score: { label: "Strain", unit: "/21", icon: "🔥" },
+  recovery_score: { label: "Recovery", unit: "%", icon: "💚" },
   sleep_rating: { label: "Sleep Quality", unit: "/5", icon: "⭐" },
   movement_rating: { label: "Movement", unit: "/5", icon: "💪" },
   nutrition_rating: { label: "Nutrition", unit: "/5", icon: "🥗" },
@@ -59,14 +73,14 @@ export function useWellnessGoals(userId: string | null) {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch today's health data for steps/sleep_hours
+  // Fetch today's health data (steps, sleep, active_minutes, strain, recovery)
   const { data: healthData } = useQuery({
     queryKey: ["health-sync-today", userId, today],
     queryFn: async () => {
       if (!userId) return null;
       const { data } = await supabase
         .from("health_sync_data")
-        .select("steps, sleep_minutes")
+        .select("steps, sleep_minutes, active_minutes, strain_score, recovery_score")
         .eq("user_id", userId)
         .eq("sync_date", today)
         .maybeSingle();
@@ -103,6 +117,15 @@ export function useWellnessGoals(userId: string | null) {
         break;
       case "sleep_hours":
         current = (healthData?.sleep_minutes || 0) / 60;
+        break;
+      case "active_minutes":
+        current = healthData?.active_minutes || 0;
+        break;
+      case "strain_score":
+        current = healthData?.strain_score || 0;
+        break;
+      case "recovery_score":
+        current = healthData?.recovery_score || 0;
         break;
       case "sleep_rating":
         current = wellnessLog?.sleep_rating || 0;
