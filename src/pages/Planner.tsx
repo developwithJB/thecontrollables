@@ -1,8 +1,8 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, addWeeks, subWeeks, isToday, isBefore, startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Plus, RotateCcw, BarChart3, UtensilsCrossed } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -38,6 +38,50 @@ const Planner = () => {
   const user = useLifeOSUser();
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
+  const callbackHandled = useRef(false);
+
+  // Handle Google Calendar OAuth callback
+  useEffect(() => {
+    const code = searchParams.get("code");
+    const isCallback = searchParams.get("gcal_callback");
+    if (!code || !isCallback || callbackHandled.current) return;
+    callbackHandled.current = true;
+
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Not authenticated");
+
+        const redirectUri = `${window.location.origin}/planner?gcal_callback=true`;
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/planner-gcal-oauth-callback`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ code, redirect_uri: redirectUri }),
+          }
+        );
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Failed to connect Google Calendar");
+        }
+
+        toast({ title: "Google Calendar connected!" });
+        queryClient.invalidateQueries({ queryKey: ["planner-connections"] });
+      } catch (e: any) {
+        toast({ title: "Connection failed", description: e.message, variant: "destructive" });
+      } finally {
+        navigate("/planner", { replace: true });
+      }
+    })();
+  }, [searchParams, navigate, toast, queryClient]);
   const [showPvA, setShowPvA] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
 
