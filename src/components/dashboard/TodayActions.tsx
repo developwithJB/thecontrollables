@@ -104,6 +104,7 @@ export function TodayActions({
   todayTimeLogged,
   pendingPromisesCount,
   todayPromiseMade,
+  validatePlanCompleted = false,
   todayXpEarned,
   buildLastUpdatedAt,
   journeyId,
