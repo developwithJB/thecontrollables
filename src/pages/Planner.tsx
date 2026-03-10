@@ -104,7 +104,42 @@ const Planner = () => {
   const { createItem, updateItem, completeItem, skipItem, reorderItems, deleteItem, rescheduleItem } =
     usePlannerMutations();
   const { routines, createRoutine, deleteRoutine } = usePlannerRoutines(user.id);
-  const { connections, startGoogleCalSync, triggerSync } = usePlannerConnections(user.id);
+  const { connections, startGoogleCalSync, triggerSync, pushToGoogleCal } = usePlannerConnections(user.id);
+
+  const googleConnection = connections.find((c) => c.provider === "google_calendar");
+
+  const handlePushToCalendar = useCallback(
+    (item: PlannerItem) => {
+      if (!googleConnection) return;
+      pushToGoogleCal.mutate(
+        { connectionId: googleConnection.id, itemIds: [item.id] },
+        {
+          onSuccess: (data) => {
+            toast({ title: `Pushed to Google Calendar`, description: `${data.pushed} event(s) synced` });
+          },
+          onError: (err: any) => {
+            toast({ title: "Push failed", description: err.message, variant: "destructive" });
+          },
+        }
+      );
+    },
+    [googleConnection, pushToGoogleCal, toast]
+  );
+
+  const handlePushToday = useCallback(() => {
+    if (!googleConnection) return;
+    pushToGoogleCal.mutate(
+      { connectionId: googleConnection.id, date: format(selectedDate, "yyyy-MM-dd") },
+      {
+        onSuccess: (data) => {
+          toast({ title: `Pushed to Google Calendar`, description: `${data.pushed} event(s) synced` });
+        },
+        onError: (err: any) => {
+          toast({ title: "Push failed", description: err.message, variant: "destructive" });
+        },
+      }
+    );
+  }, [googleConnection, pushToGoogleCal, selectedDate, toast]);
 
   // Activity from other systems (rings, meals, actions)
   const { data: activityItems = [] } = usePlannerActivity(
