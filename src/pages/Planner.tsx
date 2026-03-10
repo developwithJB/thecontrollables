@@ -39,7 +39,50 @@ const Planner = () => {
   const user = useLifeOSUser();
   const isMobile = useIsMobile();
   const { toast } = useToast();
-  const [showPvA, setShowPvA] = useState(false);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
+  const callbackHandled = useRef(false);
+
+  // Handle Google Calendar OAuth callback
+  useEffect(() => {
+    const code = searchParams.get("code");
+    const isCallback = searchParams.get("gcal_callback");
+    if (!code || !isCallback || callbackHandled.current) return;
+    callbackHandled.current = true;
+
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Not authenticated");
+
+        const redirectUri = `${window.location.origin}/planner?gcal_callback=true`;
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/planner-gcal-oauth-callback`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ code, redirect_uri: redirectUri }),
+          }
+        );
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Failed to connect Google Calendar");
+        }
+
+        toast({ title: "Google Calendar connected!" });
+        queryClient.invalidateQueries({ queryKey: ["planner-connections"] });
+      } catch (e: any) {
+        toast({ title: "Connection failed", description: e.message, variant: "destructive" });
+      } finally {
+        navigate("/planner", { replace: true });
+      }
+    })();
+  }, [searchParams, navigate, toast, queryClient]);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   // Week state
