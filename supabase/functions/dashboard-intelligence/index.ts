@@ -154,6 +154,9 @@ The ring names map to controllables: Notice=Awareness, Choose=Perspective, Prove
                   why_it_matters: { type: "string", description: "Why this pattern matters for the user's growth. 1-2 sentences." },
                   best_next_move: { type: "string", description: "A specific recommended action for tonight or tomorrow morning. 1 sentence." },
                   tomorrow_forecast: { type: "string", description: "A predictive statement about tomorrow's likely challenges or opportunities. 1-2 sentences." },
+                  snapshot_forecast: { type: "string", description: "Projection for the remaining days of the current snapshot based on trajectory. 2-3 sentences." },
+                  month_forecast: { type: "string", description: "Projection for the current month based on patterns, including likely completion rates and key risks. 2-3 sentences." },
+                  year_forecast: { type: "string", description: "High-level trajectory projection if current patterns continue for 12 months. 2-3 sentences." },
                   signals: {
                     type: "object",
                     properties: {
