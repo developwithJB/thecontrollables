@@ -1,42 +1,33 @@
 
 
-# Fix: "Invalid redirect_uri" on Instagram OAuth
+# Fix Instagram "Insufficient Developer Role" + Build Errors
 
-## Root Cause
+## Instagram Issue
 
-The error `Invalid redirect_uri` comes from Instagram/Meta rejecting the `redirect_uri` parameter in the OAuth request. This happens when the URL sent in the request doesn't **exactly** match a URL registered in the Meta App's settings.
+The "Insufficient Developer Role" error is a **Meta App configuration issue**, not a code bug. From your screenshot, the "Instagram Testers" tab shows **0 testers**. Being a Meta App Administrator does not automatically grant Instagram API access in Development mode.
 
-The redirect URI your app sends is:
-```
-https://mttsfdplqmvraefbfqlq.supabase.co/functions/v1/integration-oauth-callback
-```
+**You need to do this in the Meta Developer Portal:**
+1. Go to **App Roles** → click the **Instagram Testers** tab
+2. Click **Add People** and enter your Instagram username
+3. Then on Instagram, go to **Settings → Apps and Websites → Tester Invites** and accept the invitation
+4. Retry the connection
 
-## Required Actions
+No code changes needed for this.
 
-### 1. Meta App Configuration (you must do this manually)
+## Build Errors (must fix)
 
-In the [Meta for Developers](https://developers.facebook.com/) dashboard:
+Two TypeScript errors unrelated to Instagram:
 
-1. Open your app → **Use cases** → **Instagram Business Login** → **Settings**
-2. Under **Valid OAuth Redirect URIs**, add exactly:
-   ```
-   https://mttsfdplqmvraefbfqlq.supabase.co/functions/v1/integration-oauth-callback
-   ```
-3. Make sure there's no trailing slash mismatch — it must be character-for-character identical
-4. Save changes
+### 1. `ErrorBoundary.tsx` line 111
+`process.env.NODE_ENV` doesn't exist in Vite. Replace with `import.meta.env.DEV`.
 
-### 2. Code Fix — URL encoding issue
+### 2. `OnboardingFlow.tsx` line 76
+`NodeJS.Timeout` type doesn't exist in browser. Replace with `ReturnType<typeof setTimeout>`.
 
-Instagram's OAuth is sensitive to how `redirect_uri` is encoded in the query string. `URLSearchParams` double-encodes certain characters. The fix is to ensure the `redirect_uri` is passed cleanly. Additionally, the Instagram auth URL should use `https://api.instagram.com/oauth/authorize` (the newer endpoint) as a fallback if `www.instagram.com` is rejected by your app type.
+## Files to Change
 
-**File**: `supabase/functions/integration-oauth-start/index.ts`
-- No code logic change needed — `URLSearchParams` handles encoding correctly. The issue is purely the Meta App configuration.
-
-### 3. Published domain redirect URI
-
-If you're also testing from the published app (`thecontrollables.lovable.app`), note that the redirect URI goes to the **edge function** URL, not the app URL. So only one redirect URI needs to be registered — the Supabase function URL above. This is already correct in the code.
-
-## Summary
-
-This is a **configuration-only fix** — add the exact callback URL to your Meta App's Valid OAuth Redirect URIs. No code changes required.
+| File | Change |
+|------|--------|
+| `src/components/ErrorBoundary.tsx:111` | `process.env.NODE_ENV === "development"` → `import.meta.env.DEV` |
+| `src/components/onboarding/OnboardingFlow.tsx:76` | `NodeJS.Timeout` → `ReturnType<typeof setTimeout>` |
 
