@@ -28,9 +28,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getJourneyById } from "@/lib/guidedJourneys";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
-import { useWellness } from "@/hooks/useWellness";
-import { useCircle } from "@/hooks/useCircle";
 import { useSeason } from "@/hooks/useSeason";
+import { useFocusMode } from "@/hooks/useFocusMode";
 
 // Dashboard modules
 import { MainQuestModule } from "@/components/dashboard/MainQuestModule";
@@ -38,22 +37,15 @@ import { XpMomentumModule } from "@/components/dashboard/XpMomentumModule";
 import { IntegrityMeterModule, IntegrityMeterModuleHandle } from "@/components/dashboard/IntegrityMeterModule";
 import { TimeCurrencyModule, TimeCurrencyModuleHandle } from "@/components/dashboard/TimeCurrencyModule";
 import { BuildOverviewModule, BuildOverviewModuleHandle } from "@/components/dashboard/BuildOverviewModule";
-import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
-import { BuildEntryPoint } from "@/components/dashboard/BuildEntryPoint";
 import { SnapshotSelector } from "@/components/dashboard/SnapshotSelector";
 import { StartSnapshotDialog } from "@/components/dashboard/StartSnapshotDialog";
 import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
 import { TodayActions } from "@/components/dashboard/TodayActions";
 import { SnapshotReviewCard } from "@/components/dashboard/SnapshotReviewCard";
 import { DailyAlignmentSpotlight } from "@/components/dashboard/DailyAlignmentSpotlight";
-import { DailyAlignmentPromo } from "@/components/dashboard/DailyAlignmentPromo";
 import { OperatorConsole } from "@/components/dashboard/OperatorConsole";
-import { CircleCard } from "@/components/dashboard/CircleCard";
-import { SeasonBanner } from "@/components/dashboard/SeasonBanner";
 import { SeasonComplete } from "@/components/SeasonComplete";
-import { PlannerCard } from "@/components/dashboard/PlannerCard";
-import { MoneyCard } from "@/components/dashboard/MoneyCard";
-import { ControllableLevelsTeaser } from "@/components/dashboard/ControllableLevelsTeaser";
+import { CompactRingsRow } from "@/components/dashboard/CompactRingsRow";
 import {
   MainQuestSkeleton,
   ResetProgressSkeleton,
@@ -61,7 +53,6 @@ import {
 } from "@/components/dashboard/DashboardSkeletons";
 import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
-import { DomainSummaryCards } from "@/components/layout/DomainSummaryCards";
 
 export default function Home() {
   usePageViewTracking("Home");
@@ -144,7 +135,6 @@ export default function Home() {
     isLoggingTime,
   } = useDashboardSummary(user.id);
 
-  const { streak: wellnessStreak, logWellness, recentLogs: wellnessLogs } = useWellness(user.id);
   const { currentBuild, buildLoading } = useBuildAssessment();
 
   const {
@@ -169,21 +159,6 @@ export default function Home() {
   const { isPaid, isLoading: entitlementsLoading, initiateCheckout, isCheckingOut } = useEntitlements(user.id);
 
   const {
-    myCircle,
-    circleMembers,
-    showedUpTodayCount,
-    streakLeaderboard,
-    createCircle,
-    isCreatingCircle,
-    joinCircle,
-    isJoiningCircle,
-    leaveCircle,
-    isLeavingCircle,
-    logShowedUp,
-    lookupCircle,
-  } = useCircle(user.id, activeSession?.id);
-
-  const {
     activeSeason,
     seasonSnapshots,
     seasonProgress,
@@ -193,28 +168,12 @@ export default function Home() {
     shouldShowSeasonComplete,
   } = useSeason(user.id);
 
+  const { focusState, todaysPlan, activateFocusMode, deactivateFocusMode, isActive: isFocusActive, currentDay: focusDay } = useFocusMode(currentBuild);
+
   const [showSeasonComplete, setShowSeasonComplete] = useState(false);
   useEffect(() => {
     if (shouldShowSeasonComplete) { setShowSeasonComplete(true); completeSeason(); }
   }, [shouldShowSeasonComplete, completeSeason]);
-
-  // Circle invites
-  const [joinDialogOpen, setJoinDialogOpen] = useState(false);
-  const joinCodeFromUrl = searchParams.get("join");
-  useEffect(() => {
-    if (joinCodeFromUrl && user.id) setJoinDialogOpen(true);
-  }, [joinCodeFromUrl, user.id]);
-
-  // Auto-log circle showed-up
-  const prevCompletedDaysRef = useRef<number>(0);
-  useEffect(() => {
-    if (!completedDays || !myCircle) return;
-    const count = completedDays.length;
-    if (count > prevCompletedDaysRef.current && count > 0) logShowedUp(count);
-    prevCompletedDaysRef.current = count;
-  }, [completedDays?.length, myCircle, logShowedUp]);
-
-  const circleDisplayName = user.user_metadata?.display_name || user.email?.split("@")[0] || "You";
 
   // Profile for nudge status
   const { data: userProfile, refetch: refetchProfile } = useQuery({
@@ -443,8 +402,6 @@ export default function Home() {
         }}
       />
 
-      {/* Domain Summary Cards - navigate to sub-pages */}
-      <DomainSummaryCards />
 
       {/* Main Quest - only show when no active quest */}
       {dashboardLoading ? <MainQuestSkeleton /> : !activeQuest && (
@@ -509,69 +466,41 @@ export default function Home() {
         />
       )}
 
-      {/* Quick domain cards grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {user.id && <PlannerCard userId={user.id} />}
-        {user.id && <MoneyCard userId={user.id} />}
-        {user.id && <ControllableLevelsTeaser userId={user.id} onNavigateToGuide={() => navigate("/growth")} />}
-        <BuildEntryPoint userId={user.id} />
-      </div>
+      {/* Compact 5 Rings */}
+      <CompactRingsRow userId={user.id} />
 
-      {/* Daily Alignment promo for free users */}
-      {!isPaid && !entitlementsLoading && showDashboardPaywallPromo && (
-        <DailyAlignmentPromo onUpgrade={() => startCheckout(undefined, "daily_alignment_promo_home")} />
-      )}
-
-      {/* Season Banner */}
-      {activeSeason && seasonProgress && (
-        <SeasonBanner seasonName={activeSeason.name} snapshots={seasonSnapshots} progress={seasonProgress} />
-      )}
-
-      {/* Reset Progress */}
-      {activeSession && !isCompleted && !isExpired && (
-        <ResetProgressModule
-          hasActiveSession={!!activeSession}
-          isCompleted={isCompleted}
-          isExpired={isExpired}
-          currentDay={currentDay}
-          completedDays={completedDays}
-          todayAlreadyCompleted={todayAlreadyCompleted}
-          onStartReset={(isPaidArg) => acceptCovenant({ isPaid: isPaidArg })}
-          isStartingReset={isAcceptingCovenant}
-          isPaid={isPaid}
-          totalSessionCount={allSessions.length}
-          onUpgrade={() => startCheckout(undefined, "reset_progress_module")}
-          currentJourneyId={activeSession?.journey_id}
-          onSwitchJourney={() => setShowJourneySwitcher(true)}
-          lastCompletedAt={allSessions.find((s) => s.status === "completed")?.completed_at}
-        />
-      )}
-
-      {/* Circle */}
-      {activeSession && !isCompleted && !isExpired && (
-        <CircleCard
-          myCircle={myCircle ?? null}
-          circleMembers={circleMembers}
-          showedUpTodayCount={showedUpTodayCount}
-          currentDay={currentDay}
-          displayName={circleDisplayName}
-          currentJourneyId={activeSession.journey_id}
-          isCreatingCircle={isCreatingCircle}
-          isLeavingCircle={isLeavingCircle}
-          onCreateCircle={createCircle}
-          onLeaveCircle={leaveCircle}
-          onJoinCircle={joinCircle}
-          isJoiningCircle={isJoiningCircle}
-          lookupCircle={lookupCircle}
-          joinDialogOpen={joinDialogOpen}
-          onJoinDialogOpenChange={(open) => {
-            setJoinDialogOpen(open);
-            if (!open && joinCodeFromUrl) { searchParams.delete("join"); setSearchParams(searchParams, { replace: true }); }
-          }}
-          initialJoinCode={joinCodeFromUrl || undefined}
-          currentUserId={user.id}
-          streakLeaderboard={streakLeaderboard}
-        />
+      {/* Focus Section */}
+      {isFocusActive && todaysPlan ? (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-2"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">Focus: {focusState.controllable}</span>
+            </div>
+            <span className="text-xs text-muted-foreground">Day {focusDay}/7</span>
+          </div>
+          <p className="text-sm text-muted-foreground">{todaysPlan.intention}</p>
+          <p className="text-xs text-muted-foreground/80">→ {todaysPlan.rep}</p>
+          <Button variant="ghost" size="sm" className="text-xs" onClick={deactivateFocusMode}>
+            End Focus
+          </Button>
+        </motion.div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl border border-border bg-card text-center space-y-2"
+        >
+          <p className="text-sm text-muted-foreground">Pick a controllable to focus on for 7 days.</p>
+          <Button variant="outline" size="sm" onClick={() => activateFocusMode()}>
+            <Target className="w-3.5 h-3.5 mr-1.5" />
+            Start Focus Mode
+          </Button>
+        </motion.div>
       )}
 
       {/* Operator Console */}
@@ -590,17 +519,6 @@ export default function Home() {
           hasActiveSnapshot={!!activeSession && !isCompleted}
           onMessageSent={() => {}}
         />
-      )}
-
-      {/* Simplified mode: Build & Momentum */}
-      {isSimplifiedMode && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">Your Current State</p>
-          <div className="grid grid-cols-2 gap-2">
-            {buildLoading ? <SmallModuleSkeleton /> : <BuildOverviewModule compact />}
-            {dashboardLoading ? <SmallModuleSkeleton /> : <XpMomentumModule totalXp={totalXp} recentLogs={xpLogs} compact />}
-          </div>
-        </div>
       )}
 
       {/* Snapshot Selector Dialog */}
