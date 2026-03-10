@@ -56,6 +56,7 @@ import {
 } from "@/components/dashboard/DashboardSkeletons";
 import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
+import { ConfirmLastNightDialog } from "@/components/dashboard/ConfirmLastNightDialog";
 
 export default function Home() {
   usePageViewTracking("Home");
@@ -70,6 +71,7 @@ export default function Home() {
   const [showMissionEdit, setShowMissionEdit] = useState(false);
   const [editingMissionTitle, setEditingMissionTitle] = useState("");
   const [showInsights, setShowInsights] = useState(false);
+  const [showConfirmLastNight, setShowConfirmLastNight] = useState(false);
 
   const dashboardVisitCount = useDashboardVisitCount();
 
@@ -472,12 +474,19 @@ export default function Home() {
           journeyTitle={activeSession?.journey_id ? getJourneyById(activeSession.journey_id)?.title : undefined}
           onChangeJourney={() => setShowJourneySwitcher(true)}
           missionTitle={activeQuest?.title}
-          onOpenTimeLog={() => navigate("/wellness")}
+          onOpenTimeLog={() => setShowConfirmLastNight(true)}
           onOpenPromises={() => navigate("/growth")}
           onOpenBuild={() => navigate("/growth")}
           onDay7AllComplete={triggerDay7Celebration}
         />
       )}
+
+      {/* Confirm Last Night Dialog */}
+      <ConfirmLastNightDialog
+        open={showConfirmLastNight}
+        onOpenChange={setShowConfirmLastNight}
+        userId={user.id}
+      />
 
       {/* Ask Dashboard — directly after actions for seamless collapse */}
       <AskDashboardBar />
