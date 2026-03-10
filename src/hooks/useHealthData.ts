@@ -19,6 +19,7 @@ export interface HealthDataResult {
   latest: HealthMetrics;
   trend: HealthMetrics[];
   lastSynced: string | null;
+  connectedAt: string | null;
   isLoading: boolean;
 }
 
