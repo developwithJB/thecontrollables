@@ -35,9 +35,9 @@ import { useDailyRings } from "@/hooks/useDailyRings";
 // Dashboard modules
 import { MainQuestModule } from "@/components/dashboard/MainQuestModule";
 import { XpMomentumModule } from "@/components/dashboard/XpMomentumModule";
-import { IntegrityMeterModule, IntegrityMeterModuleHandle } from "@/components/dashboard/IntegrityMeterModule";
-import { TimeCurrencyModule, TimeCurrencyModuleHandle } from "@/components/dashboard/TimeCurrencyModule";
-import { BuildOverviewModule, BuildOverviewModuleHandle } from "@/components/dashboard/BuildOverviewModule";
+import { IntegrityMeterModule } from "@/components/dashboard/IntegrityMeterModule";
+import { TimeCurrencyModule } from "@/components/dashboard/TimeCurrencyModule";
+import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule";
 import { SnapshotSelector } from "@/components/dashboard/SnapshotSelector";
 import { StartSnapshotDialog } from "@/components/dashboard/StartSnapshotDialog";
 import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
