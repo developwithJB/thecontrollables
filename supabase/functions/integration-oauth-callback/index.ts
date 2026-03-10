@@ -40,7 +40,36 @@ Deno.serve(async (req) => {
 
     let tokenData: any;
 
-    if (provider === "notion") {
+    if (provider === "instagram") {
+      // Instagram short-lived token exchange
+      const formData = new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: "authorization_code",
+        redirect_uri: callbackUrl,
+        code,
+      });
+      const res = await fetch(TOKEN_ENDPOINTS[provider], {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData,
+      });
+      const shortLived = await res.json();
+      if (shortLived.error_type || shortLived.error_message) {
+        tokenData = { error: shortLived.error_message || shortLived.error_type };
+      } else {
+        // Exchange for long-lived token
+        const llRes = await fetch(
+          `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${clientSecret}&access_token=${shortLived.access_token}`
+        );
+        const longLived = await llRes.json();
+        tokenData = {
+          access_token: longLived.access_token || shortLived.access_token,
+          expires_in: longLived.expires_in || 5184000,
+          user_id: shortLived.user_id,
+        };
+      }
+    } else if (provider === "notion") {
       const basicAuth = btoa(`${clientId}:${clientSecret}`);
       const res = await fetch(TOKEN_ENDPOINTS[provider], {
         method: "POST",
