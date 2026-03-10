@@ -53,7 +53,7 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
   const ouraConnection = wearableConnections.find((c: any) => c.provider === "oura");
   const whoopConnection = wearableConnections.find((c: any) => c.provider === "whoop");
 
-  const handleConnect = useCallback(async (provider: "fitbit" | "oura") => {
+  const handleConnect = useCallback(async (provider: "fitbit" | "oura" | "whoop") => {
     setConnecting(provider);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
