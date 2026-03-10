@@ -190,10 +190,23 @@ Deno.serve(async (req) => {
 
     if (upsertError) {
       console.error("Upsert error:", upsertError);
+      if (popup) {
+        return new Response(
+          `<!DOCTYPE html><html><body><script>window.opener.postMessage({type:"oauth-complete",provider:"${provider}",error:"save_failed"},"*");window.close();</script></body></html>`,
+          { headers: { "Content-Type": "text/html" } }
+        );
+      }
       return new Response(null, {
         status: 302,
         headers: { Location: `${redirectUri}?integration_error=save_failed` },
       });
+    }
+
+    if (popup) {
+      return new Response(
+        `<!DOCTYPE html><html><body><script>window.opener.postMessage({type:"oauth-complete",provider:"${provider}"},"*");window.close();</script></body></html>`,
+        { headers: { "Content-Type": "text/html" } }
+      );
     }
 
     return new Response(null, {
