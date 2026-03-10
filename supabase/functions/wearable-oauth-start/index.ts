@@ -12,7 +12,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Authenticate
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -40,15 +39,15 @@ Deno.serve(async (req) => {
 
     const { provider, redirect_uri } = await req.json();
 
-    if (!provider || !["fitbit", "oura"].includes(provider)) {
+    if (!provider || !["fitbit", "oura", "whoop"].includes(provider)) {
       return new Response(JSON.stringify({ error: "Invalid provider" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Generate state parameter (userId:provider for callback to identify)
     const state = btoa(JSON.stringify({ user_id: userId, provider }));
+    const callbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/wearable-oauth-callback`;
 
     let authUrl: string;
 
@@ -62,16 +61,13 @@ Deno.serve(async (req) => {
       }
 
       const scopes = "activity heartrate sleep profile";
-      const callbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/wearable-oauth-callback`;
-
       authUrl =
         `https://www.fitbit.com/oauth2/authorize?` +
         `response_type=code&client_id=${clientId}` +
         `&redirect_uri=${encodeURIComponent(callbackUrl)}` +
         `&scope=${encodeURIComponent(scopes)}` +
         `&state=${encodeURIComponent(state)}`;
-    } else {
-      // Oura
+    } else if (provider === "oura") {
       const clientId = Deno.env.get("OURA_CLIENT_ID");
       if (!clientId) {
         return new Response(JSON.stringify({ error: "Oura not configured" }), {
@@ -81,10 +77,25 @@ Deno.serve(async (req) => {
       }
 
       const scopes = "daily heartrate personal sleep activity";
-      const callbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/wearable-oauth-callback`;
-
       authUrl =
         `https://cloud.ouraring.com/oauth/authorize?` +
+        `response_type=code&client_id=${clientId}` +
+        `&redirect_uri=${encodeURIComponent(callbackUrl)}` +
+        `&scope=${encodeURIComponent(scopes)}` +
+        `&state=${encodeURIComponent(state)}`;
+    } else {
+      // WHOOP
+      const clientId = Deno.env.get("WHOOP_CLIENT_ID");
+      if (!clientId) {
+        return new Response(JSON.stringify({ error: "WHOOP not configured" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const scopes = "read:recovery read:cycles read:sleep read:workout read:profile offline";
+      authUrl =
+        `https://api.prod.whoop.com/oauth/oauth2/auth?` +
         `response_type=code&client_id=${clientId}` +
         `&redirect_uri=${encodeURIComponent(callbackUrl)}` +
         `&scope=${encodeURIComponent(scopes)}` +

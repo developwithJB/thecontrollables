@@ -7,7 +7,6 @@ Deno.serve(async (req) => {
     const stateParam = url.searchParams.get("state");
     const error = url.searchParams.get("error");
 
-    // Get the app URL from referrer or use a default
     const appUrl = Deno.env.get("APP_URL") || "https://thecontrollables.lovable.app";
 
     if (error || !code || !stateParam) {
@@ -59,8 +58,7 @@ Deno.serve(async (req) => {
       }
 
       tokenData = await resp.json();
-    } else {
-      // Oura
+    } else if (provider === "oura") {
       const clientId = Deno.env.get("OURA_CLIENT_ID")!;
       const clientSecret = Deno.env.get("OURA_CLIENT_SECRET")!;
 
@@ -86,6 +84,37 @@ Deno.serve(async (req) => {
       }
 
       tokenData = await resp.json();
+    } else if (provider === "whoop") {
+      const clientId = Deno.env.get("WHOOP_CLIENT_ID")!;
+      const clientSecret = Deno.env.get("WHOOP_CLIENT_SECRET")!;
+
+      const resp = await fetch("https://api.prod.whoop.com/oauth/oauth2/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: callbackUrl,
+          client_id: clientId,
+          client_secret: clientSecret,
+        }),
+      });
+
+      if (!resp.ok) {
+        const errBody = await resp.text();
+        console.error("WHOOP token error:", errBody);
+        return new Response(null, {
+          status: 302,
+          headers: { Location: `${appUrl}/?wearable_error=token_exchange_failed` },
+        });
+      }
+
+      tokenData = await resp.json();
+    } else {
+      return new Response(null, {
+        status: 302,
+        headers: { Location: `${appUrl}/?wearable_error=invalid_provider` },
+      });
     }
 
     // Store tokens using service role
@@ -95,6 +124,27 @@ Deno.serve(async (req) => {
     );
 
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
+
+    // Build metadata — for WHOOP, fetch profile to get whoop_user_id
+    let metadata: Record<string, any> = {};
+    if (provider === "whoop") {
+      try {
+        const profileResp = await fetch("https://api.prod.whoop.com/developer/v1/user/profile/basic", {
+          headers: { Authorization: `Bearer ${tokenData.access_token}` },
+        });
+        if (profileResp.ok) {
+          const profile = await profileResp.json();
+          metadata = {
+            whoop_user_id: String(profile.user_id),
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            email: profile.email,
+          };
+        }
+      } catch (e) {
+        console.error("WHOOP profile fetch error:", e);
+      }
+    }
 
     const { error: upsertError } = await supabase
       .from("wearable_connections")
@@ -107,6 +157,7 @@ Deno.serve(async (req) => {
           token_expires_at: expiresAt,
           scopes: tokenData.scope || null,
           connected_at: new Date().toISOString(),
+          metadata,
         },
         { onConflict: "user_id,provider" }
       );
