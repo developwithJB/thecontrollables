@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Apple, Smartphone, Upload, CheckCircle, AlertCircle, Loader2, Watch, Unlink, RefreshCw } from "lucide-react";
+import { Apple, Smartphone, Upload, CheckCircle, AlertCircle, Loader2, Watch, Unlink, RefreshCw, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -16,7 +16,7 @@ interface HealthDataSyncProps {
 
 export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncProps) {
   const [uploading, setUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState("apple");
+  const [activeTab, setActiveTab] = useState("whoop");
   const [connecting, setConnecting] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -51,8 +51,9 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
 
   const fitbitConnection = wearableConnections.find((c: any) => c.provider === "fitbit");
   const ouraConnection = wearableConnections.find((c: any) => c.provider === "oura");
+  const whoopConnection = wearableConnections.find((c: any) => c.provider === "whoop");
 
-  const handleConnect = useCallback(async (provider: "fitbit" | "oura") => {
+  const handleConnect = useCallback(async (provider: "fitbit" | "oura" | "whoop") => {
     setConnecting(provider);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -77,7 +78,7 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
     }
   }, []);
 
-  const handleSync = useCallback(async (provider: "fitbit" | "oura") => {
+  const handleSync = useCallback(async (provider: "fitbit" | "oura" | "whoop") => {
     setSyncing(provider);
     try {
       const { data, error } = await supabase.functions.invoke("wearable-sync", {
@@ -89,7 +90,7 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
         return;
       }
 
-      toast.success(`Synced ${data.days_synced} days from ${provider === "fitbit" ? "Fitbit" : "Oura"}`);
+      toast.success(`Synced ${data.days_synced} days from ${provider === "fitbit" ? "Fitbit" : provider === "whoop" ? "WHOOP" : "Oura"}`);
       queryClient.invalidateQueries({ queryKey: ["health-sync-last"] });
       queryClient.invalidateQueries({ queryKey: ["brain-body"] });
       refetchConnections();
@@ -101,7 +102,7 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
     }
   }, [queryClient, refetchConnections]);
 
-  const handleDisconnect = useCallback(async (provider: "fitbit" | "oura") => {
+  const handleDisconnect = useCallback(async (provider: "fitbit" | "oura" | "whoop") => {
     const { error } = await supabase
       .from("wearable_connections")
       .delete()
@@ -113,7 +114,7 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
       return;
     }
 
-    toast.success(`${provider === "fitbit" ? "Fitbit" : "Oura"} disconnected`);
+    toast.success(`${provider === "fitbit" ? "Fitbit" : provider === "whoop" ? "WHOOP" : "Oura"} disconnected`);
     refetchConnections();
   }, [userId, refetchConnections]);
 
@@ -165,8 +166,8 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
     ? new Date(lastSync.synced_at).toLocaleDateString()
     : null;
 
-  const renderWearableTab = (provider: "fitbit" | "oura", connection: any) => {
-    const label = provider === "fitbit" ? "Fitbit" : "Oura Ring";
+  const renderWearableTab = (provider: "fitbit" | "oura" | "whoop", connection: any) => {
+    const label = provider === "fitbit" ? "Fitbit" : provider === "whoop" ? "WHOOP" : "Oura Ring";
     const isConnecting = connecting === provider;
     const isSyncing = syncing === provider;
 
@@ -254,27 +255,31 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
             Last synced: {lastSyncDate}
             {lastSync?.source && (
               <Badge variant="secondary" className="text-[10px] ml-auto">
-                {lastSync.source === "apple_health" ? "Apple" : lastSync.source === "google_fit" ? "Google" : lastSync.source === "fitbit" ? "Fitbit" : "Oura"}
+                {lastSync.source === "apple_health" ? "Apple" : lastSync.source === "google_fit" ? "Google" : lastSync.source === "fitbit" ? "Fitbit" : lastSync.source === "whoop" ? "WHOOP" : "Oura"}
               </Badge>
             )}
           </div>
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="apple" className="gap-1 text-[10px] px-1.5">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="whoop" className="gap-1 text-[10px] px-1">
+              <Activity className="h-3 w-3" />
+              WHOOP
+            </TabsTrigger>
+            <TabsTrigger value="apple" className="gap-1 text-[10px] px-1">
               <Apple className="h-3 w-3" />
               Apple
             </TabsTrigger>
-            <TabsTrigger value="google" className="gap-1 text-[10px] px-1.5">
+            <TabsTrigger value="google" className="gap-1 text-[10px] px-1">
               <Smartphone className="h-3 w-3" />
               Google
             </TabsTrigger>
-            <TabsTrigger value="fitbit" className="gap-1 text-[10px] px-1.5">
+            <TabsTrigger value="fitbit" className="gap-1 text-[10px] px-1">
               <Watch className="h-3 w-3" />
               Fitbit
             </TabsTrigger>
-            <TabsTrigger value="oura" className="gap-1 text-[10px] px-1.5">
+            <TabsTrigger value="oura" className="gap-1 text-[10px] px-1">
               <Watch className="h-3 w-3" />
               Oura
             </TabsTrigger>
@@ -312,6 +317,10 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
               <AlertCircle className="h-3 w-3 shrink-0" />
               Your data stays private — we only extract steps, sleep, and activity.
             </div>
+          </TabsContent>
+
+          <TabsContent value="whoop">
+            {renderWearableTab("whoop", whoopConnection)}
           </TabsContent>
 
           <TabsContent value="fitbit">
