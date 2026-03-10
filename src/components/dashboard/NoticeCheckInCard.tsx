@@ -6,7 +6,6 @@ import { Scan, Brain, Zap, AlertTriangle, Heart, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useWhoopData } from "@/hooks/useWhoopData";
-import { cn } from "@/lib/utils";
 
 const MOODS = [
   { value: "calm", emoji: "😌", label: "Calm" },
