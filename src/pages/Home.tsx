@@ -29,7 +29,7 @@ import { getJourneyById } from "@/lib/guidedJourneys";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { useSeason } from "@/hooks/useSeason";
-import { useFocusMode } from "@/hooks/useFocusMode";
+import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
 
 // Dashboard modules
 import { MainQuestModule } from "@/components/dashboard/MainQuestModule";
