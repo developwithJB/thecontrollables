@@ -57,6 +57,7 @@ import {
 import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 import { ConfirmLastNightDialog } from "@/components/dashboard/ConfirmLastNightDialog";
+import { ValidatePlanDialog } from "@/components/dashboard/ValidatePlanDialog";
 
 export default function Home() {
   usePageViewTracking("Home");
