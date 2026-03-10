@@ -267,18 +267,16 @@ export function TodayActions({
     action: onOpenTimeLog,
   });
 
-  // Validate today's plan - confirm promises & focus
-  if (pendingPromisesCount > 0) {
-    actions.push({
-      id: "promises",
-      label: "Validate today's plan",
-      sublabel: "Check promises & confirm your focus",
-      icon: <ClipboardCheck className="w-4 h-4" />,
-      completed: false,
-      timeEstimate: "3 min",
-      action: onOpenPromises,
-    });
-  }
+  // Validate today's plan - always show as core daily action
+  actions.push({
+    id: "promises",
+    label: validatePlanCompleted ? "Plan confirmed" : "Validate today's plan",
+    sublabel: validatePlanCompleted ? "Confirmed" : "Review tasks & promises",
+    icon: <ClipboardCheck className="w-4 h-4" />,
+    completed: validatePlanCompleted,
+    timeEstimate: "3 min",
+    action: onOpenPromises,
+  });
 
   // Journey-specific daily action - the core habit task for today
   // This is the primary value-add that guides users through the 7 days
