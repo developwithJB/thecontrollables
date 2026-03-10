@@ -72,7 +72,7 @@ export function ProfileSettingsModal({
   const [pushSupported, setPushSupported] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushToggling, setPushToggling] = useState(false);
-  const [healthSyncOpen, setHealthSyncOpen] = useState(false);
+  
   const { toast } = useToast();
 
   const { observations, inferredPreferences, dismissObservation } = useObservations(userId);
