@@ -402,8 +402,6 @@ export default function Home() {
         }}
       />
 
-      {/* Domain Summary Cards - navigate to sub-pages */}
-      <DomainSummaryCards />
 
       {/* Main Quest - only show when no active quest */}
       {dashboardLoading ? <MainQuestSkeleton /> : !activeQuest && (
