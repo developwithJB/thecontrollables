@@ -30,13 +30,13 @@ interface AIChatProps {
 
 type PlanTier = 'free' | 'plus' | 'pro';
 
-const PLAN_MONTHLY_LIMITS: Record<PlanTier, number> = {
-  free: 5,
-  plus: 0,
-  pro: 300,
+const PLAN_DAILY_LIMITS: Record<PlanTier, number> = {
+  free: 2,
+  plus: 15,
+  pro: 25,
 };
 
-const getCurrentMonthKey = () => new Date().toISOString().slice(0, 7);
+const getTodayKey = () => new Date().toISOString().slice(0, 10);
 
 const WELCOME_MESSAGES: Record<string, string> = {
   awareness: "Hello, I am the Owl 🦉. I help you see things clearly, as they truly are. What's weighing on your mind today?",
