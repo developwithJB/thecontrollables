@@ -1,11 +1,15 @@
+import { useMemo } from "react";
 import { useHealthData } from "@/hooks/useHealthData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { AreaChart, Area, ResponsiveContainer, Tooltip, YAxis } from "recharts";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Lock } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 interface WearableTrendsCardProps {
   userId: string | undefined;
+  isPaid?: boolean;
+  onUpgrade?: () => void;
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -13,6 +17,8 @@ const PROVIDER_LABELS: Record<string, string> = {
   fitbit: "Fitbit",
   oura: "Oura Ring",
 };
+
+const WEARABLE_FREE_WINDOW_DAYS = 7;
 
 function MiniSparkline({
   data,
@@ -59,13 +65,19 @@ function MiniSparkline({
   );
 }
 
-export function WearableTrendsCard({ userId }: WearableTrendsCardProps) {
-  const { isConnected, provider, trend } = useHealthData(userId);
+export function WearableTrendsCard({ userId, isPaid, onUpgrade }: WearableTrendsCardProps) {
+  const { isConnected, provider, trend, connectedAt } = useHealthData(userId);
+
+  const isGated = useMemo(() => {
+    if (isPaid) return false;
+    if (!connectedAt) return false;
+    const daysSince = (Date.now() - new Date(connectedAt).getTime()) / (1000 * 60 * 60 * 24);
+    return daysSince > WEARABLE_FREE_WINDOW_DAYS;
+  }, [isPaid, connectedAt]);
 
   if (!isConnected || !trend.length) return null;
 
   const providerLabel = provider ? (PROVIDER_LABELS[provider] || provider) : "Wearable";
-  // Reverse for ascending date order in charts
   const ascending = [...trend].reverse();
 
   const hasRecovery = trend.some((t) => t.recovery != null);
@@ -73,6 +85,34 @@ export function WearableTrendsCard({ userId }: WearableTrendsCardProps) {
   const hasStrain = trend.some((t) => t.strain != null);
 
   if (!hasRecovery && !hasSleep && !hasStrain) return null;
+
+  if (isGated) {
+    return (
+      <Card className="relative overflow-hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            7-Day {providerLabel} Trends
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pb-4">
+          <div className="h-24 blur-sm pointer-events-none select-none bg-muted/30 rounded-lg" aria-hidden />
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-[2px] rounded-lg">
+            <Lock className="h-5 w-5 text-muted-foreground mb-2" />
+            <p className="text-sm font-medium text-foreground mb-1">Trends locked</p>
+            <p className="text-xs text-muted-foreground mb-3 text-center px-6">
+              Upgrade to keep viewing your wearable trends.
+            </p>
+            {onUpgrade && (
+              <Button size="sm" onClick={onUpgrade}>
+                Upgrade to Unlock
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
