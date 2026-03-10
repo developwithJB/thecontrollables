@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Camera, Type, Loader2, X, ImagePlus, Grid3X3, RefreshCw, Instagram } from "lucide-react";
+import { Camera, Type, Loader2, X, ImagePlus, Grid3X3, RefreshCw, Instagram, Film } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIGProof, type IGProofAnalysis } from "@/hooks/useIGProof";
 import { RingSuggestionResult } from "./RingSuggestionResult";
@@ -18,7 +18,7 @@ interface InstagramInputCardProps {
   preselectedRing?: RingKey;
 }
 
-type Tab = "my_posts" | "caption" | "screenshot";
+type Tab = "my_posts" | "my_stories" | "caption" | "screenshot";
 
 export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedRing }: InstagramInputCardProps) => {
   const [tab, setTab] = useState<Tab>("my_posts");
@@ -165,17 +165,27 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
               <button
                 onClick={() => setTab("my_posts")}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all",
+                  "flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[11px] font-medium transition-all",
                   tab === "my_posts" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <Grid3X3 className="w-3 h-3" />
-                My Posts
+                Posts
+              </button>
+              <button
+                onClick={() => setTab("my_stories")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[11px] font-medium transition-all",
+                  tab === "my_stories" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Film className="w-3 h-3" />
+                Stories
               </button>
               <button
                 onClick={() => setTab("caption")}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all",
+                  "flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[11px] font-medium transition-all",
                   tab === "caption" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -185,7 +195,7 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
               <button
                 onClick={() => setTab("screenshot")}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all",
+                  "flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[11px] font-medium transition-all",
                   tab === "screenshot" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -275,6 +285,16 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
                   </>
                 )}
               </div>
+            ) : tab === "my_stories" ? (
+              <div className="space-y-3 mb-3">
+                <div className="rounded-lg border border-border bg-muted/30 p-4 text-center space-y-2">
+                  <Film className="w-8 h-8 text-muted-foreground mx-auto" />
+                  <p className="text-xs font-medium text-foreground">Stories aren't available via the API</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Instagram doesn't allow apps to pull stories. Use the <button onClick={() => setTab("screenshot")} className="text-accent underline underline-offset-2 font-medium">Screenshot</button> tab to capture a story and log it as proof.
+                  </p>
+                </div>
+              </div>
             ) : tab === "caption" ? (
               <Textarea
                 value={caption}
@@ -321,7 +341,7 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
               </div>
             )}
 
-            {tab !== "my_posts" && (
+            {tab !== "my_posts" && tab !== "my_stories" && (
               <Button
                 onClick={handleAnalyze}
                 disabled={!canAnalyze || analyzing}

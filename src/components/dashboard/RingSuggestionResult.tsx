@@ -147,26 +147,32 @@ export const RingSuggestionResult = ({
       )}
 
       {/* Action buttons */}
-      <div className="flex gap-2">
-        <Button
-          onClick={() => onSave(selectedRing, true)}
-          disabled={saving}
-          className="flex-1 gap-1.5"
-          size="sm"
-        >
-          <Check className="w-3.5 h-3.5" />
-          {saving ? "Saving..." : "Fill Ring"}
-        </Button>
-        <Button
-          onClick={() => onSave(selectedRing, false)}
-          disabled={saving}
-          variant="outline"
-          className="flex-1 gap-1.5"
-          size="sm"
-        >
-          <Archive className="w-3.5 h-3.5" />
-          Save as Evidence
-        </Button>
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <Button
+            onClick={() => onSave(selectedRing, true)}
+            disabled={saving}
+            className="flex-1 gap-1.5"
+            size="sm"
+          >
+            <Check className="w-3.5 h-3.5" />
+            {saving ? "Saving..." : "Fill Ring"}
+          </Button>
+          <Button
+            onClick={() => onSave(selectedRing, false)}
+            disabled={saving}
+            variant="outline"
+            className="flex-1 gap-1.5"
+            size="sm"
+          >
+            <Archive className="w-3.5 h-3.5" />
+            Save as Evidence
+          </Button>
+        </div>
+        <div className="flex gap-2 text-[10px] text-muted-foreground">
+          <p className="flex-1 text-center">Completes today's ring</p>
+          <p className="flex-1 text-center">Logs proof without filling ring</p>
+        </div>
       </div>
     </div>
   );

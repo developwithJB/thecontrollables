@@ -11,6 +11,7 @@ import { CalendarDays, Brain, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { InstagramInputCard } from "./InstagramInputCard";
+import { IGProofHistory } from "./IGProofHistory";
 import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
 import { useDailyRings } from "@/hooks/useDailyRings";
 import { useIntegrationConnections } from "@/hooks/useIntegrations";
@@ -159,16 +160,17 @@ export const CommandModeView = ({
         <WeeklyRecapCard userId={userId} />
       </div>
 
-      {/* IG Proof card */}
+      {/* IG Proof card + history */}
       <AnimatePresence>
         {showIGProof && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="max-w-sm mx-auto w-full overflow-hidden"
+            className="max-w-sm mx-auto w-full overflow-hidden space-y-3"
           >
             <InstagramInputCard userId={userId} onClose={() => setShowIGProof(false)} />
+            <IGProofHistory userId={userId} />
           </motion.div>
         )}
       </AnimatePresence>
