@@ -5,6 +5,7 @@ const TOKEN_ENDPOINTS: Record<string, string> = {
   gmail: "https://oauth2.googleapis.com/token",
   todoist: "https://todoist.com/oauth/access_token",
   notion: "https://api.notion.com/v1/oauth/token",
+  instagram: "https://api.instagram.com/oauth/access_token",
 };
 
 const CLIENT_ENV: Record<string, { id: string; secret: string }> = {
@@ -12,6 +13,7 @@ const CLIENT_ENV: Record<string, { id: string; secret: string }> = {
   gmail: { id: "GOOGLE_CLIENT_ID", secret: "GOOGLE_CLIENT_SECRET" },
   todoist: { id: "TODOIST_CLIENT_ID", secret: "TODOIST_CLIENT_SECRET" },
   notion: { id: "NOTION_CLIENT_ID", secret: "NOTION_CLIENT_SECRET" },
+  instagram: { id: "INSTAGRAM_APP_ID", secret: "INSTAGRAM_APP_SECRET" },
 };
 
 Deno.serve(async (req) => {
