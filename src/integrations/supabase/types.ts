@@ -1209,11 +1209,14 @@ export type Database = {
           active_minutes: number | null
           created_at: string
           heart_rate_avg: number | null
+          hrv_ms: number | null
           id: string
           raw_data: Json | null
+          recovery_score: number | null
           sleep_minutes: number | null
           source: string
           steps: number | null
+          strain_score: number | null
           sync_date: string
           synced_at: string
           user_id: string
@@ -1222,11 +1225,14 @@ export type Database = {
           active_minutes?: number | null
           created_at?: string
           heart_rate_avg?: number | null
+          hrv_ms?: number | null
           id?: string
           raw_data?: Json | null
+          recovery_score?: number | null
           sleep_minutes?: number | null
           source?: string
           steps?: number | null
+          strain_score?: number | null
           sync_date: string
           synced_at?: string
           user_id: string
@@ -1235,11 +1241,14 @@ export type Database = {
           active_minutes?: number | null
           created_at?: string
           heart_rate_avg?: number | null
+          hrv_ms?: number | null
           id?: string
           raw_data?: Json | null
+          recovery_score?: number | null
           sleep_minutes?: number | null
           source?: string
           steps?: number | null
+          strain_score?: number | null
           sync_date?: string
           synced_at?: string
           user_id?: string
