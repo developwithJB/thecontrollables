@@ -114,7 +114,7 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
       return;
     }
 
-    toast.success(`${provider === "fitbit" ? "Fitbit" : "Oura"} disconnected`);
+    toast.success(`${provider === "fitbit" ? "Fitbit" : provider === "whoop" ? "WHOOP" : "Oura"} disconnected`);
     refetchConnections();
   }, [userId, refetchConnections]);
 
