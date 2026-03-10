@@ -29,13 +29,19 @@ serve(async (req) => {
     // Gather context data in parallel
     const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
 
-    const [ringsHistory, wellnessLogs, noticeEntries, proofActions, activeSession, plannerItems] = await Promise.all([
+    // Service client for WHOOP data (needs service role to bypass RLS on whoop tables)
+    const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    const [ringsHistory, wellnessLogs, noticeEntries, proofActions, activeSession, plannerItems, whoopRecoveries, whoopSleeps, whoopCycles] = await Promise.all([
       supabase.from("daily_rings").select("*").eq("user_id", userId).gte("ring_date", sevenDaysAgo).order("ring_date", { ascending: false }).limit(7),
       supabase.from("wellness_logs" as any).select("*").eq("user_id", userId).gte("log_date", sevenDaysAgo).order("log_date", { ascending: false }).limit(7),
       supabase.from("notice_entries" as any).select("mood, energy_level, stress_level").eq("user_id", userId).gte("entry_date", sevenDaysAgo).limit(7),
       supabase.from("proof_actions").select("completed, category").eq("user_id", userId).gte("action_date", sevenDaysAgo).limit(14),
       supabase.from("reset_sessions").select("start_date, current_day, journey_id, status").eq("user_id", userId).eq("status", "active").limit(1).maybeSingle(),
       supabase.from("planner_items").select("title, scheduled_date, status, item_type").eq("user_id", userId).gte("scheduled_date", todayStr).order("scheduled_date").limit(10),
+      serviceClient.from("whoop_recoveries").select("recovery_score, hrv_rmssd_milli, resting_heart_rate, spo2_percentage, skin_temp_celsius, recorded_at").eq("user_id", userId).gte("recorded_at", sevenDaysAgo).order("recorded_at", { ascending: false }).limit(7),
+      serviceClient.from("whoop_sleeps").select("sleep_performance_pct, sleep_efficiency_pct, respiratory_rate, total_in_bed_ms, total_rem_ms, total_sws_ms, start_time, end_time").eq("user_id", userId).gte("end_time", sevenDaysAgo).order("end_time", { ascending: false }).limit(7),
+      serviceClient.from("whoop_cycles").select("strain, kilojoules, avg_heart_rate, max_heart_rate, start_time").eq("user_id", userId).gte("start_time", sevenDaysAgo).order("start_time", { ascending: false }).limit(7),
     ]);
 
     // Build context summary
