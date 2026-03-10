@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useMemo, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Target, Pencil, Check, X } from "lucide-react";
+import { Target, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -29,7 +29,8 @@ import { getJourneyById } from "@/lib/guidedJourneys";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { useSeason } from "@/hooks/useSeason";
-import { useFocusMode } from "@/hooks/useFocusMode";
+import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
+import { useDailyRings } from "@/hooks/useDailyRings";
 
 // Dashboard modules
 import { MainQuestModule } from "@/components/dashboard/MainQuestModule";
@@ -43,7 +44,9 @@ import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
 import { TodayActions } from "@/components/dashboard/TodayActions";
 import { SnapshotReviewCard } from "@/components/dashboard/SnapshotReviewCard";
 import { DailyAlignmentSpotlight } from "@/components/dashboard/DailyAlignmentSpotlight";
-import { OperatorConsole } from "@/components/dashboard/OperatorConsole";
+import { AskDashboardBar } from "@/components/dashboard/AskDashboardBar";
+import { ForecastCard } from "@/components/dashboard/ForecastCard";
+import { AIRecommendedActions } from "@/components/dashboard/AIRecommendedActions";
 import { SeasonComplete } from "@/components/SeasonComplete";
 import { CompactRingsRow } from "@/components/dashboard/CompactRingsRow";
 import {
@@ -168,7 +171,8 @@ export default function Home() {
     shouldShowSeasonComplete,
   } = useSeason(user.id);
 
-  const { focusState, todaysPlan, activateFocusMode, deactivateFocusMode, isActive: isFocusActive, currentDay: focusDay } = useFocusMode(currentBuild);
+  const { rings, completedCount } = useDailyRings(user.id);
+  const { data: intelligenceData } = useDashboardIntelligence(user.id, completedCount, rings);
 
   const [showSeasonComplete, setShowSeasonComplete] = useState(false);
   useEffect(() => {
@@ -469,57 +473,10 @@ export default function Home() {
       {/* Compact 5 Rings */}
       <CompactRingsRow userId={user.id} />
 
-      {/* Focus Section */}
-      {isFocusActive && todaysPlan ? (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-2"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-foreground">Focus: {focusState.controllable}</span>
-            </div>
-            <span className="text-xs text-muted-foreground">Day {focusDay}/7</span>
-          </div>
-          <p className="text-sm text-muted-foreground">{todaysPlan.intention}</p>
-          <p className="text-xs text-muted-foreground/80">→ {todaysPlan.rep}</p>
-          <Button variant="ghost" size="sm" className="text-xs" onClick={deactivateFocusMode}>
-            End Focus
-          </Button>
-        </motion.div>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-xl border border-border bg-card text-center space-y-2"
-        >
-          <p className="text-sm text-muted-foreground">Pick a controllable to focus on for 7 days.</p>
-          <Button variant="outline" size="sm" onClick={() => activateFocusMode()}>
-            <Target className="w-3.5 h-3.5 mr-1.5" />
-            Start Focus Mode
-          </Button>
-        </motion.div>
-      )}
-
-      {/* Operator Console */}
-      {!entitlementsLoading && (
-        <OperatorConsole
-          userId={user.id}
-          activeQuest={activeQuest}
-          totalXp={totalXp}
-          integrityScore={integrityScore}
-          currentBuild={currentBuild}
-          onXpEarned={handleOperatorInteraction}
-          isPaid={isPaid}
-          isTrialing={isTrialing}
-          onUpgrade={() => startCheckout(undefined, "operator_console")}
-          isCheckingOut={isCheckingOut}
-          hasActiveSnapshot={!!activeSession && !isCompleted}
-          onMessageSent={() => {}}
-        />
-      )}
+      {/* Ask Dashboard + Forecast */}
+      <AskDashboardBar />
+      <ForecastCard data={intelligenceData} />
+      <AIRecommendedActions data={intelligenceData} />
 
       {/* Snapshot Selector Dialog */}
       {activeSession && !isCompleted && (
