@@ -73,7 +73,7 @@ export function OnboardingFlow({
   const [isRetrying, setIsRetrying] = useState(false);
   
   // Timeout tracking for stuck states
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastActionRef = useRef<(() => void) | null>(null);
   
   const { questions, questionsLoading, submitAssessment, isSubmitting } = useBuildAssessment();
