@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,12 @@ import { useDailyRings } from "@/hooks/useDailyRings";
 import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
 import { useIntegrationConnections } from "@/hooks/useIntegrations";
 import { useReset } from "@/hooks/useReset";
+import { useCircle } from "@/hooks/useCircle";
+import { useSeason } from "@/hooks/useSeason";
 import { getDefaultCheckoutPlan } from "@/lib/featureFlags";
+import { canStartNewSnapshot, hasUsedFreeTrial } from "@/lib/entitlements";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 import { DailyRings } from "@/components/dashboard/DailyRings";
 import { WeeklyRecapCard } from "@/components/dashboard/WeeklyRecapCard";
@@ -23,6 +28,9 @@ import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule"
 import { ControllableLevelsCard } from "@/components/dashboard/ControllableLevelsCard";
 import { InstagramInputCard } from "@/components/dashboard/InstagramInputCard";
 import { IGProofHistory } from "@/components/dashboard/IGProofHistory";
+import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
+import { CircleCard } from "@/components/dashboard/CircleCard";
+import { SeasonBanner } from "@/components/dashboard/SeasonBanner";
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
@@ -31,13 +39,53 @@ export default function Growth() {
   usePageViewTracking("Growth");
   const user = useLifeOSUser();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { isPaid, initiateCheckout, isCheckingOut } = useEntitlements(user.id);
   const { currentBuild } = useBuildAssessment();
   const { rings, completedCount } = useDailyRings(user.id);
   const intelligence = useDashboardIntelligence(user.id, completedCount, rings);
   const { data: connections } = useIntegrationConnections();
-  const { activeSession, isCompleted, isExpired } = useReset(user.id);
+  const {
+    activeSession,
+    currentDay,
+    isCompleted,
+    isExpired,
+    completedDays,
+    acceptCovenant,
+    isAcceptingCovenant,
+  } = useReset(user.id);
+
+  const {
+    myCircle,
+    circleMembers,
+    showedUpTodayCount,
+    streakLeaderboard,
+    createCircle,
+    isCreatingCircle,
+    joinCircle,
+    isJoiningCircle,
+    leaveCircle,
+    isLeavingCircle,
+    logShowedUp,
+    lookupCircle,
+  } = useCircle(user.id, activeSession?.id);
+
+  const {
+    activeSeason,
+    seasonSnapshots,
+    seasonProgress,
+  } = useSeason(user.id);
+
+  const { data: allSessions = [] } = useQuery({
+    queryKey: ["all-reset-sessions", user.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("reset_sessions").select("*").eq("user_id", user.id).order("start_date", { ascending: false });
+      return data || [];
+    },
+    enabled: !!user.id,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const hasInstagram = (connections || []).some(
     (c) => c.provider === "instagram" && c.status === "active"
@@ -45,6 +93,25 @@ export default function Growth() {
 
   const [showIGProof, setShowIGProof] = useState(false);
   const hasActiveSession = !!activeSession && !isCompleted && !isExpired;
+  const todayAlreadyCompleted = completedDays.some((d) => d.day_number === currentDay);
+
+  // Circle invites
+  const [joinDialogOpen, setJoinDialogOpen] = useState(false);
+  const joinCodeFromUrl = searchParams.get("join");
+  useEffect(() => {
+    if (joinCodeFromUrl && user.id) setJoinDialogOpen(true);
+  }, [joinCodeFromUrl, user.id]);
+
+  const circleDisplayName = user.user_metadata?.display_name || user.email?.split("@")[0] || "You";
+
+  // Auto-log circle showed-up
+  const prevCompletedDaysRef = useRef<number>(0);
+  useEffect(() => {
+    if (!completedDays || !myCircle) return;
+    const count = completedDays.length;
+    if (count > prevCompletedDaysRef.current && count > 0) logShowedUp(count);
+    prevCompletedDaysRef.current = count;
+  }, [completedDays?.length, myCircle, logShowedUp]);
 
   const startCheckout = useCallback(
     (source = "growth") => {
@@ -66,22 +133,60 @@ export default function Growth() {
 
       <ControllablePoweredBy controllables={["perspective", "habit", "environment"]} />
 
-      {/* Reset nudge */}
+      {/* Season Banner */}
+      {activeSeason && seasonProgress && (
+        <SeasonBanner seasonName={activeSeason.name} snapshots={seasonSnapshots} progress={seasonProgress} />
+      )}
+
+      {/* Reset Progress */}
       {hasActiveSession && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-3 rounded-xl border border-border bg-card text-center"
-        >
-          <p className="text-xs text-muted-foreground mb-2">🧱 Active Snapshot: Day {activeSession?.current_day}</p>
-          <Button size="sm" onClick={() => navigate("/reset")} className="gap-1.5">
-            Continue Reset
-          </Button>
-        </motion.div>
+        <ResetProgressModule
+          hasActiveSession={hasActiveSession}
+          isCompleted={isCompleted}
+          isExpired={isExpired}
+          currentDay={currentDay}
+          completedDays={completedDays}
+          todayAlreadyCompleted={todayAlreadyCompleted}
+          onStartReset={(isPaidArg) => acceptCovenant({ isPaid: isPaidArg })}
+          isStartingReset={isAcceptingCovenant}
+          isPaid={isPaid}
+          totalSessionCount={allSessions.length}
+          onUpgrade={() => startCheckout("reset_progress_module")}
+          currentJourneyId={activeSession?.journey_id}
+          onSwitchJourney={() => navigate("/reset")}
+          lastCompletedAt={allSessions.find((s) => s.status === "completed")?.completed_at}
+        />
       )}
 
       {/* 5 Daily Rings — the hero of Growth */}
       <DailyRings userId={user.id} />
+
+      {/* Circle */}
+      {hasActiveSession && (
+        <CircleCard
+          myCircle={myCircle ?? null}
+          circleMembers={circleMembers}
+          showedUpTodayCount={showedUpTodayCount}
+          currentDay={currentDay}
+          displayName={circleDisplayName}
+          currentJourneyId={activeSession!.journey_id}
+          isCreatingCircle={isCreatingCircle}
+          isLeavingCircle={isLeavingCircle}
+          onCreateCircle={createCircle}
+          onLeaveCircle={leaveCircle}
+          onJoinCircle={joinCircle}
+          isJoiningCircle={isJoiningCircle}
+          lookupCircle={lookupCircle}
+          joinDialogOpen={joinDialogOpen}
+          onJoinDialogOpenChange={(open) => {
+            setJoinDialogOpen(open);
+            if (!open && joinCodeFromUrl) { searchParams.delete("join"); setSearchParams(searchParams, { replace: true }); }
+          }}
+          initialJoinCode={joinCodeFromUrl || undefined}
+          currentUserId={user.id}
+          streakLeaderboard={streakLeaderboard}
+        />
+      )}
 
       {/* Quick actions */}
       <motion.div
@@ -147,7 +252,7 @@ export default function Growth() {
       {/* Controllable Levels */}
       <ControllableLevelsCard userId={user.id} />
 
-      {/* Game Rules & Manual - moved from Guide tab */}
+      {/* Game Rules & Manual */}
       <GameRulesSection />
       <DashboardManualSection />
 
