@@ -334,10 +334,16 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
                 <Textarea
                   value={descriptionForImage}
                   onChange={(e) => setDescriptionForImage(e.target.value)}
-                  placeholder="Describe what's in the post (e.g., 'Morning workout at the gym, 5am session')..."
+                  placeholder="Optional: add context (e.g., 'Morning workout at the gym')..."
                   className="min-h-[60px] resize-none text-sm"
                   maxLength={2000}
                 />
+                {analyzing && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Analyzing your photo...
+                  </div>
+                )}
               </div>
             )}
 
