@@ -21,16 +21,6 @@ const PROVIDER_CONFIG: Record<string, { authUrl: string; clientIdEnv: string; de
       "https://www.googleapis.com/auth/gmail.readonly",
     ],
   },
-  todoist: {
-    authUrl: "https://todoist.com/oauth/authorize",
-    clientIdEnv: "TODOIST_CLIENT_ID",
-    defaultScopes: ["data:read_write"],
-  },
-  notion: {
-    authUrl: "https://api.notion.com/v1/oauth/authorize",
-    clientIdEnv: "NOTION_CLIENT_ID",
-    defaultScopes: [],
-  },
   instagram: {
     authUrl: "https://www.instagram.com/oauth/authorize",
     clientIdEnv: "INSTAGRAM_APP_ID",
@@ -72,11 +62,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: `${provider} not configured. Client ID missing.` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Build callback URL
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const callbackUrl = `${supabaseUrl}/functions/v1/integration-oauth-callback`;
-
-    // State encodes provider + userId + redirectUri + popup flag
     const state = btoa(JSON.stringify({ provider, userId, redirectUri, popup: true }));
 
     let authUrl: string;
@@ -86,22 +73,6 @@ Deno.serve(async (req) => {
         client_id: clientId,
         redirect_uri: callbackUrl,
         response_type: "code",
-        scope: config.defaultScopes.join(","),
-        state,
-      });
-      authUrl = `${config.authUrl}?${params.toString()}`;
-    } else if (provider === "notion") {
-      const params = new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: callbackUrl,
-        response_type: "code",
-        owner: "user",
-        state,
-      });
-      authUrl = `${config.authUrl}?${params.toString()}`;
-    } else if (provider === "todoist") {
-      const params = new URLSearchParams({
-        client_id: clientId,
         scope: config.defaultScopes.join(","),
         state,
       });

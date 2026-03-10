@@ -47,18 +47,6 @@ export const PROVIDER_META: Record<Provider, { name: string; description: string
     icon: "✉️",
     color: "hsl(var(--destructive))",
   },
-  todoist: {
-    name: "Todoist",
-    description: "Import tasks into your Planner",
-    icon: "✅",
-    color: "hsl(var(--accent))",
-  },
-  notion: {
-    name: "Notion",
-    description: "Export reviews and Vault entries to Notion",
-    icon: "📝",
-    color: "hsl(var(--muted-foreground))",
-  },
   instagram: {
     name: "Instagram",
     description: "Import posts and stories for IG Proof analysis",
