@@ -664,7 +664,7 @@ export const Day7Complete = ({
         open={isShareOpen}
         onOpenChange={setIsShareOpen}
         snapshotName={completedJourney?.title || "7-Day Snapshot"}
-        controllable={completedJourney?.controllable}
+        controllable={undefined}
         completionDate={endDate}
         displayName={displayName}
       />
