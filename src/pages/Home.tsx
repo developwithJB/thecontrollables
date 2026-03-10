@@ -28,9 +28,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getJourneyById } from "@/lib/guidedJourneys";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
-import { useWellness } from "@/hooks/useWellness";
-import { useCircle } from "@/hooks/useCircle";
 import { useSeason } from "@/hooks/useSeason";
+import { useFocusMode } from "@/hooks/useFocusMode";
 
 // Dashboard modules
 import { MainQuestModule } from "@/components/dashboard/MainQuestModule";
@@ -38,22 +37,15 @@ import { XpMomentumModule } from "@/components/dashboard/XpMomentumModule";
 import { IntegrityMeterModule, IntegrityMeterModuleHandle } from "@/components/dashboard/IntegrityMeterModule";
 import { TimeCurrencyModule, TimeCurrencyModuleHandle } from "@/components/dashboard/TimeCurrencyModule";
 import { BuildOverviewModule, BuildOverviewModuleHandle } from "@/components/dashboard/BuildOverviewModule";
-import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
-import { BuildEntryPoint } from "@/components/dashboard/BuildEntryPoint";
 import { SnapshotSelector } from "@/components/dashboard/SnapshotSelector";
 import { StartSnapshotDialog } from "@/components/dashboard/StartSnapshotDialog";
 import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
 import { TodayActions } from "@/components/dashboard/TodayActions";
 import { SnapshotReviewCard } from "@/components/dashboard/SnapshotReviewCard";
 import { DailyAlignmentSpotlight } from "@/components/dashboard/DailyAlignmentSpotlight";
-import { DailyAlignmentPromo } from "@/components/dashboard/DailyAlignmentPromo";
 import { OperatorConsole } from "@/components/dashboard/OperatorConsole";
-import { CircleCard } from "@/components/dashboard/CircleCard";
-import { SeasonBanner } from "@/components/dashboard/SeasonBanner";
 import { SeasonComplete } from "@/components/SeasonComplete";
-import { PlannerCard } from "@/components/dashboard/PlannerCard";
-import { MoneyCard } from "@/components/dashboard/MoneyCard";
-import { ControllableLevelsTeaser } from "@/components/dashboard/ControllableLevelsTeaser";
+import { CompactRingsRow } from "@/components/dashboard/CompactRingsRow";
 import {
   MainQuestSkeleton,
   ResetProgressSkeleton,
@@ -61,7 +53,6 @@ import {
 } from "@/components/dashboard/DashboardSkeletons";
 import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
-import { DomainSummaryCards } from "@/components/layout/DomainSummaryCards";
 
 export default function Home() {
   usePageViewTracking("Home");
