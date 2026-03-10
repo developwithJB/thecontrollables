@@ -3089,6 +3089,213 @@ export type Database = {
         }
         Relationships: []
       }
+      whoop_cycles: {
+        Row: {
+          avg_heart_rate: number | null
+          created_at: string
+          end_time: string | null
+          id: string
+          kilojoules: number | null
+          max_heart_rate: number | null
+          start_time: string | null
+          strain: number | null
+          user_id: string
+          whoop_id: string
+        }
+        Insert: {
+          avg_heart_rate?: number | null
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          kilojoules?: number | null
+          max_heart_rate?: number | null
+          start_time?: string | null
+          strain?: number | null
+          user_id: string
+          whoop_id: string
+        }
+        Update: {
+          avg_heart_rate?: number | null
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          kilojoules?: number | null
+          max_heart_rate?: number | null
+          start_time?: string | null
+          strain?: number | null
+          user_id?: string
+          whoop_id?: string
+        }
+        Relationships: []
+      }
+      whoop_recoveries: {
+        Row: {
+          created_at: string
+          hrv_rmssd_milli: number | null
+          id: string
+          recorded_at: string | null
+          recovery_score: number | null
+          resting_heart_rate: number | null
+          skin_temp_celsius: number | null
+          spo2_percentage: number | null
+          user_id: string
+          whoop_cycle_id: string | null
+          whoop_id: string
+        }
+        Insert: {
+          created_at?: string
+          hrv_rmssd_milli?: number | null
+          id?: string
+          recorded_at?: string | null
+          recovery_score?: number | null
+          resting_heart_rate?: number | null
+          skin_temp_celsius?: number | null
+          spo2_percentage?: number | null
+          user_id: string
+          whoop_cycle_id?: string | null
+          whoop_id: string
+        }
+        Update: {
+          created_at?: string
+          hrv_rmssd_milli?: number | null
+          id?: string
+          recorded_at?: string | null
+          recovery_score?: number | null
+          resting_heart_rate?: number | null
+          skin_temp_celsius?: number | null
+          spo2_percentage?: number | null
+          user_id?: string
+          whoop_cycle_id?: string | null
+          whoop_id?: string
+        }
+        Relationships: []
+      }
+      whoop_sleeps: {
+        Row: {
+          created_at: string
+          disturbance_count: number | null
+          end_time: string | null
+          id: string
+          respiratory_rate: number | null
+          sleep_consistency_pct: number | null
+          sleep_cycle_count: number | null
+          sleep_efficiency_pct: number | null
+          sleep_performance_pct: number | null
+          start_time: string | null
+          total_awake_ms: number | null
+          total_in_bed_ms: number | null
+          total_light_ms: number | null
+          total_rem_ms: number | null
+          total_sws_ms: number | null
+          user_id: string
+          whoop_id: string
+        }
+        Insert: {
+          created_at?: string
+          disturbance_count?: number | null
+          end_time?: string | null
+          id?: string
+          respiratory_rate?: number | null
+          sleep_consistency_pct?: number | null
+          sleep_cycle_count?: number | null
+          sleep_efficiency_pct?: number | null
+          sleep_performance_pct?: number | null
+          start_time?: string | null
+          total_awake_ms?: number | null
+          total_in_bed_ms?: number | null
+          total_light_ms?: number | null
+          total_rem_ms?: number | null
+          total_sws_ms?: number | null
+          user_id: string
+          whoop_id: string
+        }
+        Update: {
+          created_at?: string
+          disturbance_count?: number | null
+          end_time?: string | null
+          id?: string
+          respiratory_rate?: number | null
+          sleep_consistency_pct?: number | null
+          sleep_cycle_count?: number | null
+          sleep_efficiency_pct?: number | null
+          sleep_performance_pct?: number | null
+          start_time?: string | null
+          total_awake_ms?: number | null
+          total_in_bed_ms?: number | null
+          total_light_ms?: number | null
+          total_rem_ms?: number | null
+          total_sws_ms?: number | null
+          user_id?: string
+          whoop_id?: string
+        }
+        Relationships: []
+      }
+      whoop_webhook_events: {
+        Row: {
+          created_at: string
+          event_type: string | null
+          id: string
+          payload: Json | null
+          processed: boolean | null
+          whoop_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type?: string | null
+          id?: string
+          payload?: Json | null
+          processed?: boolean | null
+          whoop_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string | null
+          id?: string
+          payload?: Json | null
+          processed?: boolean | null
+          whoop_user_id?: string | null
+        }
+        Relationships: []
+      }
+      whoop_workouts: {
+        Row: {
+          activity_type: string | null
+          avg_heart_rate: number | null
+          created_at: string
+          end_time: string | null
+          id: string
+          start_time: string | null
+          strain: number | null
+          user_id: string
+          whoop_cycle_id: string | null
+          whoop_id: string
+        }
+        Insert: {
+          activity_type?: string | null
+          avg_heart_rate?: number | null
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          start_time?: string | null
+          strain?: number | null
+          user_id: string
+          whoop_cycle_id?: string | null
+          whoop_id: string
+        }
+        Update: {
+          activity_type?: string | null
+          avg_heart_rate?: number | null
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          start_time?: string | null
+          strain?: number | null
+          user_id?: string
+          whoop_cycle_id?: string | null
+          whoop_id?: string
+        }
+        Relationships: []
+      }
       xp_logs: {
         Row: {
           amount: number
