@@ -252,22 +252,24 @@ export function TodayActions({
     });
   }
 
-  // Time reflection - always show
+  // Confirm last night - sleep, meals, movement & notes
   actions.push({
     id: "time",
-    label: todayTimeLogged ? "Yesterday reflected" : "Reflect on yesterday",
-    icon: <Timer className="w-4 h-4" />,
+    label: todayTimeLogged ? "Last night confirmed" : "Confirm last night",
+    sublabel: todayTimeLogged ? "Logged" : "Sleep, meals, movement & notes",
+    icon: <Moon className="w-4 h-4" />,
     completed: todayTimeLogged,
     timeEstimate: "2 min",
     action: onOpenTimeLog,
   });
 
-  // Pending promises - show if any pending
+  // Validate today's plan - confirm promises & focus
   if (pendingPromisesCount > 0) {
     actions.push({
       id: "promises",
-      label: `Review ${pendingPromisesCount} promise${pendingPromisesCount > 1 ? "s" : ""}`,
-      icon: <Scale className="w-4 h-4" />,
+      label: "Validate today's plan",
+      sublabel: "Check promises & confirm your focus",
+      icon: <ClipboardCheck className="w-4 h-4" />,
       completed: false,
       timeEstimate: "3 min",
       action: onOpenPromises,
