@@ -89,6 +89,13 @@ serve(async (req) => {
       ? Math.round((proofData.filter((p: any) => p.completed).length / proofData.length) * 100)
       : 0;
 
+    const sessionData = activeSession?.data;
+    const snapshotContext = sessionData
+      ? `Active Snapshot: day ${sessionData.current_day}/7, started ${sessionData.start_date}, journey ${sessionData.journey_id || "none"}`
+      : "No active snapshot";
+
+    const upcomingPlanner = (plannerItems?.data || []).slice(0, 5).map((i: any) => `${i.scheduled_date}: ${i.title} (${i.status})`).join("; ");
+
     const contextPrompt = `
 Today's date: ${todayStr}
 Rings completed today: ${completedCount}/5 (${todayRingsSummary})
@@ -100,6 +107,8 @@ Weakest ring this week: ${weakest} (${ringCounts[weakest]}/7)
 Average energy (7d): ${avgEnergy}/5
 Average stress (7d): ${avgStress}/5
 Proof action completion rate (7d): ${proofCompletionRate}%
+${snapshotContext}
+Upcoming planned items: ${upcomingPlanner || "none"}
 `;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
