@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Target, Settings2 } from "lucide-react";
 import { useWellnessGoals, GoalProgress, getGoalMeta } from "@/hooks/useWellnessGoals";
 import { SetGoalsDialog } from "./SetGoalsDialog";
@@ -13,27 +12,25 @@ interface WellnessGoalsCardProps {
 
 function formatCurrent(goalType: string, current: number): string {
   if (goalType === "steps") {
-    if (current >= 1000) {
-      return `${(current / 1000).toFixed(1)}k`;
-    }
+    if (current >= 1000) return `${(current / 1000).toFixed(1)}k`;
     return current.toLocaleString();
   }
-  if (goalType === "sleep_hours") {
-    return `${current.toFixed(1)}`;
-  }
+  if (goalType === "sleep_hours") return `${current.toFixed(1)}`;
+  if (goalType === "active_minutes") return `${Math.round(current)}`;
+  if (goalType === "strain_score") return `${current.toFixed(1)}`;
+  if (goalType === "recovery_score") return `${Math.round(current)}`;
   return current.toString();
 }
 
 function formatTarget(goalType: string, target: number): string {
   if (goalType === "steps") {
-    if (target >= 1000) {
-      return `${(target / 1000).toFixed(0)}k`;
-    }
+    if (target >= 1000) return `${(target / 1000).toFixed(0)}k`;
     return target.toLocaleString();
   }
-  if (goalType === "sleep_hours") {
-    return `${target}`;
-  }
+  if (goalType === "sleep_hours") return `${target}`;
+  if (goalType === "active_minutes") return `${Math.round(target)}`;
+  if (goalType === "strain_score") return `${Math.round(target)}`;
+  if (goalType === "recovery_score") return `${Math.round(target)}`;
   return target.toString();
 }
 
@@ -47,7 +44,6 @@ export function WellnessGoalsCard({ userId }: WellnessGoalsCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { goals, goalProgress, isLoading, setGoals, isUpdating } = useWellnessGoals(userId);
 
-  // Don't render if no goals set yet
   const hasGoals = goals.length > 0;
 
   if (isLoading) {
