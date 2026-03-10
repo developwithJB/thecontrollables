@@ -152,7 +152,7 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
         if (data?.limitReached || error?.message?.includes('limit')) {
           setLimitReached(true);
           setRemainingMessages(0);
-          toast.error("You've hit your monthly AI limit.");
+          toast.error("You've used your free messages today. Upgrade to keep the conversation going.");
           if (onUpgrade && ((data?.planTier as PlanTier) ?? planTier) === 'free') {
             onUpgrade("ai_limit");
           }
