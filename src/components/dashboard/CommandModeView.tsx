@@ -11,6 +11,7 @@ import { CalendarDays, Brain, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { InstagramInputCard } from "./InstagramInputCard";
+import { IGProofHistory } from "./IGProofHistory";
 import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
 import { useDailyRings } from "@/hooks/useDailyRings";
 import { useIntegrationConnections } from "@/hooks/useIntegrations";
