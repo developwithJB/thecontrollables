@@ -79,6 +79,9 @@ Deno.serve(async (req) => {
       billsRes,
       promisesRes,
       dailyResetsRes,
+      whoopRecoveryRes,
+      whoopSleepRes,
+      whoopCycleRes,
     ] = await Promise.all([
       admin.from("planner_items").select("id, title, status, start_time, end_time, energy_level, item_type")
         .eq("user_id", userId).eq("scheduled_date", today),
@@ -102,6 +105,12 @@ Deno.serve(async (req) => {
         .eq("user_id", userId).gte("promised_at", thirtyDaysAgo.toISOString()),
       admin.from("daily_resets").select("completed_at, day_number")
         .eq("user_id", userId).gte("completed_at", sevenDaysAgo.toISOString()),
+      admin.from("whoop_recoveries").select("recovery_score, recorded_at")
+        .eq("user_id", userId).order("recorded_at", { ascending: false }).limit(1).maybeSingle(),
+      admin.from("whoop_sleeps").select("sleep_performance_pct, end_time")
+        .eq("user_id", userId).order("end_time", { ascending: false }).limit(1).maybeSingle(),
+      admin.from("whoop_cycles").select("strain, start_time")
+        .eq("user_id", userId).order("start_time", { ascending: false }).limit(1).maybeSingle(),
     ]);
 
     const todayPlanner = todayPlannerRes.data || [];
