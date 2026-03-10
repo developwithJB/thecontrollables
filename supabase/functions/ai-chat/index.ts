@@ -743,6 +743,70 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ============ TOOL DEFINITIONS ============
+    const tools = [
+      {
+        type: 'function',
+        function: {
+          name: 'clear_meal_plans',
+          description: 'Clear/delete meal plans for the user. Use when they ask to remove, clear, or delete planned meals.',
+          parameters: {
+            type: 'object',
+            properties: {
+              date_from: { type: 'string', description: 'Start date in YYYY-MM-DD format. Defaults to today.' },
+              date_to: { type: 'string', description: 'End date in YYYY-MM-DD format. If omitted, only date_from is cleared.' },
+              meal_types: { type: 'array', items: { type: 'string' }, description: 'Optional filter: breakfast, lunch, dinner, snack. If omitted, all types are cleared.' },
+            },
+            required: [],
+            additionalProperties: false,
+          },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'add_meal_plan',
+          description: 'Add a meal to the user meal plan for a specific date.',
+          parameters: {
+            type: 'object',
+            properties: {
+              date: { type: 'string', description: 'Date in YYYY-MM-DD format.' },
+              meal_type: { type: 'string', enum: ['breakfast', 'lunch', 'dinner', 'snack'], description: 'Type of meal.' },
+              name: { type: 'string', description: 'Name of the meal.' },
+              description: { type: 'string', description: 'Brief description or ingredients.' },
+            },
+            required: ['date', 'meal_type', 'name'],
+            additionalProperties: false,
+          },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'delete_planner_items',
+          description: 'Delete planner items by matching title. Use when user asks to remove tasks or events from their planner.',
+          parameters: {
+            type: 'object',
+            properties: {
+              title_match: { type: 'string', description: 'Text to match in planner item titles (case-insensitive partial match).' },
+              scheduled_date: { type: 'string', description: 'Optional date filter in YYYY-MM-DD format.' },
+            },
+            required: ['title_match'],
+            additionalProperties: false,
+          },
+        },
+      },
+    ];
+
+    // Add tool-awareness to system prompt
+    const toolAwarePrompt = systemPrompt + `\n\n[APP ACTIONS]
+You can perform actions in the app when the user asks. Available actions:
+- Clear/delete meal plans (by date range and/or meal type)
+- Add meals to their meal plan
+- Delete planner items by title
+When the user asks you to do something actionable (like "clear my lunches", "remove my planned meals", "add chicken salad for lunch tomorrow"), USE the appropriate tool. Still respond in your character voice after performing the action.
+Today's date is ${getTodayDateKey()}.`;
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -752,12 +816,13 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: toolAwarePrompt },
           ...conversationMessages,
         ],
-        max_tokens: 400,
+        max_tokens: 600,
         temperature: 0.7,
-        stream: !!wantStream,
+        tools,
+        stream: false,
       }),
     });
 
@@ -784,50 +849,143 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ============ STREAMING RESPONSE ============
-    if (wantStream) {
-      // Pipe the SSE stream straight through, prepending usage metadata as a custom SSE event
-      const metaEvent = `event: meta\ndata: ${JSON.stringify({
-        remaining: usageResult.remaining,
-        used: usageResult.used,
-        planTier,
-        dailyLimit: usageResult.dailyLimit,
-      })}\n\n`;
+    const data = await response.json();
+    const firstChoice = data.choices?.[0];
+    const toolCalls = firstChoice?.message?.tool_calls;
+    const actionsTaken: string[] = [];
+    const toolResults: Array<{ role: string; tool_call_id: string; content: string }> = [];
 
-      const encoder = new TextEncoder();
-      const metaBytes = encoder.encode(metaEvent);
+    // ============ EXECUTE TOOL CALLS ============
+    if (toolCalls && toolCalls.length > 0) {
+      for (const tc of toolCalls) {
+        const fnName = tc.function?.name;
+        let args: any = {};
+        try {
+          args = JSON.parse(tc.function?.arguments || '{}');
+        } catch {
+          args = {};
+        }
 
-      // Create a ReadableStream that first emits the meta event, then pipes the upstream body
-      const upstreamBody = response.body!;
-      const merged = new ReadableStream({
-        async start(controller) {
-          controller.enqueue(metaBytes);
-          const reader = upstreamBody.getReader();
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              controller.enqueue(value);
-            }
-          } finally {
-            controller.close();
+        let result = '';
+
+        if (fnName === 'clear_meal_plans') {
+          const dateFrom = args.date_from || getTodayDateKey();
+          const dateTo = args.date_to || dateFrom;
+          let query = serviceClient
+            .from('meal_plans')
+            .delete()
+            .eq('user_id', userId)
+            .gte('plan_date', dateFrom)
+            .lte('plan_date', dateTo);
+          
+          // If meal_types filter provided, filter by checking meals JSON
+          const { error: delErr, count } = await query;
+          if (delErr) {
+            console.error('clear_meal_plans error:', delErr);
+            result = `Error clearing meal plans: ${delErr.message}`;
+          } else {
+            result = `Successfully cleared meal plans from ${dateFrom} to ${dateTo}.`;
           }
+          actionsTaken.push('clear_meal_plans');
+        } else if (fnName === 'add_meal_plan') {
+          const planDate = args.date || getTodayDateKey();
+          const mealEntry = { name: args.name, description: args.description || '', type: args.meal_type };
+          
+          // Check if a plan exists for this date
+          const { data: existing } = await serviceClient
+            .from('meal_plans')
+            .select('id, meals')
+            .eq('user_id', userId)
+            .eq('plan_date', planDate)
+            .maybeSingle();
+
+          if (existing) {
+            const currentMeals = (existing.meals as any[]) || [];
+            currentMeals.push(mealEntry);
+            await serviceClient
+              .from('meal_plans')
+              .update({ meals: currentMeals })
+              .eq('id', existing.id);
+          } else {
+            await serviceClient
+              .from('meal_plans')
+              .insert({ user_id: userId, plan_date: planDate, meals: [mealEntry] });
+          }
+          result = `Added ${args.meal_type}: "${args.name}" for ${planDate}.`;
+          actionsTaken.push('add_meal_plan');
+        } else if (fnName === 'delete_planner_items') {
+          const titleMatch = args.title_match;
+          let query = serviceClient
+            .from('planner_items')
+            .delete()
+            .eq('user_id', userId)
+            .ilike('title', `%${titleMatch}%`);
+          
+          if (args.scheduled_date) {
+            query = query.eq('scheduled_date', args.scheduled_date);
+          }
+          const { error: delErr } = await query;
+          if (delErr) {
+            console.error('delete_planner_items error:', delErr);
+            result = `Error deleting planner items: ${delErr.message}`;
+          } else {
+            result = `Deleted planner items matching "${titleMatch}".`;
+          }
+          actionsTaken.push('delete_planner_items');
+        } else {
+          result = `Unknown tool: ${fnName}`;
+        }
+
+        toolResults.push({
+          role: 'tool',
+          tool_call_id: tc.id,
+          content: result,
+        });
+      }
+
+      // ============ SECOND PASS: Get natural confirmation ============
+      const secondResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: toolAwarePrompt },
+            ...conversationMessages,
+            firstChoice.message,
+            ...toolResults,
+          ],
+          max_tokens: 300,
+          temperature: 0.7,
+        }),
       });
 
-      return new Response(merged, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        },
-      });
+      if (secondResponse.ok) {
+        const secondData = await secondResponse.json();
+        let assistantMessage = secondData.choices?.[0]?.message?.content || 'Done — actions completed.';
+        
+        return new Response(
+          JSON.stringify({
+            message: assistantMessage,
+            actions_taken: actionsTaken,
+            remaining: usageResult.remaining,
+            used: usageResult.used,
+            planTier,
+            dailyLimit: usageResult.dailyLimit,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        const errText = await secondResponse.text();
+        console.error('Second pass error:', secondResponse.status, errText);
+      }
     }
 
-    // ============ NON-STREAMING (legacy) ============
-    const data = await response.json();
-    let assistantMessage = data.choices?.[0]?.message?.content || 'I apologize, I could not generate a response.';
+    // ============ NO TOOL CALLS — Regular response ============
+    let assistantMessage = firstChoice?.message?.content || 'I apologize, I could not generate a response.';
 
     // Ensure response ends with an action if it doesn't already
     if (!assistantMessage.includes('→ ACTION:') && !assistantMessage.includes('ACTION:')) {
@@ -837,6 +995,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         message: assistantMessage,
+        actions_taken: actionsTaken,
         remaining: usageResult.remaining,
         used: usageResult.used,
         planTier,

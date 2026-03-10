@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -48,6 +49,7 @@ const WELCOME_MESSAGES: Record<string, string> = {
 };
 
 export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeContext, onUpgrade }: AIChatProps) {
+  const queryClient = useQueryClient();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -165,6 +167,21 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
       }
 
       applyUsageState(data);
+
+      // Handle actions taken by the AI
+      if (data.actions_taken && data.actions_taken.length > 0) {
+        for (const action of data.actions_taken) {
+          if (action === 'clear_meal_plans' || action === 'add_meal_plan') {
+            queryClient.invalidateQueries({ queryKey: ["meal-plan"] });
+            queryClient.invalidateQueries({ queryKey: ["meal-logs"] });
+            queryClient.invalidateQueries({ queryKey: ["meal-plans"] });
+          }
+          if (action === 'delete_planner_items') {
+            queryClient.invalidateQueries({ queryKey: ["planner-items"] });
+          }
+        }
+        toast.success("Action completed");
+      }
 
       setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
     } catch (error) {
