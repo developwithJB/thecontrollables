@@ -498,6 +498,14 @@ export default function Home() {
         userId={user.id}
       />
 
+      {/* Validate Plan Dialog */}
+      <ValidatePlanDialog
+        open={showValidatePlan}
+        onOpenChange={setShowValidatePlan}
+        userId={user.id}
+        onComplete={() => setValidatePlanCompleted(true)}
+      />
+
       {/* Ask Dashboard — directly after actions for seamless collapse */}
       <AskDashboardBar />
 
