@@ -175,6 +175,7 @@ RULES:
 - Total max 60 words across all 3 lines
 - Be specific to THEIR data, not generic advice
 - Match the voice of ${controllableInfo.name}: ${controllableInfo.key === 'habit' ? 'direct, action-focused' : controllableInfo.key === 'awareness' ? 'observational, calm' : controllableInfo.key === 'perspective' ? 'wise, reframing' : controllableInfo.key === 'wellness' ? 'systems-focused' : 'design-focused'}
+- If WHOOP data is present, weave biometric signals into your observation and suggestion. Reference recovery, sleep quality, or strain when relevant.
 - No motivational fluff. Be real.
 - Format as 3 separate lines`;
 

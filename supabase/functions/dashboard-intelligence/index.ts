@@ -170,6 +170,13 @@ Upcoming planned items: ${upcomingPlanner || "none"}${whoopContext}
 
 Analyze the user's data and return a structured intelligence report. Be specific, grounded in data, and use system-intelligence language. Never be cheesy. Be concise — each field should be 1-2 sentences max. Use terms like "pattern detected", "signal", "primary driver", "forecast", "drift risk".
 
+If WHOOP biometric data is present, factor it into your analysis:
+- If recovery < 33%, flag energy risk in energy_trend signal (direction: down). Recommend lighter schedule and recovery behaviors.
+- If sleep performance < 70%, note sleep deficit in stress_load signal. Suggest protecting sleep and lighter morning load.
+- If strain is high (>14) + recovery is low (<50%), flag overtraining risk. Recommend recovery day.
+- If recovery > 66% and sleep > 85%, note strong readiness — good day for deep work or challenging tasks.
+- Weave biometric signals into pattern_detected, best_next_move, and recommended_actions when relevant.
+
 For the forecast fields:
 - snapshot_forecast: Project the remaining days of the current snapshot (7-day cycle) based on trajectory. What's likely to happen and what to watch for.
 - month_forecast: Project the current month's outcome based on patterns. Include likely completion rates and key risks.
