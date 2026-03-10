@@ -60,6 +60,8 @@ export const PlannerItemRow = ({
   onEdit,
   onDelete,
   onReschedule,
+  onPushToCalendar,
+  hasGoogleConnection,
   dragEnabled = true,
 }: PlannerItemRowProps) => {
   const {
