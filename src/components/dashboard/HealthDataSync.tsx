@@ -319,6 +319,10 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
             </div>
           </TabsContent>
 
+          <TabsContent value="whoop">
+            {renderWearableTab("whoop", whoopConnection)}
+          </TabsContent>
+
           <TabsContent value="fitbit">
             {renderWearableTab("fitbit", fitbitConnection)}
           </TabsContent>

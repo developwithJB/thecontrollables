@@ -67,6 +67,9 @@ export default function Wellness() {
 
       <ControllablePoweredBy controllables={["habit", "wellness"]} />
 
+      {/* WHOOP Integration */}
+      <WhoopSummaryCard userId={user.id} />
+
       {/* Brain & Body Tracker */}
       <BrainBodyTracker
         userId={user.id}
