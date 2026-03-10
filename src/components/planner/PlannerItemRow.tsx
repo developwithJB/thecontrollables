@@ -49,6 +49,8 @@ interface PlannerItemRowProps {
   onEdit: (item: PlannerItem) => void;
   onDelete: (id: string) => void;
   onReschedule: (item: PlannerItem) => void;
+  onPushToCalendar?: (item: PlannerItem) => void;
+  hasGoogleConnection?: boolean;
   dragEnabled?: boolean;
 }
 
