@@ -658,6 +658,16 @@ export const Day7Complete = ({
           />
         )}
       </AnimatePresence>
+
+      {/* Snapshot Share Modal */}
+      <SnapshotShareModal
+        open={isShareOpen}
+        onOpenChange={setIsShareOpen}
+        snapshotName={completedJourney?.title || "7-Day Snapshot"}
+        controllable={completedJourney?.controllable}
+        completionDate={endDate}
+        displayName={displayName}
+      />
     </>
   );
 };

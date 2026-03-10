@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CalendarDays, Zap, Trophy, Sparkles, Coffee } from "lucide-react";
+import { CalendarDays, Zap, Trophy, Sparkles, Coffee, Share2 } from "lucide-react";
 import { getSnapshotById } from "@/lib/snapshots";
+import { SnapshotShareModal } from "@/components/dashboard/SnapshotShareCard";
 
 interface SeasonSnapshot {
   id: string;
