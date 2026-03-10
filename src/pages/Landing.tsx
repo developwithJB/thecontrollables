@@ -89,13 +89,13 @@ export default function Landing() {
             className="text-center mb-8 md:mb-12"
           >
             <h1 className="font-display text-2xl md:text-4xl lg:text-5xl font-bold text-foreground mb-3 md:mb-5 text-balance">
-              Your Life OS.
+              Stop trying to control everything.
               <br />
-              <span className="text-accent">Wellness. Growth. Planner. Wealth.</span>
+              <span className="text-accent">Start controlling what matters.</span>
             </h1>
 
             <p className="text-muted-foreground text-sm md:text-base lg:text-lg leading-relaxed text-balance max-w-xs md:max-w-lg mx-auto mb-4">
-              Plan your day, track your finances, sync your calendar, and grow through 7-day focus Snapshots — all in one calm place. Full access for 7 days. No credit card.
+              Wellness, money, habits, time, and mindset — managed through one calm system built on 5 things you can actually control. Full access for 7 days. No credit card.
             </p>
           </motion.div>
 

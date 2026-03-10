@@ -284,10 +284,12 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
                   {aiLocked
                     ? "🔒 AI guidance is locked on Plus — upgrade to Pro"
                     : limitReached
-                      ? "🔒 Monthly AI limit reached — resets on the 1st"
+                      ? planTier === 'free'
+                        ? "You've used your 2 free messages today. Upgrade to keep the conversation going."
+                        : "🔒 Daily AI limit reached — resets at midnight"
                       : planTier === 'free'
-                        ? `${usedThisMonth} of ${monthlyLimit} this month`
-                        : `${usedThisMonth} used this month (${remainingMessages} remaining)`
+                        ? `${usedToday} of ${dailyLimit} today`
+                        : `${usedToday} used today (${remainingMessages} remaining)`
                   }
                 </div>
               )}

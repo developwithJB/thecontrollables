@@ -1,12 +1,12 @@
 import { motion } from "framer-motion";
 
 const reasons = [
-  "You're juggling too many apps and want one place for everything",
-  "You need to track money, time, and wellness — not just tasks",
-  "You want your calendar, tasks, and focus system connected",
-  "You're tired of apps that gamify your life into stress",
-  "You believe small, imperfect action beats grand plans",
-  "You want to rebuild self-trust, not just productivity",
+  "You've tried every productivity system and none of them stuck",
+  "You're managing money, health, habits, and goals in 6 different apps",
+  "You own a WHOOP, Oura, or Fitbit and want your data to drive real change",
+  "You've read The Controllables and want the companion tool",
+  "You're done with shame-based streaks and gamified guilt",
+  "You want to rebuild self-trust — not just check off tasks",
 ];
 
 export function WhyStartSection() {

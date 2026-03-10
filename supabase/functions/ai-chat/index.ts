@@ -432,10 +432,12 @@ async function getPlanTier(
 async function checkAndUpdateDailyUsage(
   supabaseClient: any,
   userId: string,
-  planTier: PlanTier
+  planTier: PlanTier,
+  isTrialUser: boolean = false
 ): Promise<{ allowed: boolean; remaining: number; used: number; dailyLimit: number }> {
   const today = getTodayDateKey();
-  const dailyLimit = PLAN_DAILY_LIMITS[planTier] ?? PLAN_DAILY_LIMITS.free;
+  // Trial users (free tier with active snapshot) get 5/day, post-trial free get 2/day
+  const dailyLimit = (planTier === 'free' && isTrialUser) ? TRIAL_DAILY_LIMIT : (PLAN_DAILY_LIMITS[planTier] ?? PLAN_DAILY_LIMITS.free);
 
   if (dailyLimit <= 0) {
     return { allowed: false, remaining: 0, used: 0, dailyLimit };

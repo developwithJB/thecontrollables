@@ -160,5 +160,5 @@ export const AI_DAILY_LIMITS = {
   trial: 5,      // Free users during active trial
   plus: 15,      // Plus subscribers
   paid: 25,      // Pro subscribers
-  postTrial: 0,  // Free users after trial ends
+  postTrial: 2,  // Free users after trial ends — permanent free tier
 } as const;
