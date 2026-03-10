@@ -1,7 +1,8 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, addWeeks, subWeeks, isToday, isBefore, startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Plus, RotateCcw, BarChart3, UtensilsCrossed } from "lucide-react";
