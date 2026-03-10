@@ -26,7 +26,7 @@ export const RechargeEngineCard = ({ userId, onComplete, lowEnergy }: RechargeEn
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [todayLogs, setTodayLogs] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const { isConnected: whoopConnected, latestRecovery, latestCycle, latestSleep } = useWhoopData(userId);
+  const { isConnected: wearableConnected, latest: healthLatest } = useHealthData(userId);
 
   const todayStr = new Date().toLocaleDateString("sv-SE");
 
