@@ -6,8 +6,8 @@ import {
   Clock,
   Play,
   BookOpen,
-  Timer,
-  Scale,
+  Moon,
+  ClipboardCheck,
   ChevronDown,
   ChevronUp,
   ChevronRight,
@@ -15,6 +15,7 @@ import {
   Lock,
   PartyPopper,
   Zap,
+  Scale,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";

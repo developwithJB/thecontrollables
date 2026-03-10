@@ -186,6 +186,37 @@
                 0 0 40px -10px hsl(var(--accent) / 0.12);
   }
 
+  /* === GLASS ACTION CARD (Apple-inspired) === */
+  .glass-action-card {
+    @apply backdrop-blur-xl rounded-2xl;
+    background: hsl(var(--card) / 0.5);
+    border: 1px solid hsl(var(--border) / 0.25);
+    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.04),
+                0 8px 32px -8px hsl(var(--background) / 0.4);
+  }
+
+  .glass-action-card:hover {
+    border-color: hsl(var(--border) / 0.4);
+    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.06),
+                0 12px 40px -8px hsl(var(--background) / 0.5);
+  }
+
+  .glass-action-card-primary {
+    @apply glass-action-card;
+    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.04),
+                0 8px 32px -8px hsl(var(--background) / 0.4),
+                0 0 0 1px hsl(var(--accent) / 0.2);
+  }
+
+  /* === SCROLLBAR HIDE === */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* === GRADIENT BORDER === */
   .gradient-border {
     @apply relative rounded-xl;
