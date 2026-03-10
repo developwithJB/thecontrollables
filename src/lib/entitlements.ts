@@ -158,6 +158,7 @@ export const isInActiveTrial = (
 /** Daily AI message limits by user state */
 export const AI_DAILY_LIMITS = {
   trial: 5,      // Free users during active trial
-  paid: 25,      // Paid subscribers
+  plus: 15,      // Plus subscribers
+  paid: 25,      // Pro subscribers
   postTrial: 0,  // Free users after trial ends
 } as const;
