@@ -30,6 +30,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { useSeason } from "@/hooks/useSeason";
 import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
+import { useDailyRings } from "@/hooks/useDailyRings";
 
 // Dashboard modules
 import { MainQuestModule } from "@/components/dashboard/MainQuestModule";
