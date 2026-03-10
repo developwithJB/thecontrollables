@@ -153,7 +153,7 @@ export const CommandModeView = ({
       {/* Tomorrow Forecast */}
       {completedCount >= 3 && (
         <div className="mt-3 max-w-sm mx-auto w-full">
-          <TomorrowForecastCard data={intelligence.data} />
+          <ForecastCard data={intelligence.data} />
         </div>
       )}
 
