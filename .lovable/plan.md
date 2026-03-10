@@ -1,102 +1,164 @@
 
-
-# Instagram-to-Dashboard Feature Plan
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
 ## Overview
-Build an "IG Proof" feature that lets users upload Instagram screenshots or paste captions, then uses AI to classify the content into one of the 5 daily rings (Notice, Choose, Prove, Charge, Align). Also build shareable ring-completion cards for posting back to Instagram Stories.
 
-## Database Changes
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-**New table: `ig_proof_entries`**
-- `id` uuid PK
-- `user_id` uuid (NOT NULL)
-- `ring_key` text (notice/choose/prove/charge/align)
-- `source_type` text ('screenshot' | 'caption')
-- `caption_text` text (nullable — pasted caption)
-- `image_url` text (nullable — uploaded screenshot path in storage)
-- `ai_interpretation` text (short AI reason)
-- `tags` text[] (workout, meal, gratitude, etc.)
-- `attached_to_ring` boolean default false (whether it filled the daily ring)
-- `created_at` timestamptz default now()
-- RLS: user can SELECT/INSERT/UPDATE/DELETE own rows
+---
 
-**Storage bucket: `ig-proof-images`** (public read for share cards)
+## Part 1: AI Insight Engine
 
-## Edge Function
+### New Edge Function: `admin-insights`
 
-**`ig-proof-analyze`** — receives caption text and/or image, calls Lovable AI (gemini-2.5-flash) to return:
-```json
-{
-  "primary_ring": "charge",
-  "secondary_ring": "prove",
-  "tags": ["workout", "discipline"],
-  "interpretation": "This shows follow-through on a movement goal."
-}
+**File: `supabase/functions/admin-insights/index.ts`**
+
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
+
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
+
+[structured data blob]
+
+Return insights as structured tool output.
 ```
 
-Uses a prompt that maps content to the 5 controllables with tag vocabulary.
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-## Frontend Components
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-### 1. `InstagramInputCard` (new)
-- Two tabs: "Upload Screenshot" / "Paste Caption"
-- Screenshot tab: file input accepting images, preview thumbnail
-- Caption tab: textarea with placeholder
-- Submit button triggers edge function
-- Shows loading state while AI analyzes
+### New Admin Component: AI Insights Panel
 
-### 2. `RingSuggestionResult` (new)
-- Displays after AI response:
-  - Primary ring with emoji + name + color border
-  - Interpretation text
-  - Tags as chips
-  - Optional secondary ring suggestion
-- Two action buttons:
-  - "Fill Ring" — attaches to today's ring and completes it (if not already done)
-  - "Save as Evidence" — saves entry without filling ring
-- Ring dropdown to override AI suggestion
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-### 3. `IGProofHistory` (new)
-- List of saved ig_proof_entries
-- Filter by ring
-- Each row shows: thumbnail/caption preview, ring badge, tags, date
-- Accessible from Experience page or a new "Proof" tab
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-### 4. `RingShareCard` (new)
-- Branded card (similar pattern to `ShareableStreakCard`) for each ring completion
-- Five variants (Notice/Choose/Prove/Charge/Align) + "Fully Charged"
-- Uses `html2canvas` for download/share (existing pattern from `MealShareCard`)
-- Accessible after completing a ring or all 5
+### Integration into Admin.tsx
 
-### 5. Entry Points
-- **Command Mode**: Add "IG Proof" button in the quick-access row alongside Planner/Build
-- **Ring Action Card**: Add small "Add from Instagram" link below each ring's action card
-- **DailyRecapCard**: After completing rings, show "Share to Stories" button that opens share card
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
-## Integration with Existing Ring System
+---
 
-- When user taps "Fill Ring", call `completeRing(key, interpretation)` from `useDailyRings`
-- Save the `ig_proof_entries` row with `attached_to_ring: true`
-- No duplication of ring completion logic — reuse existing `completeRing`
+## Part 2: Enhanced Action Center
 
-## File Summary
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
 
-| Action | File |
-|--------|------|
-| Create | `src/components/dashboard/InstagramInputCard.tsx` |
-| Create | `src/components/dashboard/RingSuggestionResult.tsx` |
-| Create | `src/components/dashboard/IGProofHistory.tsx` |
-| Create | `src/components/dashboard/RingShareCard.tsx` |
-| Create | `src/hooks/useIGProof.ts` |
-| Create | `supabase/functions/ig-proof-analyze/index.ts` |
-| Edit | `src/components/dashboard/CommandModeView.tsx` — add IG Proof button |
-| Edit | `src/components/dashboard/DailyRings.tsx` — add share trigger after completion |
-| Edit | `src/components/dashboard/RingActionCard.tsx` — add "Add from Instagram" link |
-| Migration | Create `ig_proof_entries` table + RLS + storage bucket |
+Replace the three "Coming soon" cards with working functionality:
 
-## Constraints
-- No Instagram API — purely user-driven upload/paste
-- AI analysis via Lovable AI (gemini-2.5-flash) — no API key needed
-- Mobile-first layout, premium feel
-- Privacy-friendly: user controls what gets submitted
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
 
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
+
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
+
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
+
+---
+
+## Part 3: Landing Page Updates
+
+**File: `src/pages/Landing.tsx`**
+
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+
+**File: `src/components/landing/FeatureGrid.tsx`**
+
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+
+**File: `src/components/landing/HowItWorksSection.tsx`**
+
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.

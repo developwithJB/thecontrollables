@@ -1,11 +1,12 @@
 import { useState, useCallback, useRef } from "react";
 import { DailyRings } from "./DailyRings";
 import { WeeklyRecapCard } from "./WeeklyRecapCard";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Brain, Loader2 } from "lucide-react";
+import { CalendarDays, Brain, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { InstagramInputCard } from "./InstagramInputCard";
 
 interface CommandModeViewProps {
   userId?: string;
@@ -47,6 +48,7 @@ export const CommandModeView = ({
   onOpenBuild,
 }: CommandModeViewProps) => {
   const { toast } = useToast();
+  const [showIGProof, setShowIGProof] = useState(false);
 
   // Screen time logging handler
   const handleScreenTimeSave = useCallback(async (hours: number, category: string) => {
@@ -94,6 +96,20 @@ export const CommandModeView = ({
         <WeeklyRecapCard userId={userId} />
       </div>
 
+      {/* IG Proof card */}
+      <AnimatePresence>
+        {showIGProof && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="max-w-sm mx-auto w-full overflow-hidden"
+          >
+            <InstagramInputCard userId={userId} onClose={() => setShowIGProof(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Minimal quick-access */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -102,7 +118,11 @@ export const CommandModeView = ({
         className="mt-8"
       >
         <p className="text-xs text-muted-foreground text-center mb-3">Quick access</p>
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => setShowIGProof(!showIGProof)} className="gap-1.5 text-xs">
+            <Camera className="w-3.5 h-3.5" />
+            IG Proof
+          </Button>
           <Button variant="outline" size="sm" onClick={onOpenPlanner} className="gap-1.5 text-xs">
             <CalendarDays className="w-3.5 h-3.5" />
             Planner

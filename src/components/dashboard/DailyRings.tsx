@@ -4,7 +4,9 @@ import { useDailyRings, RING_DEFINITIONS, type RingKey } from "@/hooks/useDailyR
 import { RingActionCard } from "./RingActionCard";
 import { cn } from "@/lib/utils";
 import { DailyRecapCard } from "./DailyRecapCard";
+import { RingShareCard } from "./RingShareCard";
 import { supabase } from "@/integrations/supabase/client";
+import { Share2 } from "lucide-react";
 
 interface DailyRingsProps {
   userId?: string;
@@ -63,6 +65,7 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
   const { rings, completedCount, statusLabel, completeRing, isCompleted, loading, definitions, rowId } = useDailyRings(userId);
   const [activeRing, setActiveRing] = useState<RingKey | null>(null);
   const [lowEnergy, setLowEnergy] = useState(false);
+  const [shareRing, setShareRing] = useState<RingKey | "fully_charged" | null>(null);
 
   // Check if today's notice entry has low energy
   useEffect(() => {
@@ -211,11 +214,25 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
       )}
 
       {isFullyCharged && (
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-2">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-2 space-y-2">
           <p className="text-sm font-semibold text-accent">🔥 All 5 rings filled. You're Fully Charged today.</p>
-          <p className="text-xs text-muted-foreground mt-1">Your daily reps power the whole system.</p>
+          <p className="text-xs text-muted-foreground">Your daily reps power the whole system.</p>
+          <button
+            onClick={() => setShareRing("fully_charged")}
+            className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
+          >
+            <Share2 className="w-3 h-3" />
+            Share to Stories
+          </button>
         </motion.div>
       )}
+
+      {/* Share card overlay */}
+      <AnimatePresence>
+        {shareRing && (
+          <RingShareCard ringKey={shareRing} onClose={() => setShareRing(null)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

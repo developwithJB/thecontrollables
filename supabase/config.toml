@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.integration-disconnect]
 verify_jwt = false
+
+[functions.ig-proof-analyze]
+verify_jwt = false
