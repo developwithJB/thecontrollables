@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useBrainBodyHealth } from "@/hooks/useBrainBodyHealth";
-import { Brain, Dumbbell, Moon, Monitor, Salad, Activity, TrendingUp, TrendingDown, Minus, Upload, ClipboardList, Info } from "lucide-react";
+import { Brain, Dumbbell, Moon, Monitor, Salad, Activity, TrendingUp, TrendingDown, Minus, ClipboardList, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getControllableTheme } from "@/lib/controllableTheme";
 import { ControllableLevelBadge } from "./ControllableLevelBadge";
