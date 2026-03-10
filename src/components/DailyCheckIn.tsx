@@ -1,19 +1,23 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { ProofEntryCard } from "@/components/dashboard/ProofEntryCard";
 
 interface DailyCheckInProps {
   isCheckedIn: boolean;
   focus?: string;
   onCheckIn: (focus: string) => void;
+  userId?: string;
 }
 
-export function DailyCheckIn({ isCheckedIn, focus, onCheckIn }: DailyCheckInProps) {
+export function DailyCheckIn({ isCheckedIn, focus, onCheckIn, userId }: DailyCheckInProps) {
   const [inputFocus, setInputFocus] = useState(focus || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [proofOpen, setProofOpen] = useState(false);
 
   const handleSubmit = async () => {
     if (!inputFocus.trim()) return;
@@ -52,6 +56,17 @@ export function DailyCheckIn({ isCheckedIn, focus, onCheckIn }: DailyCheckInProp
             <p className="font-medium text-foreground">{focus}</p>
           </div>
         )}
+
+        {/* Optional proof section */}
+        <Collapsible open={proofOpen} onOpenChange={setProofOpen} className="mt-4">
+          <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
+            <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", proofOpen && "rotate-180")} />
+            Add proof (optional)
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-3">
+            <ProofEntryCard userId={userId} />
+          </CollapsibleContent>
+        </Collapsible>
       </motion.div>
     );
   }
