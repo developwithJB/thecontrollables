@@ -483,10 +483,8 @@ export default function Home() {
             </div>
             <span className="text-xs text-muted-foreground">Day {focusDay}/7</span>
           </div>
-          <p className="text-sm text-muted-foreground">{todaysPlan.theme}</p>
-          {todaysPlan.actions?.[0] && (
-            <p className="text-xs text-muted-foreground/80">→ {todaysPlan.actions[0]}</p>
-          )}
+          <p className="text-sm text-muted-foreground">{todaysPlan.intention}</p>
+          <p className="text-xs text-muted-foreground/80">→ {todaysPlan.rep}</p>
           <Button variant="ghost" size="sm" className="text-xs" onClick={deactivateFocusMode}>
             End Focus
           </Button>
