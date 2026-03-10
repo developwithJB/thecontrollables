@@ -71,10 +71,13 @@ type PlanTier = 'free' | 'plus' | 'pro';
 
 // Daily message limits per plan tier
 const PLAN_DAILY_LIMITS: Record<PlanTier, number> = {
-  free: 5,   // Trial users get 5/day during active snapshot
+  free: 2,   // Post-trial free users get 2/day
   plus: 15,  // Plus gets 15/day
   pro: 25,   // Pro gets 25/day
 };
+
+// Trial users (active snapshot, free tier) get higher limit
+const TRIAL_DAILY_LIMIT = 5;
 
 // ============ DEEP CHARACTER PROMPTS ============
 const CONTROLLABLE_PROMPTS: Record<string, string> = {
