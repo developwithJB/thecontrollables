@@ -14,11 +14,11 @@ const RING_DOT_COLORS: Record<string, string> = {
   align: "bg-[hsl(var(--environment))]",
 };
 
-interface IGProofHistoryProps {
+interface ProofHistoryProps {
   userId?: string;
 }
 
-export const IGProofHistory = ({ userId }: IGProofHistoryProps) => {
+export const ProofHistory = ({ userId }: ProofHistoryProps) => {
   const { entries, loadingEntries, loadEntries } = useIGProof(userId);
   const [ringFilter, setRingFilter] = useState<RingKey | undefined>();
 
