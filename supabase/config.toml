@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.ig-stories-fetch]
 verify_jwt = false
+
+[functions.planner-gcal-push]
+verify_jwt = false

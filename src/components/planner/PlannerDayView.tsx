@@ -30,6 +30,8 @@ interface PlannerDayViewProps {
   onDelete: (id: string) => void;
   onReschedule: (item: PlannerItem) => void;
   onReorder: (items: { id: string; sort_order: number }[]) => void;
+  onPushToCalendar?: (item: PlannerItem) => void;
+  hasGoogleConnection?: boolean;
 }
 
 export const PlannerDayView = ({
@@ -41,6 +43,8 @@ export const PlannerDayView = ({
   onDelete,
   onReschedule,
   onReorder,
+  onPushToCalendar,
+  hasGoogleConnection,
 }: PlannerDayViewProps) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -101,6 +105,8 @@ export const PlannerDayView = ({
                       onEdit={onEdit}
                       onDelete={onDelete}
                       onReschedule={onReschedule}
+                      onPushToCalendar={onPushToCalendar}
+                      hasGoogleConnection={hasGoogleConnection}
                     />
                   ))}
                 </div>

@@ -49,6 +49,8 @@ interface PlannerItemRowProps {
   onEdit: (item: PlannerItem) => void;
   onDelete: (id: string) => void;
   onReschedule: (item: PlannerItem) => void;
+  onPushToCalendar?: (item: PlannerItem) => void;
+  hasGoogleConnection?: boolean;
   dragEnabled?: boolean;
 }
 
@@ -58,6 +60,8 @@ export const PlannerItemRow = ({
   onEdit,
   onDelete,
   onReschedule,
+  onPushToCalendar,
+  hasGoogleConnection,
   dragEnabled = true,
 }: PlannerItemRowProps) => {
   const {
@@ -160,6 +164,11 @@ export const PlannerItemRow = ({
           <DropdownMenuItem onClick={() => onReschedule(item)}>
             <CalendarClock className="h-3.5 w-3.5 mr-2" /> Reschedule
           </DropdownMenuItem>
+          {hasGoogleConnection && !isExternal && onPushToCalendar && (
+            <DropdownMenuItem onClick={() => onPushToCalendar(item)}>
+              <Calendar className="h-3.5 w-3.5 mr-2" /> Push to Calendar
+            </DropdownMenuItem>
+          )}
           {!isExternal && (
             <DropdownMenuItem
               onClick={() => onDelete(item.id)}

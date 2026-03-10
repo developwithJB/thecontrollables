@@ -464,10 +464,45 @@ export const usePlannerConnections = (userId?: string) => {
     },
   });
 
+  const pushToGoogleCal = useMutation({
+    mutationFn: async ({ connectionId, itemIds, date }: { connectionId: string; itemIds?: string[]; date?: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/planner-gcal-push`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            connection_id: connectionId,
+            ...(itemIds ? { item_ids: itemIds } : {}),
+            ...(date ? { date } : {}),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to push to Google Calendar");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["planner-items"] });
+      queryClient.invalidateQueries({ queryKey: ["planner-items-today"] });
+    },
+  });
+
   return {
     connections: connectionsQuery.data ?? [],
     isLoading: connectionsQuery.isLoading,
     startGoogleCalSync,
     triggerSync,
+    pushToGoogleCal,
   };
 };
