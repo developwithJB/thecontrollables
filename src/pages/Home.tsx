@@ -70,9 +70,6 @@ export default function Home() {
   const [showMissionEdit, setShowMissionEdit] = useState(false);
   const [editingMissionTitle, setEditingMissionTitle] = useState("");
   const [showInsights, setShowInsights] = useState(false);
-  const timeCurrencyRef = useRef<TimeCurrencyModuleHandle>(null);
-  const integrityRef = useRef<IntegrityMeterModuleHandle>(null);
-  const buildRef = useRef<BuildOverviewModuleHandle>(null);
 
   const dashboardVisitCount = useDashboardVisitCount();
 
