@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Camera, Type, Loader2, X, ImagePlus, Grid3X3, RefreshCw, Instagram } from "lucide-react";
+import { Camera, Type, Loader2, X, ImagePlus, Grid3X3, RefreshCw, Instagram, Film } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIGProof, type IGProofAnalysis } from "@/hooks/useIGProof";
 import { RingSuggestionResult } from "./RingSuggestionResult";
