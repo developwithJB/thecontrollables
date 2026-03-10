@@ -222,7 +222,7 @@ const SATELLITE_TIPS: Record<string, string> = {
   default: "🛰️ Log your wellness data to see your Brain & Body status.",
 };
 
-export function BrainBodyTracker({ userId, onLogWellness, onQuickLog, onImportHealth, streak = 0 }: BrainBodyTrackerProps) {
+export function BrainBodyTracker({ userId, onLogWellness, onQuickLog, streak = 0 }: BrainBodyTrackerProps) {
   const { brainScore, bodyScore, factors, trend, hasData, hasHealthSync, isLoading } = useBrainBodyHealth(userId);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
