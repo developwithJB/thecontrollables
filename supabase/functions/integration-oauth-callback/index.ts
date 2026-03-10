@@ -113,6 +113,12 @@ Deno.serve(async (req) => {
 
     if (tokenData.error) {
       console.error("Token exchange error:", tokenData);
+      if (popup) {
+        return new Response(
+          `<!DOCTYPE html><html><body><script>window.opener.postMessage({type:"oauth-complete",provider:"${provider}",error:"token_exchange_failed"},"*");window.close();</script></body></html>`,
+          { headers: { "Content-Type": "text/html" } }
+        );
+      }
       return new Response(null, {
         status: 302,
         headers: { Location: `${redirectUri}?integration_error=token_exchange_failed` },
