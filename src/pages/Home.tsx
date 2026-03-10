@@ -665,6 +665,7 @@ export default function Home() {
             if (newSeasonId) setShowJourneySwitcher(true);
           }}
           onTakeBreak={() => setShowSeasonComplete(false)}
+          onDismiss={() => setShowSeasonComplete(false)}
         />
       )}
 
