@@ -128,6 +128,7 @@ export function TodayActions({
   const [journeyActionCompleted, setJourneyActionCompleted] = useState(false);
   const [showJourneyActionModal, setShowJourneyActionModal] = useState(false);
   const [currentJourneyAction, setCurrentJourneyAction] = useState<DailyAction | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Day 3 "Review your Build" completion: treat as complete if the user opened it today
   // OR if their build was updated today (e.g., via a re-scan).
