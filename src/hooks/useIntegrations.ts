@@ -103,6 +103,7 @@ export function useSyncLogs(connectionId?: string) {
 
 export function useConnectProvider() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (provider: Provider) => {
@@ -111,11 +112,56 @@ export function useConnectProvider() {
         body: { provider, redirectUri },
       });
       if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
+      if (!data?.url) {
         throw new Error(data?.error || "Failed to start OAuth");
       }
+
+      // Open OAuth in a popup window to bypass iframe cookie restrictions
+      const popup = window.open(data.url, `${provider}-oauth`, "width=600,height=700,scrollbars=yes");
+
+      if (!popup) {
+        throw new Error("Please allow popups for this site to connect, then try again.");
+      }
+
+      // Listen for postMessage from the callback
+      return new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          window.removeEventListener("message", messageHandler);
+          reject(new Error("OAuth timed out. Please try again."));
+        }, 5 * 60 * 1000); // 5 minute timeout
+
+        const messageHandler = (event: MessageEvent) => {
+          if (event.data?.type === "oauth-complete") {
+            clearTimeout(timeout);
+            window.removeEventListener("message", messageHandler);
+            popup?.close();
+            queryClient.invalidateQueries({ queryKey: ["integration-connections"] });
+            if (event.data.error) {
+              reject(new Error(event.data.error));
+            } else {
+              toast({
+                title: "Connected!",
+                description: `${PROVIDER_META[event.data.provider as Provider]?.name || provider} has been connected.`,
+              });
+              resolve();
+            }
+          }
+        };
+
+        window.addEventListener("message", messageHandler);
+
+        // Also poll in case postMessage fails (e.g. cross-origin)
+        const pollInterval = setInterval(() => {
+          if (popup?.closed) {
+            clearInterval(pollInterval);
+            clearTimeout(timeout);
+            window.removeEventListener("message", messageHandler);
+            // Popup was closed manually — refresh connections just in case
+            queryClient.invalidateQueries({ queryKey: ["integration-connections"] });
+            resolve();
+          }
+        }, 1000);
+      });
     },
     onError: (err: any) => {
       toast({

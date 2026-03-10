@@ -24,14 +24,22 @@ Deno.serve(async (req) => {
     const error = url.searchParams.get("error");
 
     if (error || !code || !stateRaw) {
-      const redirectUri = stateRaw ? JSON.parse(atob(stateRaw)).redirectUri : "/integrations";
+      const parsedState = stateRaw ? JSON.parse(atob(stateRaw)) : {};
+      const redirectUri = parsedState.redirectUri || "/integrations";
+      const errorMsg = error || "missing_code";
+      if (parsedState.popup) {
+        return new Response(
+          `<!DOCTYPE html><html><body><script>window.opener.postMessage({type:"oauth-complete",provider:"${parsedState.provider || ""}",error:"${errorMsg}"},"*");window.close();</script></body></html>`,
+          { headers: { "Content-Type": "text/html" } }
+        );
+      }
       return new Response(null, {
         status: 302,
-        headers: { Location: `${redirectUri}?integration_error=${error || "missing_code"}` },
+        headers: { Location: `${redirectUri}?integration_error=${errorMsg}` },
       });
     }
 
-    const { provider, userId, redirectUri } = JSON.parse(atob(stateRaw));
+    const { provider, userId, redirectUri, popup } = JSON.parse(atob(stateRaw));
     const envKeys = CLIENT_ENV[provider];
     const clientId = Deno.env.get(envKeys.id)!;
     const clientSecret = Deno.env.get(envKeys.secret)!;
