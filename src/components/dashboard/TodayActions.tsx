@@ -395,6 +395,22 @@ export function TodayActions({
     prevAllCompletedRef.current = allCompleted;
   }, [allCompleted, currentDay, hasActiveSession, isResetCompleted, onDay7AllComplete]);
 
+  // Auto-scroll to next incomplete card after completion
+  useEffect(() => {
+    if (!scrollContainerRef.current) return;
+    const nextIncomplete = actions.findIndex(a => !a.completed);
+    if (nextIncomplete >= 0) {
+      const cards = scrollContainerRef.current.children;
+      if (cards[nextIncomplete]) {
+        (cards[nextIncomplete] as HTMLElement).scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "center",
+        });
+      }
+    }
+  }, [completedCount]);
+
   // Covenant Dialog component - includes TGIM confirmation moment
   const CovenantDialog = () => (
     <Dialog
