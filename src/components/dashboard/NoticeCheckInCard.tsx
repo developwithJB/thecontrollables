@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Scan, Brain, Zap, AlertTriangle, Heart, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { useWhoopData } from "@/hooks/useWhoopData";
+import { useHealthData } from "@/hooks/useHealthData";
 
 const MOODS = [
   { value: "calm", emoji: "😌", label: "Calm" },
