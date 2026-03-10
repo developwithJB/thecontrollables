@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { DailyRings } from "./DailyRings";
 import { WeeklyRecapCard } from "./WeeklyRecapCard";
 import { TomorrowForecastCard } from "./TomorrowForecastCard";
@@ -12,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { InstagramInputCard } from "./InstagramInputCard";
 import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
 import { useDailyRings } from "@/hooks/useDailyRings";
+import { useIntegrationConnections } from "@/hooks/useIntegrations";
 
 interface CommandModeViewProps {
   userId?: string;
@@ -53,9 +55,15 @@ export const CommandModeView = ({
   onOpenBuild,
 }: CommandModeViewProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [showIGProof, setShowIGProof] = useState(false);
   const { rings, completedCount } = useDailyRings(userId);
   const intelligence = useDashboardIntelligence(userId, completedCount, rings);
+  const { data: connections } = useIntegrationConnections();
+
+  const hasInstagram = (connections || []).some(
+    (c) => c.provider === "instagram" && c.status === "active"
+  );
 
   // Screen time logging handler
   const handleScreenTimeSave = useCallback(async (hours: number, category: string) => {
@@ -77,30 +85,6 @@ export const CommandModeView = ({
   // Reset nudge (shown if they haven't done their daily reset)
   const showResetNudge = hasActiveSession && !todayResetCompleted;
 
-  const fallbackQuickAccess = (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-    >
-      <p className="text-xs text-muted-foreground text-center mb-3">Quick access</p>
-      <div className="flex justify-center gap-2 flex-wrap">
-        <Button variant="outline" size="sm" onClick={() => setShowIGProof(!showIGProof)} className="gap-1.5 text-xs">
-          <Camera className="w-3.5 h-3.5" />
-          IG Proof
-        </Button>
-        <Button variant="outline" size="sm" onClick={onOpenPlanner} className="gap-1.5 text-xs">
-          <CalendarDays className="w-3.5 h-3.5" />
-          Planner
-        </Button>
-        <Button variant="outline" size="sm" onClick={onOpenBuild} className="gap-1.5 text-xs">
-          <Brain className="w-3.5 h-3.5" />
-          Build
-        </Button>
-      </div>
-    </motion.div>
-  );
-
   return (
     <div className="flex flex-col min-h-[60vh] justify-center">
       {/* Reset nudge — only thing outside the rings */}
@@ -120,8 +104,46 @@ export const CommandModeView = ({
       {/* Daily Rings — the ENTIRE daily flow */}
       <DailyRings userId={userId} />
 
+      {/* Persistent quick-access row: Planner + IG Proof */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="mt-5 max-w-sm mx-auto w-full flex justify-center gap-2"
+      >
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onOpenPlanner}
+          className="gap-1.5 text-xs border-primary/30 hover:bg-primary/10"
+        >
+          <CalendarDays className="w-3.5 h-3.5 text-primary" />
+          Plan Your Day
+        </Button>
+        {hasInstagram && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowIGProof(!showIGProof)}
+            className="gap-1.5 text-xs border-accent/30 hover:bg-accent/10"
+          >
+            <Camera className="w-3.5 h-3.5 text-accent-foreground" />
+            IG Proof
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onOpenBuild}
+          className="gap-1.5 text-xs"
+        >
+          <Brain className="w-3.5 h-3.5" />
+          Build
+        </Button>
+      </motion.div>
+
       {/* Ask Dashboard Bar */}
-      <div className="mt-6 max-w-sm mx-auto w-full">
+      <div className="mt-4 max-w-sm mx-auto w-full">
         <AskDashboardBar />
       </div>
 
@@ -151,9 +173,9 @@ export const CommandModeView = ({
         )}
       </AnimatePresence>
 
-      {/* AI Recommended Actions or fallback Quick Access */}
+      {/* AI Recommended Actions */}
       <div className="mt-6 max-w-sm mx-auto w-full">
-        <AIRecommendedActions data={intelligence.data} fallbackActions={fallbackQuickAccess} />
+        <AIRecommendedActions data={intelligence.data} />
       </div>
     </div>
   );

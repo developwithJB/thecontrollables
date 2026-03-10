@@ -3,18 +3,41 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const TOKEN_ENDPOINTS: Record<string, string> = {
   google_calendar: "https://oauth2.googleapis.com/token",
   gmail: "https://oauth2.googleapis.com/token",
-  todoist: "https://todoist.com/oauth/access_token",
-  notion: "https://api.notion.com/v1/oauth/token",
   instagram: "https://api.instagram.com/oauth/access_token",
 };
 
 const CLIENT_ENV: Record<string, { id: string; secret: string }> = {
   google_calendar: { id: "GOOGLE_CLIENT_ID", secret: "GOOGLE_CLIENT_SECRET" },
   gmail: { id: "GOOGLE_CLIENT_ID", secret: "GOOGLE_CLIENT_SECRET" },
-  todoist: { id: "TODOIST_CLIENT_ID", secret: "TODOIST_CLIENT_SECRET" },
-  notion: { id: "NOTION_CLIENT_ID", secret: "NOTION_CLIENT_SECRET" },
   instagram: { id: "INSTAGRAM_APP_ID", secret: "INSTAGRAM_APP_SECRET" },
 };
+
+/** Build an HTML page that tries postMessage → window.close → redirect fallback */
+function popupResultPage(provider: string, redirectUri: string, error?: string) {
+  const isError = !!error;
+  const icon = isError ? "❌" : "✅";
+  const heading = isError ? "Connection Failed" : "Connected!";
+  const subtitle = isError
+    ? (error || "").replace(/_/g, " ")
+    : "Redirecting back…";
+  const paramKey = isError ? "integration_error" : "integration_success";
+  const paramVal = isError ? (error || "unknown") : provider;
+  const fallbackUrl = `${redirectUri}?${paramKey}=${encodeURIComponent(paramVal)}`;
+
+  return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f8f9fa;color:#333;text-align:center}.msg{padding:2rem;max-width:320px}h2{margin:0 0 .5rem}p{color:${isError ? "#c00" : "#666"};font-size:.9rem}a{display:inline-block;margin-top:1rem;color:#0066cc;text-decoration:underline;font-size:.85rem}</style></head><body><div class="msg"><h2>${icon} ${heading}</h2><p>${subtitle}</p><a href="${fallbackUrl}" id="fallback" style="display:none">Tap here if not redirected</a></div><script>
+(function(){
+  var sent=false;
+  try{if(window.opener){window.opener.postMessage({type:"oauth-complete",provider:"${provider}"${isError ? ',error:"' + (error || "") + '"' : ""}},"*");sent=true;}}catch(e){}
+  // Try closing the popup after a short delay
+  setTimeout(function(){try{window.close()}catch(e){}},800);
+  // If still open after 1.5s, show fallback link and redirect
+  setTimeout(function(){
+    document.getElementById("fallback").style.display="inline-block";
+    if(!sent){window.location.href="${fallbackUrl}";}
+  },1500);
+})();
+</script></body></html>`;
+}
 
 Deno.serve(async (req) => {
   try {
@@ -29,7 +52,7 @@ Deno.serve(async (req) => {
       const errorMsg = error || "missing_code";
       if (parsedState.popup) {
         return new Response(
-          `<!DOCTYPE html><html><head><style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f8f9fa;color:#333;text-align:center}.msg{padding:2rem}h2{margin:0 0 .5rem}p{color:#c00;font-size:.9rem}</style></head><body><div class="msg"><h2>❌ Connection Failed</h2><p>${errorMsg.replace(/_/g, " ")}</p></div><script>try{window.opener&&window.opener.postMessage({type:"oauth-complete",provider:"${parsedState.provider || ""}",error:"${errorMsg}"},"*")}catch(e){}setTimeout(function(){try{window.close()}catch(e){}},2000);</script></body></html>`,
+          popupResultPage(parsedState.provider || "", redirectUri, errorMsg),
           { headers: { "Content-Type": "text/html" } }
         );
       }
@@ -41,6 +64,13 @@ Deno.serve(async (req) => {
 
     const { provider, userId, redirectUri, popup } = JSON.parse(atob(stateRaw));
     const envKeys = CLIENT_ENV[provider];
+    if (!envKeys) {
+      const msg = `unsupported_provider_${provider}`;
+      if (popup) {
+        return new Response(popupResultPage(provider, redirectUri || "/integrations", msg), { headers: { "Content-Type": "text/html" } });
+      }
+      return new Response(null, { status: 302, headers: { Location: `${redirectUri || "/integrations"}?integration_error=${msg}` } });
+    }
     const clientId = Deno.env.get(envKeys.id)!;
     const clientSecret = Deno.env.get(envKeys.secret)!;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -49,7 +79,6 @@ Deno.serve(async (req) => {
     let tokenData: any;
 
     if (provider === "instagram") {
-      // Instagram short-lived token exchange
       const formData = new URLSearchParams({
         client_id: clientId,
         client_secret: clientSecret,
@@ -66,7 +95,6 @@ Deno.serve(async (req) => {
       if (shortLived.error_type || shortLived.error_message) {
         tokenData = { error: shortLived.error_message || shortLived.error_type };
       } else {
-        // Exchange for long-lived token
         const llRes = await fetch(
           `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${clientSecret}&access_token=${shortLived.access_token}`
         );
@@ -77,24 +105,6 @@ Deno.serve(async (req) => {
           user_id: shortLived.user_id,
         };
       }
-    } else if (provider === "notion") {
-      const basicAuth = btoa(`${clientId}:${clientSecret}`);
-      const res = await fetch(TOKEN_ENDPOINTS[provider], {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${basicAuth}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ grant_type: "authorization_code", code, redirect_uri: callbackUrl }),
-      });
-      tokenData = await res.json();
-    } else if (provider === "todoist") {
-      const res = await fetch(TOKEN_ENDPOINTS[provider], {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, code }),
-      });
-      tokenData = await res.json();
     } else {
       // Google
       const res = await fetch(TOKEN_ENDPOINTS[provider], {
@@ -113,31 +123,23 @@ Deno.serve(async (req) => {
 
     if (tokenData.error) {
       console.error("Token exchange error:", tokenData);
+      const rd = redirectUri || "/integrations";
       if (popup) {
-        return new Response(
-          `<!DOCTYPE html><html><head><style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f8f9fa;color:#333;text-align:center}.msg{padding:2rem}h2{margin:0 0 .5rem}p{color:#c00;font-size:.9rem}</style></head><body><div class="msg"><h2>❌ Connection Failed</h2><p>Token exchange failed</p></div><script>try{window.opener&&window.opener.postMessage({type:"oauth-complete",provider:"${provider}",error:"token_exchange_failed"},"*")}catch(e){}setTimeout(function(){try{window.close()}catch(e){}},2000);</script></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
+        return new Response(popupResultPage(provider, rd, "token_exchange_failed"), { headers: { "Content-Type": "text/html" } });
       }
-      return new Response(null, {
-        status: 302,
-        headers: { Location: `${redirectUri}?integration_error=token_exchange_failed` },
-      });
+      return new Response(null, { status: 302, headers: { Location: `${rd}?integration_error=token_exchange_failed` } });
     }
 
-    // Extract tokens
     const accessToken = tokenData.access_token;
     const refreshToken = tokenData.refresh_token || null;
     const expiresIn = tokenData.expires_in;
     const tokenExpiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
 
-    // Get account identifier
     let providerAccountId: string | null = null;
     let scopes: string[] = [];
     let metadata: any = {};
 
     if (provider === "instagram") {
-      // Fetch username from Instagram Graph API
       try {
         const profileRes = await fetch(
           `https://graph.instagram.com/me?fields=id,username&access_token=${accessToken}`
@@ -159,14 +161,8 @@ Deno.serve(async (req) => {
         providerAccountId = userInfo.email;
       } catch { /* ignore */ }
       scopes = (tokenData.scope || "").split(" ");
-    } else if (provider === "todoist") {
-      providerAccountId = tokenData.token_type || "todoist_user";
-    } else if (provider === "notion") {
-      providerAccountId = tokenData.owner?.user?.name || tokenData.workspace_name || "notion_user";
-      metadata = { workspace_id: tokenData.workspace_id, workspace_name: tokenData.workspace_name };
     }
 
-    // Upsert into integration_connections using service role
     const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -190,28 +186,21 @@ Deno.serve(async (req) => {
 
     if (upsertError) {
       console.error("Upsert error:", upsertError);
+      const rd = redirectUri || "/integrations";
       if (popup) {
-        return new Response(
-          `<!DOCTYPE html><html><head><style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f8f9fa;color:#333;text-align:center}.msg{padding:2rem}h2{margin:0 0 .5rem}p{color:#c00;font-size:.9rem}</style></head><body><div class="msg"><h2>❌ Connection Failed</h2><p>Could not save connection</p></div><script>try{window.opener&&window.opener.postMessage({type:"oauth-complete",provider:"${provider}",error:"save_failed"},"*")}catch(e){}setTimeout(function(){try{window.close()}catch(e){}},2000);</script></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
+        return new Response(popupResultPage(provider, rd, "save_failed"), { headers: { "Content-Type": "text/html" } });
       }
-      return new Response(null, {
-        status: 302,
-        headers: { Location: `${redirectUri}?integration_error=save_failed` },
-      });
+      return new Response(null, { status: 302, headers: { Location: `${rd}?integration_error=save_failed` } });
     }
 
+    const rd = redirectUri || "/integrations";
     if (popup) {
-      return new Response(
-        `<!DOCTYPE html><html><head><style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f8f9fa;color:#333;text-align:center}.msg{padding:2rem}h2{margin:0 0 .5rem}p{color:#666;font-size:.9rem}</style></head><body><div class="msg"><h2>✅ Connected!</h2><p>This window will close automatically…</p></div><script>try{window.opener&&window.opener.postMessage({type:"oauth-complete",provider:"${provider}"},"*")}catch(e){}setTimeout(function(){try{window.close()}catch(e){}},600);</script></body></html>`,
-        { headers: { "Content-Type": "text/html" } }
-      );
+      return new Response(popupResultPage(provider, rd), { headers: { "Content-Type": "text/html" } });
     }
 
     return new Response(null, {
       status: 302,
-      headers: { Location: `${redirectUri}?integration_success=${provider}` },
+      headers: { Location: `${rd}?integration_success=${provider}` },
     });
   } catch (err) {
     console.error("integration-oauth-callback error:", err);
