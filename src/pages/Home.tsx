@@ -484,7 +484,8 @@ export default function Home() {
           onChangeJourney={() => setShowJourneySwitcher(true)}
           missionTitle={activeQuest?.title}
           onOpenTimeLog={() => setShowConfirmLastNight(true)}
-          onOpenPromises={() => navigate("/growth")}
+          onOpenPromises={() => setShowValidatePlan(true)}
+          validatePlanCompleted={validatePlanCompleted}
           onOpenBuild={() => navigate("/growth")}
           onDay7AllComplete={triggerDay7Celebration}
         />
