@@ -171,7 +171,8 @@ export default function Home() {
     shouldShowSeasonComplete,
   } = useSeason(user.id);
 
-  const { data: intelligenceData } = useDashboardIntelligence(user.id);
+  const { rings, completedCount } = useDailyRings(user.id);
+  const { data: intelligenceData } = useDashboardIntelligence(user.id, completedCount, rings);
 
   const [showSeasonComplete, setShowSeasonComplete] = useState(false);
   useEffect(() => {
