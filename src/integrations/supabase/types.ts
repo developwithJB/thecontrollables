@@ -2999,6 +2999,7 @@ export type Database = {
           connected_at: string
           id: string
           last_synced_at: string | null
+          metadata: Json | null
           provider: string
           refresh_token: string | null
           scopes: string | null
@@ -3010,6 +3011,7 @@ export type Database = {
           connected_at?: string
           id?: string
           last_synced_at?: string | null
+          metadata?: Json | null
           provider: string
           refresh_token?: string | null
           scopes?: string | null
@@ -3021,6 +3023,7 @@ export type Database = {
           connected_at?: string
           id?: string
           last_synced_at?: string | null
+          metadata?: Json | null
           provider?: string
           refresh_token?: string | null
           scopes?: string | null
