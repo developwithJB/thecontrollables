@@ -129,6 +129,11 @@ Upcoming planned items: ${upcomingPlanner || "none"}
 
 Analyze the user's data and return a structured intelligence report. Be specific, grounded in data, and use system-intelligence language. Never be cheesy. Be concise — each field should be 1-2 sentences max. Use terms like "pattern detected", "signal", "primary driver", "forecast", "drift risk".
 
+For the forecast fields:
+- snapshot_forecast: Project the remaining days of the current snapshot (7-day cycle) based on trajectory. What's likely to happen and what to watch for.
+- month_forecast: Project the current month's outcome based on patterns. Include likely completion rates and key risks.
+- year_forecast: High-level trajectory projection. Where is the user heading if current patterns continue for 12 months?
+
 The ring names map to controllables: Notice=Awareness, Choose=Perspective, Prove=Habit, Charge=Wellness, Align=Environment.`
           },
           {
