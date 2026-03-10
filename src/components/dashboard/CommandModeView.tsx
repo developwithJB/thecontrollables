@@ -11,11 +11,10 @@ import { Button } from "@/components/ui/button";
 import { CalendarDays, Brain, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { InstagramInputCard } from "./InstagramInputCard";
-import { IGProofHistory } from "./IGProofHistory";
+import { ProofEntryCard } from "./ProofEntryCard";
+import { ProofHistory } from "./IGProofHistory";
 import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
 import { useDailyRings } from "@/hooks/useDailyRings";
-import { useIntegrationConnections } from "@/hooks/useIntegrations";
 
 interface CommandModeViewProps {
   userId?: string;
@@ -58,14 +57,9 @@ export const CommandModeView = ({
 }: CommandModeViewProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [showIGProof, setShowIGProof] = useState(false);
+  const [showProof, setShowProof] = useState(false);
   const { rings, completedCount } = useDailyRings(userId);
   const intelligence = useDashboardIntelligence(userId, completedCount, rings);
-  const { data: connections } = useIntegrationConnections();
-
-  const hasInstagram = (connections || []).some(
-    (c) => c.provider === "instagram" && c.status === "active"
-  );
 
   // Screen time logging handler
   const handleScreenTimeSave = useCallback(async (hours: number, category: string) => {
@@ -106,7 +100,7 @@ export const CommandModeView = ({
       {/* Daily Rings — the ENTIRE daily flow */}
       <DailyRings userId={userId} />
 
-      {/* Persistent quick-access row: Planner + IG Proof */}
+      {/* Persistent quick-access row */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -122,17 +116,15 @@ export const CommandModeView = ({
           <CalendarDays className="w-3.5 h-3.5 text-primary" />
           Plan Your Day
         </Button>
-        {hasInstagram && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowIGProof(!showIGProof)}
-            className="gap-1.5 text-xs border-accent/30 hover:bg-accent/10"
-          >
-            <Camera className="w-3.5 h-3.5 text-accent-foreground" />
-            IG Proof
-          </Button>
-        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowProof(!showProof)}
+          className="gap-1.5 text-xs border-accent/30 hover:bg-accent/10"
+        >
+          <Camera className="w-3.5 h-3.5 text-accent-foreground" />
+          Add Proof
+        </Button>
         <Button
           variant="outline"
           size="sm"
@@ -162,17 +154,17 @@ export const CommandModeView = ({
         <WeeklyRecapCard userId={userId} />
       </div>
 
-      {/* IG Proof card + history */}
+      {/* Proof card + history */}
       <AnimatePresence>
-        {showIGProof && (
+        {showProof && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             className="max-w-sm mx-auto w-full overflow-hidden space-y-3"
           >
-            <InstagramInputCard userId={userId} onClose={() => setShowIGProof(false)} />
-            <IGProofHistory userId={userId} />
+            <ProofEntryCard userId={userId} onClose={() => setShowProof(false)} />
+            <ProofHistory userId={userId} />
           </motion.div>
         )}
       </AnimatePresence>
