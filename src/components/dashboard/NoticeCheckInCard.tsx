@@ -2,8 +2,10 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Scan, Brain, Zap, AlertTriangle, Heart } from "lucide-react";
+import { Scan, Brain, Zap, AlertTriangle, Heart, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
+import { useWhoopData } from "@/hooks/useWhoopData";
 import { cn } from "@/lib/utils";
 
 const MOODS = [
