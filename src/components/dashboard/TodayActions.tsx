@@ -396,6 +396,28 @@ export function TodayActions({
     prevAllCompletedRef.current = allCompleted;
   }, [allCompleted, currentDay, hasActiveSession, isResetCompleted, onDay7AllComplete]);
 
+  // Track scroll position to update active dot
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      const children = Array.from(container.children) as HTMLElement[];
+      if (children.length === 0) return;
+      const containerLeft = container.scrollLeft + container.offsetWidth / 2;
+      let closest = 0;
+      let minDist = Infinity;
+      children.forEach((child, i) => {
+        const center = child.offsetLeft + child.offsetWidth / 2;
+        const dist = Math.abs(containerLeft - center);
+        if (dist < minDist) { minDist = dist; closest = i; }
+      });
+      setActiveCardIndex(closest);
+    };
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [actions.length]);
+
   // Auto-scroll to next incomplete card after completion
   useEffect(() => {
     if (!scrollContainerRef.current) return;
