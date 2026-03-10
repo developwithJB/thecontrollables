@@ -29,7 +29,7 @@ const coreFeatures = [
   {
     icon: Plug,
     title: "Integration Hub",
-    description: "Connect Google Calendar, Gmail, and Instagram. Sync events, get inbox summaries, and use IG Proof.",
+    description: "Connect Google Calendar and Gmail. Sync events and get inbox summaries to power your daily workflow.",
   },
   {
     icon: Camera,

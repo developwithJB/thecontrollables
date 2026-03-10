@@ -9,7 +9,6 @@ import { useEntitlements } from "@/hooks/useEntitlements";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { useDailyRings } from "@/hooks/useDailyRings";
 import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
-import { useIntegrationConnections } from "@/hooks/useIntegrations";
 import { useReset } from "@/hooks/useReset";
 import { useCircle } from "@/hooks/useCircle";
 import { useSeason } from "@/hooks/useSeason";
@@ -26,8 +25,8 @@ import { AskDashboardBar } from "@/components/dashboard/AskDashboardBar";
 import { AIRecommendedActions } from "@/components/dashboard/AIRecommendedActions";
 import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule";
 import { ControllableLevelsCard } from "@/components/dashboard/ControllableLevelsCard";
-import { InstagramInputCard } from "@/components/dashboard/InstagramInputCard";
-import { IGProofHistory } from "@/components/dashboard/IGProofHistory";
+import { ProofEntryCard } from "@/components/dashboard/ProofEntryCard";
+import { ProofHistory } from "@/components/dashboard/IGProofHistory";
 import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
 import { CircleCard } from "@/components/dashboard/CircleCard";
 import { SeasonBanner } from "@/components/dashboard/SeasonBanner";
@@ -45,7 +44,6 @@ export default function Growth() {
   const { currentBuild } = useBuildAssessment();
   const { rings, completedCount } = useDailyRings(user.id);
   const intelligence = useDashboardIntelligence(user.id, completedCount, rings);
-  const { data: connections } = useIntegrationConnections();
   const {
     activeSession,
     currentDay,
@@ -87,11 +85,7 @@ export default function Growth() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const hasInstagram = (connections || []).some(
-    (c) => c.provider === "instagram" && c.status === "active"
-  );
-
-  const [showIGProof, setShowIGProof] = useState(false);
+  const [showProof, setShowProof] = useState(false);
   const hasActiveSession = !!activeSession && !isCompleted && !isExpired;
   const todayAlreadyCompleted = completedDays.some((d) => d.day_number === currentDay);
 
@@ -195,17 +189,15 @@ export default function Growth() {
         transition={{ delay: 0.2 }}
         className="max-w-sm mx-auto w-full flex justify-center gap-2 flex-wrap"
       >
-        {hasInstagram && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowIGProof(!showIGProof)}
-            className="gap-1.5 text-xs border-accent/30 hover:bg-accent/10"
-          >
-            <Camera className="w-3.5 h-3.5 text-accent-foreground" />
-            IG Proof
-          </Button>
-        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowProof(!showProof)}
+          className="gap-1.5 text-xs border-accent/30 hover:bg-accent/10"
+        >
+          <Camera className="w-3.5 h-3.5 text-accent-foreground" />
+          Add Proof
+        </Button>
         <QuickHistoryEntry userId={user.id} />
       </motion.div>
 
@@ -226,17 +218,17 @@ export default function Growth() {
         <WeeklyRecapCard userId={user.id} />
       </div>
 
-      {/* IG Proof card + history */}
+      {/* Proof card + history */}
       <AnimatePresence>
-        {showIGProof && (
+        {showProof && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             className="max-w-sm mx-auto w-full overflow-hidden space-y-3"
           >
-            <InstagramInputCard userId={user.id} onClose={() => setShowIGProof(false)} />
-            <IGProofHistory userId={user.id} />
+            <ProofEntryCard userId={user.id} onClose={() => setShowProof(false)} />
+            <ProofHistory userId={user.id} />
           </motion.div>
         )}
       </AnimatePresence>

@@ -14,11 +14,11 @@ const RING_DOT_COLORS: Record<string, string> = {
   align: "bg-[hsl(var(--environment))]",
 };
 
-interface IGProofHistoryProps {
+interface ProofHistoryProps {
   userId?: string;
 }
 
-export const IGProofHistory = ({ userId }: IGProofHistoryProps) => {
+export const ProofHistory = ({ userId }: ProofHistoryProps) => {
   const { entries, loadingEntries, loadEntries } = useIGProof(userId);
   const [ringFilter, setRingFilter] = useState<RingKey | undefined>();
 
@@ -70,7 +70,7 @@ export const IGProofHistory = ({ userId }: IGProofHistoryProps) => {
         </div>
       ) : entries.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-6">
-          No proof entries yet. Use IG Proof to add your first.
+          No proof entries yet. Add your first proof entry above.
         </p>
       ) : (
         <div className="space-y-2">

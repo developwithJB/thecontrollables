@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-export type Provider = "google_calendar" | "gmail" | "instagram";
+export type Provider = "google_calendar" | "gmail";
 
 export interface IntegrationConnection {
   id: string;
@@ -46,12 +46,6 @@ export const PROVIDER_META: Record<Provider, { name: string; description: string
     description: "Daily inbox summary for your Daily OS",
     icon: "✉️",
     color: "hsl(var(--destructive))",
-  },
-  instagram: {
-    name: "Instagram",
-    description: "Import posts and stories for IG Proof analysis",
-    icon: "📸",
-    color: "hsl(var(--accent))",
   },
 };
 

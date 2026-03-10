@@ -105,7 +105,7 @@ export function useIGProof(userId?: string) {
         .single();
 
       if (error) throw error;
-      toast({ title: params.attachToRing ? "Ring filled from Instagram" : "Evidence saved", description: params.attachToRing ? `Your ${params.ringKey} ring is complete.` : "Saved to your proof history." });
+      toast({ title: params.attachToRing ? "Ring filled from proof" : "Proof saved", description: params.attachToRing ? `Your ${params.ringKey} ring is complete.` : "Saved to your proof history." });
       return data;
     } catch (err: any) {
       console.error("Save IG proof failed:", err);
