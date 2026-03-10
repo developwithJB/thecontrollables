@@ -96,6 +96,20 @@ export const CommandModeView = ({
         <WeeklyRecapCard userId={userId} />
       </div>
 
+      {/* IG Proof card */}
+      <AnimatePresence>
+        {showIGProof && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="max-w-sm mx-auto w-full overflow-hidden"
+          >
+            <InstagramInputCard userId={userId} onClose={() => setShowIGProof(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Minimal quick-access */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -104,7 +118,11 @@ export const CommandModeView = ({
         className="mt-8"
       >
         <p className="text-xs text-muted-foreground text-center mb-3">Quick access</p>
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => setShowIGProof(!showIGProof)} className="gap-1.5 text-xs">
+            <Camera className="w-3.5 h-3.5" />
+            IG Proof
+          </Button>
           <Button variant="outline" size="sm" onClick={onOpenPlanner} className="gap-1.5 text-xs">
             <CalendarDays className="w-3.5 h-3.5" />
             Planner
