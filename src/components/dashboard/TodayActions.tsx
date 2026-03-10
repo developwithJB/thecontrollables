@@ -832,13 +832,15 @@ export function TodayActions({
 
               {/* Progress dots */}
               <div className="flex items-center justify-center gap-1.5 pt-1">
-                {actions.map((action) => (
+                {actions.map((action, idx) => (
                   <div
                     key={action.id}
-                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                      action.completed
-                        ? "bg-primary"
-                        : "bg-muted-foreground/25"
+                    className={`rounded-full transition-all duration-300 ${
+                      idx === activeCardIndex
+                        ? "w-4 h-1.5 bg-primary"
+                        : action.completed
+                          ? "w-1.5 h-1.5 bg-primary/50"
+                          : "w-1.5 h-1.5 bg-muted-foreground/25"
                     }`}
                   />
                 ))}
