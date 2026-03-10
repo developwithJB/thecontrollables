@@ -83,6 +83,7 @@ const Planner = () => {
       }
     })();
   }, [searchParams, navigate, toast, queryClient]);
+  const [showPvA, setShowPvA] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   // Week state
