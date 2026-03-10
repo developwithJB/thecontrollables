@@ -1,87 +1,164 @@
 
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-# Plan: Three Features — Free AI Tier, Snapshot Share Card, Landing Tagline
+## Overview
 
-## 1. Permanent Free Tier AI (2 messages/day)
-
-### Changes
-
-**`src/lib/entitlements.ts`** (line 163)
-- Change `postTrial: 0` to `postTrial: 2`
-
-**`supabase/functions/ai-chat/index.ts`** (line 74)
-- Change `free: 5` to keep as-is for trial users. The edge function uses `getPlanTier` which returns `'free'` for all free users (trial and post-trial). Need to differentiate: add a check for whether the user has an active snapshot (trial) vs post-trial. If post-trial free, daily limit = 2 instead of 5.
-- Update the limit-reached error message from generic to: `"You've used your 2 free messages today. Upgrade to Plus for 15."`
-
-**`src/components/dashboard/AIGuidePanel.tsx`**
-- Line 165: Change `FREE_PREVIEW_LIMIT = 1` to `FREE_POST_TRIAL_LIMIT = 2`
-- Update post-trial free user flow (lines 829-933): Instead of "1 free preview message," give them 2/day with a counter, similar to the trial flow but with limit of 2
-- Update copy from "Come back tomorrow for another free message" to "You've used your 2 free messages today. Upgrade to keep the conversation going."
-- The "Free Preview" banner (line 893) becomes "2 free messages per day — upgrade to Plus for 15"
-
-**`src/components/AIChat.tsx`**
-- Update `PLAN_MONTHLY_LIMITS` (lines 33-37) — this component uses monthly limits which are stale. Update the limit-reached copy from "Monthly AI limit reached" to encouraging copy: "You've used your 2 free messages today. Upgrade to keep the conversation going."
-- Update placeholder text from "Monthly limit reached" to "Daily limit reached"
-
-### Edge Function Changes
-The `ai-chat` edge function needs to distinguish trial vs post-trial free users. Currently all free users get 5/day. Options:
-- Check if user has an active, non-expired snapshot → trial (5/day)
-- Otherwise free → post-trial (2/day)
-- Add this logic to `checkAndUpdateDailyUsage` by querying `reset_sessions` for an active session
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
 ---
 
-## 2. Viral Snapshot Share Card
+## Part 1: AI Insight Engine
 
-### New File: `src/components/dashboard/SnapshotShareCard.tsx`
-- Renders a branded card with:
-  - Snapshot name + relevant Controllable emoji
-  - Headline: "7 days. I showed up."
-  - Completion date formatted nicely
-  - App URL `thecontrollables.lovable.app` as visible branded link
-  - Uses the Controllable color theme for the snapshot's focus area
-  - Glass-morphism styling consistent with the app
-- Export a `SnapshotShareModal` wrapper that shows the card in a dialog with a "Save Image" button
-- Uses `html2canvas` (already installed) to capture the card as a PNG for download
+### New Edge Function: `admin-insights`
 
-### Edit: `src/components/Day7Complete.tsx`
-- Import `SnapshotShareModal`
-- Add a "Share your win" button (with Share2 icon) after the "View Your Snapshot" button (~line 285)
-- Button opens the share modal, passing: displayName, startDate, endDate, completedJourney info (emoji, title, controllable type)
+**File: `supabase/functions/admin-insights/index.ts`**
 
-### Edit: `src/components/SeasonComplete.tsx`
-- Add same "Share your win" button after the badge unlock notice (~line 170)
-- Pass season name and stats to the share card
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
+
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
+
+[structured data blob]
+
+Return insights as structured tool output.
+```
+
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+
+### New Admin Component: AI Insights Panel
+
+**File: `src/components/admin/AIInsightsPanel.tsx`**
+
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
+
+### Integration into Admin.tsx
+
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
 ---
 
-## 3. Marketing: Updated Landing Tagline
+## Part 2: Enhanced Action Center
 
-### Edit: `src/pages/Landing.tsx`
-- Lines 91-95: Change hero headline from "Your Life OS. Wellness. Growth. Planner. Wealth." to:
-  ```
-  Stop trying to control everything.
-  Start controlling what matters.
-  ```
-- Keep the subtext but refine to be more emotionally resonant, aligned with the philosophy
-- Update the `WhyStartSection` reasons to lean into the "tired of failing" narrative
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
 
-### Edit: `src/components/landing/WhyStartSection.tsx`
-- Update the reasons array to better target the identified audiences (overwhelmed achievers, book readers, wearable users)
+Replace the three "Coming soon" cards with working functionality:
+
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
+
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
+
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
+
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
 
 ---
 
-## Files Summary
+## Part 3: Landing Page Updates
 
-| Action | File |
-|--------|------|
-| Edit | `src/lib/entitlements.ts` — postTrial: 0 → 2 |
-| Edit | `supabase/functions/ai-chat/index.ts` — trial vs post-trial limit logic |
-| Edit | `src/components/dashboard/AIGuidePanel.tsx` — 2/day free tier UI |
-| Edit | `src/components/AIChat.tsx` — updated limit copy |
-| Create | `src/components/dashboard/SnapshotShareCard.tsx` — share card + modal |
-| Edit | `src/components/Day7Complete.tsx` — add share button |
-| Edit | `src/components/SeasonComplete.tsx` — add share button |
-| Edit | `src/pages/Landing.tsx` — new tagline |
-| Edit | `src/components/landing/WhyStartSection.tsx` — updated reasons |
+**File: `src/pages/Landing.tsx`**
 
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+
+**File: `src/components/landing/FeatureGrid.tsx`**
+
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+
+**File: `src/components/landing/HowItWorksSection.tsx`**
+
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.

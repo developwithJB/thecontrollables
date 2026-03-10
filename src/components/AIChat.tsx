@@ -30,13 +30,13 @@ interface AIChatProps {
 
 type PlanTier = 'free' | 'plus' | 'pro';
 
-const PLAN_MONTHLY_LIMITS: Record<PlanTier, number> = {
-  free: 5,
-  plus: 0,
-  pro: 300,
+const PLAN_DAILY_LIMITS: Record<PlanTier, number> = {
+  free: 2,
+  plus: 15,
+  pro: 25,
 };
 
-const getCurrentMonthKey = () => new Date().toISOString().slice(0, 7);
+const getTodayKey = () => new Date().toISOString().slice(0, 10);
 
 const WELCOME_MESSAGES: Record<string, string> = {
   awareness: "Hello, I am the Owl 🦉. I help you see things clearly, as they truly are. What's weighing on your mind today?",
@@ -52,10 +52,10 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [planTier, setPlanTier] = useState<PlanTier>('free');
-  const [remainingMessages, setRemainingMessages] = useState<number>(PLAN_MONTHLY_LIMITS.free);
-  const [monthlyLimit, setMonthlyLimit] = useState<number>(PLAN_MONTHLY_LIMITS.free);
-  const [usedThisMonth, setUsedThisMonth] = useState<number>(0);
-  const [activeMonth, setActiveMonth] = useState<string>(getCurrentMonthKey());
+  const [remainingMessages, setRemainingMessages] = useState<number>(PLAN_DAILY_LIMITS.free);
+  const [dailyLimit, setDailyLimit] = useState<number>(PLAN_DAILY_LIMITS.free);
+  const [usedToday, setUsedToday] = useState<number>(0);
+  const [activeDay, setActiveDay] = useState<string>(getTodayKey());
   const [aiLocked, setAiLocked] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -80,45 +80,45 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
   useEffect(() => {
     if (!isOpen) return;
 
-    const currentMonth = getCurrentMonthKey();
-    if (currentMonth !== activeMonth) {
-      setActiveMonth(currentMonth);
+    const today = getTodayKey();
+    if (today !== activeDay) {
+      setActiveDay(today);
       setLimitReached(false);
       setAiLocked(false);
-      setUsedThisMonth(0);
-      setRemainingMessages(PLAN_MONTHLY_LIMITS[planTier]);
+      setUsedToday(0);
+      setRemainingMessages(PLAN_DAILY_LIMITS[planTier]);
     }
-  }, [isOpen, activeMonth, planTier]);
+  }, [isOpen, activeDay, planTier]);
 
-  const maybeWarnAtProCap = (nextPlanTier: PlanTier, remaining: number, monthKey: string) => {
+  const maybeWarnAtProCap = (nextPlanTier: PlanTier, remaining: number, dayKey: string) => {
     if (nextPlanTier !== 'pro' || remaining > 0) {
       return;
     }
 
-    const warningStorageKey = `ai-pro-cap-warning-${monthKey}`;
+    const warningStorageKey = `ai-pro-cap-warning-${dayKey}`;
     if (localStorage.getItem(warningStorageKey)) {
       return;
     }
 
     localStorage.setItem(warningStorageKey, 'shown');
-    toast.warning('You have reached your Pro AI cap for this month. Usage resets on the 1st.');
+    toast.warning('You have reached your Pro AI cap for today. Usage resets at midnight.');
   };
 
   const applyUsageState = (data: any) => {
     const nextPlanTier = (data?.planTier as PlanTier) || planTier;
-    const nextLimit = data?.monthlyLimit ?? PLAN_MONTHLY_LIMITS[nextPlanTier];
-    const nextRemaining = data?.remaining ?? Math.max(nextLimit - (data?.used ?? usedThisMonth), 0);
+    const nextLimit = data?.dailyLimit ?? PLAN_DAILY_LIMITS[nextPlanTier];
+    const nextRemaining = data?.remaining ?? Math.max(nextLimit - (data?.used ?? usedToday), 0);
     const nextUsed = data?.used ?? Math.max(nextLimit - nextRemaining, 0);
-    const monthKey = data?.month ?? getCurrentMonthKey();
+    const dayKey = data?.day ?? getTodayKey();
 
     setPlanTier(nextPlanTier);
-    setMonthlyLimit(nextLimit);
+    setDailyLimit(nextLimit);
     setRemainingMessages(nextRemaining);
-    setUsedThisMonth(nextUsed);
-    setActiveMonth(monthKey);
+    setUsedToday(nextUsed);
+    setActiveDay(dayKey);
     setAiLocked(Boolean(data?.aiLocked));
 
-    maybeWarnAtProCap(nextPlanTier, nextRemaining, monthKey);
+    maybeWarnAtProCap(nextPlanTier, nextRemaining, dayKey);
   };
 
   const sendMessage = async () => {
@@ -152,7 +152,7 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
         if (data?.limitReached || error?.message?.includes('limit')) {
           setLimitReached(true);
           setRemainingMessages(0);
-          toast.error("You've hit your monthly AI limit.");
+          toast.error("You've used your free messages today. Upgrade to keep the conversation going.");
           if (onUpgrade && ((data?.planTier as PlanTier) ?? planTier) === 'free') {
             onUpgrade("ai_limit");
           }
@@ -265,7 +265,7 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={aiLocked ? "AI locked on Plus" : limitReached ? "Monthly limit reached" : "Type your message..."}
+                  placeholder={aiLocked ? "AI locked on Plus" : limitReached ? "Daily limit reached" : "Type your message..."}
                   className="min-h-[44px] max-h-[120px] resize-none bg-background"
                   rows={1}
                   disabled={limitReached || aiLocked}
@@ -284,10 +284,12 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
                   {aiLocked
                     ? "🔒 AI guidance is locked on Plus — upgrade to Pro"
                     : limitReached
-                      ? "🔒 Monthly AI limit reached — resets on the 1st"
+                      ? planTier === 'free'
+                        ? "You've used your 2 free messages today. Upgrade to keep the conversation going."
+                        : "🔒 Daily AI limit reached — resets at midnight"
                       : planTier === 'free'
-                        ? `${usedThisMonth} of ${monthlyLimit} this month`
-                        : `${usedThisMonth} used this month (${remainingMessages} remaining)`
+                        ? `${usedToday} of ${dailyLimit} today`
+                        : `${usedToday} used today (${remainingMessages} remaining)`
                   }
                 </div>
               )}

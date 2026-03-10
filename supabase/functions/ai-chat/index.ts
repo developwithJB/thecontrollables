@@ -71,10 +71,13 @@ type PlanTier = 'free' | 'plus' | 'pro';
 
 // Daily message limits per plan tier
 const PLAN_DAILY_LIMITS: Record<PlanTier, number> = {
-  free: 5,   // Trial users get 5/day during active snapshot
+  free: 2,   // Post-trial free users get 2/day
   plus: 15,  // Plus gets 15/day
   pro: 25,   // Pro gets 25/day
 };
+
+// Trial users (active snapshot, free tier) get higher limit
+const TRIAL_DAILY_LIMIT = 5;
 
 // ============ DEEP CHARACTER PROMPTS ============
 const CONTROLLABLE_PROMPTS: Record<string, string> = {
@@ -429,10 +432,12 @@ async function getPlanTier(
 async function checkAndUpdateDailyUsage(
   supabaseClient: any,
   userId: string,
-  planTier: PlanTier
+  planTier: PlanTier,
+  isTrialUser: boolean = false
 ): Promise<{ allowed: boolean; remaining: number; used: number; dailyLimit: number }> {
   const today = getTodayDateKey();
-  const dailyLimit = PLAN_DAILY_LIMITS[planTier] ?? PLAN_DAILY_LIMITS.free;
+  // Trial users (free tier with active snapshot) get 5/day, post-trial free get 2/day
+  const dailyLimit = (planTier === 'free' && isTrialUser) ? TRIAL_DAILY_LIMIT : (PLAN_DAILY_LIMITS[planTier] ?? PLAN_DAILY_LIMITS.free);
 
   if (dailyLimit <= 0) {
     return { allowed: false, remaining: 0, used: 0, dailyLimit };
@@ -622,7 +627,28 @@ Deno.serve(async (req) => {
     );
     
     const planTier = await getPlanTier(serviceClient, userId, userData.user.user_metadata?.plan_tier);
-    const usageResult = await checkAndUpdateDailyUsage(serviceClient, userId, planTier);
+    
+    // Check if free user is in active trial (has active snapshot within 7 days)
+    let isTrialUser = false;
+    if (planTier === 'free') {
+      const { data: activeSession } = await serviceClient
+        .from('reset_sessions')
+        .select('id, start_date')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (activeSession) {
+        const startDate = new Date(activeSession.start_date);
+        const now = new Date();
+        const daysSinceStart = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        isTrialUser = daysSinceStart < 7;
+      }
+    }
+    
+    const usageResult = await checkAndUpdateDailyUsage(serviceClient, userId, planTier, isTrialUser);
     
     if (!usageResult.allowed) {
       const isPlusLocked = planTier === 'plus';

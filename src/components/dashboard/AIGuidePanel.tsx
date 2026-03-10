@@ -162,7 +162,7 @@ const detectGuideFromMessage = (message: string): GuideType => {
 
 const DAILY_MESSAGE_LIMIT = 25;
 const FREE_TRIAL_LIMIT = 5; // Free users during trial get 5 messages/day
-const FREE_PREVIEW_LIMIT = 1; // Free users without trial get 1 message to try
+const FREE_POST_TRIAL_LIMIT = 2; // Free users after trial get 2 messages/day
 
 // Export handle type for parent components to use
 export interface AIGuidePanelHandle {
@@ -193,7 +193,7 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
   const [isLoading, setIsLoading] = useState(false);
   const [completedActionsCount, setCompletedActionsCount] = useState(0);
   const [completedActionTexts, setCompletedActionTexts] = useState<Set<string>>(new Set());
-  const [remainingMessages, setRemainingMessages] = useState<number>(isPaid ? DAILY_MESSAGE_LIMIT : (isTrialing ? FREE_TRIAL_LIMIT : FREE_PREVIEW_LIMIT));
+  const [remainingMessages, setRemainingMessages] = useState<number>(isPaid ? DAILY_MESSAGE_LIMIT : (isTrialing ? FREE_TRIAL_LIMIT : FREE_POST_TRIAL_LIMIT));
   const [limitReached, setLimitReached] = useState(false);
   const [freePreviewUsed, setFreePreviewUsed] = useState(false);
   const [trialMessagesUsedToday, setTrialMessagesUsedToday] = useState(0);
@@ -258,12 +258,17 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
           setLimitReached(true);
         }
       } else {
-        const previewKey = `ai_guide_daily_${today}`;
-        const usedDailyMessage = localStorage.getItem(previewKey);
-        if (usedDailyMessage) {
+        // Post-trial free users: 2 messages/day
+        const postTrialKey = `ai_guide_post_trial_count_${today}`;
+        const count = parseInt(localStorage.getItem(postTrialKey) || '0', 10);
+        setTrialMessagesUsedToday(count);
+        setRemainingMessages(Math.max(0, FREE_POST_TRIAL_LIMIT - count));
+        if (count >= FREE_POST_TRIAL_LIMIT) {
           setFreePreviewUsed(true);
+          setLimitReached(true);
         } else {
           setFreePreviewUsed(false);
+          setLimitReached(false);
         }
       }
     }
@@ -360,23 +365,24 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
     if (!messageText.trim() || isLoading) return;
 
     // For free users: handle trial vs non-trial differently
-    if (!isPaid) {
-      if (isTrialing) {
-        if (trialMessagesUsedToday >= FREE_TRIAL_LIMIT) {
-          toast.error("Daily message limit reached. Come back tomorrow or upgrade for unlimited!");
-          return;
-        }
-      } else {
-        if (!hasActiveSnapshot) {
-          toast.error("Start your 7-Day Snapshot to unlock daily messages from The Controllables!");
-          return;
-        }
-        if (freePreviewUsed) {
-          toast.error("Daily message used. Come back tomorrow or upgrade for unlimited!");
-          return;
+      if (!isPaid) {
+        if (isTrialing) {
+          if (!hasActiveSnapshot) {
+            toast.error("Start your 7-Day Snapshot to unlock daily messages from The Controllables!");
+            return;
+          }
+          if (freePreviewUsed) {
+            toast.error("Daily message limit reached. Come back tomorrow or upgrade for unlimited!");
+            return;
+          }
+        } else {
+          // Post-trial free user
+          if (freePreviewUsed) {
+            toast.error("You've used your 2 free messages today. Upgrade to keep the conversation going.");
+            return;
+          }
         }
       }
-    }
 
     // Determine which guide should respond
     let respondingGuide: Guide;
@@ -531,10 +537,17 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
             setLimitReached(true);
             setFreePreviewUsed(true);
           }
-        } else if (hasActiveSnapshot) {
-          const previewKey = `ai_guide_daily_${today}`;
-          localStorage.setItem(previewKey, 'true');
-          setFreePreviewUsed(true);
+        } else {
+          // Post-trial free users: track count (2/day)
+          const postTrialKey = `ai_guide_post_trial_count_${today}`;
+          const newCount = trialMessagesUsedToday + 1;
+          localStorage.setItem(postTrialKey, String(newCount));
+          setTrialMessagesUsedToday(newCount);
+          setRemainingMessages(Math.max(0, FREE_POST_TRIAL_LIMIT - newCount));
+          if (newCount >= FREE_POST_TRIAL_LIMIT) {
+            setLimitReached(true);
+            setFreePreviewUsed(true);
+          }
         }
       }
       
@@ -826,10 +839,9 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
                 </>
               )}
 
-              {/* Preview mode for free users (non-trial) - show after they've used their free message */}
+              {/* Post-trial free users - show after they've used all free messages */}
               {!isPaid && !isTrialing && freePreviewUsed && (
                 <div className="flex flex-col" data-testid="ai-operators-locked">
-                  {/* Show their full conversation including actions */}
                   {messages.length > 0 && (
                     <div ref={messagesContainerRef} className="w-full space-y-3 max-h-72 overflow-y-auto mb-4 pr-2">
                       {messages.map((msg, idx) => {
@@ -871,33 +883,31 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
                     </div>
                   )}
                   
-                  {/* Upgrade prompt */}
                   <div className="text-center py-4 border-t border-border/50 mt-2">
                     <p className="text-sm text-muted-foreground mb-3">
-                      Come back tomorrow for another free message, or unlock unlimited access.
+                      You've used your 2 free messages today. Upgrade to keep the conversation going.
                     </p>
                     <Button onClick={() => onUpgrade?.()} disabled={isCheckingOut} className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground" data-testid="ai-operators-upgrade-cta">
                       {isCheckingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                      {isCheckingOut ? "Opening checkout..." : "Unlock Full Access"}
+                      {isCheckingOut ? "Opening checkout..." : "Unlock Full Access — 15/day"}
                     </Button>
-                    <p className="text-xs text-muted-foreground mt-3">Plans from $${getPricing().plus.annual}/yr</p>
+                    <p className="text-xs text-muted-foreground mt-3">Plans from ${getPricing().plus.annual}/yr</p>
                   </div>
                 </div>
               )}
 
-              {/* Preview mode for free users (non-trial) who haven't used their message yet */}
+              {/* Post-trial free users who still have messages left */}
               {!isPaid && !isTrialing && !freePreviewUsed && (
                 <>
                   <div className="bg-accent/10 border border-accent/20 rounded-lg p-3 mb-4">
                     <p className="text-xs text-accent font-medium flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> Free Preview
+                      <Sparkles className="w-3 h-3" /> 2 free messages per day
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Try one message free today. Upgrade for unlimited access.
+                      {remainingMessages} remaining today — upgrade to Plus for 15
                     </p>
                   </div>
                   
-                  {/* Input row for free preview */}
                   <div className="flex gap-2">
                     <Input
                       placeholder={selectedGuide ? `Ask ${selectedGuide.name}...` : "Try asking something..."}
@@ -917,7 +927,6 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
                     </Button>
                   </div>
                   
-                  {/* Quick prompts */}
                   <div className="flex flex-wrap gap-1.5 mt-3">
                     {(selectedGuide ? selectedGuide.prompts.slice(0, 2) : GUIDES.slice(0, 3).map(g => g.prompts[0])).map((prompt) => (
                       <button

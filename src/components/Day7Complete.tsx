@@ -25,6 +25,7 @@ import {
   getJourneyById,
 } from "@/lib/guidedJourneys";
 import { SnapshotReviewModal } from "@/components/experience/SnapshotReviewModal";
+import { SnapshotShareModal } from "@/components/dashboard/SnapshotShareCard";
 
 interface Day7CompleteProps {
   displayName: string;
@@ -52,6 +53,7 @@ export const Day7Complete = ({
   const navigate = useNavigate();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [showWhatsNext, setShowWhatsNext] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<PlanType | undefined>();
@@ -283,6 +285,23 @@ export const Day7Complete = ({
               </Button>
             </motion.div>
           )}
+
+          {/* Share your win */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.58 }}
+            className="mb-6"
+          >
+            <Button
+              onClick={() => setIsShareOpen(true)}
+              variant="outline"
+              className="w-full h-12 border-accent/30 hover:bg-accent/5"
+            >
+              <Share2 className="w-4 h-4 mr-2 text-accent" />
+              Share Your Win
+            </Button>
+          </motion.div>
 
           {/* Affirmation */}
           <motion.p
@@ -639,6 +658,16 @@ export const Day7Complete = ({
           />
         )}
       </AnimatePresence>
+
+      {/* Snapshot Share Modal */}
+      <SnapshotShareModal
+        open={isShareOpen}
+        onOpenChange={setIsShareOpen}
+        snapshotName={completedJourney?.title || "7-Day Snapshot"}
+        controllable={undefined}
+        completionDate={endDate}
+        displayName={displayName}
+      />
     </>
   );
 };
