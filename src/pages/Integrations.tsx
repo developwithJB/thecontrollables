@@ -13,7 +13,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 
-const ALL_PROVIDERS: Provider[] = ["google_calendar", "gmail", "instagram"];
+const ALL_PROVIDERS: Provider[] = ["google_calendar", "gmail"];
 
 export default function Integrations() {
   const navigate = useNavigate();
