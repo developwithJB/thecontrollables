@@ -26,6 +26,26 @@ export default function Wellness() {
   usePageViewTracking("Wellness");
   const user = useLifeOSUser();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { toast } = useToast();
+
+  // Handle wearable OAuth callback params
+  useEffect(() => {
+    const connected = searchParams.get("wearable_connected");
+    const error = searchParams.get("wearable_error");
+    if (connected) {
+      toast({ title: `${connected.charAt(0).toUpperCase() + connected.slice(1)} connected!`, description: "Your wearable data will sync shortly." });
+      queryClient.invalidateQueries({ queryKey: ["wearable-connections"] });
+      const next = new URLSearchParams(searchParams);
+      next.delete("wearable_connected");
+      setSearchParams(next, { replace: true });
+    } else if (error) {
+      toast({ title: "Connection failed", description: `Wearable connection error: ${error.replace(/_/g, " ")}`, variant: "destructive" });
+      const next = new URLSearchParams(searchParams);
+      next.delete("wearable_error");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams, toast, queryClient]);
 
   const { isPaid, isLoading: entitlementsLoading, initiateCheckout } = useEntitlements(user.id);
   const { streak: wellnessStreak, logWellness, recentLogs: wellnessLogs } = useWellness(user.id);

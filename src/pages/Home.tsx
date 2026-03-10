@@ -266,6 +266,24 @@ export default function Home() {
     } catch {}
   }, [user.id, dashboardLoading, trackEvent, activeSession, currentDay]);
 
+  // Handle wearable OAuth callback params (fallback if user lands here)
+  useEffect(() => {
+    const connected = searchParams.get("wearable_connected");
+    const wError = searchParams.get("wearable_error");
+    if (connected) {
+      toast({ title: `${connected.charAt(0).toUpperCase() + connected.slice(1)} connected!`, description: "Your wearable data will sync shortly." });
+      queryClient.invalidateQueries({ queryKey: ["wearable-connections"] });
+      const next = new URLSearchParams(searchParams);
+      next.delete("wearable_connected");
+      setSearchParams(next, { replace: true });
+    } else if (wError) {
+      toast({ title: "Connection failed", description: `Wearable connection error: ${wError.replace(/_/g, " ")}`, variant: "destructive" });
+      const next = new URLSearchParams(searchParams);
+      next.delete("wearable_error");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams, toast, queryClient]);
+
   // Focus/Day7 params
   useEffect(() => {
     if (searchParams.get("openFocus") === "1" && activeSession) {

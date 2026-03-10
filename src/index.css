@@ -118,6 +118,12 @@
     --wellness-soft: 270 40% 12%;
     --environment-soft: 16 50% 12%;
 
+    --awareness-foreground: 38 100% 75%;
+    --perspective-foreground: 152 60% 70%;
+    --habit-foreground: 205 100% 75%;
+    --wellness-foreground: 270 70% 75%;
+    --environment-foreground: 16 90% 75%;
+
     --glass: 222 40% 8% / 0.7;
     --glass-border: 222 30% 18% / 0.4;
     

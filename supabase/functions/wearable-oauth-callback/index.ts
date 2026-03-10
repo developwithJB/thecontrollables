@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
     const appUrl = Deno.env.get("APP_URL") || "https://thecontrollables.lovable.app";
     return new Response(null, {
       status: 302,
-      headers: { Location: `${appUrl}/?wearable_error=internal` },
+      headers: { Location: `${appUrl}/wellness?wearable_error=internal` },
     });
   }
 });
