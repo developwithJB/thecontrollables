@@ -92,7 +92,10 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
 
       toast.success(`Synced ${data.days_synced} days from ${provider === "fitbit" ? "Fitbit" : provider === "whoop" ? "WHOOP" : "Oura"}`);
       queryClient.invalidateQueries({ queryKey: ["health-sync-last"] });
+      queryClient.invalidateQueries({ queryKey: ["health-sync-today"] });
+      queryClient.invalidateQueries({ queryKey: ["health-data-trend"] });
       queryClient.invalidateQueries({ queryKey: ["brain-body"] });
+      queryClient.invalidateQueries({ queryKey: ["wellness-goals"] });
       refetchConnections();
     } catch (err) {
       console.error("Sync error:", err);
