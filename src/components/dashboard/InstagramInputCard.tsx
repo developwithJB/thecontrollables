@@ -291,7 +291,7 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
                   <Film className="w-8 h-8 text-muted-foreground mx-auto" />
                   <p className="text-xs font-medium text-foreground">Stories aren't available via the API</p>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Instagram doesn't allow apps to pull stories. Use the <button onClick={() => setTab("screenshot")} className="text-accent underline underline-offset-2 font-medium">Screenshot</button> tab to capture a story and log it as proof.
+                  Instagram doesn't allow apps to pull stories. Use the <button onClick={() => setTab("screenshot")} className="text-accent underline underline-offset-2 font-medium">Photo</button> tab to capture a story and log it as proof.
                   </p>
                 </div>
               </div>
