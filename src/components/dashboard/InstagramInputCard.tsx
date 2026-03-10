@@ -341,7 +341,7 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
               </div>
             )}
 
-            {tab !== "my_posts" && (
+            {tab !== "my_posts" && tab !== "my_stories" && (
               <Button
                 onClick={handleAnalyze}
                 disabled={!canAnalyze || analyzing}
