@@ -247,6 +247,9 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
       sleep_minutes: (data as any).sleep_minutes ?? null,
       active_minutes: (data as any).active_minutes ?? null,
       heart_rate_avg: (data as any).heart_rate_avg ?? null,
+      recovery_score: (data as any).recovery_score ?? null,
+      hrv_ms: (data as any).hrv_ms ?? null,
+      strain_score: (data as any).strain_score ?? null,
       synced_at: new Date().toISOString(),
     }, { onConflict: "user_id,sync_date,source" });
   }
