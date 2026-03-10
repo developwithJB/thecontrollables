@@ -96,7 +96,7 @@ async function syncOura(accessToken: string, userId: string, supabase: any) {
   let synced = 0;
   for (const [date, data] of Object.entries(dayMap)) {
     if (!data.steps && !data.sleep_minutes && !data.active_minutes && !data.heart_rate_avg) continue;
-    await supabase.from("health_sync_data").upsert({ user_id: userId, sync_date: date, source: "oura", steps: data.steps ?? null, sleep_minutes: data.sleep_minutes ?? null, active_minutes: data.active_minutes ?? null, heart_rate_avg: data.heart_rate_avg ?? null, synced_at: new Date().toISOString() }, { onConflict: "user_id,sync_date,source" });
+    await supabase.from("health_sync_data").upsert({ user_id: userId, sync_date: date, source: "oura", steps: data.steps ?? null, sleep_minutes: data.sleep_minutes ?? null, active_minutes: data.active_minutes ?? null, heart_rate_avg: data.heart_rate_avg ?? null, recovery_score: data.recovery_score ?? null, hrv_ms: data.hrv_ms ?? null, strain_score: null, synced_at: new Date().toISOString() }, { onConflict: "user_id,sync_date,source" });
     synced++;
   }
   return synced;
