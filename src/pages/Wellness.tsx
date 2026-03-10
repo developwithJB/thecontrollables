@@ -101,8 +101,8 @@ export default function Wellness() {
       <ControllablePoweredBy controllables={["habit", "wellness"]} />
 
       {/* Wearable Integration */}
-      <WearableSummaryCard userId={user.id} />
-      <WearableTrendsCard userId={user.id} />
+      <WearableSummaryCard userId={user.id} isPaid={isPaid} onUpgrade={() => startCheckout("wearable_summary")} />
+      <WearableTrendsCard userId={user.id} isPaid={isPaid} onUpgrade={() => startCheckout("wearable_trends")} />
 
       {/* Brain & Body Tracker */}
       <BrainBodyTracker
