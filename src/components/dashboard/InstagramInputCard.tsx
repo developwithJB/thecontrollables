@@ -18,7 +18,7 @@ interface InstagramInputCardProps {
   preselectedRing?: RingKey;
 }
 
-type Tab = "my_posts" | "caption" | "screenshot";
+type Tab = "my_posts" | "my_stories" | "caption" | "screenshot";
 
 export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedRing }: InstagramInputCardProps) => {
   const [tab, setTab] = useState<Tab>("my_posts");
