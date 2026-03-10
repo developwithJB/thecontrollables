@@ -327,7 +327,6 @@ export function BrainBodyTracker({ userId, onLogWellness, onQuickLog, streak = 0
               <QuickCheckIn
                 onComplete={handleQuickComplete}
                 onLogInstead={onLogWellness}
-                onImport={onImportHealth}
               />
             )}
           </CardContent>

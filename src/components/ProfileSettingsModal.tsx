@@ -458,12 +458,6 @@ export function ProfileSettingsModal({
           </div>
         )}
 
-        {/* Health Data Sync Dialog */}
-        <HealthDataSync
-          open={healthSyncOpen}
-          onOpenChange={setHealthSyncOpen}
-          userId={userId}
-        />
       </DialogContent>
     </Dialog>
   );

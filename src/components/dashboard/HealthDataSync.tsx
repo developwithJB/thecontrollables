@@ -1,9 +1,9 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Apple, Smartphone, Upload, CheckCircle, AlertCircle, Loader2, Watch, Unlink, RefreshCw, Activity } from "lucide-react";
+import { CheckCircle, AlertCircle, Loader2, Watch, Unlink, RefreshCw, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -15,11 +15,9 @@ interface HealthDataSyncProps {
 }
 
 export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncProps) {
-  const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState("whoop");
   const [connecting, setConnecting] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   const { data: lastSync } = useQuery({
@@ -36,7 +34,6 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
     enabled: !!userId,
   });
 
-  // Query wearable connections
   const { data: wearableConnections = [], refetch: refetchConnections } = useQuery({
     queryKey: ["wearable-connections", userId],
     queryFn: async () => {
@@ -121,53 +118,6 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
     refetchConnections();
   }, [userId, refetchConnections]);
 
-  const handleUpload = async (file: File, source: "apple_health" | "google_fit") => {
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("source", source);
-
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      if (!token) { toast.error("Please sign in first"); return; }
-
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/parse-health-export`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        }
-      );
-
-      const result = await response.json();
-      if (!response.ok) { toast.error(result.error || "Upload failed"); return; }
-
-      toast.success(`Imported ${result.days_imported} days of health data`);
-      queryClient.invalidateQueries({ queryKey: ["health-sync-last"] });
-      queryClient.invalidateQueries({ queryKey: ["health-sync-today"] });
-      queryClient.invalidateQueries({ queryKey: ["health-data-trend"] });
-      queryClient.invalidateQueries({ queryKey: ["brain-body"] });
-      queryClient.invalidateQueries({ queryKey: ["wellness-goals"] });
-      onOpenChange(false);
-    } catch (err) {
-      console.error("Upload error:", err);
-      toast.error("Failed to upload health data");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const source = activeTab === "apple" ? "apple_health" : "google_fit";
-    handleUpload(file, source as "apple_health" | "google_fit");
-    e.target.value = "";
-  };
-
   const lastSyncDate = lastSync?.synced_at
     ? new Date(lastSync.synced_at).toLocaleDateString()
     : null;
@@ -250,8 +200,8 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Smartphone className="h-5 w-5 text-wellness" />
-            Connect Health Data
+            <Activity className="h-5 w-5 text-wellness" />
+            Connect Wearable
           </DialogTitle>
         </DialogHeader>
 
@@ -261,69 +211,27 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
             Last synced: {lastSyncDate}
             {lastSync?.source && (
               <Badge variant="secondary" className="text-[10px] ml-auto">
-                {lastSync.source === "apple_health" ? "Apple" : lastSync.source === "google_fit" ? "Google" : lastSync.source === "fitbit" ? "Fitbit" : lastSync.source === "whoop" ? "WHOOP" : "Oura"}
+                {lastSync.source === "fitbit" ? "Fitbit" : lastSync.source === "whoop" ? "WHOOP" : "Oura"}
               </Badge>
             )}
           </div>
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="whoop" className="gap-1 text-[10px] px-1">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="whoop" className="gap-1 text-xs">
               <Activity className="h-3 w-3" />
               WHOOP
             </TabsTrigger>
-            <TabsTrigger value="apple" className="gap-1 text-[10px] px-1">
-              <Apple className="h-3 w-3" />
-              Apple
-            </TabsTrigger>
-            <TabsTrigger value="google" className="gap-1 text-[10px] px-1">
-              <Smartphone className="h-3 w-3" />
-              Google
-            </TabsTrigger>
-            <TabsTrigger value="fitbit" className="gap-1 text-[10px] px-1">
+            <TabsTrigger value="fitbit" className="gap-1 text-xs">
               <Watch className="h-3 w-3" />
               Fitbit
             </TabsTrigger>
-            <TabsTrigger value="oura" className="gap-1 text-[10px] px-1">
+            <TabsTrigger value="oura" className="gap-1 text-xs">
               <Watch className="h-3 w-3" />
               Oura
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="apple" className="space-y-3 mt-3">
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p className="font-medium text-foreground">How to export:</p>
-              <ol className="list-decimal list-inside space-y-1.5 text-xs">
-                <li>Open the <strong>Health</strong> app on your iPhone</li>
-                <li>Tap your <strong>profile picture</strong> (top right)</li>
-                <li>Scroll down and tap <strong>Export All Health Data</strong></li>
-                <li>Save the ZIP and unzip it</li>
-                <li>Upload the <strong>export.xml</strong> file below</li>
-              </ol>
-            </div>
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/30 rounded px-2 py-1.5">
-              <AlertCircle className="h-3 w-3 shrink-0" />
-              Your data stays private — we only extract steps, sleep, and activity.
-            </div>
-          </TabsContent>
-
-          <TabsContent value="google" className="space-y-3 mt-3">
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p className="font-medium text-foreground">How to export:</p>
-              <ol className="list-decimal list-inside space-y-1.5 text-xs">
-                <li>Go to <strong>takeout.google.com</strong></li>
-                <li>Deselect all, then select <strong>Fit</strong></li>
-                <li>Click <strong>Next step</strong> → <strong>Create export</strong></li>
-                <li>Download and extract the ZIP</li>
-                <li>Upload the <strong>Daily activity metrics</strong> CSV below</li>
-              </ol>
-            </div>
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/30 rounded px-2 py-1.5">
-              <AlertCircle className="h-3 w-3 shrink-0" />
-              Your data stays private — we only extract steps, sleep, and activity.
-            </div>
-          </TabsContent>
 
           <TabsContent value="whoop">
             {renderWearableTab("whoop", whoopConnection)}
@@ -337,29 +245,6 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
             {renderWearableTab("oura", ouraConnection)}
           </TabsContent>
         </Tabs>
-
-        {(activeTab === "apple" || activeTab === "google") && (
-          <>
-            <input
-              ref={fileRef}
-              type="file"
-              accept={activeTab === "apple" ? ".xml" : ".csv"}
-              className="hidden"
-              onChange={onFileChange}
-            />
-            <Button
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
-              className="w-full gap-2"
-            >
-              {uploading ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Parsing health data...</>
-              ) : (
-                <><Upload className="h-4 w-4" /> Upload {activeTab === "apple" ? "XML" : "CSV"} File</>
-              )}
-            </Button>
-          </>
-        )}
       </DialogContent>
     </Dialog>
   );

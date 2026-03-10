@@ -110,7 +110,6 @@ export default function Wellness() {
         streak={wellnessStreak}
         onLogWellness={() => {}}
         onQuickLog={handleQuickLog}
-        onImportHealth={() => {}}
       />
 
       {/* Wellness Goals */}
