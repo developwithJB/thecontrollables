@@ -76,8 +76,8 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const callbackUrl = `${supabaseUrl}/functions/v1/integration-oauth-callback`;
 
-    // State encodes provider + userId + redirectUri
-    const state = btoa(JSON.stringify({ provider, userId, redirectUri }));
+    // State encodes provider + userId + redirectUri + popup flag
+    const state = btoa(JSON.stringify({ provider, userId, redirectUri, popup: true }));
 
     let authUrl: string;
 
