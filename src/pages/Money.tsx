@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, LayoutDashboard, Receipt, Target } from "lucide-react";
-import { SplashScreen } from "@/components/SplashScreen";
+import { LayoutDashboard, Receipt, Target } from "lucide-react";
+import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { useFinancialAccounts, useTransactions, useBudgetBuckets, useRecurringBills, useSubscriptions, useSavingsGoals } from "@/hooks/useMoney";
 import { MoneyOverview } from "@/components/money/MoneyOverview";
 import { BudgetManager } from "@/components/money/BudgetManager";
@@ -14,131 +11,118 @@ import { TransactionHistory } from "@/components/money/TransactionHistory";
 import { TransactionImporter } from "@/components/money/TransactionImporter";
 import { AccountManager } from "@/components/money/AccountManager";
 import { FinancialControllables } from "@/components/money/FinancialControllables";
-import type { User } from "@supabase/supabase-js";
+import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 
 export default function Money() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const user = useLifeOSUser();
   const [showImporter, setShowImporter] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setUser(data.user);
-      } else {
-        navigate("/auth");
-      }
-      setIsLoading(false);
-    });
-  }, [navigate]);
-
-  const { accounts, createAccount, deleteAccount } = useFinancialAccounts(user?.id || null);
-  const { transactions, addTransaction, isLoading: txnLoading } = useTransactions(user?.id || null);
-  const { buckets, createBucket, deleteBucket } = useBudgetBuckets(user?.id || null);
-  const { bills, createBill, markBillPaid } = useRecurringBills(user?.id || null);
-  const { subscriptions, createSubscription, cancelSubscription } = useSubscriptions(user?.id || null);
-  const { goals, createGoal, updateGoal, completeGoal } = useSavingsGoals(user?.id || null);
-
-  if (isLoading) return <SplashScreen />;
-  if (!user) return null;
+  const { accounts, createAccount, deleteAccount } = useFinancialAccounts(user.id);
+  const { transactions, addTransaction, isLoading: txnLoading } = useTransactions(user.id);
+  const { buckets, createBucket, deleteBucket } = useBudgetBuckets(user.id);
+  const { bills, createBill, markBillPaid } = useRecurringBills(user.id);
+  const { subscriptions, createSubscription, cancelSubscription } = useSubscriptions(user.id);
+  const { goals, createGoal, updateGoal, completeGoal } = useSavingsGoals(user.id);
 
   return (
-    <div className="min-h-screen bg-background pb-20 relative">
-      <div className="fixed inset-0 grid-bg pointer-events-none opacity-20" />
+    <div className="space-y-4">
       {/* Header */}
-      <div className="os-header">
-        <div className="max-w-lg md:max-w-4xl lg:max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-lg font-display font-semibold text-foreground">Money Hub</h1>
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-2xl">💰</span>
+          <h1 className="font-display text-2xl font-semibold text-foreground">Wealth</h1>
         </div>
+        <p className="text-muted-foreground text-sm">Your financial rhythm panel.</p>
       </div>
 
-      <div className="max-w-lg md:max-w-4xl lg:max-w-6xl mx-auto px-4 pt-4 space-y-4">
-        {/* Financial Controllables summary */}
-        <FinancialControllables
-          bills={bills}
-          subscriptions={subscriptions}
-          buckets={buckets}
-          goals={goals}
-          transactions={transactions}
+      <ControllablePoweredBy controllables={["awareness", "perspective", "habit", "environment"]} />
+
+      {/* Financial Controllables summary */}
+      <FinancialControllables
+        bills={bills}
+        subscriptions={subscriptions}
+        buckets={buckets}
+        goals={goals}
+        transactions={transactions}
+      />
+
+      {/* CSV Importer overlay */}
+      {showImporter && (
+        <TransactionImporter
+          userId={user.id}
+          onComplete={() => setShowImporter(false)}
+          onCancel={() => setShowImporter(false)}
         />
+      )}
 
-        {/* CSV Importer overlay */}
-        {showImporter && (
-          <TransactionImporter
-            userId={user.id}
-            onComplete={() => setShowImporter(false)}
-            onCancel={() => setShowImporter(false)}
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="w-full grid grid-cols-3">
+          <TabsTrigger value="overview" className="text-xs">
+            <LayoutDashboard className="h-3.5 w-3.5 mr-1.5" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="bills" className="text-xs">
+            <Receipt className="h-3.5 w-3.5 mr-1.5" />
+            Bills & Subs
+          </TabsTrigger>
+          <TabsTrigger value="goals" className="text-xs">
+            <Target className="h-3.5 w-3.5 mr-1.5" />
+            Goals
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="mt-4 space-y-4">
+          <MoneyOverview accounts={accounts} bills={bills} subscriptions={subscriptions} goals={goals} />
+          <AccountManager
+            accounts={accounts}
+            onCreateAccount={(a) => createAccount.mutate(a)}
+            onDeleteAccount={(id) => deleteAccount.mutate(id)}
+            isCreating={createAccount.isPending}
           />
-        )}
+          <BudgetManager
+            buckets={buckets}
+            transactions={transactions}
+            onCreateBucket={(b) => createBucket.mutate(b)}
+            onDeleteBucket={(id) => deleteBucket.mutate(id)}
+            isCreating={createBucket.isPending}
+          />
+          <TransactionHistory
+            transactions={transactions}
+            buckets={buckets}
+            onAddTransaction={(t) => addTransaction.mutate(t)}
+            onShowImport={() => setShowImporter(true)}
+            isAdding={addTransaction.isPending}
+          />
+        </TabsContent>
 
-        {/* Tabs — simplified to 3 */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-3">
-            <TabsTrigger value="overview" className="text-xs">
-              <LayoutDashboard className="h-3.5 w-3.5 mr-1.5" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="bills" className="text-xs">
-              <Receipt className="h-3.5 w-3.5 mr-1.5" />
-              Bills & Subs
-            </TabsTrigger>
-            <TabsTrigger value="goals" className="text-xs">
-              <Target className="h-3.5 w-3.5 mr-1.5" />
-              Goals
-            </TabsTrigger>
-          </TabsList>
+        <TabsContent value="bills" className="mt-4">
+          <BillsSubscriptions
+            bills={bills}
+            subscriptions={subscriptions}
+            onCreateBill={(b) => createBill.mutate(b)}
+            onMarkBillPaid={(id) => markBillPaid.mutate(id)}
+            onCreateSubscription={(s) => createSubscription.mutate(s)}
+            onCancelSubscription={(id) => cancelSubscription.mutate(id)}
+          />
+        </TabsContent>
 
-          <TabsContent value="overview" className="mt-4 space-y-4">
-            <MoneyOverview accounts={accounts} bills={bills} subscriptions={subscriptions} goals={goals} />
-            <AccountManager
-              accounts={accounts}
-              onCreateAccount={(a) => createAccount.mutate(a)}
-              onDeleteAccount={(id) => deleteAccount.mutate(id)}
-              isCreating={createAccount.isPending}
-            />
-            <BudgetManager
-              buckets={buckets}
-              transactions={transactions}
-              onCreateBucket={(b) => createBucket.mutate(b)}
-              onDeleteBucket={(id) => deleteBucket.mutate(id)}
-              isCreating={createBucket.isPending}
-            />
-            <TransactionHistory
-              transactions={transactions}
-              buckets={buckets}
-              onAddTransaction={(t) => addTransaction.mutate(t)}
-              onShowImport={() => setShowImporter(true)}
-              isAdding={addTransaction.isPending}
-            />
-          </TabsContent>
+        <TabsContent value="goals" className="mt-4">
+          <SavingsGoals
+            goals={goals}
+            onCreateGoal={(g) => createGoal.mutate(g)}
+            onUpdateGoal={(u) => updateGoal.mutate(u)}
+            onCompleteGoal={(id) => completeGoal.mutate(id)}
+            isCreating={createGoal.isPending}
+          />
+        </TabsContent>
+      </Tabs>
 
-          <TabsContent value="bills" className="mt-4">
-            <BillsSubscriptions
-              bills={bills}
-              subscriptions={subscriptions}
-              onCreateBill={(b) => createBill.mutate(b)}
-              onMarkBillPaid={(id) => markBillPaid.mutate(id)}
-              onCreateSubscription={(s) => createSubscription.mutate(s)}
-              onCancelSubscription={(id) => cancelSubscription.mutate(id)}
-            />
-          </TabsContent>
-
-          <TabsContent value="goals" className="mt-4">
-            <SavingsGoals
-              goals={goals}
-              onCreateGoal={(g) => createGoal.mutate(g)}
-              onUpdateGoal={(u) => updateGoal.mutate(u)}
-              onCompleteGoal={(id) => completeGoal.mutate(id)}
-              isCreating={createGoal.isPending}
-            />
-          </TabsContent>
-        </Tabs>
-      </div>
+      {/* Footer */}
+      <footer className="py-6 text-center">
+        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} AGB Coaching</p>
+      </footer>
     </div>
   );
 }
