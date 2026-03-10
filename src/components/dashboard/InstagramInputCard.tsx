@@ -199,8 +199,8 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
                   tab === "screenshot" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Camera className="w-3 h-3" />
-                Screenshot
+                <ImagePlus className="w-3 h-3" />
+                Photo
               </button>
             </div>
 
