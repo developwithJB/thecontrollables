@@ -321,7 +321,7 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
                     className="w-full h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1.5 hover:border-accent/50 hover:bg-accent/5 transition-colors"
                   >
                     <ImagePlus className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Tap to upload screenshot</span>
+                    <span className="text-xs text-muted-foreground">Choose from camera roll</span>
                   </button>
                 )}
                 <input
