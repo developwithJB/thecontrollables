@@ -90,9 +90,9 @@ export default function Wellness() {
 
       <ControllablePoweredBy controllables={["habit", "wellness"]} />
 
-      {/* WHOOP Integration */}
-      <WhoopSummaryCard userId={user.id} />
-      <WhoopTrendsCard userId={user.id} />
+      {/* Wearable Integration */}
+      <WearableSummaryCard userId={user.id} />
+      <WearableTrendsCard userId={user.id} />
 
       {/* Brain & Body Tracker */}
       <BrainBodyTracker

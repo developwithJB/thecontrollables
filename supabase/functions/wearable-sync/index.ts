@@ -85,6 +85,11 @@ async function syncOura(accessToken: string, userId: string, supabase: any) {
     const r = await fetch(`https://api.ouraring.com/v2/usercollection/daily_sleep?start_date=${startDate}&end_date=${endDate}`, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (r.ok) { const d = await r.json(); for (const item of d.data || []) { const day = item.day; if (!dayMap[day]) dayMap[day] = {}; dayMap[day].sleep_minutes = item.contributors?.total_sleep ? Math.round(item.contributors.total_sleep / 60) : (item.total_sleep_duration ? Math.round(item.total_sleep_duration / 60) : null); } }
   } catch (e) { console.error("Oura sleep error:", e); }
+  // Fetch readiness (recovery equivalent) and HRV
+  try {
+    const r = await fetch(`https://api.ouraring.com/v2/usercollection/daily_readiness?start_date=${startDate}&end_date=${endDate}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (r.ok) { const d = await r.json(); for (const item of d.data || []) { const day = item.day; if (!dayMap[day]) dayMap[day] = {}; dayMap[day].recovery_score = item.score ?? null; } }
+  } catch (e) { console.error("Oura readiness error:", e); }
   try {
     const r = await fetch(`https://api.ouraring.com/v2/usercollection/daily_activity?start_date=${startDate}&end_date=${endDate}`, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (r.ok) { const d = await r.json(); for (const item of d.data || []) { const day = item.day; if (!dayMap[day]) dayMap[day] = {}; dayMap[day].steps = item.steps ?? null; dayMap[day].active_minutes = item.high_activity_time ? Math.round(item.high_activity_time / 60) + Math.round((item.medium_activity_time || 0) / 60) : null; } }

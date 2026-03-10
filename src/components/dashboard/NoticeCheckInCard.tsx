@@ -76,10 +76,10 @@ export const NoticeCheckInCard = ({ userId, onComplete }: NoticeCheckInCardProps
 
   // WHOOP mismatch hint
   const whoopMismatch = (() => {
-    if (!whoopConnected || !latestRecovery || !result) return null;
-    const recovery = latestRecovery.recovery_score;
+    if (!wearableConnected || !result) return null;
+    const recovery = healthLatest.recovery;
     if (recovery === null) return null;
-    if (energy >= 4 && recovery < 33) return "Your body may be more depleted than you feel — WHOOP recovery is low";
+    if (energy >= 4 && recovery < 33) return "Your body may be more depleted than you feel — wearable recovery is low";
     if (energy <= 2 && recovery > 67) return "Your system is actually well-recovered — the low feeling may be mental";
     return null;
   })();
