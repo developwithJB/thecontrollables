@@ -1246,6 +1246,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ig_proof_entries: {
+        Row: {
+          ai_interpretation: string | null
+          attached_to_ring: boolean
+          caption_text: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          ring_key: string
+          source_type: string
+          tags: string[] | null
+          user_id: string
+        }
+        Insert: {
+          ai_interpretation?: string | null
+          attached_to_ring?: boolean
+          caption_text?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          ring_key: string
+          source_type: string
+          tags?: string[] | null
+          user_id: string
+        }
+        Update: {
+          ai_interpretation?: string | null
+          attached_to_ring?: boolean
+          caption_text?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          ring_key?: string
+          source_type?: string
+          tags?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       integration_connections: {
         Row: {
           access_token: string | null
