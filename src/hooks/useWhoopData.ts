@@ -135,6 +135,21 @@ export function useWhoopData(userId: string | undefined) {
     staleTime: 5 * 60_000,
   });
 
+  const { data: sleepTrend = [] } = useQuery({
+    queryKey: ["whoop-sleep-trend", userId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("whoop_sleeps")
+        .select("sleep_performance_pct, end_time")
+        .eq("user_id", userId!)
+        .order("end_time", { ascending: true })
+        .limit(7);
+      return (data || []) as { sleep_performance_pct: number | null; end_time: string | null }[];
+    },
+    enabled: !!userId && isConnected,
+    staleTime: 5 * 60_000,
+  });
+
   return {
     isConnected,
     connection,
@@ -143,5 +158,6 @@ export function useWhoopData(userId: string | undefined) {
     latestCycle,
     recoveryTrend,
     strainTrend,
+    sleepTrend,
   };
 }

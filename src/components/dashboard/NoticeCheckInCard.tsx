@@ -2,9 +2,10 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Scan, Brain, Zap, AlertTriangle, Heart } from "lucide-react";
+import { Scan, Brain, Zap, AlertTriangle, Heart, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useWhoopData } from "@/hooks/useWhoopData";
 
 const MOODS = [
   { value: "calm", emoji: "😌", label: "Calm" },
@@ -44,6 +45,7 @@ export const NoticeCheckInCard = ({ userId, onComplete }: NoticeCheckInCardProps
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<ReturnType<typeof getInterpretation> | null>(null);
+  const { isConnected: whoopConnected, latestRecovery } = useWhoopData(userId);
 
   const handleSubmit = async () => {
     if (!mood) return;
@@ -72,13 +74,31 @@ export const NoticeCheckInCard = ({ userId, onComplete }: NoticeCheckInCardProps
     }, 2000);
   };
 
+  // WHOOP mismatch hint
+  const whoopMismatch = (() => {
+    if (!whoopConnected || !latestRecovery || !result) return null;
+    const recovery = latestRecovery.recovery_score;
+    if (recovery === null) return null;
+    if (energy >= 4 && recovery < 33) return "Your body may be more depleted than you feel — WHOOP recovery is low";
+    if (energy <= 2 && recovery > 67) return "Your system is actually well-recovered — the low feeling may be mental";
+    return null;
+  })();
+
   if (result) {
     const Icon = result.icon;
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={cn("rounded-lg border p-4 text-center", VARIANT_STYLES[result.variant])}>
-        <Icon className="w-6 h-6 mx-auto mb-2" />
-        <p className="text-sm font-medium">{result.text}</p>
-        <p className="text-xs mt-2 opacity-70">Circuit scanned. Ring complete.</p>
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-2">
+        <div className={cn("rounded-lg border p-4 text-center", VARIANT_STYLES[result.variant])}>
+          <Icon className="w-6 h-6 mx-auto mb-2" />
+          <p className="text-sm font-medium">{result.text}</p>
+          <p className="text-xs mt-2 opacity-70">Circuit scanned. Ring complete.</p>
+        </div>
+        {whoopMismatch && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground bg-muted/50 border border-border">
+            <Activity className="h-3.5 w-3.5 flex-shrink-0" />
+            <span>{whoopMismatch}</span>
+          </div>
+        )}
       </motion.div>
     );
   }
