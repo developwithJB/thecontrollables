@@ -351,8 +351,10 @@ const Planner = () => {
                 connections={connections}
                 onConnect={() => startGoogleCalSync.mutate()}
                 onSync={(id) => triggerSync.mutate(id)}
+                onPushToday={handlePushToday}
                 isConnecting={startGoogleCalSync.isPending}
                 isSyncing={triggerSync.isPending}
+                isPushing={pushToGoogleCal.isPending}
               />
             </div>
           )}
