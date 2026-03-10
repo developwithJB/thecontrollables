@@ -43,7 +43,9 @@ import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
 import { TodayActions } from "@/components/dashboard/TodayActions";
 import { SnapshotReviewCard } from "@/components/dashboard/SnapshotReviewCard";
 import { DailyAlignmentSpotlight } from "@/components/dashboard/DailyAlignmentSpotlight";
-import { OperatorConsole } from "@/components/dashboard/OperatorConsole";
+import { AskDashboardBar } from "@/components/dashboard/AskDashboardBar";
+import { ForecastCard } from "@/components/dashboard/ForecastCard";
+import { AIRecommendedActions } from "@/components/dashboard/AIRecommendedActions";
 import { SeasonComplete } from "@/components/SeasonComplete";
 import { CompactRingsRow } from "@/components/dashboard/CompactRingsRow";
 import {
