@@ -105,6 +105,8 @@ export const PlannerDayView = ({
                       onEdit={onEdit}
                       onDelete={onDelete}
                       onReschedule={onReschedule}
+                      onPushToCalendar={onPushToCalendar}
+                      hasGoogleConnection={hasGoogleConnection}
                     />
                   ))}
                 </div>

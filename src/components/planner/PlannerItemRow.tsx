@@ -164,6 +164,11 @@ export const PlannerItemRow = ({
           <DropdownMenuItem onClick={() => onReschedule(item)}>
             <CalendarClock className="h-3.5 w-3.5 mr-2" /> Reschedule
           </DropdownMenuItem>
+          {hasGoogleConnection && !isExternal && onPushToCalendar && (
+            <DropdownMenuItem onClick={() => onPushToCalendar(item)}>
+              <Calendar className="h-3.5 w-3.5 mr-2" /> Push to Calendar
+            </DropdownMenuItem>
+          )}
           {!isExternal && (
             <DropdownMenuItem
               onClick={() => onDelete(item.id)}
