@@ -70,6 +70,7 @@ export default function Wellness() {
 
       {/* WHOOP Integration */}
       <WhoopSummaryCard userId={user.id} />
+      <WhoopTrendsCard userId={user.id} />
 
       {/* Brain & Body Tracker */}
       <BrainBodyTracker
