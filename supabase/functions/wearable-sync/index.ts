@@ -85,6 +85,11 @@ async function syncOura(accessToken: string, userId: string, supabase: any) {
     const r = await fetch(`https://api.ouraring.com/v2/usercollection/daily_sleep?start_date=${startDate}&end_date=${endDate}`, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (r.ok) { const d = await r.json(); for (const item of d.data || []) { const day = item.day; if (!dayMap[day]) dayMap[day] = {}; dayMap[day].sleep_minutes = item.contributors?.total_sleep ? Math.round(item.contributors.total_sleep / 60) : (item.total_sleep_duration ? Math.round(item.total_sleep_duration / 60) : null); } }
   } catch (e) { console.error("Oura sleep error:", e); }
+  // Fetch readiness (recovery equivalent) and HRV
+  try {
+    const r = await fetch(`https://api.ouraring.com/v2/usercollection/daily_readiness?start_date=${startDate}&end_date=${endDate}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (r.ok) { const d = await r.json(); for (const item of d.data || []) { const day = item.day; if (!dayMap[day]) dayMap[day] = {}; dayMap[day].recovery_score = item.score ?? null; } }
+  } catch (e) { console.error("Oura readiness error:", e); }
   try {
     const r = await fetch(`https://api.ouraring.com/v2/usercollection/daily_activity?start_date=${startDate}&end_date=${endDate}`, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (r.ok) { const d = await r.json(); for (const item of d.data || []) { const day = item.day; if (!dayMap[day]) dayMap[day] = {}; dayMap[day].steps = item.steps ?? null; dayMap[day].active_minutes = item.high_activity_time ? Math.round(item.high_activity_time / 60) + Math.round((item.medium_activity_time || 0) / 60) : null; } }
@@ -96,7 +101,7 @@ async function syncOura(accessToken: string, userId: string, supabase: any) {
   let synced = 0;
   for (const [date, data] of Object.entries(dayMap)) {
     if (!data.steps && !data.sleep_minutes && !data.active_minutes && !data.heart_rate_avg) continue;
-    await supabase.from("health_sync_data").upsert({ user_id: userId, sync_date: date, source: "oura", steps: data.steps ?? null, sleep_minutes: data.sleep_minutes ?? null, active_minutes: data.active_minutes ?? null, heart_rate_avg: data.heart_rate_avg ?? null, synced_at: new Date().toISOString() }, { onConflict: "user_id,sync_date,source" });
+    await supabase.from("health_sync_data").upsert({ user_id: userId, sync_date: date, source: "oura", steps: data.steps ?? null, sleep_minutes: data.sleep_minutes ?? null, active_minutes: data.active_minutes ?? null, heart_rate_avg: data.heart_rate_avg ?? null, recovery_score: data.recovery_score ?? null, hrv_ms: data.hrv_ms ?? null, strain_score: null, synced_at: new Date().toISOString() }, { onConflict: "user_id,sync_date,source" });
     synced++;
   }
   return synced;
@@ -218,6 +223,8 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
     if (!date) continue;
     if (!dayMap[date]) dayMap[date] = {};
     dayMap[date].heart_rate_avg = rec.resting_heart_rate;
+    dayMap[date].recovery_score = rec.recovery_score;
+    dayMap[date].hrv_ms = rec.hrv_rmssd_milli;
   }
 
   for (const sleep of recentSleeps || []) {
@@ -235,6 +242,7 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
     // Use strain as a proxy for active minutes (WHOOP strain 0-21 → scale to minutes)
     if (cycle.strain) {
       dayMap[date].active_minutes = Math.round(cycle.strain * 5);
+      dayMap[date].strain_score = cycle.strain;
     }
   }
 
@@ -247,6 +255,9 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
       sleep_minutes: (data as any).sleep_minutes ?? null,
       active_minutes: (data as any).active_minutes ?? null,
       heart_rate_avg: (data as any).heart_rate_avg ?? null,
+      recovery_score: (data as any).recovery_score ?? null,
+      hrv_ms: (data as any).hrv_ms ?? null,
+      strain_score: (data as any).strain_score ?? null,
       synced_at: new Date().toISOString(),
     }, { onConflict: "user_id,sync_date,source" });
   }

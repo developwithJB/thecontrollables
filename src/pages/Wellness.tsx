@@ -11,8 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 
 import { BrainBodyTracker } from "@/components/dashboard/BrainBodyTracker";
 import { WellnessGoalsCard } from "@/components/dashboard/WellnessGoalsCard";
-import { WhoopSummaryCard } from "@/components/wellness/WhoopSummaryCard";
-import { WhoopTrendsCard } from "@/components/wellness/WhoopTrendsCard";
+import { WearableSummaryCard } from "@/components/wellness/WearableSummaryCard";
+import { WearableTrendsCard } from "@/components/wellness/WearableTrendsCard";
 import { DailyOSCard } from "@/components/dashboard/DailyOSCard";
 import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
 import { WellnessStreakHistory } from "@/components/experience/WellnessStreakHistory";
@@ -90,9 +90,9 @@ export default function Wellness() {
 
       <ControllablePoweredBy controllables={["habit", "wellness"]} />
 
-      {/* WHOOP Integration */}
-      <WhoopSummaryCard userId={user.id} />
-      <WhoopTrendsCard userId={user.id} />
+      {/* Wearable Integration */}
+      <WearableSummaryCard userId={user.id} />
+      <WearableTrendsCard userId={user.id} />
 
       {/* Brain & Body Tracker */}
       <BrainBodyTracker

@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Scan, Brain, Zap, AlertTriangle, Heart, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { useWhoopData } from "@/hooks/useWhoopData";
+import { useHealthData } from "@/hooks/useHealthData";
 
 const MOODS = [
   { value: "calm", emoji: "😌", label: "Calm" },
@@ -45,7 +45,7 @@ export const NoticeCheckInCard = ({ userId, onComplete }: NoticeCheckInCardProps
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<ReturnType<typeof getInterpretation> | null>(null);
-  const { isConnected: whoopConnected, latestRecovery } = useWhoopData(userId);
+  const { isConnected: wearableConnected, latest: healthLatest } = useHealthData(userId);
 
   const handleSubmit = async () => {
     if (!mood) return;
@@ -76,10 +76,10 @@ export const NoticeCheckInCard = ({ userId, onComplete }: NoticeCheckInCardProps
 
   // WHOOP mismatch hint
   const whoopMismatch = (() => {
-    if (!whoopConnected || !latestRecovery || !result) return null;
-    const recovery = latestRecovery.recovery_score;
+    if (!wearableConnected || !result) return null;
+    const recovery = healthLatest.recovery;
     if (recovery === null) return null;
-    if (energy >= 4 && recovery < 33) return "Your body may be more depleted than you feel — WHOOP recovery is low";
+    if (energy >= 4 && recovery < 33) return "Your body may be more depleted than you feel — wearable recovery is low";
     if (energy <= 2 && recovery > 67) return "Your system is actually well-recovered — the low feeling may be mental";
     return null;
   })();

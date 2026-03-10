@@ -1,4 +1,4 @@
-import { useWhoopData } from "@/hooks/useWhoopData";
+import { useHealthData } from "@/hooks/useHealthData";
 import { Activity, Battery, BedDouble, Zap } from "lucide-react";
 
 interface PlannerWellnessBannerProps {
@@ -6,13 +6,13 @@ interface PlannerWellnessBannerProps {
 }
 
 export function PlannerWellnessBanner({ userId }: PlannerWellnessBannerProps) {
-  const { isConnected, latestRecovery, latestSleep, latestCycle } = useWhoopData(userId);
+  const { isConnected, latest } = useHealthData(userId);
 
-  if (!isConnected || !latestRecovery) return null;
+  if (!isConnected) return null;
 
-  const recovery = latestRecovery.recovery_score;
-  const sleepPerf = latestSleep?.sleep_performance_pct;
-  const strain = latestCycle?.strain;
+  const recovery = latest.recovery;
+  const sleepMins = latest.sleepMinutes;
+  const strain = latest.strain;
 
   let message = "";
   let Icon = Activity;
@@ -24,7 +24,7 @@ export function PlannerWellnessBanner({ userId }: PlannerWellnessBannerProps) {
     Icon = Battery;
     colorClass = "text-destructive";
     bgClass = "bg-destructive/10";
-  } else if (sleepPerf !== null && sleepPerf < 70) {
+  } else if (sleepMins !== null && sleepMins < 360) {
     message = "Sleep was short — protect your morning focus window";
     Icon = BedDouble;
     colorClass = "text-orange-500";

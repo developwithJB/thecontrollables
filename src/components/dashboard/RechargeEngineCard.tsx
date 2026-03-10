@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Battery, Droplets, Moon, Footprints, Apple, Sun, Wind, RotateCcw, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { useWhoopData } from "@/hooks/useWhoopData";
+import { useHealthData } from "@/hooks/useHealthData";
 
 const RECHARGE_TYPES = [
   { value: "movement", label: "Movement", icon: Footprints, color: "text-green-400" },
@@ -26,7 +26,7 @@ export const RechargeEngineCard = ({ userId, onComplete, lowEnergy }: RechargeEn
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [todayLogs, setTodayLogs] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const { isConnected: whoopConnected, latestRecovery, latestCycle, latestSleep } = useWhoopData(userId);
+  const { isConnected: wearableConnected, latest: healthLatest } = useHealthData(userId);
 
   const todayStr = new Date().toLocaleDateString("sv-SE");
 
@@ -71,13 +71,13 @@ export const RechargeEngineCard = ({ userId, onComplete, lowEnergy }: RechargeEn
 
   // WHOOP context hint
   const whoopHint = (() => {
-    if (!whoopConnected || !latestRecovery) return null;
-    const recovery = latestRecovery.recovery_score;
-    const strain = latestCycle?.strain;
-    const sleepPerf = latestSleep?.sleep_performance_pct;
-    if (recovery !== null && recovery < 50) return { text: "WHOOP shows low recovery — prioritize sleep & recovery today", color: "text-orange-500 bg-orange-500/10" };
+    if (!wearableConnected) return null;
+    const recovery = healthLatest.recovery;
+    const strain = healthLatest.strain;
+    const sleepMins = healthLatest.sleepMinutes;
+    if (recovery !== null && recovery < 50) return { text: "Wearable shows low recovery — prioritize sleep & recovery today", color: "text-orange-500 bg-orange-500/10" };
     if (strain !== null && strain > 14) return { text: "High strain yesterday — consider lighter activity", color: "text-orange-500 bg-orange-500/10" };
-    if (sleepPerf !== null && sleepPerf > 80 && recovery !== null && recovery > 67) return { text: "Great recovery — you're charged for a strong day", color: "text-green-500 bg-green-500/10" };
+    if (sleepMins !== null && sleepMins > 420 && recovery !== null && recovery > 67) return { text: "Great recovery — you're charged for a strong day", color: "text-green-500 bg-green-500/10" };
     return null;
   })();
 

@@ -117,7 +117,7 @@ export function useBrainBodyHealth(userId: string | undefined): BrainBodyHealth 
     queryFn: async () => {
       const { data } = await supabase
         .from("health_sync_data")
-        .select("steps, sleep_minutes, active_minutes, heart_rate_avg, sync_date")
+        .select("steps, sleep_minutes, active_minutes, heart_rate_avg, sync_date, recovery_score, hrv_ms, strain_score")
         .eq("user_id", userId!)
         .gte("sync_date", sevenDaysAgo)
         .order("sync_date", { ascending: false })
@@ -190,16 +190,35 @@ export function useBrainBodyHealth(userId: string | undefined): BrainBodyHealth 
       ? Math.min(100, nutritionBase + mealNutritionBoost)
       : mealNutritionBoost > 0 ? 60 : -1;
 
+    // --- Recovery score from wearable (0-100) ---
+    const hsRecoveryScores = hs
+      .map((h: any) => h.recovery_score as number | null)
+      .filter((s): s is number => s !== null && s >= 0);
+    const avgRecovery = hsRecoveryScores.length > 0
+      ? Math.round(hsRecoveryScores.reduce((a, b) => a + b, 0) / hsRecoveryScores.length)
+      : -1;
+
+    // --- Strain score from wearable (0-21 → normalize to 0-100) ---
+    const hsStrainScores = hs
+      .map((h: any) => h.strain_score as number | null)
+      .filter((s): s is number => s !== null);
+    const avgStrainNorm = hsStrainScores.length > 0
+      ? Math.round((hsStrainScores.reduce((a, b) => a + b, 0) / hsStrainScores.length / 21) * 100)
+      : -1;
+
     const brainScore = Math.max(0, weightedAvg([
-      { score: sleepScore, weight: 0.4 },
-      { score: screenScore, weight: 0.3 },
-      { score: nutritionScore, weight: 0.3 },
+      { score: sleepScore, weight: 0.3 },
+      { score: screenScore, weight: 0.25 },
+      { score: nutritionScore, weight: 0.2 },
+      { score: avgRecovery, weight: 0.25 },
     ]));
 
     const bodyScore = Math.max(0, weightedAvg([
-      { score: movementScore, weight: 0.4 },
-      { score: sleepScore, weight: 0.3 },
-      { score: nutritionScore, weight: 0.3 },
+      { score: movementScore, weight: 0.3 },
+      { score: sleepScore, weight: 0.2 },
+      { score: nutritionScore, weight: 0.2 },
+      { score: avgStrainNorm, weight: 0.15 },
+      { score: avgRecovery, weight: 0.15 },
     ]));
 
     // Trend
