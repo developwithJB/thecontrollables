@@ -286,6 +286,23 @@ export const Day7Complete = ({
             </motion.div>
           )}
 
+          {/* Share your win */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.58 }}
+            className="mb-6"
+          >
+            <Button
+              onClick={() => setIsShareOpen(true)}
+              variant="outline"
+              className="w-full h-12 border-accent/30 hover:bg-accent/5"
+            >
+              <Share2 className="w-4 h-4 mr-2 text-accent" />
+              Share Your Win
+            </Button>
+          </motion.div>
+
           {/* Affirmation */}
           <motion.p
             initial={{ opacity: 0 }}
