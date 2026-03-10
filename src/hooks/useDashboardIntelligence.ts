@@ -12,6 +12,9 @@ export interface DashboardIntelligence {
   why_it_matters: string;
   best_next_move: string;
   tomorrow_forecast: string;
+  snapshot_forecast: string;
+  month_forecast: string;
+  year_forecast: string;
   signals: {
     energy_trend: DashboardSignal;
     confidence_signal: DashboardSignal;

@@ -29,11 +29,13 @@ serve(async (req) => {
     // Gather context data in parallel
     const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
 
-    const [ringsHistory, wellnessLogs, noticeEntries, proofActions] = await Promise.all([
+    const [ringsHistory, wellnessLogs, noticeEntries, proofActions, activeSession, plannerItems] = await Promise.all([
       supabase.from("daily_rings").select("*").eq("user_id", userId).gte("ring_date", sevenDaysAgo).order("ring_date", { ascending: false }).limit(7),
       supabase.from("wellness_logs" as any).select("*").eq("user_id", userId).gte("log_date", sevenDaysAgo).order("log_date", { ascending: false }).limit(7),
       supabase.from("notice_entries" as any).select("mood, energy_level, stress_level").eq("user_id", userId).gte("entry_date", sevenDaysAgo).limit(7),
       supabase.from("proof_actions").select("completed, category").eq("user_id", userId).gte("action_date", sevenDaysAgo).limit(14),
+      supabase.from("reset_sessions").select("start_date, current_day, journey_id, status").eq("user_id", userId).eq("status", "active").limit(1).maybeSingle(),
+      supabase.from("planner_items").select("title, scheduled_date, status, item_type").eq("user_id", userId).gte("scheduled_date", todayStr).order("scheduled_date").limit(10),
     ]);
 
     // Build context summary
@@ -87,6 +89,13 @@ serve(async (req) => {
       ? Math.round((proofData.filter((p: any) => p.completed).length / proofData.length) * 100)
       : 0;
 
+    const sessionData = activeSession?.data;
+    const snapshotContext = sessionData
+      ? `Active Snapshot: day ${sessionData.current_day}/7, started ${sessionData.start_date}, journey ${sessionData.journey_id || "none"}`
+      : "No active snapshot";
+
+    const upcomingPlanner = (plannerItems?.data || []).slice(0, 5).map((i: any) => `${i.scheduled_date}: ${i.title} (${i.status})`).join("; ");
+
     const contextPrompt = `
 Today's date: ${todayStr}
 Rings completed today: ${completedCount}/5 (${todayRingsSummary})
@@ -98,6 +107,8 @@ Weakest ring this week: ${weakest} (${ringCounts[weakest]}/7)
 Average energy (7d): ${avgEnergy}/5
 Average stress (7d): ${avgStress}/5
 Proof action completion rate (7d): ${proofCompletionRate}%
+${snapshotContext}
+Upcoming planned items: ${upcomingPlanner || "none"}
 `;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -117,6 +128,11 @@ Proof action completion rate (7d): ${proofCompletionRate}%
             content: `You are an intelligent behavioral analysis system for a self-leadership app called The Controllables. The 5 rings are: Notice (awareness/emotional scanning), Choose (perspective/reframing), Prove (habit/proof actions), Charge (wellness/physical recharge), Align (environment/space optimization).
 
 Analyze the user's data and return a structured intelligence report. Be specific, grounded in data, and use system-intelligence language. Never be cheesy. Be concise — each field should be 1-2 sentences max. Use terms like "pattern detected", "signal", "primary driver", "forecast", "drift risk".
+
+For the forecast fields:
+- snapshot_forecast: Project the remaining days of the current snapshot (7-day cycle) based on trajectory. What's likely to happen and what to watch for.
+- month_forecast: Project the current month's outcome based on patterns. Include likely completion rates and key risks.
+- year_forecast: High-level trajectory projection. Where is the user heading if current patterns continue for 12 months?
 
 The ring names map to controllables: Notice=Awareness, Choose=Perspective, Prove=Habit, Charge=Wellness, Align=Environment.`
           },
@@ -138,6 +154,9 @@ The ring names map to controllables: Notice=Awareness, Choose=Perspective, Prove
                   why_it_matters: { type: "string", description: "Why this pattern matters for the user's growth. 1-2 sentences." },
                   best_next_move: { type: "string", description: "A specific recommended action for tonight or tomorrow morning. 1 sentence." },
                   tomorrow_forecast: { type: "string", description: "A predictive statement about tomorrow's likely challenges or opportunities. 1-2 sentences." },
+                  snapshot_forecast: { type: "string", description: "Projection for the remaining days of the current snapshot based on trajectory. 2-3 sentences." },
+                  month_forecast: { type: "string", description: "Projection for the current month based on patterns, including likely completion rates and key risks. 2-3 sentences." },
+                  year_forecast: { type: "string", description: "High-level trajectory projection if current patterns continue for 12 months. 2-3 sentences." },
                   signals: {
                     type: "object",
                     properties: {
@@ -178,7 +197,7 @@ The ring names map to controllables: Notice=Awareness, Choose=Perspective, Prove
                     description: "4-5 short labels to rotate in the ring center display. Max 5 words each.",
                   },
                 },
-                required: ["pattern_detected", "why_it_matters", "best_next_move", "tomorrow_forecast", "signals", "why_fully_charged", "recommended_actions", "memory_comparisons", "center_rotations"],
+                required: ["pattern_detected", "why_it_matters", "best_next_move", "tomorrow_forecast", "snapshot_forecast", "month_forecast", "year_forecast", "signals", "why_fully_charged", "recommended_actions", "memory_comparisons", "center_rotations"],
                 additionalProperties: false,
               },
             },

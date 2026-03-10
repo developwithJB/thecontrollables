@@ -2,7 +2,8 @@ import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { DailyRings } from "./DailyRings";
 import { WeeklyRecapCard } from "./WeeklyRecapCard";
-import { TomorrowForecastCard } from "./TomorrowForecastCard";
+import { ForecastCard } from "./ForecastCard";
+import { QuickHistoryEntry } from "./QuickHistoryEntry";
 import { AskDashboardBar } from "./AskDashboardBar";
 import { AIRecommendedActions } from "./AIRecommendedActions";
 import { motion, AnimatePresence } from "framer-motion";
@@ -141,6 +142,7 @@ export const CommandModeView = ({
           <Brain className="w-3.5 h-3.5" />
           Build
         </Button>
+        <QuickHistoryEntry userId={userId} />
       </motion.div>
 
       {/* Ask Dashboard Bar */}
@@ -151,7 +153,7 @@ export const CommandModeView = ({
       {/* Tomorrow Forecast */}
       {completedCount >= 3 && (
         <div className="mt-3 max-w-sm mx-auto w-full">
-          <TomorrowForecastCard data={intelligence.data} />
+          <ForecastCard data={intelligence.data} />
         </div>
       )}
 
