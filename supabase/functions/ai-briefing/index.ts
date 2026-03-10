@@ -133,6 +133,30 @@ Deno.serve(async (req) => {
     );
     contextParts.push(`Controllable Levels (Overall Build Lv.${overallLevel}):\n${levelLines.join('\n')}`);
 
+    // Fetch WHOOP biometric data
+    const [whoopRecoveryRes, whoopSleepRes, whoopCycleRes] = await Promise.all([
+      serviceClient.from('whoop_recoveries').select('recovery_score, hrv_rmssd_milli, resting_heart_rate, recorded_at')
+        .eq('user_id', userId).order('recorded_at', { ascending: false }).limit(1).maybeSingle(),
+      serviceClient.from('whoop_sleeps').select('sleep_performance_pct, sleep_efficiency_pct, end_time')
+        .eq('user_id', userId).order('end_time', { ascending: false }).limit(1).maybeSingle(),
+      serviceClient.from('whoop_cycles').select('strain, start_time')
+        .eq('user_id', userId).order('start_time', { ascending: false }).limit(1).maybeSingle(),
+    ]);
+
+    const whoopParts: string[] = [];
+    if (whoopRecoveryRes.data) {
+      whoopParts.push(`WHOOP Recovery: ${whoopRecoveryRes.data.recovery_score}%${whoopRecoveryRes.data.hrv_rmssd_milli ? `, HRV: ${whoopRecoveryRes.data.hrv_rmssd_milli}ms` : ''}`);
+    }
+    if (whoopSleepRes.data) {
+      whoopParts.push(`Sleep Performance: ${whoopSleepRes.data.sleep_performance_pct}%`);
+    }
+    if (whoopCycleRes.data) {
+      whoopParts.push(`Today's Strain: ${whoopCycleRes.data.strain}`);
+    }
+    if (whoopParts.length > 0) {
+      contextParts.push(`WHOOP Biometrics: ${whoopParts.join(', ')}`);
+    }
+
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'AI not configured' }), {
@@ -151,6 +175,7 @@ RULES:
 - Total max 60 words across all 3 lines
 - Be specific to THEIR data, not generic advice
 - Match the voice of ${controllableInfo.name}: ${controllableInfo.key === 'habit' ? 'direct, action-focused' : controllableInfo.key === 'awareness' ? 'observational, calm' : controllableInfo.key === 'perspective' ? 'wise, reframing' : controllableInfo.key === 'wellness' ? 'systems-focused' : 'design-focused'}
+- If WHOOP data is present, weave biometric signals into your observation and suggestion. Reference recovery, sleep quality, or strain when relevant.
 - No motivational fluff. Be real.
 - Format as 3 separate lines`;
 

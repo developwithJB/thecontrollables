@@ -29,13 +29,19 @@ serve(async (req) => {
     // Gather context data in parallel
     const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
 
-    const [ringsHistory, wellnessLogs, noticeEntries, proofActions, activeSession, plannerItems] = await Promise.all([
+    // Service client for WHOOP data (needs service role to bypass RLS on whoop tables)
+    const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    const [ringsHistory, wellnessLogs, noticeEntries, proofActions, activeSession, plannerItems, whoopRecoveries, whoopSleeps, whoopCycles] = await Promise.all([
       supabase.from("daily_rings").select("*").eq("user_id", userId).gte("ring_date", sevenDaysAgo).order("ring_date", { ascending: false }).limit(7),
       supabase.from("wellness_logs" as any).select("*").eq("user_id", userId).gte("log_date", sevenDaysAgo).order("log_date", { ascending: false }).limit(7),
       supabase.from("notice_entries" as any).select("mood, energy_level, stress_level").eq("user_id", userId).gte("entry_date", sevenDaysAgo).limit(7),
       supabase.from("proof_actions").select("completed, category").eq("user_id", userId).gte("action_date", sevenDaysAgo).limit(14),
       supabase.from("reset_sessions").select("start_date, current_day, journey_id, status").eq("user_id", userId).eq("status", "active").limit(1).maybeSingle(),
       supabase.from("planner_items").select("title, scheduled_date, status, item_type").eq("user_id", userId).gte("scheduled_date", todayStr).order("scheduled_date").limit(10),
+      serviceClient.from("whoop_recoveries").select("recovery_score, hrv_rmssd_milli, resting_heart_rate, spo2_percentage, skin_temp_celsius, recorded_at").eq("user_id", userId).gte("recorded_at", sevenDaysAgo).order("recorded_at", { ascending: false }).limit(7),
+      serviceClient.from("whoop_sleeps").select("sleep_performance_pct, sleep_efficiency_pct, respiratory_rate, total_in_bed_ms, total_rem_ms, total_sws_ms, start_time, end_time").eq("user_id", userId).gte("end_time", sevenDaysAgo).order("end_time", { ascending: false }).limit(7),
+      serviceClient.from("whoop_cycles").select("strain, kilojoules, avg_heart_rate, max_heart_rate, start_time").eq("user_id", userId).gte("start_time", sevenDaysAgo).order("start_time", { ascending: false }).limit(7),
     ]);
 
     // Build context summary
@@ -96,6 +102,41 @@ serve(async (req) => {
 
     const upcomingPlanner = (plannerItems?.data || []).slice(0, 5).map((i: any) => `${i.scheduled_date}: ${i.title} (${i.status})`).join("; ");
 
+    // WHOOP biometric context
+    const whoopRecoveryData = whoopRecoveries.data || [];
+    const whoopSleepData = whoopSleeps.data || [];
+    const whoopCycleData = whoopCycles.data || [];
+    const hasWhoop = whoopRecoveryData.length > 0 || whoopSleepData.length > 0;
+
+    let whoopContext = "";
+    if (hasWhoop) {
+      const latestRecovery = whoopRecoveryData[0];
+      const latestSleep = whoopSleepData[0];
+      const latestCycle = whoopCycleData[0];
+      const recoveryTrend = whoopRecoveryData.map((r: any) => r.recovery_score).filter(Boolean);
+      const strainTrend = whoopCycleData.map((c: any) => c.strain).filter(Boolean);
+
+      whoopContext = `\nWHOOP Biometrics (latest):`;
+      if (latestRecovery) {
+        whoopContext += `\n- Recovery: ${latestRecovery.recovery_score}%`;
+        if (latestRecovery.hrv_rmssd_milli) whoopContext += `, HRV: ${latestRecovery.hrv_rmssd_milli}ms`;
+        if (latestRecovery.resting_heart_rate) whoopContext += `, RHR: ${latestRecovery.resting_heart_rate}bpm`;
+      }
+      if (latestSleep) {
+        whoopContext += `\n- Sleep Performance: ${latestSleep.sleep_performance_pct}%`;
+        if (latestSleep.sleep_efficiency_pct) whoopContext += `, Efficiency: ${latestSleep.sleep_efficiency_pct}%`;
+      }
+      if (latestCycle) {
+        whoopContext += `\n- Strain: ${latestCycle.strain}`;
+      }
+      if (recoveryTrend.length > 1) {
+        whoopContext += `\n- 7d Recovery trend: ${recoveryTrend.join(", ")}`;
+      }
+      if (strainTrend.length > 1) {
+        whoopContext += `\n- 7d Strain trend: ${strainTrend.join(", ")}`;
+      }
+    }
+
     const contextPrompt = `
 Today's date: ${todayStr}
 Rings completed today: ${completedCount}/5 (${todayRingsSummary})
@@ -108,7 +149,7 @@ Average energy (7d): ${avgEnergy}/5
 Average stress (7d): ${avgStress}/5
 Proof action completion rate (7d): ${proofCompletionRate}%
 ${snapshotContext}
-Upcoming planned items: ${upcomingPlanner || "none"}
+Upcoming planned items: ${upcomingPlanner || "none"}${whoopContext}
 `;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -128,6 +169,13 @@ Upcoming planned items: ${upcomingPlanner || "none"}
             content: `You are an intelligent behavioral analysis system for a self-leadership app called The Controllables. The 5 rings are: Notice (awareness/emotional scanning), Choose (perspective/reframing), Prove (habit/proof actions), Charge (wellness/physical recharge), Align (environment/space optimization).
 
 Analyze the user's data and return a structured intelligence report. Be specific, grounded in data, and use system-intelligence language. Never be cheesy. Be concise — each field should be 1-2 sentences max. Use terms like "pattern detected", "signal", "primary driver", "forecast", "drift risk".
+
+If WHOOP biometric data is present, factor it into your analysis:
+- If recovery < 33%, flag energy risk in energy_trend signal (direction: down). Recommend lighter schedule and recovery behaviors.
+- If sleep performance < 70%, note sleep deficit in stress_load signal. Suggest protecting sleep and lighter morning load.
+- If strain is high (>14) + recovery is low (<50%), flag overtraining risk. Recommend recovery day.
+- If recovery > 66% and sleep > 85%, note strong readiness — good day for deep work or challenging tasks.
+- Weave biometric signals into pattern_detected, best_next_move, and recommended_actions when relevant.
 
 For the forecast fields:
 - snapshot_forecast: Project the remaining days of the current snapshot (7-day cycle) based on trajectory. What's likely to happen and what to watch for.

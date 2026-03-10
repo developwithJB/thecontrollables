@@ -32,6 +32,7 @@ import { QuickAddSheet } from "@/components/planner/QuickAddSheet";
 import { PlannerRoutineManager } from "@/components/planner/PlannerRoutineManager";
 import { PlannerCalendarConnect } from "@/components/planner/PlannerCalendarConnect";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
+import { PlannerWellnessBanner } from "@/components/planner/PlannerWellnessBanner";
 
 const Planner = () => {
   const user = useLifeOSUser();
@@ -198,6 +199,7 @@ const Planner = () => {
           </div>
         </div>
         <ControllablePoweredBy controllables={["awareness", "habit", "wellness", "environment"]} />
+        <PlannerWellnessBanner userId={user.id} />
       </div>
 
       {/* Date strip (mobile) */}

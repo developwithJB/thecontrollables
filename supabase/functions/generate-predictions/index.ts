@@ -79,6 +79,9 @@ Deno.serve(async (req) => {
       billsRes,
       promisesRes,
       dailyResetsRes,
+      whoopRecoveryRes,
+      whoopSleepRes,
+      whoopCycleRes,
     ] = await Promise.all([
       admin.from("planner_items").select("id, title, status, start_time, end_time, energy_level, item_type")
         .eq("user_id", userId).eq("scheduled_date", today),
@@ -102,6 +105,12 @@ Deno.serve(async (req) => {
         .eq("user_id", userId).gte("promised_at", thirtyDaysAgo.toISOString()),
       admin.from("daily_resets").select("completed_at, day_number")
         .eq("user_id", userId).gte("completed_at", sevenDaysAgo.toISOString()),
+      admin.from("whoop_recoveries").select("recovery_score, recorded_at")
+        .eq("user_id", userId).order("recorded_at", { ascending: false }).limit(1).maybeSingle(),
+      admin.from("whoop_sleeps").select("sleep_performance_pct, end_time")
+        .eq("user_id", userId).order("end_time", { ascending: false }).limit(1).maybeSingle(),
+      admin.from("whoop_cycles").select("strain, start_time")
+        .eq("user_id", userId).order("start_time", { ascending: false }).limit(1).maybeSingle(),
     ]);
 
     const todayPlanner = todayPlannerRes.data || [];
@@ -180,12 +189,34 @@ Deno.serve(async (req) => {
     }, {} as Record<string, number>);
     const overloadedDays = Object.values(highLoadDays).filter((c) => c > 6).length;
 
+    // WHOOP biometric signals for predictions
+    const whoopRecovery = whoopRecoveryRes.data;
+    const whoopSleep = whoopSleepRes.data;
+    const whoopCycle = whoopCycleRes.data;
+
     const burnoutReasons: string[] = [];
     let burnoutScore = 0;
     if (avgSleep !== null && avgSleep <= 2) { burnoutScore += 0.3; burnoutReasons.push("Low sleep ratings recently"); }
     if (avgSleepMins !== null && avgSleepMins < 360) { burnoutScore += 0.2; burnoutReasons.push("Under 6 hours average sleep"); }
     if (overloadedDays >= 3) { burnoutScore += 0.25; burnoutReasons.push(`${overloadedDays} days this week with 6+ tasks`); }
     if (dailyResets.length < 2 && wellness.length < 3) { burnoutScore += 0.15; burnoutReasons.push("Low engagement with wellness rituals"); }
+
+    // WHOOP-powered burnout/drift signals
+    if (whoopRecovery && whoopRecovery.recovery_score !== null && whoopRecovery.recovery_score < 33) {
+      burnoutScore += 0.3;
+      burnoutReasons.push(`WHOOP recovery critically low at ${whoopRecovery.recovery_score}%`);
+    } else if (whoopRecovery && whoopRecovery.recovery_score !== null && whoopRecovery.recovery_score < 50) {
+      burnoutScore += 0.15;
+      burnoutReasons.push(`WHOOP recovery below optimal at ${whoopRecovery.recovery_score}%`);
+    }
+    if (whoopSleep && whoopSleep.sleep_performance_pct !== null && whoopSleep.sleep_performance_pct < 70) {
+      burnoutScore += 0.15;
+      burnoutReasons.push(`WHOOP sleep performance low at ${whoopSleep.sleep_performance_pct}%`);
+    }
+    if (whoopCycle && whoopCycle.strain !== null && whoopCycle.strain > 14 && whoopRecovery && whoopRecovery.recovery_score !== null && whoopRecovery.recovery_score < 50) {
+      burnoutScore += 0.2;
+      burnoutReasons.push(`High strain (${whoopCycle.strain}) with low recovery — overtraining risk`);
+    }
 
     if (burnoutScore >= 0.4) {
       predictions.push({
