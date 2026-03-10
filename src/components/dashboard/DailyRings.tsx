@@ -65,6 +65,7 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
   const { rings, completedCount, statusLabel, completeRing, isCompleted, loading, definitions, rowId } = useDailyRings(userId);
   const [activeRing, setActiveRing] = useState<RingKey | null>(null);
   const [lowEnergy, setLowEnergy] = useState(false);
+  const [shareRing, setShareRing] = useState<RingKey | "fully_charged" | null>(null);
 
   // Check if today's notice entry has low energy
   useEffect(() => {
