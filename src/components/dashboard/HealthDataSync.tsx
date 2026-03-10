@@ -102,7 +102,7 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
     }
   }, [queryClient, refetchConnections]);
 
-  const handleDisconnect = useCallback(async (provider: "fitbit" | "oura") => {
+  const handleDisconnect = useCallback(async (provider: "fitbit" | "oura" | "whoop") => {
     const { error } = await supabase
       .from("wearable_connections")
       .delete()
