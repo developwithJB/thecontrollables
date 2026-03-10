@@ -471,57 +471,10 @@ export default function Home() {
       {/* Compact 5 Rings */}
       <CompactRingsRow userId={user.id} />
 
-      {/* Focus Section */}
-      {isFocusActive && todaysPlan ? (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-2"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-foreground">Focus: {focusState.controllable}</span>
-            </div>
-            <span className="text-xs text-muted-foreground">Day {focusDay}/7</span>
-          </div>
-          <p className="text-sm text-muted-foreground">{todaysPlan.intention}</p>
-          <p className="text-xs text-muted-foreground/80">→ {todaysPlan.rep}</p>
-          <Button variant="ghost" size="sm" className="text-xs" onClick={deactivateFocusMode}>
-            End Focus
-          </Button>
-        </motion.div>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-xl border border-border bg-card text-center space-y-2"
-        >
-          <p className="text-sm text-muted-foreground">Pick a controllable to focus on for 7 days.</p>
-          <Button variant="outline" size="sm" onClick={() => activateFocusMode()}>
-            <Target className="w-3.5 h-3.5 mr-1.5" />
-            Start Focus Mode
-          </Button>
-        </motion.div>
-      )}
-
-      {/* Operator Console */}
-      {!entitlementsLoading && (
-        <OperatorConsole
-          userId={user.id}
-          activeQuest={activeQuest}
-          totalXp={totalXp}
-          integrityScore={integrityScore}
-          currentBuild={currentBuild}
-          onXpEarned={handleOperatorInteraction}
-          isPaid={isPaid}
-          isTrialing={isTrialing}
-          onUpgrade={() => startCheckout(undefined, "operator_console")}
-          isCheckingOut={isCheckingOut}
-          hasActiveSnapshot={!!activeSession && !isCompleted}
-          onMessageSent={() => {}}
-        />
-      )}
+      {/* Ask Dashboard + Forecast */}
+      <AskDashboardBar />
+      <ForecastCard data={intelligenceData} />
+      <AIRecommendedActions data={intelligenceData} />
 
       {/* Snapshot Selector Dialog */}
       {activeSession && !isCompleted && (
