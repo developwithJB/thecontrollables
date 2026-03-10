@@ -258,12 +258,17 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
           setLimitReached(true);
         }
       } else {
-        const previewKey = `ai_guide_daily_${today}`;
-        const usedDailyMessage = localStorage.getItem(previewKey);
-        if (usedDailyMessage) {
+        // Post-trial free users: 2 messages/day
+        const postTrialKey = `ai_guide_post_trial_count_${today}`;
+        const count = parseInt(localStorage.getItem(postTrialKey) || '0', 10);
+        setTrialMessagesUsedToday(count);
+        setRemainingMessages(Math.max(0, FREE_POST_TRIAL_LIMIT - count));
+        if (count >= FREE_POST_TRIAL_LIMIT) {
           setFreePreviewUsed(true);
+          setLimitReached(true);
         } else {
           setFreePreviewUsed(false);
+          setLimitReached(false);
         }
       }
     }
