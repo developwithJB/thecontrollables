@@ -135,7 +135,6 @@ export default function Home() {
     isLoggingTime,
   } = useDashboardSummary(user.id);
 
-  const { streak: wellnessStreak, logWellness, recentLogs: wellnessLogs } = useWellness(user.id);
   const { currentBuild, buildLoading } = useBuildAssessment();
 
   const {
