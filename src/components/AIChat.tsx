@@ -265,7 +265,7 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={aiLocked ? "AI locked on Plus" : limitReached ? "Monthly limit reached" : "Type your message..."}
+                  placeholder={aiLocked ? "AI locked on Plus" : limitReached ? "Daily limit reached" : "Type your message..."}
                   className="min-h-[44px] max-h-[120px] resize-none bg-background"
                   rows={1}
                   disabled={limitReached || aiLocked}
