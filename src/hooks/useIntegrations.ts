@@ -59,6 +59,12 @@ export const PROVIDER_META: Record<Provider, { name: string; description: string
     icon: "📝",
     color: "hsl(var(--muted-foreground))",
   },
+  instagram: {
+    name: "Instagram",
+    description: "Import posts and stories for IG Proof analysis",
+    icon: "📸",
+    color: "hsl(var(--accent))",
+  },
 };
 
 export function useIntegrationConnections() {

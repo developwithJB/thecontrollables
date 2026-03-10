@@ -82,7 +82,16 @@ Deno.serve(async (req) => {
 
     let authUrl: string;
 
-    if (provider === "notion") {
+    if (provider === "instagram") {
+      const params = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: callbackUrl,
+        response_type: "code",
+        scope: config.defaultScopes.join(","),
+        state,
+      });
+      authUrl = `${config.authUrl}?${params.toString()}`;
+    } else if (provider === "notion") {
       const params = new URLSearchParams({
         client_id: clientId,
         redirect_uri: callbackUrl,

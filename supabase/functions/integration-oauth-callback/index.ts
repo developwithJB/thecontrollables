@@ -122,7 +122,21 @@ Deno.serve(async (req) => {
     let scopes: string[] = [];
     let metadata: any = {};
 
-    if (provider === "google_calendar" || provider === "gmail") {
+    if (provider === "instagram") {
+      // Fetch username from Instagram Graph API
+      try {
+        const profileRes = await fetch(
+          `https://graph.instagram.com/me?fields=id,username&access_token=${accessToken}`
+        );
+        const profile = await profileRes.json();
+        providerAccountId = profile.username || profile.id || String(tokenData.user_id);
+        metadata = { instagram_user_id: profile.id || tokenData.user_id };
+      } catch {
+        providerAccountId = String(tokenData.user_id);
+        metadata = { instagram_user_id: tokenData.user_id };
+      }
+      scopes = ["instagram_business_basic"];
+    } else if (provider === "google_calendar" || provider === "gmail") {
       try {
         const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
           headers: { Authorization: `Bearer ${accessToken}` },
