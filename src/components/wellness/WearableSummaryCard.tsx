@@ -1,8 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, RefreshCw, Unlink, Activity, Moon, Zap, Heart } from "lucide-react";
+import { Loader2, RefreshCw, Unlink, Activity, Moon, Zap, Heart, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -11,6 +11,8 @@ import { motion } from "framer-motion";
 
 interface WearableSummaryCardProps {
   userId: string;
+  isPaid?: boolean;
+  onUpgrade?: () => void;
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -20,6 +22,8 @@ const PROVIDER_LABELS: Record<string, string> = {
   apple_health: "Apple Health",
   garmin: "Garmin",
 };
+
+const WEARABLE_FREE_WINDOW_DAYS = 7;
 
 function getRecoveryColor(score: number | null | undefined) {
   if (!score) return "text-muted-foreground";
@@ -42,13 +46,23 @@ function formatMinutes(mins: number | null | undefined): string {
   return `${hours}h ${m}m`;
 }
 
-export function WearableSummaryCard({ userId }: WearableSummaryCardProps) {
-  const { isConnected, provider, latest, lastSynced } = useHealthData(userId);
+export function WearableSummaryCard({ userId, isPaid, onUpgrade }: WearableSummaryCardProps) {
+  const { isConnected, provider, latest, lastSynced, connectedAt } = useHealthData(userId);
   const [syncing, setSyncing] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const queryClient = useQueryClient();
 
   const providerLabel = provider ? (PROVIDER_LABELS[provider] || provider) : "Wearable";
+
+  // Check if free window has expired
+  const isGated = useMemo(() => {
+    if (isPaid) return false;
+    if (!connectedAt) return false;
+    const connDate = new Date(connectedAt);
+    const now = new Date();
+    const daysSinceConnect = (now.getTime() - connDate.getTime()) / (1000 * 60 * 60 * 24);
+    return daysSinceConnect > WEARABLE_FREE_WINDOW_DAYS;
+  }, [isPaid, connectedAt]);
 
   const handleConnect = useCallback(async () => {
     setConnecting(true);
@@ -81,8 +95,10 @@ export function WearableSummaryCard({ userId }: WearableSummaryCardProps) {
       }
       toast.success(`Synced ${data.days_synced} days from ${providerLabel}`);
       queryClient.invalidateQueries({ queryKey: ["health-data-trend"] });
+      queryClient.invalidateQueries({ queryKey: ["health-sync-today"] });
       queryClient.invalidateQueries({ queryKey: ["wearable-connection-any"] });
       queryClient.invalidateQueries({ queryKey: ["brain-body"] });
+      queryClient.invalidateQueries({ queryKey: ["wellness-goals"] });
     } catch {
       toast.error("Sync failed");
     } finally {
@@ -125,6 +141,54 @@ export function WearableSummaryCard({ userId }: WearableSummaryCardProps) {
                 {connecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Activity className="h-3.5 w-3.5" />}
                 Connect
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  }
+
+  // Gated state: show blurred preview with upgrade prompt
+  if (isGated) {
+    return (
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+        <Card className="relative overflow-hidden">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Activity className="h-4 w-4 text-primary" />
+              {providerLabel}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <div className="grid grid-cols-3 gap-3 blur-sm pointer-events-none select-none" aria-hidden>
+              <div className="rounded-lg p-3 text-center bg-muted/50">
+                <Heart className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-xl font-bold text-muted-foreground">--%</p>
+                <p className="text-[10px] text-muted-foreground">Recovery</p>
+              </div>
+              <div className="rounded-lg p-3 text-center bg-muted/50">
+                <Moon className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-xl font-bold text-muted-foreground">--h --m</p>
+                <p className="text-[10px] text-muted-foreground">Sleep</p>
+              </div>
+              <div className="rounded-lg p-3 text-center bg-muted/50">
+                <Zap className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-xl font-bold text-muted-foreground">--</p>
+                <p className="text-[10px] text-muted-foreground">Strain</p>
+              </div>
+            </div>
+            {/* Overlay */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-[2px] rounded-lg">
+              <Lock className="h-5 w-5 text-muted-foreground mb-2" />
+              <p className="text-sm font-medium text-foreground mb-1">Free trial ended</p>
+              <p className="text-xs text-muted-foreground mb-3 text-center px-6">
+                Your 7-day free wearable preview has expired. Upgrade to keep syncing.
+              </p>
+              {onUpgrade && (
+                <Button size="sm" onClick={onUpgrade}>
+                  Upgrade to Unlock
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
