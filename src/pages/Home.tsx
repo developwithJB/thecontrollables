@@ -170,7 +170,7 @@ export default function Home() {
     shouldShowSeasonComplete,
   } = useSeason(user.id);
 
-  const { focusState, todaysPlan, activateFocusMode, deactivateFocusMode, isActive: isFocusActive, currentDay: focusDay } = useFocusMode(currentBuild);
+  const { data: intelligenceData } = useDashboardIntelligence(user.id);
 
   const [showSeasonComplete, setShowSeasonComplete] = useState(false);
   useEffect(() => {
