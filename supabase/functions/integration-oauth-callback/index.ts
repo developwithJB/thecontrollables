@@ -192,7 +192,7 @@ Deno.serve(async (req) => {
       console.error("Upsert error:", upsertError);
       if (popup) {
         return new Response(
-          `<!DOCTYPE html><html><body><script>window.opener.postMessage({type:"oauth-complete",provider:"${provider}",error:"save_failed"},"*");window.close();</script></body></html>`,
+          `<!DOCTYPE html><html><head><style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f8f9fa;color:#333;text-align:center}.msg{padding:2rem}h2{margin:0 0 .5rem}p{color:#c00;font-size:.9rem}</style></head><body><div class="msg"><h2>❌ Connection Failed</h2><p>Could not save connection</p></div><script>try{window.opener&&window.opener.postMessage({type:"oauth-complete",provider:"${provider}",error:"save_failed"},"*")}catch(e){}setTimeout(function(){try{window.close()}catch(e){}},2000);</script></body></html>`,
           { headers: { "Content-Type": "text/html" } }
         );
       }
