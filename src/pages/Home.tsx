@@ -466,69 +466,43 @@ export default function Home() {
         />
       )}
 
-      {/* Quick domain cards grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {user.id && <PlannerCard userId={user.id} />}
-        {user.id && <MoneyCard userId={user.id} />}
-        {user.id && <ControllableLevelsTeaser userId={user.id} onNavigateToGuide={() => navigate("/growth")} />}
-        <BuildEntryPoint userId={user.id} />
-      </div>
+      {/* Compact 5 Rings */}
+      <CompactRingsRow userId={user.id} />
 
-      {/* Daily Alignment promo for free users */}
-      {!isPaid && !entitlementsLoading && showDashboardPaywallPromo && (
-        <DailyAlignmentPromo onUpgrade={() => startCheckout(undefined, "daily_alignment_promo_home")} />
-      )}
-
-      {/* Season Banner */}
-      {activeSeason && seasonProgress && (
-        <SeasonBanner seasonName={activeSeason.name} snapshots={seasonSnapshots} progress={seasonProgress} />
-      )}
-
-      {/* Reset Progress */}
-      {activeSession && !isCompleted && !isExpired && (
-        <ResetProgressModule
-          hasActiveSession={!!activeSession}
-          isCompleted={isCompleted}
-          isExpired={isExpired}
-          currentDay={currentDay}
-          completedDays={completedDays}
-          todayAlreadyCompleted={todayAlreadyCompleted}
-          onStartReset={(isPaidArg) => acceptCovenant({ isPaid: isPaidArg })}
-          isStartingReset={isAcceptingCovenant}
-          isPaid={isPaid}
-          totalSessionCount={allSessions.length}
-          onUpgrade={() => startCheckout(undefined, "reset_progress_module")}
-          currentJourneyId={activeSession?.journey_id}
-          onSwitchJourney={() => setShowJourneySwitcher(true)}
-          lastCompletedAt={allSessions.find((s) => s.status === "completed")?.completed_at}
-        />
-      )}
-
-      {/* Circle */}
-      {activeSession && !isCompleted && !isExpired && (
-        <CircleCard
-          myCircle={myCircle ?? null}
-          circleMembers={circleMembers}
-          showedUpTodayCount={showedUpTodayCount}
-          currentDay={currentDay}
-          displayName={circleDisplayName}
-          currentJourneyId={activeSession.journey_id}
-          isCreatingCircle={isCreatingCircle}
-          isLeavingCircle={isLeavingCircle}
-          onCreateCircle={createCircle}
-          onLeaveCircle={leaveCircle}
-          onJoinCircle={joinCircle}
-          isJoiningCircle={isJoiningCircle}
-          lookupCircle={lookupCircle}
-          joinDialogOpen={joinDialogOpen}
-          onJoinDialogOpenChange={(open) => {
-            setJoinDialogOpen(open);
-            if (!open && joinCodeFromUrl) { searchParams.delete("join"); setSearchParams(searchParams, { replace: true }); }
-          }}
-          initialJoinCode={joinCodeFromUrl || undefined}
-          currentUserId={user.id}
-          streakLeaderboard={streakLeaderboard}
-        />
+      {/* Focus Section */}
+      {isFocusActive && todaysPlan ? (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-2"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">Focus: {focusState.controllable}</span>
+            </div>
+            <span className="text-xs text-muted-foreground">Day {focusDay}/7</span>
+          </div>
+          <p className="text-sm text-muted-foreground">{todaysPlan.theme}</p>
+          {todaysPlan.actions?.[0] && (
+            <p className="text-xs text-muted-foreground/80">→ {todaysPlan.actions[0]}</p>
+          )}
+          <Button variant="ghost" size="sm" className="text-xs" onClick={deactivateFocusMode}>
+            End Focus
+          </Button>
+        </motion.div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl border border-border bg-card text-center space-y-2"
+        >
+          <p className="text-sm text-muted-foreground">Pick a controllable to focus on for 7 days.</p>
+          <Button variant="outline" size="sm" onClick={() => activateFocusMode()}>
+            <Target className="w-3.5 h-3.5 mr-1.5" />
+            Start Focus Mode
+          </Button>
+        </motion.div>
       )}
 
       {/* Operator Console */}
@@ -547,17 +521,6 @@ export default function Home() {
           hasActiveSnapshot={!!activeSession && !isCompleted}
           onMessageSent={() => {}}
         />
-      )}
-
-      {/* Simplified mode: Build & Momentum */}
-      {isSimplifiedMode && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">Your Current State</p>
-          <div className="grid grid-cols-2 gap-2">
-            {buildLoading ? <SmallModuleSkeleton /> : <BuildOverviewModule compact />}
-            {dashboardLoading ? <SmallModuleSkeleton /> : <XpMomentumModule totalXp={totalXp} recentLogs={xpLogs} compact />}
-          </div>
-        </div>
       )}
 
       {/* Snapshot Selector Dialog */}
