@@ -342,6 +342,8 @@ const Planner = () => {
             onDelete={handleDelete}
             onReschedule={(item) => { setEditingItem(item); setEditorOpen(true); }}
             onReorder={handleReorder}
+            onPushToCalendar={handlePushToCalendar}
+            hasGoogleConnection={!!googleConnection}
           />
           {isMobile && (
             <div className="px-4 pb-20">
