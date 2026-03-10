@@ -36,6 +36,16 @@ export default function Wellness() {
     if (connected) {
       toast({ title: `${connected.charAt(0).toUpperCase() + connected.slice(1)} connected!`, description: "Your wearable data will sync shortly." });
       queryClient.invalidateQueries({ queryKey: ["wearable-connections"] });
+      queryClient.invalidateQueries({ queryKey: ["health-sync-today"] });
+      queryClient.invalidateQueries({ queryKey: ["health-data-trend"] });
+      queryClient.invalidateQueries({ queryKey: ["brain-body"] });
+      queryClient.invalidateQueries({ queryKey: ["wellness-goals"] });
+      // Auto-trigger initial sync so goals populate immediately
+      supabase.functions.invoke("wearable-sync", { body: { provider: connected } }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["health-sync-today"] });
+        queryClient.invalidateQueries({ queryKey: ["health-data-trend"] });
+        queryClient.invalidateQueries({ queryKey: ["wellness-goals"] });
+      });
       const next = new URLSearchParams(searchParams);
       next.delete("wearable_connected");
       setSearchParams(next, { replace: true });
