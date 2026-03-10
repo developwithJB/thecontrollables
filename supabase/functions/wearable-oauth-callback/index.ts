@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
     } catch {
       return new Response(null, {
         status: 302,
-        headers: { Location: `${appUrl}/?wearable_error=invalid_state` },
+        headers: { Location: `${appUrl}/wellness?wearable_error=invalid_state` },
       });
     }
 
