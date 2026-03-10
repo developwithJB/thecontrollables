@@ -1,164 +1,82 @@
 
-# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-## Overview
+# Plan: Remove Instagram Integration, Add Native Proof Entry
 
-Three interconnected deliverables:
-1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
-2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
-3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
+## Summary
 
----
+Remove all frontend Instagram OAuth references. Replace the IG Proof feature with a lightweight native "Daily Proof" entry (text note or photo upload) on the daily check-in card. Rename IGProofHistory to ProofHistory with updated empty-state copy. Keep edge functions dormant.
 
-## Part 1: AI Insight Engine
+## Changes
 
-### New Edge Function: `admin-insights`
+### 1. Remove Instagram from Integration Hub
 
-**File: `supabase/functions/admin-insights/index.ts`**
+**`src/hooks/useIntegrations.ts`** (lines 5, 50-55)
+- Remove `"instagram"` from the `Provider` type union
+- Remove the `instagram` entry from `PROVIDER_META`
 
-This function:
-1. Verifies the caller is an admin (same pattern as `admin-analytics`)
-2. Queries aggregated metrics from the last 7 days using the service role client:
-   - `app_events` grouped by `event_name` and day-of-week
-   - `completed_actions` grouped by `controllable`
-   - `daily_resets` count per user (for retention correlation)
-   - `reset_sessions` completion rates
-   - `user_entitlements` conversion data
-   - `user_onboarding` activation delays
-3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
-   - 3 behavioral insights
-   - 2 retention risks
-   - 2 growth opportunities
-   - 1 experiment recommendation
-4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
-5. Returns the insights directly (no caching table needed initially -- can add later)
+**`src/pages/Integrations.tsx`** (line 16)
+- Remove `"instagram"` from `ALL_PROVIDERS` array
 
-**Prompt structure:**
-```
-You are a product analytics advisor for a personal growth app called The Controllables.
-Given the following 7-day metrics, generate actionable insights.
+### 2. Replace InstagramInputCard with native ProofEntryCard
 
-[structured data blob]
+**Create `src/components/dashboard/ProofEntryCard.tsx`**
+- Lightweight expandable section labeled "Add proof (optional)"
+- Two input modes: text note (1-3 sentences, placeholder "What did you do today?") or photo upload (`accept="image/*" capture="environment"`)
+- On submit: uploads photo to `ig-proof-images` storage bucket (reuse existing), calls `ig-proof-analyze` edge function with the caption/description text for AI analysis, saves to `ig_proof_entries` table via existing `useIGProof.saveEntry`
+- Props: `userId`, `onRingFilled?`, `onClose?`
 
-Return insights as structured tool output.
-```
+### 3. Rename IGProofHistory → ProofHistory
 
-**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+**`src/components/dashboard/IGProofHistory.tsx`** → rename export to `ProofHistory`
+- Update empty state text from "Use IG Proof to add your first" to "Add your first proof entry above"
+- Keep all existing filter chips and entry rendering
 
-**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+### 4. Update useIGProof hook
 
-### New Admin Component: AI Insights Panel
+**`src/hooks/useIGProof.ts`**
+- Rename `sourceType` options from `"screenshot" | "caption"` to `"photo" | "text"` (or keep as-is since it's just a string stored in DB)
+- Update toast messages: remove "Instagram" references, use "Proof saved" / "Ring filled from proof"
+- Keep `analyzeCaption`, `analyzeScreenshot`, `saveEntry`, `loadEntries` — all still work for native proof
 
-**File: `src/components/admin/AIInsightsPanel.tsx`**
+### 5. Delete useInstagramMedia hook
 
-- A card with "Weekly Intelligence" header and a "Generate Insights" button
-- On click, calls the `admin-insights` edge function
-- Displays results in categorized sections:
-  - Behavioral Insights (brain icon, blue accent)
-  - Retention Risks (alert icon, amber accent)
-  - Growth Opportunities (trending-up icon, green accent)
-  - Experiment Recommendation (flask icon, purple accent)
-- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
-- Loading state with skeleton cards
-- Error state with retry button
-- "Last generated" timestamp display
+**Delete `src/hooks/useInstagramMedia.ts`** — no longer needed
 
-### Integration into Admin.tsx
+### 6. Update consumers
 
-- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
-- The tab renders `<AIInsightsPanel />`
+**`src/pages/Growth.tsx`** (lines 29-30, 94, 200-240)
+- Replace `InstagramInputCard` import with `ProofEntryCard`
+- Replace `IGProofHistory` import with `ProofHistory`
+- Rename button from "IG Proof" to "Add Proof"
+- Update JSX references
 
----
+**`src/components/dashboard/CommandModeView.tsx`** (lines 14-15, 61, 127-176)
+- Same replacements as Growth.tsx
 
-## Part 2: Enhanced Action Center
+### 7. Add proof section to DailyCheckIn
 
-**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
+**`src/components/DailyCheckIn.tsx`**
+- After the checked-in state, add a collapsible "Add proof (optional)" section using `Collapsible` from radix
+- Contains the same text + photo input from `ProofEntryCard` (or import it directly)
+- Only visible when `isCheckedIn === true`
 
-Replace the three "Coming soon" cards with working functionality:
+### 8. Update landing page copy
 
-### A. Send Nudge Campaign
-- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
-- Confirmation dialog before sending
-- Calls the existing `send-daily-nudge` edge function for each selected user
-- Shows progress and results
+**`src/components/landing/FeatureGrid.tsx`** (line 32)
+- Change "Connect Google Calendar, Gmail, and Instagram. Sync events, get inbox summaries, and use IG Proof." to remove Instagram mention
 
-### B. Grant Trial Extension
-- Search for a specific user by email
-- Set extension duration (7 days, 14 days, 30 days)
-- Calls `admin-users?action=grant_access` with an `expires_at` parameter
-- Confirmation toast on success
+## Files
 
-### C. Export with More Segments
-- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
-- Risk tier data fetched from `admin-analytics?resource=retention_radar`
-- CSV includes: email, signup date, last active, risk tier, paid status, source
+| Action | File |
+|--------|------|
+| Edit | `src/hooks/useIntegrations.ts` — remove instagram provider |
+| Edit | `src/pages/Integrations.tsx` — remove instagram from providers list |
+| Create | `src/components/dashboard/ProofEntryCard.tsx` — native text/photo proof entry |
+| Edit | `src/components/dashboard/IGProofHistory.tsx` — rename to ProofHistory, update copy |
+| Edit | `src/hooks/useIGProof.ts` — remove Instagram-specific language |
+| Delete | `src/hooks/useInstagramMedia.ts` — no longer needed |
+| Edit | `src/pages/Growth.tsx` — swap IG components for native proof |
+| Edit | `src/components/dashboard/CommandModeView.tsx` — swap IG components for native proof |
+| Edit | `src/components/DailyCheckIn.tsx` — add optional proof section after check-in |
+| Edit | `src/components/landing/FeatureGrid.tsx` — remove Instagram mention |
 
-### D. Quick Stats Bar
-- Show counts above the action cards: Total Users, Free, Paid, At Risk
-- Derived from the `users` prop already passed in
-
----
-
-## Part 3: Landing Page Updates
-
-**File: `src/pages/Landing.tsx`**
-
-Update the hero copy to reflect the free trial:
-- Change hero tagline to emphasize "Try the full experience free for 7 days"
-- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
-- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
-
-**File: `src/components/landing/FeatureGrid.tsx`**
-
-- Update the Free/Premium labeling:
-  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
-  - "Experience History" -- add "Free during trial" badge
-  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
-
-**File: `src/components/landing/HowItWorksSection.tsx`**
-
-- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
-
----
-
-## Part 4: README Update
-
-**File: `README.md`**
-
-Update to v1.5.0 reflecting all recent changes:
-
-1. **Version bump**: `v1.4.1` to `v1.5.0`
-2. **New section: "Admin Command Center"** after Technical Reference:
-   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
-   - Mention the `admin-analytics` and `admin-insights` edge functions
-   - Document the AI Insight Engine capability
-3. **Update "Free vs. Premium" table**:
-   - Add "7-Day Free Trial" row explaining full access during first Snapshot
-   - Update AI Guide from "---" to "5 msgs/day during trial"
-   - Update Experience History from "---" to "During trial"
-4. **Update Backend Functions table**:
-   - Add `admin-analytics` -- Admin data aggregation and executive metrics
-   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
-5. **Update Key Data Tables**:
-   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
-   - Add `ai_usage_logs` -- Daily AI message tracking
-6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
-
----
-
-## Technical Summary
-
-| File | Change | Type |
-|------|--------|------|
-| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
-| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
-| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
-| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
-| `src/pages/Admin.tsx` | Add Insights tab | Edit |
-| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
-| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
-| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
-| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
-| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
-
-No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
