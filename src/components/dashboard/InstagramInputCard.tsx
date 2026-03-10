@@ -118,7 +118,7 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
     }
   };
 
-  const canAnalyze = tab === "caption" ? caption.trim().length > 5 : descriptionForImage.trim().length > 5;
+  
 
   return (
     <motion.div
@@ -199,8 +199,8 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
                   tab === "screenshot" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Camera className="w-3 h-3" />
-                Screenshot
+                <ImagePlus className="w-3 h-3" />
+                Photo
               </button>
             </div>
 
@@ -291,7 +291,7 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
                   <Film className="w-8 h-8 text-muted-foreground mx-auto" />
                   <p className="text-xs font-medium text-foreground">Stories aren't available via the API</p>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Instagram doesn't allow apps to pull stories. Use the <button onClick={() => setTab("screenshot")} className="text-accent underline underline-offset-2 font-medium">Screenshot</button> tab to capture a story and log it as proof.
+                  Instagram doesn't allow apps to pull stories. Use the <button onClick={() => setTab("screenshot")} className="text-accent underline underline-offset-2 font-medium">Photo</button> tab to capture a story and log it as proof.
                   </p>
                 </div>
               </div>
@@ -321,7 +321,7 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
                     className="w-full h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1.5 hover:border-accent/50 hover:bg-accent/5 transition-colors"
                   >
                     <ImagePlus className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Tap to upload screenshot</span>
+                    <span className="text-xs text-muted-foreground">Choose from camera roll</span>
                   </button>
                 )}
                 <input
@@ -334,17 +334,23 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
                 <Textarea
                   value={descriptionForImage}
                   onChange={(e) => setDescriptionForImage(e.target.value)}
-                  placeholder="Describe what's in the post (e.g., 'Morning workout at the gym, 5am session')..."
+                  placeholder="Optional: add context (e.g., 'Morning workout at the gym')..."
                   className="min-h-[60px] resize-none text-sm"
                   maxLength={2000}
                 />
+                {analyzing && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Analyzing your photo...
+                  </div>
+                )}
               </div>
             )}
 
-            {tab !== "my_posts" && tab !== "my_stories" && (
+            {tab === "caption" && (
               <Button
                 onClick={handleAnalyze}
-                disabled={!canAnalyze || analyzing}
+                disabled={!caption.trim() || caption.trim().length <= 5 || analyzing}
                 className="w-full gap-2"
                 size="sm"
               >
