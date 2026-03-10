@@ -6,8 +6,8 @@ import {
   Clock,
   Play,
   BookOpen,
-  Timer,
-  Scale,
+  Moon,
+  ClipboardCheck,
   ChevronDown,
   ChevronUp,
   ChevronRight,
@@ -15,6 +15,7 @@ import {
   Lock,
   PartyPopper,
   Zap,
+  Scale,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -127,6 +128,7 @@ export function TodayActions({
   const [journeyActionCompleted, setJourneyActionCompleted] = useState(false);
   const [showJourneyActionModal, setShowJourneyActionModal] = useState(false);
   const [currentJourneyAction, setCurrentJourneyAction] = useState<DailyAction | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Day 3 "Review your Build" completion: treat as complete if the user opened it today
   // OR if their build was updated today (e.g., via a re-scan).
@@ -251,22 +253,24 @@ export function TodayActions({
     });
   }
 
-  // Time reflection - always show
+  // Confirm last night - sleep, meals, movement & notes
   actions.push({
     id: "time",
-    label: todayTimeLogged ? "Yesterday reflected" : "Reflect on yesterday",
-    icon: <Timer className="w-4 h-4" />,
+    label: todayTimeLogged ? "Last night confirmed" : "Confirm last night",
+    sublabel: todayTimeLogged ? "Logged" : "Sleep, meals, movement & notes",
+    icon: <Moon className="w-4 h-4" />,
     completed: todayTimeLogged,
     timeEstimate: "2 min",
     action: onOpenTimeLog,
   });
 
-  // Pending promises - show if any pending
+  // Validate today's plan - confirm promises & focus
   if (pendingPromisesCount > 0) {
     actions.push({
       id: "promises",
-      label: `Review ${pendingPromisesCount} promise${pendingPromisesCount > 1 ? "s" : ""}`,
-      icon: <Scale className="w-4 h-4" />,
+      label: "Validate today's plan",
+      sublabel: "Check promises & confirm your focus",
+      icon: <ClipboardCheck className="w-4 h-4" />,
       completed: false,
       timeEstimate: "3 min",
       action: onOpenPromises,
@@ -390,6 +394,22 @@ export function TodayActions({
     }
     prevAllCompletedRef.current = allCompleted;
   }, [allCompleted, currentDay, hasActiveSession, isResetCompleted, onDay7AllComplete]);
+
+  // Auto-scroll to next incomplete card after completion
+  useEffect(() => {
+    if (!scrollContainerRef.current) return;
+    const nextIncomplete = actions.findIndex(a => !a.completed);
+    if (nextIncomplete >= 0) {
+      const cards = scrollContainerRef.current.children;
+      if (cards[nextIncomplete]) {
+        (cards[nextIncomplete] as HTMLElement).scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "center",
+        });
+      }
+    }
+  }, [completedCount]);
 
   // Covenant Dialog component - includes TGIM confirmation moment
   const CovenantDialog = () => (
@@ -598,13 +618,26 @@ export function TodayActions({
     );
   }
 
+  // Color mapping for action domain accents
+  const getActionAccent = (id: string) => {
+    switch (id) {
+      case "checkin": return "hsl(var(--accent))";
+      case "time": return "hsl(var(--wellness))";
+      case "promises": return "hsl(var(--habit))";
+      case "journey-action": return "hsl(var(--awareness))";
+      case "make-promise": return "hsl(var(--habit))";
+      case "review-build": return "hsl(var(--perspective))";
+      default: return "hsl(var(--accent))";
+    }
+  };
+
   return (
     <>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="rounded-xl bg-card border border-border overflow-hidden relative"
+        className="relative"
       >
         {/* Confetti overlay */}
         <AnimatePresence>
@@ -627,234 +660,171 @@ export function TodayActions({
           )}
         </AnimatePresence>
 
-        {/* Header */}
-        <div className="p-4 border-b border-border/50">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-foreground">Today's Actions</h3>
-            <div className="flex items-center gap-2">
-              {allCompleted ? (
-                <motion.span
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
-                >
-                  <PartyPopper className="w-3 h-3" />
-                  All done!
-                </motion.span>
-              ) : (
-                <span className="text-xs text-muted-foreground">
-                  ~{timeRemaining} min
-                </span>
-              )}
-              <button
-                onClick={() => setIsListCollapsed(!isListCollapsed)}
-                className="p-1 rounded hover:bg-muted/50 transition-colors"
-              >
-                {isListCollapsed ? (
-                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                ) : (
-                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* TGIM Weekly Threshold - subtle weekly ritual microcopy */}
+        {/* TGIM Weekly Threshold */}
         <TGIMWeeklyBanner userId={userId} />
 
-        {/* Primary Action Highlight - "One Thing" Anchor */}
-        {!isListCollapsed && primaryAction && !primaryAction.completed && (
-          <div className="p-4 border-b border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
-            <div className="flex items-center gap-2 text-sm text-primary font-semibold mb-1">
-              <Sparkles className="w-4 h-4" />
-              If you do one thing today, do this.
-            </div>
-            <p className="text-[10px] text-muted-foreground mb-3">
-              This is about today only. One honest check-in. Then you're done.
-            </p>
-            <button
-              onClick={primaryAction.action}
-              className="w-full p-3 rounded-lg bg-card border-2 border-primary/30 hover:border-primary/50 transition-all text-left group"
+        {/* All-complete collapsed state */}
+        <AnimatePresence mode="wait">
+          {allCompleted ? (
+            <motion.div
+              key="done"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="glass-action-card px-5 py-4 flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  {primaryAction.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground">{primaryAction.label}</p>
-                  {primaryAction.sublabel && (
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {primaryAction.sublabel}
+                <span className="text-lg">✨</span>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">All done for today</p>
+                  {todayXpEarned > 0 && (
+                    <p className="text-[11px] text-muted-foreground">
+                      <span className="text-primary font-medium">+{todayXpEarned} XP</span> earned
                     </p>
                   )}
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Clock className="w-3.5 h-3.5" />
-                  {primaryAction.timeEstimate}
+              </div>
+              <div className="flex items-center gap-1">
+                <PartyPopper className="w-4 h-4 text-primary" />
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="cards"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-3"
+            >
+              {/* Header row */}
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-sm font-semibold text-foreground">Today's Actions</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-muted-foreground font-medium">
+                    {completedCount} of {totalActions}
+                  </span>
+                  <span className="text-xs text-muted-foreground">~{timeRemaining} min</span>
                 </div>
               </div>
-            </button>
-          </div>
-        )}
 
-        {/* Done for today affirmation - shown after primary action (checkin) is completed */}
-        {!isListCollapsed && (!primaryAction || primaryAction.completed) && hasActiveSession && !isResetCompleted && todayResetCompleted && (
-          <div className="px-4 py-3 border-b border-border/50 bg-muted/30">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-base">✨</span>
-              <p className="text-sm font-medium text-foreground">
-                Day {currentDay} done.
-              </p>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Come back tomorrow — same time, same place. Everything else below is optional.
-            </p>
-          </div>
-        )}
+              {/* Swipeable glass card carousel */}
+              <div
+                ref={scrollContainerRef}
+                className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-1 -mx-1 px-1"
+              >
+                {actions.map((action, idx) => {
+                  const isPrimary = primaryAction?.id === action.id && !action.completed;
+                  const accentColor = getActionAccent(action.id);
 
-        {/* Optional Actions Section */}
-        <AnimatePresence initial={false}>
-          {!isListCollapsed && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              {/* Visual separator between primary and secondary actions */}
-              {secondaryActions.length > 0 && primaryAction && !primaryAction.completed && (
-                <>
-                  <div className="mx-4 border-t border-border/50" />
-                  <div className="px-4 pt-3 pb-1">
-                    <p className="text-xs text-muted-foreground">Everything else is optional.</p>
-                  </div>
-                </>
-              )}
-              
-              <div className="divide-y divide-border/50">
-                {secondaryActions.map((action) => (
-                  <div key={action.id}>
-                    {action.expandable ? (
-                      <Collapsible
-                        open={expandedAction === action.id}
-                        onOpenChange={() => toggleExpand(action.id)}
-                      >
-                        <CollapsibleTrigger asChild>
-                          <button className="w-full p-4 flex items-center gap-3 hover:bg-muted/30 transition-colors text-left">
-                            <div
-                              className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                action.completed
-                                  ? "bg-primary border-primary text-primary-foreground"
-                                  : "border-muted-foreground/40"
-                              }`}
-                            >
-                              {action.completed && <Check className="w-3 h-3" />}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={`text-sm font-medium ${action.completed ? "line-through text-muted-foreground" : "text-foreground"}`}
-                                >
-                                  {action.label}
-                                </span>
-                              </div>
-                              {action.sublabel && (
-                                <p className="text-xs text-muted-foreground truncate">
-                                  {action.sublabel}
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">
-                                {action.timeEstimate}
-                              </span>
-                              {action.icon}
-                            </div>
-                          </button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <div className="px-4 pb-4 pl-12">
-                            <Button
-                              size="sm"
-                              variant={action.completed ? "outline" : "default"}
-                              onClick={action.action}
-                              className="w-full sm:w-auto"
-                            >
-                              {action.completed ? (
-                                <>
-                                  <BookOpen className="w-3.5 h-3.5 mr-1.5" />
-                                  Review Reading
-                                </>
-                              ) : (
-                                <>
-                                  <Play className="w-3.5 h-3.5 mr-1.5" />
-                                  Continue Check-in
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    ) : (
-                      <button
-                        className={`w-full p-4 flex items-center gap-3 transition-colors text-left ${
-                          action.locked
-                            ? "opacity-50 cursor-not-allowed"
-                            : "hover:bg-muted/30 cursor-pointer"
-                        }`}
-                        onClick={action.locked ? undefined : action.action}
-                        disabled={action.locked}
-                      >
-                        <div
-                          className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                            action.completed
-                              ? "bg-primary border-primary text-primary-foreground"
-                              : action.locked
-                                ? "border-muted-foreground/20"
-                                : "border-muted-foreground/40"
+                  return (
+                    <AnimatePresence key={action.id} mode="popLayout">
+                      {!action.completed ? (
+                        <motion.button
+                          layout
+                          initial={{ opacity: 0, scale: 0.92 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                          onClick={action.locked ? undefined : action.action}
+                          disabled={action.locked}
+                          className={`snap-center shrink-0 w-[82vw] max-w-[320px] ${
+                            isPrimary ? "glass-action-card-primary" : "glass-action-card"
+                          } p-5 flex flex-col text-left transition-transform active:scale-[0.97] ${
+                            action.locked ? "opacity-50 cursor-not-allowed" : ""
                           }`}
+                          style={{
+                            minHeight: "164px",
+                          }}
                         >
-                          {action.completed && <Check className="w-3 h-3" />}
-                          {action.locked && <Lock className="w-2.5 h-2.5" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`text-sm font-medium ${
-                                action.completed
-                                  ? "line-through text-muted-foreground"
-                                  : action.locked
-                                    ? "text-muted-foreground"
-                                    : "text-foreground"
-                              }`}
-                            >
-                              {action.label}
-                            </span>
+                          {/* Accent strip */}
+                          <div
+                            className="w-8 h-1 rounded-full mb-4"
+                            style={{ background: accentColor }}
+                          />
+
+                          {/* Icon circle */}
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
+                            style={{
+                              background: `color-mix(in srgb, ${accentColor} 15%, transparent)`,
+                              color: accentColor,
+                            }}
+                          >
+                            {action.icon}
                           </div>
-                          {action.sublabel && (
-                            <p className="text-xs text-muted-foreground truncate">
-                              {action.sublabel}
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm text-foreground leading-tight mb-1">
+                              {action.label}
                             </p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">
-                            {action.timeEstimate}
-                          </span>
-                          {action.icon}
-                        </div>
-                      </button>
-                    )}
-                  </div>
+                            {action.sublabel && (
+                              <p className="text-[11px] text-muted-foreground leading-snug">
+                                {action.sublabel}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Footer */}
+                          <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/20">
+                            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                              <Clock className="w-3 h-3" />
+                              {action.timeEstimate}
+                            </div>
+                            <div className="flex items-center gap-1 text-xs font-medium text-accent">
+                              {isPrimary && <Sparkles className="w-3 h-3" />}
+                              {action.completed ? "Done" : isPrimary ? "Start" : "Open"}
+                              <ChevronRight className="w-3 h-3" />
+                            </div>
+                          </div>
+                        </motion.button>
+                      ) : (
+                        <motion.div
+                          layout
+                          initial={{ opacity: 1, scale: 1 }}
+                          animate={{ opacity: 0.6, scale: 0.92 }}
+                          className="snap-center shrink-0 w-[82vw] max-w-[320px] glass-action-card p-5 flex flex-col"
+                          style={{ minHeight: "164px" }}
+                        >
+                          <div
+                            className="w-8 h-1 rounded-full mb-4 opacity-40"
+                            style={{ background: accentColor }}
+                          />
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-primary/10">
+                            <Check className="w-5 h-5 text-primary" />
+                          </div>
+                          <p className="font-semibold text-sm text-muted-foreground line-through">
+                            {action.label}
+                          </p>
+                          <div className="flex-1" />
+                          <div className="flex items-center gap-1.5 mt-4 pt-3 border-t border-border/10 text-[11px] text-primary font-medium">
+                            <Check className="w-3 h-3" />
+                            Complete
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  );
+                })}
+              </div>
+
+              {/* Progress dots */}
+              <div className="flex items-center justify-center gap-1.5 pt-1">
+                {actions.map((action) => (
+                  <div
+                    key={action.id}
+                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                      action.completed
+                        ? "bg-primary"
+                        : "bg-muted-foreground/25"
+                    }`}
+                  />
                 ))}
               </div>
 
               {/* XP earned today */}
               {todayXpEarned > 0 && (
-                <div className="px-4 py-3 border-t border-border/50 bg-muted/30">
-                  <p className="text-xs text-muted-foreground">
+                <div className="text-center">
+                  <p className="text-[11px] text-muted-foreground">
                     <span className="text-primary font-medium">+{todayXpEarned} XP</span> earned today
                   </p>
                 </div>

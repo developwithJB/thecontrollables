@@ -488,11 +488,13 @@ export default function Home() {
         />
       )}
 
+      {/* Ask Dashboard — directly after actions for seamless collapse */}
+      <AskDashboardBar />
+
       {/* Compact 5 Rings */}
       <CompactRingsRow userId={user.id} />
 
-      {/* Ask Dashboard + Forecast */}
-      <AskDashboardBar />
+      {/* Forecast + Recommendations */}
       <ForecastCard data={intelligenceData} />
       <AIRecommendedActions data={intelligenceData} />
 
