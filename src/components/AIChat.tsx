@@ -106,16 +106,16 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
 
   const applyUsageState = (data: any) => {
     const nextPlanTier = (data?.planTier as PlanTier) || planTier;
-    const nextLimit = data?.monthlyLimit ?? PLAN_MONTHLY_LIMITS[nextPlanTier];
-    const nextRemaining = data?.remaining ?? Math.max(nextLimit - (data?.used ?? usedThisMonth), 0);
+    const nextLimit = data?.dailyLimit ?? PLAN_DAILY_LIMITS[nextPlanTier];
+    const nextRemaining = data?.remaining ?? Math.max(nextLimit - (data?.used ?? usedToday), 0);
     const nextUsed = data?.used ?? Math.max(nextLimit - nextRemaining, 0);
-    const monthKey = data?.month ?? getCurrentMonthKey();
+    const dayKey = data?.day ?? getTodayKey();
 
     setPlanTier(nextPlanTier);
-    setMonthlyLimit(nextLimit);
+    setDailyLimit(nextLimit);
     setRemainingMessages(nextRemaining);
-    setUsedThisMonth(nextUsed);
-    setActiveMonth(monthKey);
+    setUsedToday(nextUsed);
+    setActiveDay(dayKey);
     setAiLocked(Boolean(data?.aiLocked));
 
     maybeWarnAtProCap(nextPlanTier, nextRemaining, monthKey);
