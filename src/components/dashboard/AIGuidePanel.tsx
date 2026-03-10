@@ -839,10 +839,9 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
                 </>
               )}
 
-              {/* Preview mode for free users (non-trial) - show after they've used their free message */}
+              {/* Post-trial free users - show after they've used all free messages */}
               {!isPaid && !isTrialing && freePreviewUsed && (
                 <div className="flex flex-col" data-testid="ai-operators-locked">
-                  {/* Show their full conversation including actions */}
                   {messages.length > 0 && (
                     <div ref={messagesContainerRef} className="w-full space-y-3 max-h-72 overflow-y-auto mb-4 pr-2">
                       {messages.map((msg, idx) => {
@@ -884,33 +883,31 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
                     </div>
                   )}
                   
-                  {/* Upgrade prompt */}
                   <div className="text-center py-4 border-t border-border/50 mt-2">
                     <p className="text-sm text-muted-foreground mb-3">
-                      Come back tomorrow for another free message, or unlock unlimited access.
+                      You've used your 2 free messages today. Upgrade to keep the conversation going.
                     </p>
                     <Button onClick={() => onUpgrade?.()} disabled={isCheckingOut} className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground" data-testid="ai-operators-upgrade-cta">
                       {isCheckingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                      {isCheckingOut ? "Opening checkout..." : "Unlock Full Access"}
+                      {isCheckingOut ? "Opening checkout..." : "Unlock Full Access — 15/day"}
                     </Button>
-                    <p className="text-xs text-muted-foreground mt-3">Plans from $${getPricing().plus.annual}/yr</p>
+                    <p className="text-xs text-muted-foreground mt-3">Plans from ${getPricing().plus.annual}/yr</p>
                   </div>
                 </div>
               )}
 
-              {/* Preview mode for free users (non-trial) who haven't used their message yet */}
+              {/* Post-trial free users who still have messages left */}
               {!isPaid && !isTrialing && !freePreviewUsed && (
                 <>
                   <div className="bg-accent/10 border border-accent/20 rounded-lg p-3 mb-4">
                     <p className="text-xs text-accent font-medium flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> Free Preview
+                      <Sparkles className="w-3 h-3" /> 2 free messages per day
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Try one message free today. Upgrade for unlimited access.
+                      {remainingMessages} remaining today — upgrade to Plus for 15
                     </p>
                   </div>
                   
-                  {/* Input row for free preview */}
                   <div className="flex gap-2">
                     <Input
                       placeholder={selectedGuide ? `Ask ${selectedGuide.name}...` : "Try asking something..."}
@@ -930,7 +927,6 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
                     </Button>
                   </div>
                   
-                  {/* Quick prompts */}
                   <div className="flex flex-wrap gap-1.5 mt-3">
                     {(selectedGuide ? selectedGuide.prompts.slice(0, 2) : GUIDES.slice(0, 3).map(g => g.prompts[0])).map((prompt) => (
                       <button
