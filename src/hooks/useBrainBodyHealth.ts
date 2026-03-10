@@ -117,7 +117,7 @@ export function useBrainBodyHealth(userId: string | undefined): BrainBodyHealth 
     queryFn: async () => {
       const { data } = await supabase
         .from("health_sync_data")
-        .select("steps, sleep_minutes, active_minutes, heart_rate_avg, sync_date")
+        .select("steps, sleep_minutes, active_minutes, heart_rate_avg, sync_date, recovery_score, hrv_ms, strain_score")
         .eq("user_id", userId!)
         .gte("sync_date", sevenDaysAgo)
         .order("sync_date", { ascending: false })
