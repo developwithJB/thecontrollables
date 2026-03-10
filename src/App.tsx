@@ -53,11 +53,6 @@ if (typeof window !== "undefined") {
 
 const PageLoader = () => <SplashScreen />;
 
-// Life OS pages wrapped in shared layout
-const LifeOSPage = ({ children }: { children: React.ReactNode }) => (
-  <LifeOSLayout>{children}</LifeOSLayout>
-);
-
 const AppContent = () => {
   useAppResume();
 
@@ -74,12 +69,15 @@ const AppContent = () => {
             element={onboardingQuickStartEnabled() ? <QuickStart /> : <Navigate to="/auth?mode=signup" replace />}
           />
 
-          {/* Life OS pages - wrapped in shared layout */}
-          <Route path="/home" element={<LifeOSPage><Home /></LifeOSPage>} />
-          <Route path="/wellness" element={<LifeOSPage><Wellness /></LifeOSPage>} />
-          <Route path="/growth" element={<LifeOSPage><Growth /></LifeOSPage>} />
-          <Route path="/planner" element={<LifeOSPage><Planner /></LifeOSPage>} />
-          <Route path="/wealth" element={<LifeOSPage><Money /></LifeOSPage>} />
+          {/* Life OS pages - persistent layout, only content swaps */}
+          <Route element={<LifeOSLayout />}>
+            <Route path="/home" element={<Home />} />
+            <Route path="/wellness" element={<Wellness />} />
+            <Route path="/growth" element={<Growth />} />
+            <Route path="/planner" element={<Planner />} />
+            <Route path="/wealth" element={<Money />} />
+          </Route>
+
           <Route path="/money" element={<Navigate to="/wealth" replace />} />
 
           {/* Back-compat redirect */}

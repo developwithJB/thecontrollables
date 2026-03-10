@@ -1,5 +1,5 @@
-import { ReactNode, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback, Suspense } from "react";
+import { useNavigate, Outlet, useLocation } from "react-router-dom";
 import { Book, RefreshCw, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
@@ -10,6 +10,7 @@ import { UpdatePrompt } from "@/components/UpdatePrompt";
 import { WhatsNewModal } from "@/components/WhatsNewModal";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { PullToRefreshIndicator } from "@/components/pwa/PullToRefreshIndicator";
+import { PageShimmer } from "./PageShimmer";
 import { BottomNav, DesktopNavRail } from "./BottomNav";
 import { useLifeOSAuth, LifeOSUserContext } from "@/hooks/useLifeOSAuth";
 import { useEntitlements } from "@/hooks/useEntitlements";
@@ -18,14 +19,12 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { motion, AnimatePresence } from "framer-motion";
 
-interface LifeOSLayoutProps {
-  children: ReactNode;
-}
-
-export const LifeOSLayout = ({ children }: LifeOSLayoutProps) => {
+export const LifeOSLayout = () => {
   const { user, isLoading } = useLifeOSAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showProfileSettings, setShowProfileSettings] = useState(false);
@@ -133,7 +132,19 @@ export const LifeOSLayout = ({ children }: LifeOSLayoutProps) => {
               pullDistance={pullDistance}
             />
             <div className="max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full">
-              {children}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={location.pathname}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <Suspense fallback={<PageShimmer />}>
+                    <Outlet />
+                  </Suspense>
+                </motion.div>
+              </AnimatePresence>
             </div>
           </main>
         </div>
