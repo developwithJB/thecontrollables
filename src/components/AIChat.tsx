@@ -168,6 +168,21 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
 
       applyUsageState(data);
 
+      // Handle actions taken by the AI
+      if (data.actions_taken && data.actions_taken.length > 0) {
+        for (const action of data.actions_taken) {
+          if (action === 'clear_meal_plans' || action === 'add_meal_plan') {
+            queryClient.invalidateQueries({ queryKey: ["meal-plan"] });
+            queryClient.invalidateQueries({ queryKey: ["meal-logs"] });
+            queryClient.invalidateQueries({ queryKey: ["meal-plans"] });
+          }
+          if (action === 'delete_planner_items') {
+            queryClient.invalidateQueries({ queryKey: ["planner-items"] });
+          }
+        }
+        toast.success("Action completed");
+      }
+
       setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
     } catch (error) {
       console.error('AI chat error:', error);
