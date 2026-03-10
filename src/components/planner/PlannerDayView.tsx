@@ -30,6 +30,8 @@ interface PlannerDayViewProps {
   onDelete: (id: string) => void;
   onReschedule: (item: PlannerItem) => void;
   onReorder: (items: { id: string; sort_order: number }[]) => void;
+  onPushToCalendar?: (item: PlannerItem) => void;
+  hasGoogleConnection?: boolean;
 }
 
 export const PlannerDayView = ({
