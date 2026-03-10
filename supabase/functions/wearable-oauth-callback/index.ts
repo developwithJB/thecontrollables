@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
       console.error("DB upsert error:", upsertError);
       return new Response(null, {
         status: 302,
-        headers: { Location: `${appUrl}/?wearable_error=db_error` },
+        headers: { Location: `${appUrl}/wellness?wearable_error=db_error` },
       });
     }
 
