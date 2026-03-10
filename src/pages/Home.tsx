@@ -474,7 +474,7 @@ export default function Home() {
           journeyTitle={activeSession?.journey_id ? getJourneyById(activeSession.journey_id)?.title : undefined}
           onChangeJourney={() => setShowJourneySwitcher(true)}
           missionTitle={activeQuest?.title}
-          onOpenTimeLog={() => navigate("/wellness")}
+          onOpenTimeLog={() => setShowConfirmLastNight(true)}
           onOpenPromises={() => navigate("/growth")}
           onOpenBuild={() => navigate("/growth")}
           onDay7AllComplete={triggerDay7Celebration}
