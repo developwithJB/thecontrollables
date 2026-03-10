@@ -100,12 +100,6 @@ function QuickCheckIn({ onComplete, onLogInstead, onImport }: {
 
       {/* Secondary actions */}
       <div className="flex items-center justify-center gap-3 mt-4 pt-3 border-t border-border/50">
-        {onImport && (
-          <Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-muted-foreground" onClick={onImport}>
-            <Upload className="h-3 w-3" />
-            Import Health Data
-          </Button>
-        )}
         {onLogInstead && (
           <Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-muted-foreground" onClick={onLogInstead}>
             <ClipboardList className="h-3 w-3" />
