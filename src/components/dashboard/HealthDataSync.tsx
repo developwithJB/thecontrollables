@@ -51,6 +51,7 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
 
   const fitbitConnection = wearableConnections.find((c: any) => c.provider === "fitbit");
   const ouraConnection = wearableConnections.find((c: any) => c.provider === "oura");
+  const whoopConnection = wearableConnections.find((c: any) => c.provider === "whoop");
 
   const handleConnect = useCallback(async (provider: "fitbit" | "oura") => {
     setConnecting(provider);
