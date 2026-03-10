@@ -40,6 +40,7 @@ export function SeasonComplete({
   onTakeBreak,
   onDismiss,
 }: SeasonCompleteProps) {
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const consistencyRate = Math.round((progress.totalCheckIns / 28) * 100);
 
   const getNarrative = () => {
