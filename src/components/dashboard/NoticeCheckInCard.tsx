@@ -45,7 +45,7 @@ export const NoticeCheckInCard = ({ userId, onComplete }: NoticeCheckInCardProps
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<ReturnType<typeof getInterpretation> | null>(null);
-  const { isConnected: whoopConnected, latestRecovery } = useWhoopData(userId);
+  const { isConnected: wearableConnected, latest: healthLatest } = useHealthData(userId);
 
   const handleSubmit = async () => {
     if (!mood) return;
