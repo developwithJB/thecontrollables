@@ -40,8 +40,23 @@ const controllables: Array<{
 export default function Landing() {
   usePageViewTracking("Landing");
   const { trackEvent } = useAnalytics();
+  const navigate = useNavigate();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  // Auto-redirect logged-in users to /home
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/home", { replace: true });
+      } else {
+        setAuthChecked(true);
+      }
+    });
+  }, [navigate]);
 
   const quickStartEnabled = onboardingQuickStartEnabled();
+
+  if (!authChecked) return null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-x-hidden relative">
