@@ -218,6 +218,8 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
     if (!date) continue;
     if (!dayMap[date]) dayMap[date] = {};
     dayMap[date].heart_rate_avg = rec.resting_heart_rate;
+    dayMap[date].recovery_score = rec.recovery_score;
+    dayMap[date].hrv_ms = rec.hrv_rmssd_milli;
   }
 
   for (const sleep of recentSleeps || []) {
