@@ -1,4 +1,4 @@
-# The Dashboard — v1.7.0
+# The Dashboard — v2.1.0
 
 **Your Life OS. Planner. Money. Wellness. Growth.**
 
@@ -32,7 +32,6 @@ Your daily command center for tasks, events, and routines.
 - **Time blocks** with start/end times
 - **Routines** that auto-populate daily
 - **Google Calendar sync** — bidirectional read/write
-- **Todoist import** — pull tasks into your planner
 - **Energy-level tagging** for tasks
 - **Promise linking** — connect tasks to your integrity commitments
 
@@ -55,8 +54,7 @@ Connect the tools you already use.
 |----------|-----------|
 | **Google Calendar** | Read/write events and time blocks to your Planner |
 | **Gmail** | Read-only daily inbox summary (unread, starred, needs-reply) for Daily OS |
-| **Todoist** | Import active tasks into Planner |
-| **Notion** | Export weekly reviews and Vault entries to a chosen database |
+| **Instagram** | IG Proof — attach story/post evidence to your daily rings |
 
 All OAuth tokens stored securely server-side. Provider failures never break dashboard load.
 
@@ -85,7 +83,8 @@ Your prioritized starting point each morning.
 Wellness as a controllable, not a chore.
 
 - **Sleep, movement, nutrition ratings** — simple 1-5 scales
-- **Apple Health / Google Fit import** — sync steps, sleep, heart rate
+- **Wearable integration** — connect WHOOP, Fitbit, or Oura to sync recovery, sleep, strain, HRV, and activity
+- **7-day wearable trial** — full metrics free for 7 days after connecting, then gated behind a paid plan
 - **Weekly patterns** — see which days you thrive
 - **Streak tracking** — optional, never punishing
 
@@ -105,7 +104,7 @@ Contextual assistance grounded in The Controllables framework.
 - **5 distinct voices** — one for each Controllable
 - **Context-aware** — knows your Snapshot, Build, recent activity
 - **Human-centric tone** — helpful, not robotic
-- **5 messages/day** during trial, 25 with Premium
+- **5 messages/day** free, **15 with Plus**, **25 with Pro**
 
 ---
 
@@ -128,12 +127,10 @@ Mission (Direction)      — Your north star. Not a deadline, just a heading.
 
 ---
 
-## 7-Day Free Trial
+## Pricing
 
-New users get **full access to every feature** during their first Snapshot — no credit card required.
-
-| Feature | Free | Trial | Premium |
-|---------|------|-------|---------|
+| | Free | Plus ($9.99/mo) | Pro ($79.99/yr) |
+|---|---|---|---|
 | Planner | ✅ | ✅ | ✅ |
 | Money Hub | ✅ | ✅ | ✅ |
 | Integration Hub | ✅ | ✅ | ✅ |
@@ -141,13 +138,14 @@ New users get **full access to every feature** during their first Snapshot — n
 | Daily OS | ✅ | ✅ | ✅ |
 | Time Currency | ✅ | ✅ | ✅ |
 | Integrity Meter | ✅ | ✅ | ✅ |
-| Snapshots Available | 1 | All 36 | All 36 + Custom |
+| Snapshots Available | 1 | All 36 + Custom | All 36 + Custom |
 | Experience History | — | ✅ | ✅ |
-| AI Guides | — | 5 msgs/day | 25 msgs/day |
+| AI Guides | 5 msgs/day | 15 msgs/day | 25 msgs/day |
+| Wearable Data | 7 days free | ✅ | ✅ |
 | Certificates | — | ✅ | ✅ |
-| Daily Alignment Emails | — | — | ✅ |
+| Daily Alignment Emails | — | ✅ | ✅ |
 
-**Pricing:** $9.99/mo or $79.99/yr (saves ~33%)
+**7-Day Free Trial** — new users get full access to every feature during their first Snapshot. No credit card required.
 
 ---
 
@@ -186,6 +184,8 @@ A personalized morning email at **6:00 AM your local time**:
 | `integration-oauth-start/callback` | OAuth flows for all providers |
 | `integration-sync` | Provider-specific sync logic |
 | `integration-disconnect` | Token revocation |
+| `wearable-oauth-start/callback` | Wearable OAuth flows (WHOOP, Fitbit, Oura) |
+| `wearable-sync` | Unified wearable data sync |
 | `generate-certificate` | Snapshot completion certificates |
 | `generate-insights` | AI behavioral insights |
 | `send-daily-nudge` | Email reminders |
@@ -206,10 +206,11 @@ A personalized morning email at **6:00 AM your local time**:
 | `savings_goals` | Savings targets |
 | `integration_connections` | OAuth for all providers |
 | `integration_sync_logs` | Sync history |
+| `wearable_connections` | Wearable OAuth tokens (WHOOP, Fitbit, Oura) |
+| `health_sync_data` | Normalized wearable data (steps, sleep, recovery, HRV, strain) |
 | `reset_sessions` | Active Snapshots |
 | `daily_resets` | Daily check-ins |
 | `wellness_logs` | Sleep, movement, nutrition |
-| `health_sync_data` | Imported wearable data |
 | `build_assessments` / `build_scores` | Assessment data |
 | `integrity_logs` | Promise tracking |
 | `time_logs` | Invested vs. wasted time |

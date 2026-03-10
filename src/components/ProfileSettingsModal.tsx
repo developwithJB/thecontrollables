@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Moon, Sun, CreditCard, Mail, Calendar, Bell, Smartphone, Plug } from "lucide-react";
+import { LogOut, Moon, Sun, CreditCard, Mail, Calendar, Bell, Plug } from "lucide-react";
 import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush } from "@/lib/pushNotifications";
-import { HealthDataSync } from "@/components/dashboard/HealthDataSync";
 import { ObservationsSettingsCard } from "@/components/settings/ObservationsSettingsCard";
 import { useObservations } from "@/hooks/useObservations";
 import {
@@ -73,7 +72,7 @@ export function ProfileSettingsModal({
   const [pushSupported, setPushSupported] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushToggling, setPushToggling] = useState(false);
-  const [healthSyncOpen, setHealthSyncOpen] = useState(false);
+  
   const { toast } = useToast();
 
   const { observations, inferredPreferences, dismissObservation } = useObservations(userId);
@@ -371,25 +370,6 @@ export function ProfileSettingsModal({
               </div>
             </div>
 
-            {/* Health Data Import */}
-            <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border/50">
-              <div className="flex items-center gap-2 mb-1">
-                <Smartphone className="w-4 h-4 text-muted-foreground" />
-                <Label className="font-medium">Health Data</Label>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Import health data from Apple Health or Google Fit to enhance your Brain & Body tracker.
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setHealthSyncOpen(true)}
-                className="w-full"
-              >
-                <Smartphone className="w-4 h-4 mr-2" />
-                Import Health Data
-              </Button>
-            </div>
 
             {/* Timezone */}
             <div className="space-y-2">
@@ -478,12 +458,6 @@ export function ProfileSettingsModal({
           </div>
         )}
 
-        {/* Health Data Sync Dialog */}
-        <HealthDataSync
-          open={healthSyncOpen}
-          onOpenChange={setHealthSyncOpen}
-          userId={userId}
-        />
       </DialogContent>
     </Dialog>
   );

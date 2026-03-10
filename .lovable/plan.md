@@ -1,80 +1,164 @@
 
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-# Plan: Remove Import Health Data, Clean Up WHOOP References, Update Messaging
+## Overview
 
-## Summary
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-Three workstreams: (1) remove the "Import Health Data" button/dialog from settings and BrainBodyTracker, (2) clean up remaining WHOOP-branded files and references, (3) update README, landing page, and feature grid to reflect the unified wearable layer and current tier structure.
+---
 
-## Changes
+## Part 1: AI Insight Engine
 
-### 1. Remove "Import Health Data" from Settings and BrainBodyTracker
+### New Edge Function: `admin-insights`
 
-**`src/components/ProfileSettingsModal.tsx`**
-- Remove the entire "Health Data Import" section (lines ~374-392) — the card with the Smartphone icon and "Import Health Data" button
-- Remove the `HealthDataSync` dialog render at bottom (~line 482-486)
-- Remove `healthSyncOpen` state and `HealthDataSync` import
-- Keep the `Smartphone` icon import only if used elsewhere; remove if not
+**File: `supabase/functions/admin-insights/index.ts`**
 
-**`src/components/dashboard/BrainBodyTracker.tsx`**
-- Remove the `onImportHealth` prop from the interface
-- Remove the `onImport` prop from `QuickCheckIn`
-- Remove the "Import Health Data" button from the secondary actions area (lines ~103-107)
-- Remove `Upload` icon import
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
 
-**`src/pages/Wellness.tsx`**
-- Remove `onImportHealth={() => {}}` prop from `BrainBodyTracker`
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
 
-**`src/components/dashboard/HealthDataSync.tsx`**
-- Remove the Apple Health and Google Fit tabs (TabsContent for "apple" and "google") and the file upload logic
-- Keep only the wearable integration tabs (WHOOP, Fitbit, Oura) — this dialog is still used on the Wellness page via `WearableSummaryCard`
-- Actually, since this dialog is only used from ProfileSettingsModal (which we're removing it from), and the wearable connect flow is already in `WearableSummaryCard`, we can simplify: remove the Apple/Google tabs and the file upload section entirely. The dialog still serves as the "connect wearable" flow if referenced elsewhere, but since `WearableSummaryCard` handles connection directly, we may be able to deprecate this component. For safety, keep it but strip the import tabs.
+[structured data blob]
 
-### 2. Delete Old WHOOP-Branded Files
+Return insights as structured tool output.
+```
 
-**Delete:**
-- `src/components/wellness/WhoopSummaryCard.tsx` — replaced by `WearableSummaryCard.tsx`
-- `src/components/wellness/WhoopTrendsCard.tsx` — replaced by `WearableTrendsCard.tsx`
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-These are no longer imported anywhere in pages (Wellness.tsx already uses the Wearable versions). The `useWhoopData.ts` deprecated wrapper can stay for now since it re-exports from `useHealthData`.
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-### 3. Update README
+### New Admin Component: AI Insights Panel
 
-**`README.md`** — update to reflect:
-- Brain & Body Tracker description: replace "Apple Health / Google Fit import" with "Connect WHOOP, Fitbit, or Oura to sync recovery, sleep, strain, and activity. Manual entry for sleep, movement, and nutrition."
-- AI Guides section: update to "5 msgs/day during trial, 15 with Plus, 25 with Pro"
-- Pricing table: split into Plus ($9.99/mo) and Pro ($79.99/yr) tiers
-- Add wearable data to the feature/trial table with "7 days free, then paid"
-- Add `health_sync_data` description: mention recovery_score, hrv_ms, strain_score columns
-- Add `wearable-sync` to edge functions table
-- Update `health_sync_data` table description: "Normalized wearable data (steps, sleep, recovery, HRV, strain)"
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-### 4. Update Landing Page Feature Grid
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-**`src/components/landing/FeatureGrid.tsx`**
-- Brain & Body Tracker description: change from "Import from Apple Health or Google Fit" to "Connect your WHOOP, Fitbit, or Oura. Manual entry too."
-- Add a new feature card for "Wearable Integration" or fold it into the existing Brain & Body card
-- Update AI Guides description: mention Plus (15/day) and Pro (25/day) instead of just "25 with Premium"
+### Integration into Admin.tsx
 
-### 5. Audit Admin Panel
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
-The admin panel (`src/pages/Admin.tsx` and admin components) doesn't contain WHOOP-specific references in its tabs — it's analytics/user-focused. No changes needed there.
+---
 
-### 6. Audit Remaining Pages for Consistency
+## Part 2: Enhanced Action Center
 
-- **`src/pages/Integrations.tsx`** — check if it references WHOOP or old import flows
-- **`src/components/dashboard/HealthDataSync.tsx`** — remove Apple/Google tabs, keep wearable tabs only. Rename dialog title from "Connect Health Data" to "Connect Wearable"
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
 
-## Files Summary
+Replace the three "Coming soon" cards with working functionality:
 
-| Action | File |
-|--------|------|
-| Edit | `src/components/ProfileSettingsModal.tsx` — remove Health Data Import section |
-| Edit | `src/components/dashboard/BrainBodyTracker.tsx` — remove onImportHealth prop and Import button |
-| Edit | `src/pages/Wellness.tsx` — remove onImportHealth prop |
-| Edit | `src/components/dashboard/HealthDataSync.tsx` — remove Apple/Google import tabs |
-| Edit | `src/components/landing/FeatureGrid.tsx` — update descriptions |
-| Edit | `README.md` — update pricing, wearable, and AI tier info |
-| Delete | `src/components/wellness/WhoopSummaryCard.tsx` |
-| Delete | `src/components/wellness/WhoopTrendsCard.tsx` |
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
 
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
+
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
+
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
+
+---
+
+## Part 3: Landing Page Updates
+
+**File: `src/pages/Landing.tsx`**
+
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+
+**File: `src/components/landing/FeatureGrid.tsx`**
+
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+
+**File: `src/components/landing/HowItWorksSection.tsx`**
+
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.

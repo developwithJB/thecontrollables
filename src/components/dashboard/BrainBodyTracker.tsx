@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useBrainBodyHealth } from "@/hooks/useBrainBodyHealth";
-import { Brain, Dumbbell, Moon, Monitor, Salad, Activity, TrendingUp, TrendingDown, Minus, Upload, ClipboardList, Info } from "lucide-react";
+import { Brain, Dumbbell, Moon, Monitor, Salad, Activity, TrendingUp, TrendingDown, Minus, ClipboardList, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getControllableTheme } from "@/lib/controllableTheme";
 import { ControllableLevelBadge } from "./ControllableLevelBadge";
@@ -16,7 +16,7 @@ interface BrainBodyTrackerProps {
   userId: string | undefined;
   onLogWellness?: () => void;
   onQuickLog?: (sleep: number, movement: number, nutrition: number) => Promise<boolean>;
-  onImportHealth?: () => void;
+  
   streak?: number;
 }
 
@@ -26,10 +26,9 @@ const QUICK_STEPS = [
   { key: "nutrition", question: "How was your nutrition?", emojis: ["🍟", "🍕", "🥪", "🥗", "🥑"] },
 ] as const;
 
-function QuickCheckIn({ onComplete, onLogInstead, onImport }: {
+function QuickCheckIn({ onComplete, onLogInstead }: {
   onComplete: (sleep: number, movement: number, nutrition: number) => void;
   onLogInstead?: () => void;
-  onImport?: () => void;
 }) {
   const [step, setStep] = useState(0);
   const [ratings, setRatings] = useState<number[]>([]);
@@ -100,12 +99,6 @@ function QuickCheckIn({ onComplete, onLogInstead, onImport }: {
 
       {/* Secondary actions */}
       <div className="flex items-center justify-center gap-3 mt-4 pt-3 border-t border-border/50">
-        {onImport && (
-          <Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-muted-foreground" onClick={onImport}>
-            <Upload className="h-3 w-3" />
-            Import Health Data
-          </Button>
-        )}
         {onLogInstead && (
           <Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-muted-foreground" onClick={onLogInstead}>
             <ClipboardList className="h-3 w-3" />
@@ -228,7 +221,7 @@ const SATELLITE_TIPS: Record<string, string> = {
   default: "🛰️ Log your wellness data to see your Brain & Body status.",
 };
 
-export function BrainBodyTracker({ userId, onLogWellness, onQuickLog, onImportHealth, streak = 0 }: BrainBodyTrackerProps) {
+export function BrainBodyTracker({ userId, onLogWellness, onQuickLog, streak = 0 }: BrainBodyTrackerProps) {
   const { brainScore, bodyScore, factors, trend, hasData, hasHealthSync, isLoading } = useBrainBodyHealth(userId);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -333,7 +326,6 @@ export function BrainBodyTracker({ userId, onLogWellness, onQuickLog, onImportHe
               <QuickCheckIn
                 onComplete={handleQuickComplete}
                 onLogInstead={onLogWellness}
-                onImport={onImportHealth}
               />
             )}
           </CardContent>

@@ -19,7 +19,7 @@ const coreFeatures = [
   {
     icon: Calendar,
     title: "Planner",
-    description: "Your daily command center. Tasks, time blocks, routines — synced with Google Calendar and Todoist if you want.",
+    description: "Your daily command center. Tasks, time blocks, routines — synced with Google Calendar.",
   },
   {
     icon: DollarSign,
@@ -29,7 +29,7 @@ const coreFeatures = [
   {
     icon: Plug,
     title: "Integration Hub",
-    description: "Connect Google Calendar, Gmail, Todoist, and Notion. Sync events, import tasks, get inbox summaries, export to Notion.",
+    description: "Connect Google Calendar, Gmail, and Instagram. Sync events, get inbox summaries, and use IG Proof.",
   },
   {
     icon: Camera,
@@ -44,7 +44,7 @@ const coreFeatures = [
   {
     icon: Heart,
     title: "Brain & Body Tracker",
-    description: "Log sleep, movement, and nutrition. Import from Apple Health or Google Fit. See how wellness affects everything else.",
+    description: "Log sleep, movement, and nutrition. Connect your WHOOP, Fitbit, or Oura to sync recovery, HRV, strain, and more.",
   },
   {
     icon: Target,
@@ -77,7 +77,7 @@ const coreFeatures = [
   {
     icon: MessageCircle,
     title: "AI Guides",
-    description: "Five focused voices — Awareness, Perspective, Habit, Wellness, Environment — trained on behavior change principles. A thinking partner.",
+    description: "Five focused voices — Awareness, Perspective, Habit, Wellness, Environment. 5/day free, 15 with Plus, 25 with Pro.",
     premium: true,
     trialAccess: true,
   },
