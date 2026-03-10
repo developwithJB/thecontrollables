@@ -3,11 +3,12 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, addWeeks, subWeeks, isToday, isBefore, startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { SplashScreen } from "@/components/SplashScreen";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, RotateCcw, Settings, BarChart3, UtensilsCrossed } from "lucide-react";
+import { Plus, RotateCcw, BarChart3, UtensilsCrossed } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
+import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
+import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 
 import {
   usePlannerItems,
@@ -33,27 +34,11 @@ import { PlannerCalendarConnect } from "@/components/planner/PlannerCalendarConn
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 
 const Planner = () => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const user = useLifeOSUser();
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const [showPvA, setShowPvA] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
-
-  // Auth check
-  const { data: user, isLoading: userLoading } = useQuery({
-    queryKey: ["auth-user"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user;
-    },
-  });
-
-  useEffect(() => {
-    if (!userLoading && !user) {
-      navigate("/auth", { replace: true });
-    }
-  }, [user, userLoading, navigate]);
 
   // Week state
   const [referenceDate, setReferenceDate] = useState(new Date());
@@ -69,18 +54,18 @@ const Planner = () => {
   const { data: items = [], isLoading: itemsLoading } = usePlannerItems(
     weekRange.start,
     weekRange.end,
-    user?.id
+    user.id
   );
   const { createItem, updateItem, completeItem, skipItem, reorderItems, deleteItem, rescheduleItem } =
     usePlannerMutations();
-  const { routines, createRoutine, deleteRoutine } = usePlannerRoutines(user?.id);
-  const { connections, startGoogleCalSync, triggerSync } = usePlannerConnections(user?.id);
+  const { routines, createRoutine, deleteRoutine } = usePlannerRoutines(user.id);
+  const { connections, startGoogleCalSync, triggerSync } = usePlannerConnections(user.id);
 
   // Activity from other systems (rings, meals, actions)
   const { data: activityItems = [] } = usePlannerActivity(
     weekRange.start,
     weekRange.end,
-    user?.id
+    user.id
   );
   const activityByDate = useMemo(() => groupActivityByDate(activityItems), [activityItems]);
 
@@ -97,7 +82,6 @@ const Planner = () => {
 
   const itemCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    // Combine planner items + activity counts
     const allDateKeys = new Set([
       ...Object.keys(itemsByDate),
       ...Object.keys(activityByDate),
@@ -112,7 +96,7 @@ const Planner = () => {
   const dayItems = itemsByDate[selectedDateKey] ?? [];
   const dayActivity = activityByDate[selectedDateKey] ?? [];
 
-  // Derive Plan vs Actual data from planner items
+  // Derive Plan vs Actual data
   const pvaData = useMemo(() => {
     const today = startOfDay(new Date());
     return weekRange.days.map((date) => {
@@ -139,11 +123,9 @@ const Planner = () => {
     });
   }, [weekRange.days, itemsByDate]);
 
-
   // Handlers
   const handleToggleStatus = useCallback(
     (item: PlannerItem) => {
-      if (!user?.id) return;
       if (item.status === "done") {
         updateItem.mutate({ id: item.id, status: "todo" });
       } else if (item.status === "todo" || item.status === "in_progress") {
@@ -152,33 +134,25 @@ const Planner = () => {
         updateItem.mutate({ id: item.id, status: "todo" });
       }
     },
-    [user?.id, updateItem, completeItem]
+    [user.id, updateItem, completeItem]
   );
 
   const handleSave = useCallback(
     (input: CreatePlannerItemInput | UpdatePlannerItemInput) => {
       if ("id" in input) {
         updateItem.mutate(input, {
-          onSuccess: () => {
-            setEditorOpen(false);
-            setEditingItem(null);
-          },
+          onSuccess: () => { setEditorOpen(false); setEditingItem(null); },
         });
       } else {
-        if (!user?.id) return;
         createItem.mutate(
           { ...input, user_id: user.id },
           {
-            onSuccess: () => {
-              setEditorOpen(false);
-              setEditingItem(null);
-              toast({ title: "Added to plan" });
-            },
+            onSuccess: () => { setEditorOpen(false); setEditingItem(null); toast({ title: "Added to plan" }); },
           }
         );
       }
     },
-    [user?.id, createItem, updateItem, toast]
+    [user.id, createItem, updateItem, toast]
   );
 
   const handleEdit = useCallback((item: PlannerItem) => {
@@ -186,55 +160,26 @@ const Planner = () => {
     setEditorOpen(true);
   }, []);
 
-  const handleDelete = useCallback(
-    (id: string) => {
-      deleteItem.mutate(id);
-    },
-    [deleteItem]
-  );
-
-  const handleReschedule = useCallback(
-    (item: PlannerItem) => {
-      // For now, open editor with the item to change date
-      setEditingItem(item);
-      setEditorOpen(true);
-    },
-    []
-  );
+  const handleDelete = useCallback((id: string) => { deleteItem.mutate(id); }, [deleteItem]);
 
   const handleReorder = useCallback(
-    (reordered: { id: string; sort_order: number }[]) => {
-      reorderItems.mutate(reordered);
-    },
+    (reordered: { id: string; sort_order: number }[]) => { reorderItems.mutate(reordered); },
     [reorderItems]
   );
 
-  if (userLoading) return <SplashScreen />;
-  if (!user) return null;
-
   return (
-    <div className="min-h-screen bg-background flex flex-col relative">
-      <div className="fixed inset-0 grid-bg pointer-events-none opacity-20" />
-      {/* Header */}
-      <div className="os-header">
-        <div className="flex items-center justify-between px-4 py-3">
+    <div className="space-y-0 -mx-4 sm:-mx-6 -my-6">
+      {/* Controllable bar */}
+      <div className="px-4 sm:px-6 pt-4 pb-2">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/dashboard")}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
             <h1 className="text-lg font-display font-semibold">Planner</h1>
             <span className="text-xs text-muted-foreground font-mono">
               {format(weekRange.days[0], "MMM d")} – {format(weekRange.days[6], "MMM d")}
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <Button
-              variant={showPvA ? "default" : "ghost"}
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setShowPvA((v) => !v)}
-              title="Plan vs Actual"
-            >
+            <Button variant={showPvA ? "default" : "ghost"} size="icon" className="h-8 w-8" onClick={() => setShowPvA((v) => !v)} title="Plan vs Actual">
               <BarChart3 className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRoutineManagerOpen(true)}>
@@ -242,27 +187,17 @@ const Planner = () => {
             </Button>
             {!isMobile && (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuickAddOpen(true)}
-                >
+                <Button variant="outline" size="sm" onClick={() => setQuickAddOpen(true)}>
                   <UtensilsCrossed className="h-4 w-4 mr-1" /> Quick Log
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setEditingItem(null);
-                    setEditorOpen(true);
-                  }}
-                >
+                <Button variant="outline" size="sm" onClick={() => { setEditingItem(null); setEditorOpen(true); }}>
                   <Plus className="h-4 w-4 mr-1" /> Add
                 </Button>
               </>
             )}
           </div>
         </div>
+        <ControllablePoweredBy controllables={["awareness", "habit", "wellness", "environment"]} />
       </div>
 
       {/* Date strip (mobile) */}
@@ -285,28 +220,14 @@ const Planner = () => {
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Desktop: Week grid left, day view right */}
+      <div className="flex-1 flex overflow-hidden" style={{ height: "calc(100vh - 200px)" }}>
         {!isMobile && (
           <div className="w-[55%] border-r border-border p-4 overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setReferenceDate((d) => subWeeks(d, 1))}>
-                  ← Prev
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setReferenceDate((d) => addWeeks(d, 1))}>
-                  Next →
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setReferenceDate(new Date());
-                    setSelectedDate(new Date());
-                  }}
-                >
-                  Today
-                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setReferenceDate((d) => subWeeks(d, 1))}>← Prev</Button>
+                <Button variant="ghost" size="sm" onClick={() => setReferenceDate((d) => addWeeks(d, 1))}>Next →</Button>
+                <Button variant="outline" size="sm" onClick={() => { setReferenceDate(new Date()); setSelectedDate(new Date()); }}>Today</Button>
               </div>
             </div>
             <PlannerWeekGrid
@@ -316,8 +237,6 @@ const Planner = () => {
               itemsByDate={itemsByDate}
               activityByDate={activityByDate}
             />
-
-            {/* Calendar connect below week grid on desktop */}
             <div className="mt-4">
               <PlannerCalendarConnect
                 connections={connections}
@@ -330,7 +249,6 @@ const Planner = () => {
           </div>
         )}
 
-        {/* Day detail view */}
         <div className={isMobile ? "flex-1 overflow-y-auto" : "w-[45%] overflow-y-auto"}>
           <PlannerDayView
             date={selectedDate}
@@ -339,11 +257,9 @@ const Planner = () => {
             onToggleStatus={handleToggleStatus}
             onEdit={handleEdit}
             onDelete={handleDelete}
-            onReschedule={handleReschedule}
+            onReschedule={(item) => { setEditingItem(item); setEditorOpen(true); }}
             onReorder={handleReorder}
           />
-
-          {/* Calendar connect on mobile - at bottom */}
           {isMobile && (
             <div className="px-4 pb-20">
               <PlannerCalendarConnect
@@ -361,38 +277,22 @@ const Planner = () => {
       {/* FAB for mobile */}
       {isMobile && (
         <PlannerFab
-          onAddTask={() => {
-            setEditingItem(null);
-            setEditorOpen(true);
-          }}
+          onAddTask={() => { setEditingItem(null); setEditorOpen(true); }}
           onQuickAdd={() => setQuickAddOpen(true)}
         />
       )}
 
-      {/* Quick add sheet */}
-      {user && (
-        <QuickAddSheet
-          open={quickAddOpen}
-          onClose={() => setQuickAddOpen(false)}
-          userId={user.id}
-          selectedDate={selectedDateKey}
-        />
-      )}
+      <QuickAddSheet open={quickAddOpen} onClose={() => setQuickAddOpen(false)} userId={user.id} selectedDate={selectedDateKey} />
 
-      {/* Editor sheet */}
       <PlannerItemEditor
         open={editorOpen}
-        onClose={() => {
-          setEditorOpen(false);
-          setEditingItem(null);
-        }}
+        onClose={() => { setEditorOpen(false); setEditingItem(null); }}
         onSave={handleSave}
         item={editingItem}
         defaultDate={selectedDateKey}
         isSaving={createItem.isPending || updateItem.isPending}
       />
 
-      {/* Routine manager */}
       <PlannerRoutineManager
         open={routineManagerOpen}
         onClose={() => setRoutineManagerOpen(false)}

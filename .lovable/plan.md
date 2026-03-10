@@ -1,157 +1,164 @@
 
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-# Life OS Navigation & Page Architecture Refactor
+## Overview
 
-## Current State
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-The app has a monolithic `/dashboard` page (~1800 lines) with 3 tabs (Dashboard, Experience, Guide), plus standalone `/planner` and `/money` pages. The Dashboard tab itself has Command Mode (rings) and Control Mode (full modules). Everything lives in one giant component.
+---
 
-## New Architecture
+## Part 1: AI Insight Engine
 
-Replace the tab-based dashboard with 5 top-level pages connected by a persistent bottom navigation bar (mobile) / sidebar (desktop):
+### New Edge Function: `admin-insights`
 
-```text
-┌─────────────────────────────────┐
-│  Header (Logo + Settings)       │
-├─────────────────────────────────┤
-│                                 │
-│        Page Content             │
-│                                 │
-├─────────────────────────────────┤
-│  🏠    💪    🌱    📋    💰    │
-│ Home Wellness Growth Planner Wealth│
-└─────────────────────────────────┘
+**File: `supabase/functions/admin-insights/index.ts`**
+
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
+
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
+
+[structured data blob]
+
+Return insights as structured tool output.
 ```
 
-## Controllable Mapping (Intelligence Layer)
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-Each page shows a subtle "Powered by" indicator and receives page-specific AI insights filtered by these controllables:
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-| Page | Controllables |
-|------|--------------|
-| Home | All 5 (🦉🐢🦈🛰️🚀) |
-| Wellness | 🦈 Habit + 🛰️ Wellness |
-| Growth | 🐢 Perspective + 🦈 Habit + 🚀 Environment |
-| Planner | 🦉 Awareness + 🦈 Habit + 🛰️ Wellness + 🚀 Environment |
-| Wealth | 🦉 Awareness + 🐢 Perspective + 🦈 Habit + 🚀 Environment |
+### New Admin Component: AI Insights Panel
 
-## Implementation Plan
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-### Phase 1: Shared Layout & Navigation
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-**New files:**
-- `src/components/layout/LifeOSLayout.tsx` — shared shell with header, bottom nav, and content area. Auth check, pull-to-refresh, profile settings all live here (extracted from Dashboard.tsx)
-- `src/components/layout/BottomNav.tsx` — 5-item mobile bottom bar (Home/Wellness/Growth/Planner/Wealth)
-- `src/components/layout/ControllablePoweredBy.tsx` — subtle "Powered by" chip row showing which controllables drive each page
+### Integration into Admin.tsx
 
-**Route changes in `App.tsx`:**
-- `/dashboard` → `/home` (redirect `/dashboard` to `/home` for back-compat)
-- `/wellness` — new route
-- `/growth` — new route
-- `/planner` — existing, stays
-- `/money` → also accessible as `/wealth`
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
-### Phase 2: Home Page (refactor from Dashboard)
+---
 
-**File:** `src/pages/Home.tsx`
+## Part 2: Enhanced Action Center
 
-Extract from the current 1800-line Dashboard.tsx. Home becomes the command center:
-- Daily greeting + system status (GreetingBanner)
-- AI daily brief (from dashboard intelligence)
-- Top actions for today (AIRecommendedActions)
-- Domain summary cards (4 mini-cards linking to Wellness/Growth/Planner/Wealth)
-- Controllable summary (5 controllable status indicators)
-- Cross-system insights ("Low Wellness reducing Planner execution")
-- Operator Console stays here
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
 
-Move Experience tab content → accessible from a "History" button in settings/profile or a collapsible section on Home.
-Move Guide tab content → accessible from settings or an info button.
+Replace the three "Coming soon" cards with working functionality:
 
-### Phase 3: Wellness Page
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
 
-**File:** `src/pages/Wellness.tsx`
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
 
-Pulls existing components into a dedicated body/energy page:
-- Controllable "Powered by" bar: Habit + Wellness
-- Today's wellness score / battery (from BrainBodyTracker)
-- Movement card
-- Nutrition card (MealPlanCard, MealTracker)
-- Sleep card
-- 7-day trend (from WellnessStreakHistory)
-- Quick logging actions (inline wellness logger)
-- AI wellness insight (filtered to Habit + Wellness controllables)
-- Wellness goals (WellnessGoalsCard)
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
 
-Components reused from current codebase:
-- `BrainBodyTracker`, `WellnessGoalsCard`, `MealPlanCard`, `WellnessStreakHistory`, `DailyOSCard`
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
 
-### Phase 4: Growth Page
+---
 
-**File:** `src/pages/Growth.tsx`
+## Part 3: Landing Page Updates
 
-The home of the 5-ring system and self-leadership tools:
-- Controllable "Powered by" bar: Perspective + Habit + Environment
-- 5 Rings hero (DailyRings — moved from CommandModeView)
-- AI growth insight
-- Reframe Studio (from ring tools)
-- Proof of Self (proof actions, IG proof)
-- Environment Reset card
-- Growth streaks / pattern insights
-- Weekly story / momentum view (WeeklyRecapCard)
-- Build assessment (BuildOverviewModule)
-- Controllable Levels progression
+**File: `src/pages/Landing.tsx`**
 
-Components reused:
-- `DailyRings`, `WeeklyRecapCard`, `ForecastCard`, `BuildOverviewModule`, `ControllableLevelsCard`, `InstagramInputCard`, `IGProofHistory`
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
 
-### Phase 5: Enhance Planner Page
+**File: `src/components/landing/FeatureGrid.tsx`**
 
-**File:** `src/pages/Planner.tsx` (update existing)
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
 
-- Add Controllable "Powered by" bar: Awareness + Habit + Wellness + Environment
-- Add AI planner insight section (wellness-aware scheduling suggestions)
-- Keep existing planner functionality intact
-- Remove the back-arrow navigation (now part of persistent nav)
+**File: `src/components/landing/HowItWorksSection.tsx`**
 
-### Phase 6: Enhance Wealth Page
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
 
-**File:** `src/pages/Money.tsx` (update existing, add `/wealth` route alias)
+---
 
-- Add Controllable "Powered by" bar: Awareness + Perspective + Habit + Environment
-- Add daily spend check-in prompt at top
-- Add AI wealth insight section
-- Keep existing money functionality intact
-- Remove the back-arrow navigation
+## Part 4: README Update
 
-### Phase 7: Cleanup
+**File: `README.md`**
 
-- Slim down `Dashboard.tsx` to a redirect → `/home`
-- Extract shared auth/entitlements logic into a `useLifeOSAuth` hook (or reuse existing patterns)
-- Move Guide content to a modal or settings subsection
-- Move Experience content to a "History" section accessible from Home or Profile
+Update to v1.5.0 reflecting all recent changes:
 
-## Files Summary
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
 
-| Action | File |
-|--------|------|
-| Create | `src/components/layout/LifeOSLayout.tsx` |
-| Create | `src/components/layout/BottomNav.tsx` |
-| Create | `src/components/layout/ControllablePoweredBy.tsx` |
-| Create | `src/pages/Home.tsx` |
-| Create | `src/pages/Wellness.tsx` |
-| Create | `src/pages/Growth.tsx` |
-| Edit | `src/pages/Planner.tsx` — add controllable bar, remove back-arrow |
-| Edit | `src/pages/Money.tsx` — add controllable bar, remove back-arrow |
-| Edit | `src/App.tsx` — new routes, redirects |
-| Edit | `src/pages/Landing.tsx` — update CTA links if needed |
-| Deprecate | `src/pages/Dashboard.tsx` — redirect to `/home` |
-| Edit | `src/components/dashboard/DashboardModeToggle.tsx` — remove (no longer needed) |
+---
 
-## Key Decisions
+## Technical Summary
 
-1. **Bottom nav over sidebar on mobile** — matches the "calm, premium" feel and keeps all 5 domains one tap away
-2. **Desktop gets a subtle left sidebar** — expands the bottom nav into a narrow rail with icons + labels
-3. **No tabs inside pages** — each page is a single scrollable view with clear sections, avoiding the current tab-within-tab complexity
-4. **Guide becomes secondary** — moved to profile/settings, not a primary nav item
-5. **Experience data distributed** — streak history goes to Wellness, snapshot history to Growth, badges to Home or Profile
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
 
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.

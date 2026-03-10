@@ -3,64 +3,66 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SplashScreen } from "@/components/SplashScreen";
 import { useAppResume } from "@/hooks/useAppResume";
 import { lazy, Suspense, useState, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import { onboardingQuickStartEnabled } from "@/lib/featureFlags";
+import { LifeOSLayout } from "@/components/layout/LifeOSLayout";
 
 // Eagerly load Landing for fastest FCP
 import Landing from "./pages/Landing";
 
-// Lazy load other routes to reduce initial bundle size
+// Lazy load other routes
 const Auth = lazy(() => import("./pages/Auth"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Home = lazy(() => import("./pages/Home"));
+const Wellness = lazy(() => import("./pages/Wellness"));
+const Growth = lazy(() => import("./pages/Growth"));
+const Planner = lazy(() => import("./pages/Planner"));
+const Money = lazy(() => import("./pages/Money"));
 const Reset = lazy(() => import("./pages/Reset"));
 const Billing = lazy(() => import("./pages/Billing"));
 const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const QuickStart = lazy(() => import("./pages/QuickStart"));
-const Planner = lazy(() => import("./pages/Planner"));
-const Money = lazy(() => import("./pages/Money"));
 const Integrations = lazy(() => import("./pages/Integrations"));
 
 // Production-hardened query client configuration
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000, // 1 minute
-      gcTime: 5 * 60 * 1000, // Garbage collect after 5 mins
-      refetchOnWindowFocus: false, // Don't refetch on tab focus (handled by useAppResume)
-      refetchOnReconnect: true, // Refetch when connection restored
-      retry: 1, // Only retry once on failure
+      staleTime: 60 * 1000,
+      gcTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+      retry: 1,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
-      networkMode: "offlineFirst", // Better offline handling
+      networkMode: "offlineFirst",
     },
     mutations: {
-      retry: 0, // Don't auto-retry mutations to prevent duplicate submissions
-      networkMode: "online", // Mutations require network
+      retry: 0,
+      networkMode: "online",
     },
   },
 });
 
-// Store query client globally for error boundary access
 if (typeof window !== "undefined") {
   (window as any).__REACT_QUERY_CLIENT__ = queryClient;
 }
 
-// Page loader using splash screen style
 const PageLoader = () => <SplashScreen />;
 
-// Inner app component that uses hooks
+// Life OS pages wrapped in shared layout
+const LifeOSPage = ({ children }: { children: React.ReactNode }) => (
+  <LifeOSLayout>{children}</LifeOSLayout>
+);
+
 const AppContent = () => {
-  // Handle app resume from background
   useAppResume();
 
   return (
     <>
-      <OfflineIndicator />
       <Toaster />
       <Sonner />
       <Suspense fallback={<PageLoader />}>
@@ -71,14 +73,24 @@ const AppContent = () => {
             path="/quick-start"
             element={onboardingQuickStartEnabled() ? <QuickStart /> : <Navigate to="/auth?mode=signup" replace />}
           />
-          <Route path="/dashboard" element={<Dashboard />} />
+
+          {/* Life OS pages - wrapped in shared layout */}
+          <Route path="/home" element={<LifeOSPage><Home /></LifeOSPage>} />
+          <Route path="/wellness" element={<LifeOSPage><Wellness /></LifeOSPage>} />
+          <Route path="/growth" element={<LifeOSPage><Growth /></LifeOSPage>} />
+          <Route path="/planner" element={<LifeOSPage><Planner /></LifeOSPage>} />
+          <Route path="/wealth" element={<LifeOSPage><Money /></LifeOSPage>} />
+          <Route path="/money" element={<Navigate to="/wealth" replace />} />
+
+          {/* Back-compat redirect */}
+          <Route path="/dashboard" element={<Navigate to="/home" replace />} />
+
+          {/* Standalone pages */}
           <Route path="/reset" element={<Reset />} />
           <Route path="/billing" element={<Billing />} />
           <Route path="/admin" element={<Admin />} />
-          <Route path="/planner" element={<Planner />} />
-          <Route path="/money" element={<Money />} />
           <Route path="/integrations" element={<Integrations />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
@@ -89,7 +101,6 @@ const AppContent = () => {
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
 
-  // Initialize theme from localStorage on app load
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "dark") {
@@ -97,16 +108,10 @@ const App = () => {
     } else if (savedTheme === "light") {
       document.documentElement.classList.remove("dark");
     }
-    // If no saved theme, respect system preference (handled by CSS)
   }, []);
 
   useEffect(() => {
-    // Quick splash for branding (800ms), then fade immediately
-    // Reduced from 1500ms for faster perceived load
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 800);
-
+    const timer = setTimeout(() => setShowSplash(false), 800);
     return () => clearTimeout(timer);
   }, []);
 
