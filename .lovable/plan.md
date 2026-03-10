@@ -1,60 +1,164 @@
 
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-# Plan: Fix Today's Actions — Save Flow, Wearable Sync, and Plan Validation
+## Overview
 
-## Problems Found
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-1. **"Confirm last night" never saves correctly**: The `ConfirmLastNightDialog` calls `useWellness.logWellness()` which writes to the `wellness_logs` table. But the `todayTimeLogged` prop that marks the action complete comes from `todayTimeLog` in `useDashboardSummary`, which reads the `time_logs` table. These are two completely different tables — so the action never flips to "completed."
+---
 
-2. **"Validate today's plan" is a dead end**: Currently `onOpenPromises={() => navigate("/growth")}` — it just dumps the user on the Growth page with no specific flow to confirm or review their plan.
+## Part 1: AI Insight Engine
 
-3. **No wearable data integration**: If a user has a connected wearable (WHOOP, Fitbit, Oura), the dialog should pull that data first and show it, rather than forcing manual emoji entry for sleep/movement.
+### New Edge Function: `admin-insights`
 
-4. **Actions are too generic**: The action list doesn't adapt based on whether the user has a wearable, their journey, or their actual app state.
+**File: `supabase/functions/admin-insights/index.ts`**
 
-## Changes
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
 
-### 1. Fix save detection — `ConfirmLastNightDialog` + completion signal
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
 
-**`src/components/dashboard/ConfirmLastNightDialog.tsx`**
-- After logging wellness, also upsert a row into `time_logs` (the table that `todayTimeLogged` checks), so the action properly marks complete
-- Add a wearable data step: use `useHealthData` to check if a wearable is connected. If yes, show synced sleep/movement data as pre-filled values before emoji selection. User can override with emojis if needed
-- Flow becomes: Step 0 (wearable summary, if connected) → Step 1 (sleep emoji, pre-selected if wearable data) → Step 2 (movement emoji) → Step 3 (nutrition emoji) → Step 4 (notes + submit)
+[structured data blob]
 
-**`src/components/dashboard/ConfirmLastNightDialog.tsx`** — additional invalidations:
-- After submit, also invalidate `["dashboard-summary"]` so `todayTimeLog` refreshes
+Return insights as structured tool output.
+```
 
-### 2. Fix "Validate today's plan" — inline dialog
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-**`src/components/dashboard/ValidatePlanDialog.tsx`** (new file)
-- A drawer/dialog that shows:
-  - Today's planner items (from `planner_items` table) in a quick checklist
-  - Pending promises with resolve/skip buttons
-  - A "Confirm plan" button that marks the action complete
-- Store completion in localStorage keyed by userId + date (similar to `reviewBuildDoneToday` pattern)
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-**`src/pages/Home.tsx`**
-- Add `showValidatePlan` state
-- Change `onOpenPromises` from `navigate("/growth")` to `() => setShowValidatePlan(true)`
-- Render `ValidatePlanDialog`
+### New Admin Component: AI Insights Panel
 
-**`src/components/dashboard/TodayActions.tsx`**
-- Track `validatePlanCompleted` via localStorage (userId + date key)
-- Pass completion status to the "Validate today's plan" action item
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-### 3. Make Today's Actions smarter
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-**`src/components/dashboard/TodayActions.tsx`**
-- Always show "Confirm last night" and "Validate today's plan" as the two core actions (these capture yesterday's data and confirm today's plan)
-- Journey-specific and day-based bonus actions remain as-is (they already adapt)
-- Remove the `pendingPromisesCount > 0` gate on "Validate today's plan" — it should always appear so users can confirm their daily focus even without promises
+### Integration into Admin.tsx
 
-## Files
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
-| Action | File |
-|--------|------|
-| Edit | `src/components/dashboard/ConfirmLastNightDialog.tsx` — fix save to write `time_logs`, add wearable data step, invalidate dashboard-summary |
-| Create | `src/components/dashboard/ValidatePlanDialog.tsx` — inline plan validation drawer |
-| Edit | `src/pages/Home.tsx` — add ValidatePlanDialog state and rendering |
-| Edit | `src/components/dashboard/TodayActions.tsx` — always show "Validate today's plan", track its completion via localStorage |
+---
 
+## Part 2: Enhanced Action Center
+
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
+
+Replace the three "Coming soon" cards with working functionality:
+
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
+
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
+
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
+
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
+
+---
+
+## Part 3: Landing Page Updates
+
+**File: `src/pages/Landing.tsx`**
+
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+
+**File: `src/components/landing/FeatureGrid.tsx`**
+
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+
+**File: `src/components/landing/HowItWorksSection.tsx`**
+
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.

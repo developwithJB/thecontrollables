@@ -57,6 +57,7 @@ import {
 import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 import { ConfirmLastNightDialog } from "@/components/dashboard/ConfirmLastNightDialog";
+import { ValidatePlanDialog } from "@/components/dashboard/ValidatePlanDialog";
 
 export default function Home() {
   usePageViewTracking("Home");
@@ -72,6 +73,14 @@ export default function Home() {
   const [editingMissionTitle, setEditingMissionTitle] = useState("");
   const [showInsights, setShowInsights] = useState(false);
   const [showConfirmLastNight, setShowConfirmLastNight] = useState(false);
+  const [showValidatePlan, setShowValidatePlan] = useState(false);
+  const [validatePlanCompleted, setValidatePlanCompleted] = useState(false);
+
+  // Check if plan was already validated today
+  useEffect(() => {
+    const key = `validate_plan_${user.id}_${new Date().toLocaleDateString("sv-SE")}`;
+    try { setValidatePlanCompleted(localStorage.getItem(key) === "1"); } catch {}
+  }, [user.id]);
 
   const dashboardVisitCount = useDashboardVisitCount();
 
@@ -475,7 +484,8 @@ export default function Home() {
           onChangeJourney={() => setShowJourneySwitcher(true)}
           missionTitle={activeQuest?.title}
           onOpenTimeLog={() => setShowConfirmLastNight(true)}
-          onOpenPromises={() => navigate("/growth")}
+          onOpenPromises={() => setShowValidatePlan(true)}
+          validatePlanCompleted={validatePlanCompleted}
           onOpenBuild={() => navigate("/growth")}
           onDay7AllComplete={triggerDay7Celebration}
         />
@@ -486,6 +496,14 @@ export default function Home() {
         open={showConfirmLastNight}
         onOpenChange={setShowConfirmLastNight}
         userId={user.id}
+      />
+
+      {/* Validate Plan Dialog */}
+      <ValidatePlanDialog
+        open={showValidatePlan}
+        onOpenChange={setShowValidatePlan}
+        userId={user.id}
+        onComplete={() => setValidatePlanCompleted(true)}
       />
 
       {/* Ask Dashboard — directly after actions for seamless collapse */}
