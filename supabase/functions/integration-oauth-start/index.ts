@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const PROVIDER_CONFIG: Record<string, { authUrl: string; clientIdEnv: string; defaultScopes: string[] }> = {
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const supabase = createClient(
@@ -55,22 +55,21 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const userId = claimsData.claims.sub;
+    const userId = user.id;
 
     const { provider, redirectUri } = await req.json();
     const config = PROVIDER_CONFIG[provider];
     if (!config) {
-      return new Response(JSON.stringify({ error: `Unknown provider: ${provider}` }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: `Unknown provider: ${provider}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const clientId = Deno.env.get(config.clientIdEnv);
     if (!clientId) {
-      return new Response(JSON.stringify({ error: `${provider} not configured. Client ID missing.` }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: `${provider} not configured. Client ID missing.` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Build callback URL
@@ -126,6 +125,6 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("integration-oauth-start error:", err);
-    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
