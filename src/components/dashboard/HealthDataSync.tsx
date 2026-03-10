@@ -255,7 +255,7 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
             Last synced: {lastSyncDate}
             {lastSync?.source && (
               <Badge variant="secondary" className="text-[10px] ml-auto">
-                {lastSync.source === "apple_health" ? "Apple" : lastSync.source === "google_fit" ? "Google" : lastSync.source === "fitbit" ? "Fitbit" : "Oura"}
+                {lastSync.source === "apple_health" ? "Apple" : lastSync.source === "google_fit" ? "Google" : lastSync.source === "fitbit" ? "Fitbit" : lastSync.source === "whoop" ? "WHOOP" : "Oura"}
               </Badge>
             )}
           </div>
