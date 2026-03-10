@@ -237,6 +237,7 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
     // Use strain as a proxy for active minutes (WHOOP strain 0-21 → scale to minutes)
     if (cycle.strain) {
       dayMap[date].active_minutes = Math.round(cycle.strain * 5);
+      dayMap[date].strain_score = cycle.strain;
     }
   }
 
