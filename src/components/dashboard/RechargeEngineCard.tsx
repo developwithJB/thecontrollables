@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Battery, Droplets, Moon, Footprints, Apple, Sun, Wind, RotateCcw } from "lucide-react";
+import { Battery, Droplets, Moon, Footprints, Apple, Sun, Wind, RotateCcw, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useWhoopData } from "@/hooks/useWhoopData";
 
 const RECHARGE_TYPES = [
   { value: "movement", label: "Movement", icon: Footprints, color: "text-green-400" },
