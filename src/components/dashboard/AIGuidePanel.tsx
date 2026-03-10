@@ -162,7 +162,7 @@ const detectGuideFromMessage = (message: string): GuideType => {
 
 const DAILY_MESSAGE_LIMIT = 25;
 const FREE_TRIAL_LIMIT = 5; // Free users during trial get 5 messages/day
-const FREE_PREVIEW_LIMIT = 1; // Free users without trial get 1 message to try
+const FREE_POST_TRIAL_LIMIT = 2; // Free users after trial get 2 messages/day
 
 // Export handle type for parent components to use
 export interface AIGuidePanelHandle {
