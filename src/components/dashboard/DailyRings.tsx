@@ -4,7 +4,9 @@ import { useDailyRings, RING_DEFINITIONS, type RingKey } from "@/hooks/useDailyR
 import { RingActionCard } from "./RingActionCard";
 import { cn } from "@/lib/utils";
 import { DailyRecapCard } from "./DailyRecapCard";
+import { RingShareCard } from "./RingShareCard";
 import { supabase } from "@/integrations/supabase/client";
+import { Share2 } from "lucide-react";
 
 interface DailyRingsProps {
   userId?: string;
