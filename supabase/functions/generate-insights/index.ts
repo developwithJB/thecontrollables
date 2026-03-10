@@ -33,9 +33,27 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parse request
-    const body: InsightRequest = await req.json();
-    const { userId } = body;
+    // Get userId from auth header or request body
+    let userId: string | null = null;
+
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user } } = await anonClient.auth.getUser();
+      userId = user?.id ?? null;
+    }
+
+    if (!userId) {
+      // Fallback: try request body
+      try {
+        const body = await req.json();
+        userId = body.userId || null;
+      } catch {
+        // no body
+      }
+    }
 
     if (!userId) {
       return new Response(
