@@ -31,6 +31,11 @@ const PROVIDER_CONFIG: Record<string, { authUrl: string; clientIdEnv: string; de
     clientIdEnv: "NOTION_CLIENT_ID",
     defaultScopes: [],
   },
+  instagram: {
+    authUrl: "https://www.instagram.com/oauth/authorize",
+    clientIdEnv: "INSTAGRAM_APP_ID",
+    defaultScopes: ["instagram_business_basic"],
+  },
 };
 
 Deno.serve(async (req) => {
