@@ -25,6 +25,7 @@ import {
   getJourneyById,
 } from "@/lib/guidedJourneys";
 import { SnapshotReviewModal } from "@/components/experience/SnapshotReviewModal";
+import { SnapshotShareModal } from "@/components/dashboard/SnapshotShareCard";
 
 interface Day7CompleteProps {
   displayName: string;
