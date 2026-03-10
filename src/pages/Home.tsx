@@ -188,6 +188,7 @@ export default function Home() {
     seasonSnapshots,
     seasonProgress,
     startSeason,
+    linkSnapshotToSeason,
     completeSeason,
     shouldShowSeasonComplete,
   } = useSeason(user.id);
