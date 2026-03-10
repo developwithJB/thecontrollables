@@ -94,6 +94,7 @@ export function useHealthData(userId: string | undefined): HealthDataResult {
     latest,
     trend,
     lastSynced: connection?.last_synced_at ?? null,
+    connectedAt: connection?.connected_at ?? null,
     isLoading: connLoading || dataLoading,
   };
 }
