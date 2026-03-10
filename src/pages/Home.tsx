@@ -481,6 +481,13 @@ export default function Home() {
         />
       )}
 
+      {/* Confirm Last Night Dialog */}
+      <ConfirmLastNightDialog
+        open={showConfirmLastNight}
+        onOpenChange={setShowConfirmLastNight}
+        userId={user.id}
+      />
+
       {/* Ask Dashboard — directly after actions for seamless collapse */}
       <AskDashboardBar />
 
