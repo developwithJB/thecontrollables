@@ -24,7 +24,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const QuickStart = lazy(() => import("./pages/QuickStart"));
 const Planner = lazy(() => import("./pages/Planner"));
 const Money = lazy(() => import("./pages/Money"));
-// Integrations merged into ProfileSettingsModal; Operator merged into Dashboard
+const Integrations = lazy(() => import("./pages/Integrations"));
 
 // Production-hardened query client configuration
 const queryClient = new QueryClient({
