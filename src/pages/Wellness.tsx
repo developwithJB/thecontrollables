@@ -9,6 +9,7 @@ import { getDefaultCheckoutPlan } from "@/lib/featureFlags";
 
 import { BrainBodyTracker } from "@/components/dashboard/BrainBodyTracker";
 import { WellnessGoalsCard } from "@/components/dashboard/WellnessGoalsCard";
+import { WhoopSummaryCard } from "@/components/wellness/WhoopSummaryCard";
 import { DailyOSCard } from "@/components/dashboard/DailyOSCard";
 import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
 import { WellnessStreakHistory } from "@/components/experience/WellnessStreakHistory";
