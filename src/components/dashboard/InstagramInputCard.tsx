@@ -347,10 +347,10 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
               </div>
             )}
 
-            {tab !== "my_posts" && tab !== "my_stories" && (
+            {tab === "caption" && (
               <Button
                 onClick={handleAnalyze}
-                disabled={!canAnalyze || analyzing}
+                disabled={!caption.trim() || caption.trim().length <= 5 || analyzing}
                 className="w-full gap-2"
                 size="sm"
               >
