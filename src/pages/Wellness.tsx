@@ -1,4 +1,5 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { useWellness } from "@/hooks/useWellness";
@@ -6,6 +7,7 @@ import { useEntitlements } from "@/hooks/useEntitlements";
 import { usePageViewTracking } from "@/hooks/useAnalytics";
 import { useQueryClient } from "@tanstack/react-query";
 import { getDefaultCheckoutPlan } from "@/lib/featureFlags";
+import { useToast } from "@/hooks/use-toast";
 
 import { BrainBodyTracker } from "@/components/dashboard/BrainBodyTracker";
 import { WellnessGoalsCard } from "@/components/dashboard/WellnessGoalsCard";
