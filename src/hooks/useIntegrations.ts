@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-export type Provider = "google_calendar" | "gmail" | "todoist" | "notion";
+export type Provider = "google_calendar" | "gmail" | "todoist" | "notion" | "instagram";
 
 export interface IntegrationConnection {
   id: string;
@@ -58,6 +58,12 @@ export const PROVIDER_META: Record<Provider, { name: string; description: string
     description: "Export reviews and Vault entries to Notion",
     icon: "📝",
     color: "hsl(var(--muted-foreground))",
+  },
+  instagram: {
+    name: "Instagram",
+    description: "Import posts and stories for IG Proof analysis",
+    icon: "📸",
+    color: "hsl(var(--accent))",
   },
 };
 

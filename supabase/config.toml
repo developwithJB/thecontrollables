@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.dashboard-intelligence]
 verify_jwt = false
+
+[functions.ig-stories-fetch]
+verify_jwt = false

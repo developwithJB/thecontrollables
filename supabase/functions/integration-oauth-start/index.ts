@@ -31,6 +31,11 @@ const PROVIDER_CONFIG: Record<string, { authUrl: string; clientIdEnv: string; de
     clientIdEnv: "NOTION_CLIENT_ID",
     defaultScopes: [],
   },
+  instagram: {
+    authUrl: "https://www.instagram.com/oauth/authorize",
+    clientIdEnv: "INSTAGRAM_APP_ID",
+    defaultScopes: ["instagram_business_basic"],
+  },
 };
 
 Deno.serve(async (req) => {
@@ -77,7 +82,16 @@ Deno.serve(async (req) => {
 
     let authUrl: string;
 
-    if (provider === "notion") {
+    if (provider === "instagram") {
+      const params = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: callbackUrl,
+        response_type: "code",
+        scope: config.defaultScopes.join(","),
+        state,
+      });
+      authUrl = `${config.authUrl}?${params.toString()}`;
+    } else if (provider === "notion") {
       const params = new URLSearchParams({
         client_id: clientId,
         redirect_uri: callbackUrl,
