@@ -166,8 +166,8 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
     ? new Date(lastSync.synced_at).toLocaleDateString()
     : null;
 
-  const renderWearableTab = (provider: "fitbit" | "oura", connection: any) => {
-    const label = provider === "fitbit" ? "Fitbit" : "Oura Ring";
+  const renderWearableTab = (provider: "fitbit" | "oura" | "whoop", connection: any) => {
+    const label = provider === "fitbit" ? "Fitbit" : provider === "whoop" ? "WHOOP" : "Oura Ring";
     const isConnecting = connecting === provider;
     const isSyncing = syncing === provider;
 
