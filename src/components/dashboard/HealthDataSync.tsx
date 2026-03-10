@@ -90,7 +90,7 @@ export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncPro
         return;
       }
 
-      toast.success(`Synced ${data.days_synced} days from ${provider === "fitbit" ? "Fitbit" : "Oura"}`);
+      toast.success(`Synced ${data.days_synced} days from ${provider === "fitbit" ? "Fitbit" : provider === "whoop" ? "WHOOP" : "Oura"}`);
       queryClient.invalidateQueries({ queryKey: ["health-sync-last"] });
       queryClient.invalidateQueries({ queryKey: ["brain-body"] });
       refetchConnections();
