@@ -73,6 +73,14 @@ export default function Home() {
   const [editingMissionTitle, setEditingMissionTitle] = useState("");
   const [showInsights, setShowInsights] = useState(false);
   const [showConfirmLastNight, setShowConfirmLastNight] = useState(false);
+  const [showValidatePlan, setShowValidatePlan] = useState(false);
+  const [validatePlanCompleted, setValidatePlanCompleted] = useState(false);
+
+  // Check if plan was already validated today
+  useEffect(() => {
+    const key = `validate_plan_${user.id}_${new Date().toLocaleDateString("sv-SE")}`;
+    try { setValidatePlanCompleted(localStorage.getItem(key) === "1"); } catch {}
+  }, [user.id]);
 
   const dashboardVisitCount = useDashboardVisitCount();
 
