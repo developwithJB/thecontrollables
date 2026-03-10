@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
         console.error("Fitbit token error:", errBody);
         return new Response(null, {
           status: 302,
-          headers: { Location: `${appUrl}/?wearable_error=token_exchange_failed` },
+          headers: { Location: `${appUrl}/wellness?wearable_error=token_exchange_failed` },
         });
       }
 
