@@ -172,7 +172,7 @@ Deno.serve(async (req) => {
 
     return new Response(null, {
       status: 302,
-      headers: { Location: `${appUrl}/?wearable_connected=${provider}` },
+      headers: { Location: `${appUrl}/wellness?wearable_connected=${provider}` },
     });
   } catch (err) {
     console.error("wearable-oauth-callback error:", err);
