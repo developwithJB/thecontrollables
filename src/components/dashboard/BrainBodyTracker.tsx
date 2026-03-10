@@ -26,10 +26,9 @@ const QUICK_STEPS = [
   { key: "nutrition", question: "How was your nutrition?", emojis: ["🍟", "🍕", "🥪", "🥗", "🥑"] },
 ] as const;
 
-function QuickCheckIn({ onComplete, onLogInstead, onImport }: {
+function QuickCheckIn({ onComplete, onLogInstead }: {
   onComplete: (sleep: number, movement: number, nutrition: number) => void;
   onLogInstead?: () => void;
-  onImport?: () => void;
 }) {
   const [step, setStep] = useState(0);
   const [ratings, setRatings] = useState<number[]>([]);
