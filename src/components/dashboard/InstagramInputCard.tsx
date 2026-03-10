@@ -118,7 +118,7 @@ export const InstagramInputCard = ({ userId, onRingFilled, onClose, preselectedR
     }
   };
 
-  const canAnalyze = tab === "caption" ? caption.trim().length > 5 : descriptionForImage.trim().length > 5;
+  
 
   return (
     <motion.div
