@@ -1,6 +1,7 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Book } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { usePageViewTracking, useAnalytics } from "@/hooks/useAnalytics";
@@ -11,6 +12,7 @@ import { TrustDisclosure } from "@/components/landing/TrustDisclosure";
 import { PhilosophySection } from "@/components/landing/PhilosophySection";
 import { WhyStartSection } from "@/components/landing/WhyStartSection";
 import { onboardingQuickStartEnabled } from "@/lib/featureFlags";
+import { supabase } from "@/integrations/supabase/client";
 
 const controllables: Array<{
   type: ControllableType;
@@ -38,8 +40,23 @@ const controllables: Array<{
 export default function Landing() {
   usePageViewTracking("Landing");
   const { trackEvent } = useAnalytics();
+  const navigate = useNavigate();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  // Auto-redirect logged-in users to /home
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/home", { replace: true });
+      } else {
+        setAuthChecked(true);
+      }
+    });
+  }, [navigate]);
 
   const quickStartEnabled = onboardingQuickStartEnabled();
+
+  if (!authChecked) return null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-x-hidden relative">
