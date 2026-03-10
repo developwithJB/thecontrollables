@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
     if (error || !code || !stateParam) {
       return new Response(null, {
         status: 302,
-        headers: { Location: `${appUrl}/?wearable_error=${error || "missing_code"}` },
+        headers: { Location: `${appUrl}/wellness?wearable_error=${error || "missing_code"}` },
       });
     }
 
