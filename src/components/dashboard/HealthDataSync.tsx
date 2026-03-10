@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Apple, Smartphone, Upload, CheckCircle, AlertCircle, Loader2, Watch, Unlink, RefreshCw } from "lucide-react";
+import { Apple, Smartphone, Upload, CheckCircle, AlertCircle, Loader2, Watch, Unlink, RefreshCw, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
