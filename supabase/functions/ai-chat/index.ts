@@ -627,7 +627,28 @@ Deno.serve(async (req) => {
     );
     
     const planTier = await getPlanTier(serviceClient, userId, userData.user.user_metadata?.plan_tier);
-    const usageResult = await checkAndUpdateDailyUsage(serviceClient, userId, planTier);
+    
+    // Check if free user is in active trial (has active snapshot within 7 days)
+    let isTrialUser = false;
+    if (planTier === 'free') {
+      const { data: activeSession } = await serviceClient
+        .from('reset_sessions')
+        .select('id, start_date')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (activeSession) {
+        const startDate = new Date(activeSession.start_date);
+        const now = new Date();
+        const daysSinceStart = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        isTrialUser = daysSinceStart < 7;
+      }
+    }
+    
+    const usageResult = await checkAndUpdateDailyUsage(serviceClient, userId, planTier, isTrialUser);
     
     if (!usageResult.allowed) {
       const isPlusLocked = planTier === 'plus';
