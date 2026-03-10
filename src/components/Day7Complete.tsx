@@ -53,6 +53,7 @@ export const Day7Complete = ({
   const navigate = useNavigate();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [showWhatsNext, setShowWhatsNext] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<PlanType | undefined>();
