@@ -129,6 +129,7 @@ export function TodayActions({
   const [showJourneyActionModal, setShowJourneyActionModal] = useState(false);
   const [currentJourneyAction, setCurrentJourneyAction] = useState<DailyAction | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [activeCardIndex, setActiveCardIndex] = useState(0);
 
   // Day 3 "Review your Build" completion: treat as complete if the user opened it today
   // OR if their build was updated today (e.g., via a re-scan).
@@ -394,6 +395,28 @@ export function TodayActions({
     }
     prevAllCompletedRef.current = allCompleted;
   }, [allCompleted, currentDay, hasActiveSession, isResetCompleted, onDay7AllComplete]);
+
+  // Track scroll position to update active dot
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      const children = Array.from(container.children) as HTMLElement[];
+      if (children.length === 0) return;
+      const containerLeft = container.scrollLeft + container.offsetWidth / 2;
+      let closest = 0;
+      let minDist = Infinity;
+      children.forEach((child, i) => {
+        const center = child.offsetLeft + child.offsetWidth / 2;
+        const dist = Math.abs(containerLeft - center);
+        if (dist < minDist) { minDist = dist; closest = i; }
+      });
+      setActiveCardIndex(closest);
+    };
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [actions.length]);
 
   // Auto-scroll to next incomplete card after completion
   useEffect(() => {
@@ -809,13 +832,15 @@ export function TodayActions({
 
               {/* Progress dots */}
               <div className="flex items-center justify-center gap-1.5 pt-1">
-                {actions.map((action) => (
+                {actions.map((action, idx) => (
                   <div
                     key={action.id}
-                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                      action.completed
-                        ? "bg-primary"
-                        : "bg-muted-foreground/25"
+                    className={`rounded-full transition-all duration-300 ${
+                      idx === activeCardIndex
+                        ? "w-4 h-1.5 bg-primary"
+                        : action.completed
+                          ? "w-1.5 h-1.5 bg-primary/50"
+                          : "w-1.5 h-1.5 bg-muted-foreground/25"
                     }`}
                   />
                 ))}
