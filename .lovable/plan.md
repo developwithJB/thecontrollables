@@ -1,164 +1,44 @@
 
-# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-## Overview
+# Plan: Add Tool-Calling to AI Chat for App Actions
 
-Three interconnected deliverables:
-1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
-2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
-3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
+## Problem
+The AI chat guides (Owl, Shark, etc.) can only generate text responses. When users ask to perform app actions like "clear my planned meals," the AI philosophizes instead of executing. The screenshot shows the Owl responding to a meal-clearing request with a mindfulness exercise.
 
----
+## Solution
+Add tool-calling capability to the `ai-chat` edge function so the AI can detect action requests and execute them server-side (e.g., delete meal plans, add planner items). Return both a confirmation message and an `actions_taken` array so the frontend can invalidate relevant queries.
 
-## Part 1: AI Insight Engine
+## Changes
 
-### New Edge Function: `admin-insights`
+### 1. Update `ai-chat` edge function with tools
 
-**File: `supabase/functions/admin-insights/index.ts`**
+**`supabase/functions/ai-chat/index.ts`**
 
-This function:
-1. Verifies the caller is an admin (same pattern as `admin-analytics`)
-2. Queries aggregated metrics from the last 7 days using the service role client:
-   - `app_events` grouped by `event_name` and day-of-week
-   - `completed_actions` grouped by `controllable`
-   - `daily_resets` count per user (for retention correlation)
-   - `reset_sessions` completion rates
-   - `user_entitlements` conversion data
-   - `user_onboarding` activation delays
-3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
-   - 3 behavioral insights
-   - 2 retention risks
-   - 2 growth opportunities
-   - 1 experiment recommendation
-4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
-5. Returns the insights directly (no caching table needed initially -- can add later)
+- Add a `tools` array to the AI API call with functions like:
+  - `clear_meal_plans` — params: `{ date_from: string, date_to?: string, meal_types?: string[] }` — deletes rows from `meal_plans` for the user
+  - `add_meal_plan` — params: `{ date: string, meal_type: string, name: string, description: string }` — upserts a meal into `meal_plans`
+  - `delete_planner_item` — params: `{ item_id?: string, title_match?: string }` — removes planner items
+- After receiving the AI response, check for `tool_calls` in the response
+- Execute each tool call using the service client (already available), scoped to the authenticated `userId`
+- If tool calls were made, do a second AI call with the tool results so the AI can compose a natural confirmation message
+- Return `{ message, actions_taken: string[] }` where `actions_taken` lists which tools fired (e.g., `["clear_meal_plans"]`)
 
-**Prompt structure:**
-```
-You are a product analytics advisor for a personal growth app called The Controllables.
-Given the following 7-day metrics, generate actionable insights.
+- Add to the system prompt a section explaining the user is inside a self-leadership app and the AI can perform actions when asked, but should still weave in the controllable's voice
 
-[structured data blob]
+### 2. Update frontend to handle actions
 
-Return insights as structured tool output.
-```
+**`src/components/AIChat.tsx`**
 
-**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+- After receiving a response with `actions_taken`, invalidate relevant react-query keys:
+  - `"clear_meal_plans"` or `"add_meal_plan"` → invalidate `["meal-plan"]`, `["meal-logs"]`
+  - `"delete_planner_item"` → invalidate `["planner-items"]`
+- Show a subtle toast confirming the action (e.g., "Meals cleared")
+- Import `useQueryClient` and call `queryClient.invalidateQueries()` for the affected keys
 
-**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+## Files
 
-### New Admin Component: AI Insights Panel
+| Action | File |
+|--------|------|
+| Edit | `supabase/functions/ai-chat/index.ts` — add tools array, tool execution logic, second-pass confirmation |
+| Edit | `src/components/AIChat.tsx` — handle `actions_taken` response, invalidate queries |
 
-**File: `src/components/admin/AIInsightsPanel.tsx`**
-
-- A card with "Weekly Intelligence" header and a "Generate Insights" button
-- On click, calls the `admin-insights` edge function
-- Displays results in categorized sections:
-  - Behavioral Insights (brain icon, blue accent)
-  - Retention Risks (alert icon, amber accent)
-  - Growth Opportunities (trending-up icon, green accent)
-  - Experiment Recommendation (flask icon, purple accent)
-- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
-- Loading state with skeleton cards
-- Error state with retry button
-- "Last generated" timestamp display
-
-### Integration into Admin.tsx
-
-- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
-- The tab renders `<AIInsightsPanel />`
-
----
-
-## Part 2: Enhanced Action Center
-
-**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
-
-Replace the three "Coming soon" cards with working functionality:
-
-### A. Send Nudge Campaign
-- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
-- Confirmation dialog before sending
-- Calls the existing `send-daily-nudge` edge function for each selected user
-- Shows progress and results
-
-### B. Grant Trial Extension
-- Search for a specific user by email
-- Set extension duration (7 days, 14 days, 30 days)
-- Calls `admin-users?action=grant_access` with an `expires_at` parameter
-- Confirmation toast on success
-
-### C. Export with More Segments
-- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
-- Risk tier data fetched from `admin-analytics?resource=retention_radar`
-- CSV includes: email, signup date, last active, risk tier, paid status, source
-
-### D. Quick Stats Bar
-- Show counts above the action cards: Total Users, Free, Paid, At Risk
-- Derived from the `users` prop already passed in
-
----
-
-## Part 3: Landing Page Updates
-
-**File: `src/pages/Landing.tsx`**
-
-Update the hero copy to reflect the free trial:
-- Change hero tagline to emphasize "Try the full experience free for 7 days"
-- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
-- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
-
-**File: `src/components/landing/FeatureGrid.tsx`**
-
-- Update the Free/Premium labeling:
-  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
-  - "Experience History" -- add "Free during trial" badge
-  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
-
-**File: `src/components/landing/HowItWorksSection.tsx`**
-
-- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
-
----
-
-## Part 4: README Update
-
-**File: `README.md`**
-
-Update to v1.5.0 reflecting all recent changes:
-
-1. **Version bump**: `v1.4.1` to `v1.5.0`
-2. **New section: "Admin Command Center"** after Technical Reference:
-   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
-   - Mention the `admin-analytics` and `admin-insights` edge functions
-   - Document the AI Insight Engine capability
-3. **Update "Free vs. Premium" table**:
-   - Add "7-Day Free Trial" row explaining full access during first Snapshot
-   - Update AI Guide from "---" to "5 msgs/day during trial"
-   - Update Experience History from "---" to "During trial"
-4. **Update Backend Functions table**:
-   - Add `admin-analytics` -- Admin data aggregation and executive metrics
-   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
-5. **Update Key Data Tables**:
-   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
-   - Add `ai_usage_logs` -- Daily AI message tracking
-6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
-
----
-
-## Technical Summary
-
-| File | Change | Type |
-|------|--------|------|
-| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
-| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
-| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
-| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
-| `src/pages/Admin.tsx` | Add Insights tab | Edit |
-| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
-| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
-| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
-| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
-| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
-
-No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
