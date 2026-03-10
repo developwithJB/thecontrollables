@@ -16,7 +16,7 @@ interface HealthDataSyncProps {
 
 export function HealthDataSync({ open, onOpenChange, userId }: HealthDataSyncProps) {
   const [uploading, setUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState("apple");
+  const [activeTab, setActiveTab] = useState("whoop");
   const [connecting, setConnecting] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
