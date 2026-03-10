@@ -475,15 +475,9 @@ export default function Home() {
           journeyTitle={activeSession?.journey_id ? getJourneyById(activeSession.journey_id)?.title : undefined}
           onChangeJourney={() => setShowJourneySwitcher(true)}
           missionTitle={activeQuest?.title}
-          onOpenTimeLog={() => {
-            if (!showInsights) { setShowInsights(true); requestAnimationFrame(() => setTimeout(() => timeCurrencyRef.current?.openLogDialog(), 50)); }
-            else timeCurrencyRef.current?.openLogDialog();
-          }}
-          onOpenPromises={() => {
-            if (!showInsights) { setShowInsights(true); requestAnimationFrame(() => setTimeout(() => integrityRef.current?.openDetailDialog(), 50)); }
-            else integrityRef.current?.openDetailDialog();
-          }}
-          onOpenBuild={() => buildRef.current?.openDetailDialog()}
+          onOpenTimeLog={() => navigate("/wellness")}
+          onOpenPromises={() => navigate("/growth")}
+          onOpenBuild={() => navigate("/growth")}
           onDay7AllComplete={triggerDay7Celebration}
         />
       )}
