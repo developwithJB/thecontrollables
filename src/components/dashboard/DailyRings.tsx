@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDailyRings, RING_DEFINITIONS, type RingKey } from "@/hooks/useDailyRings";
+import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
 import { RingActionCard } from "./RingActionCard";
 import { cn } from "@/lib/utils";
 import { DailyRecapCard } from "./DailyRecapCard";
+import { AIInsightCard } from "./AIInsightCard";
+import { AISignalsRow } from "./AISignalsRow";
+import { WhyFullyChargedCard } from "./WhyFullyChargedCard";
+import { MemoryComparisonRow } from "./MemoryComparisonRow";
+import { SmartCenterState } from "./SmartCenterState";
 import { RingShareCard } from "./RingShareCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Share2 } from "lucide-react";
@@ -63,6 +69,7 @@ function RingSVG({
 
 export const DailyRings = ({ userId }: DailyRingsProps) => {
   const { rings, completedCount, statusLabel, completeRing, isCompleted, loading, definitions, rowId } = useDailyRings(userId);
+  const intelligence = useDashboardIntelligence(userId, completedCount, rings);
   const [activeRing, setActiveRing] = useState<RingKey | null>(null);
   const [lowEnergy, setLowEnergy] = useState(false);
   const [shareRing, setShareRing] = useState<RingKey | "fully_charged" | null>(null);
@@ -103,6 +110,7 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
   };
 
   const isFullyCharged = completedCount === 5;
+  const showIntelligence = completedCount >= 3;
 
   return (
     <div className="flex flex-col items-center gap-6">
@@ -137,18 +145,22 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
           })}
         </svg>
 
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <motion.span
-            key={completedCount}
-            initial={{ scale: 1.3, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className={cn("text-3xl font-bold", isFullyCharged ? "text-accent" : "text-foreground")}
-          >
-            {completedCount}/5
-          </motion.span>
-          <span className="text-[10px] text-muted-foreground font-medium mt-0.5">{statusLabel}</span>
+        {/* Smart Center State */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <SmartCenterState
+            completedCount={completedCount}
+            isFullyCharged={isFullyCharged}
+            rotations={intelligence.data?.center_rotations}
+          />
         </div>
       </motion.div>
+
+      {/* AI Signals Row — shown when 3+ rings completed */}
+      {showIntelligence && (
+        <div className="w-full max-w-sm">
+          <AISignalsRow signals={intelligence.data?.signals} isLoading={intelligence.isLoading} />
+        </div>
+      )}
 
       {/* Ring labels */}
       <div className="flex gap-3 flex-wrap justify-center">
@@ -196,14 +208,28 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
         )}
       </AnimatePresence>
 
-      {/* Daily Recap — shows after 3+ rings */}
-      <div className="w-full max-w-sm">
-        <DailyRecapCard
-          userId={userId}
-          rings={rings}
-          completedCount={completedCount}
-          rowId={rowId}
-        />
+      {/* AI Insight Card replaces DailyRecapCard when intelligence is available */}
+      <div className="w-full max-w-sm space-y-3">
+        {showIntelligence ? (
+          <AIInsightCard
+            data={intelligence.data}
+            isLoading={intelligence.isLoading}
+            onRefresh={intelligence.refresh}
+          />
+        ) : (
+          <DailyRecapCard
+            userId={userId}
+            rings={rings}
+            completedCount={completedCount}
+            rowId={rowId}
+          />
+        )}
+
+        {/* Why Fully Charged */}
+        {isFullyCharged && <WhyFullyChargedCard data={intelligence.data} />}
+
+        {/* Memory Comparisons */}
+        {showIntelligence && <MemoryComparisonRow data={intelligence.data} />}
       </div>
 
       {/* Motivational footer */}
