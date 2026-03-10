@@ -35,9 +35,9 @@ import { useDailyRings } from "@/hooks/useDailyRings";
 // Dashboard modules
 import { MainQuestModule } from "@/components/dashboard/MainQuestModule";
 import { XpMomentumModule } from "@/components/dashboard/XpMomentumModule";
-import { IntegrityMeterModule, IntegrityMeterModuleHandle } from "@/components/dashboard/IntegrityMeterModule";
-import { TimeCurrencyModule, TimeCurrencyModuleHandle } from "@/components/dashboard/TimeCurrencyModule";
-import { BuildOverviewModule, BuildOverviewModuleHandle } from "@/components/dashboard/BuildOverviewModule";
+import { IntegrityMeterModule } from "@/components/dashboard/IntegrityMeterModule";
+import { TimeCurrencyModule } from "@/components/dashboard/TimeCurrencyModule";
+import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule";
 import { SnapshotSelector } from "@/components/dashboard/SnapshotSelector";
 import { StartSnapshotDialog } from "@/components/dashboard/StartSnapshotDialog";
 import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
@@ -70,9 +70,6 @@ export default function Home() {
   const [showMissionEdit, setShowMissionEdit] = useState(false);
   const [editingMissionTitle, setEditingMissionTitle] = useState("");
   const [showInsights, setShowInsights] = useState(false);
-  const timeCurrencyRef = useRef<TimeCurrencyModuleHandle>(null);
-  const integrityRef = useRef<IntegrityMeterModuleHandle>(null);
-  const buildRef = useRef<BuildOverviewModuleHandle>(null);
 
   const dashboardVisitCount = useDashboardVisitCount();
 
@@ -475,15 +472,9 @@ export default function Home() {
           journeyTitle={activeSession?.journey_id ? getJourneyById(activeSession.journey_id)?.title : undefined}
           onChangeJourney={() => setShowJourneySwitcher(true)}
           missionTitle={activeQuest?.title}
-          onOpenTimeLog={() => {
-            if (!showInsights) { setShowInsights(true); requestAnimationFrame(() => setTimeout(() => timeCurrencyRef.current?.openLogDialog(), 50)); }
-            else timeCurrencyRef.current?.openLogDialog();
-          }}
-          onOpenPromises={() => {
-            if (!showInsights) { setShowInsights(true); requestAnimationFrame(() => setTimeout(() => integrityRef.current?.openDetailDialog(), 50)); }
-            else integrityRef.current?.openDetailDialog();
-          }}
-          onOpenBuild={() => buildRef.current?.openDetailDialog()}
+          onOpenTimeLog={() => navigate("/wellness")}
+          onOpenPromises={() => navigate("/growth")}
+          onOpenBuild={() => navigate("/growth")}
           onDay7AllComplete={triggerDay7Celebration}
         />
       )}
