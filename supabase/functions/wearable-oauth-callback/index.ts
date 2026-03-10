@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
     if (error || !code || !stateParam) {
       return new Response(null, {
         status: 302,
-        headers: { Location: `${appUrl}/?wearable_error=${error || "missing_code"}` },
+        headers: { Location: `${appUrl}/wellness?wearable_error=${error || "missing_code"}` },
       });
     }
 
@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
     } catch {
       return new Response(null, {
         status: 302,
-        headers: { Location: `${appUrl}/?wearable_error=invalid_state` },
+        headers: { Location: `${appUrl}/wellness?wearable_error=invalid_state` },
       });
     }
 
@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
         console.error("Fitbit token error:", errBody);
         return new Response(null, {
           status: 302,
-          headers: { Location: `${appUrl}/?wearable_error=token_exchange_failed` },
+          headers: { Location: `${appUrl}/wellness?wearable_error=token_exchange_failed` },
         });
       }
 
@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
         console.error("Oura token error:", errBody);
         return new Response(null, {
           status: 302,
-          headers: { Location: `${appUrl}/?wearable_error=token_exchange_failed` },
+          headers: { Location: `${appUrl}/wellness?wearable_error=token_exchange_failed` },
         });
       }
 
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
         console.error("WHOOP token error:", errBody);
         return new Response(null, {
           status: 302,
-          headers: { Location: `${appUrl}/?wearable_error=token_exchange_failed` },
+          headers: { Location: `${appUrl}/wellness?wearable_error=token_exchange_failed` },
         });
       }
 
@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
     } else {
       return new Response(null, {
         status: 302,
-        headers: { Location: `${appUrl}/?wearable_error=invalid_provider` },
+        headers: { Location: `${appUrl}/wellness?wearable_error=invalid_provider` },
       });
     }
 
@@ -166,20 +166,20 @@ Deno.serve(async (req) => {
       console.error("DB upsert error:", upsertError);
       return new Response(null, {
         status: 302,
-        headers: { Location: `${appUrl}/?wearable_error=db_error` },
+        headers: { Location: `${appUrl}/wellness?wearable_error=db_error` },
       });
     }
 
     return new Response(null, {
       status: 302,
-      headers: { Location: `${appUrl}/?wearable_connected=${provider}` },
+      headers: { Location: `${appUrl}/wellness?wearable_connected=${provider}` },
     });
   } catch (err) {
     console.error("wearable-oauth-callback error:", err);
     const appUrl = Deno.env.get("APP_URL") || "https://thecontrollables.lovable.app";
     return new Response(null, {
       status: 302,
-      headers: { Location: `${appUrl}/?wearable_error=internal` },
+      headers: { Location: `${appUrl}/wellness?wearable_error=internal` },
     });
   }
 });

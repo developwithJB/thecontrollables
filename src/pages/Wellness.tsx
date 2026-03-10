@@ -1,4 +1,5 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { useWellness } from "@/hooks/useWellness";
@@ -6,6 +7,7 @@ import { useEntitlements } from "@/hooks/useEntitlements";
 import { usePageViewTracking } from "@/hooks/useAnalytics";
 import { useQueryClient } from "@tanstack/react-query";
 import { getDefaultCheckoutPlan } from "@/lib/featureFlags";
+import { useToast } from "@/hooks/use-toast";
 
 import { BrainBodyTracker } from "@/components/dashboard/BrainBodyTracker";
 import { WellnessGoalsCard } from "@/components/dashboard/WellnessGoalsCard";
@@ -24,6 +26,26 @@ export default function Wellness() {
   usePageViewTracking("Wellness");
   const user = useLifeOSUser();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { toast } = useToast();
+
+  // Handle wearable OAuth callback params
+  useEffect(() => {
+    const connected = searchParams.get("wearable_connected");
+    const error = searchParams.get("wearable_error");
+    if (connected) {
+      toast({ title: `${connected.charAt(0).toUpperCase() + connected.slice(1)} connected!`, description: "Your wearable data will sync shortly." });
+      queryClient.invalidateQueries({ queryKey: ["wearable-connections"] });
+      const next = new URLSearchParams(searchParams);
+      next.delete("wearable_connected");
+      setSearchParams(next, { replace: true });
+    } else if (error) {
+      toast({ title: "Connection failed", description: `Wearable connection error: ${error.replace(/_/g, " ")}`, variant: "destructive" });
+      const next = new URLSearchParams(searchParams);
+      next.delete("wearable_error");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams, toast, queryClient]);
 
   const { isPaid, isLoading: entitlementsLoading, initiateCheckout } = useEntitlements(user.id);
   const { streak: wellnessStreak, logWellness, recentLogs: wellnessLogs } = useWellness(user.id);

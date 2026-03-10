@@ -47,7 +47,8 @@ export default function Landing() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate("/home", { replace: true });
+        const params = window.location.search;
+        navigate(`/home${params}`, { replace: true });
       } else {
         setAuthChecked(true);
       }
