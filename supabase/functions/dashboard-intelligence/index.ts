@@ -197,7 +197,7 @@ The ring names map to controllables: Notice=Awareness, Choose=Perspective, Prove
                     description: "4-5 short labels to rotate in the ring center display. Max 5 words each.",
                   },
                 },
-                required: ["pattern_detected", "why_it_matters", "best_next_move", "tomorrow_forecast", "signals", "why_fully_charged", "recommended_actions", "memory_comparisons", "center_rotations"],
+                required: ["pattern_detected", "why_it_matters", "best_next_move", "tomorrow_forecast", "snapshot_forecast", "month_forecast", "year_forecast", "signals", "why_fully_charged", "recommended_actions", "memory_comparisons", "center_rotations"],
                 additionalProperties: false,
               },
             },
