@@ -90,18 +90,18 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
     }
   }, [isOpen, activeDay, planTier]);
 
-  const maybeWarnAtProCap = (nextPlanTier: PlanTier, remaining: number, monthKey: string) => {
+  const maybeWarnAtProCap = (nextPlanTier: PlanTier, remaining: number, dayKey: string) => {
     if (nextPlanTier !== 'pro' || remaining > 0) {
       return;
     }
 
-    const warningStorageKey = `ai-pro-cap-warning-${monthKey}`;
+    const warningStorageKey = `ai-pro-cap-warning-${dayKey}`;
     if (localStorage.getItem(warningStorageKey)) {
       return;
     }
 
     localStorage.setItem(warningStorageKey, 'shown');
-    toast.warning('You have reached your Pro AI cap for this month. Usage resets on the 1st.');
+    toast.warning('You have reached your Pro AI cap for today. Usage resets at midnight.');
   };
 
   const applyUsageState = (data: any) => {
