@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.ig-proof-analyze]
 verify_jwt = false
+
+[functions.dashboard-intelligence]
+verify_jwt = false
