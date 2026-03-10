@@ -624,16 +624,31 @@ export default function Home() {
 
       {!activeSession && canStartSnapshot && (
         <StartSnapshotDialog
-          userId={user.id}
-          isPaid={isPaid}
-          hasUsedFreeTrial={freeTrialUsed}
-          onUpgrade={() => startCheckout(undefined, "start_snapshot_dialog")}
-          onSnapshotStarted={() => {
-            queryClient.invalidateQueries({ queryKey: ["reset-session"], exact: false });
-            setShowJourneySwitcher(false);
-          }}
           isOpen={showJourneySwitcher}
           onOpenChange={setShowJourneySwitcher}
+          onSelectSnapshot={async (snapshotId, asSeason) => {
+            if (asSeason) {
+              const seasonId = await startSeason();
+              if (seasonId) {
+                acceptCovenant({ isPaid, journeyId: snapshotId });
+                setTimeout(async () => {
+                  const { data: newSession } = await supabase.from("reset_sessions").select("id").eq("user_id", user.id).eq("status", "active").order("created_at", { ascending: false }).limit(1).maybeSingle();
+                  if (newSession) await linkSnapshotToSeason(newSession.id, seasonId);
+                }, 2000);
+              }
+            } else {
+              acceptCovenant({ isPaid, journeyId: snapshotId });
+              if (activeSeason) {
+                setTimeout(async () => {
+                  const { data: newSession } = await supabase.from("reset_sessions").select("id").eq("user_id", user.id).eq("status", "active").order("created_at", { ascending: false }).limit(1).maybeSingle();
+                  if (newSession) await linkSnapshotToSeason(newSession.id, activeSeason.id);
+                }, 2000);
+              }
+            }
+            setShowJourneySwitcher(false);
+          }}
+          isStarting={isAcceptingCovenant}
+          isPaid={isPaid}
         />
       )}
 
