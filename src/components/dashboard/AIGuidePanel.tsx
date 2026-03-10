@@ -365,23 +365,24 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
     if (!messageText.trim() || isLoading) return;
 
     // For free users: handle trial vs non-trial differently
-    if (!isPaid) {
-      if (isTrialing) {
-        if (trialMessagesUsedToday >= FREE_TRIAL_LIMIT) {
-          toast.error("Daily message limit reached. Come back tomorrow or upgrade for unlimited!");
-          return;
-        }
-      } else {
-        if (!hasActiveSnapshot) {
-          toast.error("Start your 7-Day Snapshot to unlock daily messages from The Controllables!");
-          return;
-        }
-        if (freePreviewUsed) {
-          toast.error("Daily message used. Come back tomorrow or upgrade for unlimited!");
-          return;
+      if (!isPaid) {
+        if (isTrialing) {
+          if (!hasActiveSnapshot) {
+            toast.error("Start your 7-Day Snapshot to unlock daily messages from The Controllables!");
+            return;
+          }
+          if (freePreviewUsed) {
+            toast.error("Daily message limit reached. Come back tomorrow or upgrade for unlimited!");
+            return;
+          }
+        } else {
+          // Post-trial free user
+          if (freePreviewUsed) {
+            toast.error("You've used your 2 free messages today. Upgrade to keep the conversation going.");
+            return;
+          }
         }
       }
-    }
 
     // Determine which guide should respond
     let respondingGuide: Guide;

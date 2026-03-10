@@ -118,7 +118,7 @@ export function AIChat({ controllable, emoji, title, isOpen, onClose, challengeC
     setActiveDay(dayKey);
     setAiLocked(Boolean(data?.aiLocked));
 
-    maybeWarnAtProCap(nextPlanTier, nextRemaining, monthKey);
+    maybeWarnAtProCap(nextPlanTier, nextRemaining, dayKey);
   };
 
   const sendMessage = async () => {
