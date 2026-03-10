@@ -183,6 +183,10 @@ export function SeasonComplete({
             <Sparkles className="w-4 h-4 mr-2" />
             Start Another Season
           </Button>
+          <Button onClick={() => setIsShareOpen(true)} variant="outline" className="w-full">
+            <Share2 className="w-4 h-4 mr-2" />
+            Share Your Win
+          </Button>
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" onClick={onTakeBreak} className="flex-1 text-xs">
               <Coffee className="w-3 h-3 mr-1" />
@@ -193,6 +197,14 @@ export function SeasonComplete({
             </Button>
           </div>
         </motion.div>
+
+        {/* Share Modal */}
+        <SnapshotShareModal
+          open={isShareOpen}
+          onOpenChange={setIsShareOpen}
+          snapshotName={seasonName || "4-Week Season"}
+          completionDate={new Date().toISOString()}
+        />
       </div>
     </motion.div>
   );
