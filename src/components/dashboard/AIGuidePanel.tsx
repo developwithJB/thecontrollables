@@ -536,10 +536,17 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
             setLimitReached(true);
             setFreePreviewUsed(true);
           }
-        } else if (hasActiveSnapshot) {
-          const previewKey = `ai_guide_daily_${today}`;
-          localStorage.setItem(previewKey, 'true');
-          setFreePreviewUsed(true);
+        } else {
+          // Post-trial free users: track count (2/day)
+          const postTrialKey = `ai_guide_post_trial_count_${today}`;
+          const newCount = trialMessagesUsedToday + 1;
+          localStorage.setItem(postTrialKey, String(newCount));
+          setTrialMessagesUsedToday(newCount);
+          setRemainingMessages(Math.max(0, FREE_POST_TRIAL_LIMIT - newCount));
+          if (newCount >= FREE_POST_TRIAL_LIMIT) {
+            setLimitReached(true);
+            setFreePreviewUsed(true);
+          }
         }
       }
       
