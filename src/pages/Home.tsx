@@ -159,21 +159,6 @@ export default function Home() {
   const { isPaid, isLoading: entitlementsLoading, initiateCheckout, isCheckingOut } = useEntitlements(user.id);
 
   const {
-    myCircle,
-    circleMembers,
-    showedUpTodayCount,
-    streakLeaderboard,
-    createCircle,
-    isCreatingCircle,
-    joinCircle,
-    isJoiningCircle,
-    leaveCircle,
-    isLeavingCircle,
-    logShowedUp,
-    lookupCircle,
-  } = useCircle(user.id, activeSession?.id);
-
-  const {
     activeSeason,
     seasonSnapshots,
     seasonProgress,
@@ -183,28 +168,12 @@ export default function Home() {
     shouldShowSeasonComplete,
   } = useSeason(user.id);
 
+  const { focusState, todaysPlan, activateFocusMode, deactivateFocusMode, isActive: isFocusActive, currentDay: focusDay } = useFocusMode(currentBuild);
+
   const [showSeasonComplete, setShowSeasonComplete] = useState(false);
   useEffect(() => {
     if (shouldShowSeasonComplete) { setShowSeasonComplete(true); completeSeason(); }
   }, [shouldShowSeasonComplete, completeSeason]);
-
-  // Circle invites
-  const [joinDialogOpen, setJoinDialogOpen] = useState(false);
-  const joinCodeFromUrl = searchParams.get("join");
-  useEffect(() => {
-    if (joinCodeFromUrl && user.id) setJoinDialogOpen(true);
-  }, [joinCodeFromUrl, user.id]);
-
-  // Auto-log circle showed-up
-  const prevCompletedDaysRef = useRef<number>(0);
-  useEffect(() => {
-    if (!completedDays || !myCircle) return;
-    const count = completedDays.length;
-    if (count > prevCompletedDaysRef.current && count > 0) logShowedUp(count);
-    prevCompletedDaysRef.current = count;
-  }, [completedDays?.length, myCircle, logShowedUp]);
-
-  const circleDisplayName = user.user_metadata?.display_name || user.email?.split("@")[0] || "You";
 
   // Profile for nudge status
   const { data: userProfile, refetch: refetchProfile } = useQuery({
