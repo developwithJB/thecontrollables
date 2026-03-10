@@ -51,6 +51,7 @@ interface TodayActionsProps {
   todayTimeLogged: boolean;
   pendingPromisesCount: number;
   todayPromiseMade: boolean;
+  validatePlanCompleted?: boolean;
   todayXpEarned: number;
 
   // Build completion signal (used for Day 3 checklist)
