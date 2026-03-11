@@ -19,7 +19,7 @@ const steps = [
   {
     icon: Plug,
     title: "Connect Your Tools",
-    description: "Link Google Calendar, Gmail, Todoist, and Notion. Your existing tools feed into one unified dashboard.",
+    description: "Link Google Calendar, WHOOP, Oura, Fitbit, and more. Your tools push data in — the Dashboard surfaces what matters.",
     color: "text-perspective",
     bgColor: "bg-perspective/10",
   },

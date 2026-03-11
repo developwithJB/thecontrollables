@@ -89,15 +89,15 @@ export default function Landing() {
             className="text-center mb-8 md:mb-12"
           >
             <h1 className="font-display text-2xl md:text-4xl lg:text-5xl font-bold text-foreground mb-3 md:mb-5 text-balance">
-              Your calendar knows what you planned.
+              Your calendar holds the plan.
               <br />
-              Your wearable knows what happened.
+              Your wearable tracks the reality.
               <br />
-              <span className="text-accent">The Dashboard connects the two.</span>
+              <span className="text-accent">The Dashboard surfaces the gap.</span>
             </h1>
 
-            {/* Plan. Live. Learn. visual */}
-            <div className="flex items-center justify-center gap-3 md:gap-5 mb-4">
+            {/* Plan → Learn ← Live visual */}
+            <div className="flex items-center justify-center gap-3 md:gap-5 mb-3">
               <div className="flex flex-col items-center gap-1.5">
                 <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
                   <Calendar className="w-5 h-5 md:w-6 md:h-6 text-accent" />
@@ -106,22 +106,34 @@ export default function Landing() {
               </div>
               <span className="text-muted-foreground/40 text-lg font-light">→</span>
               <div className="flex flex-col items-center gap-1.5">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <LayoutDashboard className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+                <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center ring-2 ring-primary/10">
+                  <LayoutDashboard className="w-6 h-6 md:w-7 md:h-7 text-primary" />
                 </div>
-                <span className="text-[10px] md:text-xs font-semibold text-muted-foreground">Live</span>
+                <span className="text-[10px] md:text-xs font-semibold text-primary">Learn</span>
               </div>
-              <span className="text-muted-foreground/40 text-lg font-light">→</span>
+              <span className="text-muted-foreground/40 text-lg font-light">←</span>
               <div className="flex flex-col items-center gap-1.5">
                 <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-wellness/10 border border-wellness/20 flex items-center justify-center">
                   <Activity className="w-5 h-5 md:w-6 md:h-6 text-wellness" />
                 </div>
-                <span className="text-[10px] md:text-xs font-semibold text-muted-foreground">Learn</span>
+                <span className="text-[10px] md:text-xs font-semibold text-muted-foreground">Live</span>
+              </div>
+            </div>
+
+            {/* Wearable badges */}
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <span className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Works with</span>
+              <div className="flex items-center gap-1.5">
+                {["WHOOP", "Oura", "Fitbit"].map((name) => (
+                  <span key={name} className="text-[10px] px-2 py-0.5 rounded-full bg-muted/50 text-muted-foreground border border-border/50">
+                    {name}
+                  </span>
+                ))}
               </div>
             </div>
 
             <p className="text-muted-foreground text-sm md:text-base lg:text-lg leading-relaxed text-balance max-w-xs md:max-w-lg mx-auto mb-4">
-              Wellness, money, habits, time, and mindset — managed through one calm system built on 5 things you can actually control. Full access for 7 days. No credit card.
+              Your tools push data in. The Dashboard notices what matters. Minimal data entry, maximum insight — built on 5 things you can actually control.
             </p>
           </motion.div>
 
