@@ -18,6 +18,8 @@ import { canStartNewSnapshot, hasUsedFreeTrial } from "@/lib/entitlements";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useHealthData } from "@/hooks/useHealthData";
+import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
+import { analyzeCalendar } from "@/lib/calendarIntelligence";
 
 import { DailyRings } from "@/components/dashboard/DailyRings";
 import { WeeklyRecapCard } from "@/components/dashboard/WeeklyRecapCard";
