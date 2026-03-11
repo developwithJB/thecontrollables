@@ -309,6 +309,17 @@ export function MealWeekComparison({ userId, slotConfig }: MealWeekComparisonPro
             }))}
         />
       )}
+
+      {/* Week plan review walkthrough */}
+      {reviewData && (
+        <WeekPlanReviewSheet
+          open={!!reviewData}
+          onOpenChange={(val) => { if (!val) setReviewData(null); }}
+          generatedDays={reviewData}
+          onConfirm={handleConfirmWeek}
+          isSaving={saveWeekPlan.isPending}
+        />
+      )}
     </div>
   );
 }
