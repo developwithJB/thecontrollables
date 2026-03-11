@@ -291,7 +291,7 @@ export function SeasonComplete({
               {mostStruggled && (
                 <Card className="border-border">
                   <CardContent className="p-3 text-center">
-                    <TrendingDown className="w-4 h-4 mx-auto text-orange-500 mb-1" />
+                    <TrendingDown className="w-4 h-4 mx-auto text-destructive mb-1" />
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Most Struggled</p>
                     <p className="text-sm font-medium text-foreground mt-1 truncate">{mostStruggled.emoji} {mostStruggled.name}</p>
                   </CardContent>
