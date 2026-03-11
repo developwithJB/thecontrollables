@@ -130,7 +130,7 @@ export default function Growth() {
 
       {/* Season Banner */}
       {activeSeason && seasonProgress && (
-        <SeasonBanner seasonName={activeSeason.name} snapshots={seasonSnapshots} progress={seasonProgress} />
+        <SeasonBanner seasonName={activeSeason.name} snapshots={seasonSnapshots} progress={seasonProgress} onCloseSeason={closeSeason} />
       )}
 
       {/* Reset Progress */}
