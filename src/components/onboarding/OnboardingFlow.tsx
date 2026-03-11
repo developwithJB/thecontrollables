@@ -339,6 +339,7 @@ export function OnboardingFlow({
           <OnboardingCalendarConnect
             key="connect-calendar"
             onConnected={() => {
+              setCalendarConnected(true);
               trackStepChange("connect_calendar", "connect_wearable");
               setCurrentStep("connect_wearable");
             }}
@@ -352,13 +353,27 @@ export function OnboardingFlow({
         {currentStep === "connect_wearable" && (
           <OnboardingWearableConnect
             key="connect-wearable"
-            onConnected={() => {
-              trackStepChange("connect_wearable", "build_assessment");
-              onUpdateOnboarding({ step: "build_assessment" });
-              setCurrentStep("build_assessment");
+            onConnected={(provider?: string) => {
+              setWearableConnected(true);
+              if (provider) setWearableProvider(provider);
+              trackStepChange("connect_wearable", "connection_summary");
+              setCurrentStep("connection_summary");
             }}
             onSkip={() => {
-              trackStepChange("connect_wearable", "build_assessment");
+              trackStepChange("connect_wearable", "connection_summary");
+              setCurrentStep("connection_summary");
+            }}
+          />
+        )}
+
+        {currentStep === "connection_summary" && (
+          <OnboardingConnectionSummary
+            key="connection-summary"
+            calendarConnected={calendarConnected}
+            wearableConnected={wearableConnected}
+            wearableProvider={wearableProvider}
+            onContinue={() => {
+              trackStepChange("connection_summary", "build_assessment");
               onUpdateOnboarding({ step: "build_assessment" });
               setCurrentStep("build_assessment");
             }}

@@ -14,3 +14,4 @@ export { OnboardingMeetGuides } from "./OnboardingMeetGuides";
 export { OnboardingMissionFirstStep } from "./OnboardingMissionFirstStep";
 export { OnboardingSnapshotRecommendationStep } from "./OnboardingSnapshotRecommendationStep";
 export { OnboardingQuickStartFlow } from "./OnboardingQuickStartFlow";
+export { OnboardingConnectionSummary } from "./OnboardingConnectionSummary";
