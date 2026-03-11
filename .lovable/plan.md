@@ -1,164 +1,61 @@
 
-# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-## Overview
+# Wearable Data Becomes Project-Aware
 
-Three interconnected deliverables:
-1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
-2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
-3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
+## Changes
 
----
+### 1. `supabase/functions/wearable-sync/index.ts` — Post-sync project attribution
 
-## Part 1: AI Insight Engine
+After each provider sync completes (line ~368), add a new function `attributeProjectIds` that:
 
-### New Edge Function: `admin-insights`
+1. Gets all synced dates from the dayMap/days array
+2. For each date, queries `planner_items` where `scheduled_date = date AND user_id = userId AND project_id IS NOT NULL` to find which projects had blocks
+3. For each unique `project_id` found, updates `health_sync_data` for that date — since the `project_id` column is a single nullable FK (not an array), and multiple projects may share a day, we duplicate the health record: upsert one `health_sync_data` row per project per date (change the conflict key to include `project_id`, or update existing rows). 
 
-**File: `supabase/functions/admin-insights/index.ts`**
+**However**, the current unique constraint on `health_sync_data` is `(user_id, sync_date, source)` — adding per-project rows requires a schema change. Instead of duplicating rows, the simpler approach: store project attributions as a **separate lightweight join** or update `project_id` to the "primary" project (most blocks that day). Given the existing single FK column, we'll set `project_id` to the project with the most planner items that day, and also return all project IDs in a post-sync step so the client can use them.
 
-This function:
-1. Verifies the caller is an admin (same pattern as `admin-analytics`)
-2. Queries aggregated metrics from the last 7 days using the service role client:
-   - `app_events` grouped by `event_name` and day-of-week
-   - `completed_actions` grouped by `controllable`
-   - `daily_resets` count per user (for retention correlation)
-   - `reset_sessions` completion rates
-   - `user_entitlements` conversion data
-   - `user_onboarding` activation delays
-3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
-   - 3 behavioral insights
-   - 2 retention risks
-   - 2 growth opportunities
-   - 1 experiment recommendation
-4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
-5. Returns the insights directly (no caching table needed initially -- can add later)
+**Migration needed**: Add an `attributed_project_ids text[]` column to `health_sync_data` to store all project IDs for the day (since the FK column only holds one). This keeps the single-FK for primary project and adds the array for multi-project days.
 
-**Prompt structure:**
+**Post-sync function** (called after line 368):
 ```
-You are a product analytics advisor for a personal growth app called The Controllables.
-Given the following 7-day metrics, generate actionable insights.
-
-[structured data blob]
-
-Return insights as structured tool output.
+async function attributeProjectIds(userId, syncedDates, supabase) {
+  for each date:
+    query planner_items for project_ids on that date
+    update health_sync_data SET project_id = primary, attributed_project_ids = all
+}
 ```
 
-**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+### 2. DB Migration — Add `attributed_project_ids` column
 
-**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+```sql
+ALTER TABLE public.health_sync_data ADD COLUMN attributed_project_ids text[] DEFAULT '{}';
+```
 
-### New Admin Component: AI Insights Panel
+### 3. `supabase/functions/dashboard-intelligence/index.ts` — Project-aware synthesis
 
-**File: `src/components/admin/AIInsightsPanel.tsx`**
+Update `handleDailySynthesis` to accept project context. The payload changes from per-day to per-day-per-project:
 
-- A card with "Weekly Intelligence" header and a "Generate Insights" button
-- On click, calls the `admin-insights` edge function
-- Displays results in categorized sections:
-  - Behavioral Insights (brain icon, blue accent)
-  - Retention Risks (alert icon, amber accent)
-  - Growth Opportunities (trending-up icon, green accent)
-  - Experiment Recommendation (flask icon, purple accent)
-- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
-- Loading state with skeleton cards
-- Error state with retry button
-- "Last generated" timestamp display
+- New payload shape: each entry includes `project_name`, `project_controllable`, and task counts scoped to that project
+- Cache key changes: `daily_synthesis` table needs a `project_id` column so project-specific syntheses are cached separately
+- Updated AI prompt: instructs the model to reference the project by name and tailor the synthesis to the controllable type (fitness → physical readiness, work → cognitive readiness)
 
-### Integration into Admin.tsx
+**Migration**: Add `project_id uuid` to `daily_synthesis` table; update unique constraint to `(user_id, synthesis_date, project_id)`.
 
-- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
-- The tab renders `<AIInsightsPanel />`
+### 4. `src/hooks/useDailySynthesis.ts` — Send project context
 
----
+Update the hook to group items by `project_id`, build per-project payloads, and return syntheses keyed by `date:project_id` instead of just `date`.
 
-## Part 2: Enhanced Action Center
+### 5. `src/components/planner/PlanVsActualView.tsx` — Consume project-keyed syntheses
 
-**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
+Update `computeProjectStats` to look up syntheses by `date:projectId` key so each project card gets its own synthesis line.
 
-Replace the three "Coming soon" cards with working functionality:
+## Files
 
-### A. Send Nudge Campaign
-- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
-- Confirmation dialog before sending
-- Calls the existing `send-daily-nudge` edge function for each selected user
-- Shows progress and results
+| File | Change |
+|------|--------|
+| New migration SQL | Add `attributed_project_ids text[]` to `health_sync_data`, add `project_id uuid` to `daily_synthesis` with updated unique constraint |
+| `supabase/functions/wearable-sync/index.ts` | Add `attributeProjectIds()` post-sync step |
+| `supabase/functions/dashboard-intelligence/index.ts` | Update `handleDailySynthesis` prompt and caching for project-aware synthesis |
+| `src/hooks/useDailySynthesis.ts` | Group by project, send project context, return project-keyed map |
+| `src/components/planner/PlanVsActualView.tsx` | Update synthesis lookup to use project-keyed keys |
 
-### B. Grant Trial Extension
-- Search for a specific user by email
-- Set extension duration (7 days, 14 days, 30 days)
-- Calls `admin-users?action=grant_access` with an `expires_at` parameter
-- Confirmation toast on success
-
-### C. Export with More Segments
-- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
-- Risk tier data fetched from `admin-analytics?resource=retention_radar`
-- CSV includes: email, signup date, last active, risk tier, paid status, source
-
-### D. Quick Stats Bar
-- Show counts above the action cards: Total Users, Free, Paid, At Risk
-- Derived from the `users` prop already passed in
-
----
-
-## Part 3: Landing Page Updates
-
-**File: `src/pages/Landing.tsx`**
-
-Update the hero copy to reflect the free trial:
-- Change hero tagline to emphasize "Try the full experience free for 7 days"
-- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
-- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
-
-**File: `src/components/landing/FeatureGrid.tsx`**
-
-- Update the Free/Premium labeling:
-  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
-  - "Experience History" -- add "Free during trial" badge
-  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
-
-**File: `src/components/landing/HowItWorksSection.tsx`**
-
-- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
-
----
-
-## Part 4: README Update
-
-**File: `README.md`**
-
-Update to v1.5.0 reflecting all recent changes:
-
-1. **Version bump**: `v1.4.1` to `v1.5.0`
-2. **New section: "Admin Command Center"** after Technical Reference:
-   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
-   - Mention the `admin-analytics` and `admin-insights` edge functions
-   - Document the AI Insight Engine capability
-3. **Update "Free vs. Premium" table**:
-   - Add "7-Day Free Trial" row explaining full access during first Snapshot
-   - Update AI Guide from "---" to "5 msgs/day during trial"
-   - Update Experience History from "---" to "During trial"
-4. **Update Backend Functions table**:
-   - Add `admin-analytics` -- Admin data aggregation and executive metrics
-   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
-5. **Update Key Data Tables**:
-   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
-   - Add `ai_usage_logs` -- Daily AI message tracking
-6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
-
----
-
-## Technical Summary
-
-| File | Change | Type |
-|------|--------|------|
-| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
-| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
-| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
-| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
-| `src/pages/Admin.tsx` | Add Insights tab | Edit |
-| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
-| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
-| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
-| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
-| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
-
-No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
