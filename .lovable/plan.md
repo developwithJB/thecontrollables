@@ -1,164 +1,69 @@
 
-# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-## Overview
+# Fix Controllable Emojis & Align Hierarchy
 
-Three interconnected deliverables:
-1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
-2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
-3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
+## Problem 1: Wrong Emojis in SeasonSetup & ProjectManager
 
----
+Two files use incorrect animal emojis instead of the canonical set:
 
-## Part 1: AI Insight Engine
+| Controllable | Correct | SeasonSetup.tsx | ProjectManager.tsx |
+|---|---|---|---|
+| Awareness | 🦉 | 🦉 ✓ | 🦉 ✓ |
+| Perspective | 🐢 | 🦅 ✗ | 🦅 ✗ |
+| Habit | 🦈 | 🐺 ✗ | 🐺 ✗ |
+| Wellness | 🛰️ | 🐬 ✗ | 🐬 ✗ |
+| Environment | 🚀 | 🦁 ✗ | 🦁 ✗ |
 
-### New Edge Function: `admin-insights`
+**Fix**: Update both `SeasonSetup.tsx` (line 21-24) and `ProjectManager.tsx` (line 16-19) to use the canonical emojis: 🐢, 🦈, 🛰️, 🚀.
 
-**File: `supabase/functions/admin-insights/index.ts`**
+Additionally, eliminate these local emoji arrays by importing from the single source of truth in `src/lib/controllableTheme.ts` (which already has the correct emojis). Add a utility export there so components can get the full list without redeclaring.
 
-This function:
-1. Verifies the caller is an admin (same pattern as `admin-analytics`)
-2. Queries aggregated metrics from the last 7 days using the service role client:
-   - `app_events` grouped by `event_name` and day-of-week
-   - `completed_actions` grouped by `controllable`
-   - `daily_resets` count per user (for retention correlation)
-   - `reset_sessions` completion rates
-   - `user_entitlements` conversion data
-   - `user_onboarding` activation delays
-3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
-   - 3 behavioral insights
-   - 2 retention risks
-   - 2 growth opportunities
-   - 1 experiment recommendation
-4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
-5. Returns the insights directly (no caching table needed initially -- can add later)
+## Problem 2: Mission/Focus No Longer Fit the Hierarchy
 
-**Prompt structure:**
-```
-You are a product analytics advisor for a personal growth app called The Controllables.
-Given the following 7-day metrics, generate actionable insights.
+The current hierarchy is: **Mission → Snapshot → Daily Check-In**
 
-[structured data blob]
-
-Return insights as structured tool output.
+The new correct hierarchy is:
+```text
+Season (life arc)
+  └── Projects (what you're building)
+        └── Calendar Blocks (when you're doing it)
+              └── Tasks (what specifically happens)
+                    └── Actuals (body + behavior data)
 ```
 
-**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+"Mission" (a persistent direction/north star stored in `main_quests`) and "Focus" (the active Snapshot's journey title) are legacy concepts that predate Seasons/Projects. They need to be repositioned:
 
-**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+- **Mission** becomes the **Season's theme** — the Season name/theme IS the direction. Remove standalone Mission as a separate concept. The `main_quests` table stays for backward compat but the UI should show the Season name where it currently shows "Mission."
+- **Focus** (Snapshot journey) stays as the **weekly pulse within a Project** — unchanged in function, but the hierarchy explainer needs updating.
 
-### New Admin Component: AI Insights Panel
+### Changes
 
-**File: `src/components/admin/AIInsightsPanel.tsx`**
+**Files to modify:**
 
-- A card with "Weekly Intelligence" header and a "Generate Insights" button
-- On click, calls the `admin-insights` edge function
-- Displays results in categorized sections:
-  - Behavioral Insights (brain icon, blue accent)
-  - Retention Risks (alert icon, amber accent)
-  - Growth Opportunities (trending-up icon, green accent)
-  - Experiment Recommendation (flask icon, purple accent)
-- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
-- Loading state with skeleton cards
-- Error state with retry button
-- "Last generated" timestamp display
+| File | Change |
+|---|---|
+| `src/lib/controllableTheme.ts` | Export `CONTROLLABLE_LIST` array with type/emoji/label for reuse |
+| `src/components/dashboard/SeasonSetup.tsx` | Import from controllableTheme, fix emojis |
+| `src/components/dashboard/ProjectManager.tsx` | Import from controllableTheme, fix emojis |
+| `src/components/dashboard/HierarchyExplainer.tsx` | Replace 3-level Mission/Snapshot/Daily with 5-level Season/Project/Calendar/Task/Actuals |
+| `src/components/dashboard/GreetingBanner.tsx` | Replace "Mission" indicator with Season name; keep "Focus" as Snapshot |
+| `src/components/dashboard/MainQuestModule.tsx` | Repurpose: if user has an active Season, hide the standalone Mission creator; show Season name as direction instead |
+| `src/components/DashboardManualSection.tsx` | Update HIERARCHY_ITEMS from Mission/Snapshot/Daily to the new 5-level structure |
+| `src/components/onboarding/OnboardingMissionReveal.tsx` | Rename from "Mission" to "Season Direction" — show Season theme as the north star |
+| `src/pages/Home.tsx` | Wire Season name into GreetingBanner's direction indicator instead of `activeQuest?.title`; keep Quest as fallback for users without a Season |
 
-### Integration into Admin.tsx
+### Hierarchy Explainer New Levels
 
-- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
-- The tab renders `<AIInsightsPanel />`
+```text
+Season     → "Your life chapter. The big picture arc."
+Project    → "What you're building within this season."
+Calendar   → "When you're doing it. Blocks of time."
+Task       → "What specifically happens in each block."
+Actuals    → "What your body and behavior recorded."
+```
 
----
+### Backward Compatibility
+- Users without a Season still see Mission/Quest as before (fallback)
+- The `main_quests` table and hooks remain; UI just prefers Season when one exists
+- Snapshots remain the weekly pulse, unchanged
 
-## Part 2: Enhanced Action Center
-
-**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
-
-Replace the three "Coming soon" cards with working functionality:
-
-### A. Send Nudge Campaign
-- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
-- Confirmation dialog before sending
-- Calls the existing `send-daily-nudge` edge function for each selected user
-- Shows progress and results
-
-### B. Grant Trial Extension
-- Search for a specific user by email
-- Set extension duration (7 days, 14 days, 30 days)
-- Calls `admin-users?action=grant_access` with an `expires_at` parameter
-- Confirmation toast on success
-
-### C. Export with More Segments
-- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
-- Risk tier data fetched from `admin-analytics?resource=retention_radar`
-- CSV includes: email, signup date, last active, risk tier, paid status, source
-
-### D. Quick Stats Bar
-- Show counts above the action cards: Total Users, Free, Paid, At Risk
-- Derived from the `users` prop already passed in
-
----
-
-## Part 3: Landing Page Updates
-
-**File: `src/pages/Landing.tsx`**
-
-Update the hero copy to reflect the free trial:
-- Change hero tagline to emphasize "Try the full experience free for 7 days"
-- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
-- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
-
-**File: `src/components/landing/FeatureGrid.tsx`**
-
-- Update the Free/Premium labeling:
-  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
-  - "Experience History" -- add "Free during trial" badge
-  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
-
-**File: `src/components/landing/HowItWorksSection.tsx`**
-
-- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
-
----
-
-## Part 4: README Update
-
-**File: `README.md`**
-
-Update to v1.5.0 reflecting all recent changes:
-
-1. **Version bump**: `v1.4.1` to `v1.5.0`
-2. **New section: "Admin Command Center"** after Technical Reference:
-   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
-   - Mention the `admin-analytics` and `admin-insights` edge functions
-   - Document the AI Insight Engine capability
-3. **Update "Free vs. Premium" table**:
-   - Add "7-Day Free Trial" row explaining full access during first Snapshot
-   - Update AI Guide from "---" to "5 msgs/day during trial"
-   - Update Experience History from "---" to "During trial"
-4. **Update Backend Functions table**:
-   - Add `admin-analytics` -- Admin data aggregation and executive metrics
-   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
-5. **Update Key Data Tables**:
-   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
-   - Add `ai_usage_logs` -- Daily AI message tracking
-6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
-
----
-
-## Technical Summary
-
-| File | Change | Type |
-|------|--------|------|
-| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
-| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
-| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
-| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
-| `src/pages/Admin.tsx` | Add Insights tab | Edit |
-| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
-| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
-| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
-| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
-| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
-
-No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
