@@ -168,6 +168,7 @@ export function MealPlanBuilder({
       const nextIndex = currentSlotIndex + 1;
       if (nextIndex < activeSlots.length) {
         setCurrentSlotIndex(nextIndex);
+        setRejectedNames([]);
         generateForSlot(activeSlots[nextIndex]);
       } else {
         addChat("satellite", "Your meal plan is ready! Review and confirm below.");
