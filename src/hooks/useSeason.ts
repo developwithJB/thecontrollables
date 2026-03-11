@@ -190,10 +190,32 @@ export function useSeason(userId?: string) {
     toast.success("Season complete! 🎉");
   }, [activeSeason, queryClient]);
 
-  // Check if season should auto-complete (4th snapshot finished)
+  // Check if season should show complete screen (4th snapshot finished OR ends_at passed)
   const shouldShowSeasonComplete = useMemo(() => {
-    return seasonProgress?.isComplete && activeSeason?.status === "active";
+    if (!activeSeason || activeSeason.status !== "active") return false;
+    if (seasonProgress?.isComplete) return true;
+    if (activeSeason.ends_at) {
+      const endsAt = new Date(activeSeason.ends_at);
+      if (endsAt <= new Date()) return true;
+    }
+    return false;
   }, [seasonProgress, activeSeason]);
+
+  // Manual close
+  const closeSeason = useCallback(async () => {
+    if (!activeSeason) return;
+    const { error } = await supabase
+      .from("seasons")
+      .update({ status: "completed", completed_at: new Date().toISOString() })
+      .eq("id", activeSeason.id);
+    if (error) {
+      console.error("Failed to close season:", error);
+      toast.error("Could not close season");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["season-active"] });
+    queryClient.invalidateQueries({ queryKey: ["seasons-all"] });
+  }, [activeSeason, queryClient]);
 
   return {
     activeSeason,
@@ -205,6 +227,7 @@ export function useSeason(userId?: string) {
     startSeason,
     linkSnapshotToSeason,
     completeSeason,
+    closeSeason,
     shouldShowSeasonComplete,
   };
 }

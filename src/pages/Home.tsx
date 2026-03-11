@@ -185,10 +185,36 @@ export default function Home() {
     startSeason,
     linkSnapshotToSeason,
     completeSeason,
+    closeSeason,
     shouldShowSeasonComplete,
   } = useSeason(user.id);
 
   const { createProject, activeProjects } = useProjects(user.id, activeSeason?.id);
+
+  // Fetch season-range health data for season close screen
+  const { data: seasonHealthData = [] } = useQuery({
+    queryKey: ["season-health-data", activeSeason?.id, activeSeason?.started_at],
+    queryFn: async () => {
+      if (!activeSeason?.started_at || !user.id) return [];
+      const startDate = activeSeason.started_at.split("T")[0];
+      const endDate = (activeSeason.completed_at || new Date().toISOString()).split("T")[0];
+      const { data, error } = await supabase
+        .from("health_sync_data")
+        .select("sync_date, recovery_score, hrv_ms, strain_score")
+        .eq("user_id", user.id)
+        .gte("sync_date", startDate)
+        .lte("sync_date", endDate);
+      if (error) throw error;
+      return (data || []).map((r: any) => ({
+        sync_date: r.sync_date,
+        recovery_score: r.recovery_score,
+        hrv_ms: r.hrv_ms,
+        strain_score: r.strain_score,
+      }));
+    },
+    enabled: !!activeSeason?.id && !!user.id,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const { rings, completedCount } = useDailyRings(user.id);
   const { data: intelligenceData } = useDashboardIntelligence(user.id, completedCount, rings);
@@ -644,17 +670,30 @@ export default function Home() {
       )}
 
       {/* Season Complete Overlay */}
-      {showSeasonComplete && seasonProgress && (
+      {showSeasonComplete && seasonProgress && activeSeason && (
         <SeasonComplete
-          seasonName={activeSeason?.name}
-          snapshots={seasonSnapshots}
+          season={{
+            id: activeSeason.id,
+            name: activeSeason.name,
+            started_at: activeSeason.started_at,
+            completed_at: activeSeason.completed_at,
+            created_at: activeSeason.created_at,
+          }}
+          projects={(activeProjects || []).map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            emoji: p.emoji,
+            momentum_score: p.momentum_score,
+            status: p.status,
+            controllable: p.controllable,
+          }))}
+          seasonSnapshots={seasonSnapshots}
           progress={seasonProgress}
+          healthData={seasonHealthData}
           onStartNewSeason={async () => {
             setShowSeasonComplete(false);
-            const newSeasonId = await startSeason();
-            if (newSeasonId) setShowJourneySwitcher(true);
+            setShowSeasonSetup(true);
           }}
-          onTakeBreak={() => setShowSeasonComplete(false)}
           onDismiss={() => setShowSeasonComplete(false)}
         />
       )}

@@ -73,6 +73,7 @@ export default function Growth() {
     activeSeason,
     seasonSnapshots,
     seasonProgress,
+    closeSeason,
   } = useSeason(user.id);
 
   const { data: allSessions = [] } = useQuery({
@@ -129,7 +130,7 @@ export default function Growth() {
 
       {/* Season Banner */}
       {activeSeason && seasonProgress && (
-        <SeasonBanner seasonName={activeSeason.name} snapshots={seasonSnapshots} progress={seasonProgress} />
+        <SeasonBanner seasonName={activeSeason.name} snapshots={seasonSnapshots} progress={seasonProgress} onCloseSeason={closeSeason} />
       )}
 
       {/* Reset Progress */}

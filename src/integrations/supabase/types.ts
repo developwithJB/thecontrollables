@@ -505,39 +505,48 @@ export type Database = {
       certificates: {
         Row: {
           badges_earned: Json | null
+          certificate_type: string | null
           certificate_url: string | null
           created_at: string | null
           display_name: string
           end_date: string
           id: string
           level: number | null
-          reset_session_id: string
+          reflection_text: string | null
+          reset_session_id: string | null
+          season_id: string | null
           start_date: string
           total_xp: number | null
           user_id: string
         }
         Insert: {
           badges_earned?: Json | null
+          certificate_type?: string | null
           certificate_url?: string | null
           created_at?: string | null
           display_name: string
           end_date: string
           id?: string
           level?: number | null
-          reset_session_id: string
+          reflection_text?: string | null
+          reset_session_id?: string | null
+          season_id?: string | null
           start_date: string
           total_xp?: number | null
           user_id: string
         }
         Update: {
           badges_earned?: Json | null
+          certificate_type?: string | null
           certificate_url?: string | null
           created_at?: string | null
           display_name?: string
           end_date?: string
           id?: string
           level?: number | null
-          reset_session_id?: string
+          reflection_text?: string | null
+          reset_session_id?: string | null
+          season_id?: string | null
           start_date?: string
           total_xp?: number | null
           user_id?: string
@@ -548,6 +557,13 @@ export type Database = {
             columns: ["reset_session_id"]
             isOneToOne: true
             referencedRelation: "reset_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
             referencedColumns: ["id"]
           },
         ]
