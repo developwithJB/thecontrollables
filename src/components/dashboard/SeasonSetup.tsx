@@ -188,7 +188,7 @@ export function SeasonSetup({ open, onClose, userId, onStartSeason, onCreateProj
                 <h2 className="font-display text-xl font-semibold text-foreground">Which Controllable needs the most attention?</h2>
                 <p className="text-sm text-muted-foreground mt-1 mb-3">Pick your primary focus area.</p>
                 <div className="space-y-2 overflow-y-auto max-h-[280px]">
-                  {CONTROLLABLES.map(c => (
+                  {CONTROLLABLE_DETAILS.map(c => (
                     <ControllableCard
                       key={c.type}
                       type={c.type}
