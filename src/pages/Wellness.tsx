@@ -109,6 +109,16 @@ export default function Wellness() {
       {/* 1. Wearable Integration (primary) */}
       <WearableSummaryCard userId={user.id} isPaid={isPaid} onUpgrade={() => startCheckout("wearable_summary")} />
 
+      {/* 1b. Body Readiness Interpretation */}
+      {wearableConnected && healthLatest.recovery !== null && (
+        <BodyReadinessCard latest={healthLatest} trend={healthTrend} />
+      )}
+
+      {/* 1c. Subjective vs Objective Comparison */}
+      {wearableConnected && (
+        <BodyStateGuidance userId={user.id} latest={healthLatest} />
+      )}
+
       {/* 2. Wearable Trends */}
       <WearableTrendsCard userId={user.id} isPaid={isPaid} onUpgrade={() => startCheckout("wearable_trends")} />
 

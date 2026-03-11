@@ -408,6 +408,10 @@ const Planner = () => {
         )}
 
         <div className={isMobile ? "flex-1 overflow-y-auto" : "w-[45%] overflow-y-auto"}>
+          {/* Recovery-aware planning context for today */}
+          {wearableConnected && isToday(selectedDate) && (
+            <PlannerBodyContext latest={healthLatest} trend={healthTrend} />
+          )}
           <PlannerDayView
             date={selectedDate}
             items={dayItems}

@@ -203,6 +203,13 @@ export default function Growth() {
       {/* 5 Daily Rings — the hero of Growth */}
       <DailyRings userId={user.id} />
 
+      {/* Body Intelligence — supporting layer */}
+      {wearableConnected && healthLatest.recovery !== null && (
+        <div className="max-w-sm mx-auto w-full">
+          <GrowthBodyInsight userId={user.id} latest={healthLatest} trend={healthTrend} />
+        </div>
+      )}
+
       {/* Circle */}
       {hasActiveSession && (
         <CircleCard
