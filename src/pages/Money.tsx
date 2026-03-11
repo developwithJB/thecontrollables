@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, Receipt, Target } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { useFinancialAccounts, useTransactions, useBudgetBuckets, useRecurringBills, useSubscriptions, useSavingsGoals } from "@/hooks/useMoney";
 import { MoneyOverview } from "@/components/money/MoneyOverview";
@@ -11,12 +10,12 @@ import { TransactionHistory } from "@/components/money/TransactionHistory";
 import { TransactionImporter } from "@/components/money/TransactionImporter";
 import { AccountManager } from "@/components/money/AccountManager";
 import { FinancialControllables } from "@/components/money/FinancialControllables";
-import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export default function Money() {
   const user = useLifeOSUser();
   const [showImporter, setShowImporter] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const { accounts, createAccount, deleteAccount } = useFinancialAccounts(user.id);
   const { transactions, addTransaction, isLoading: txnLoading } = useTransactions(user.id);
@@ -36,9 +35,7 @@ export default function Money() {
         <p className="text-muted-foreground text-sm">Your financial rhythm — spending, bills, and behavior awareness.</p>
       </div>
 
-      <ControllablePoweredBy controllables={["awareness", "perspective", "habit", "environment"]} />
-
-      {/* Financial Controllables summary */}
+      {/* 1. Financial Controllables — behavioral insight */}
       <FinancialControllables
         bills={bills}
         subscriptions={subscriptions}
@@ -47,34 +44,35 @@ export default function Money() {
         transactions={transactions}
       />
 
-      {/* CSV Importer overlay */}
-      {showImporter && (
-        <TransactionImporter
-          userId={user.id}
-          onComplete={() => setShowImporter(false)}
-          onCancel={() => setShowImporter(false)}
-        />
-      )}
+      {/* 2. Monthly Overview */}
+      <MoneyOverview accounts={accounts} bills={bills} subscriptions={subscriptions} goals={goals} />
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full grid grid-cols-3">
-          <TabsTrigger value="overview" className="text-xs">
-            <LayoutDashboard className="h-3.5 w-3.5 mr-1.5" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="bills" className="text-xs">
-            <Receipt className="h-3.5 w-3.5 mr-1.5" />
-            Bills & Subs
-          </TabsTrigger>
-          <TabsTrigger value="goals" className="text-xs">
-            <Target className="h-3.5 w-3.5 mr-1.5" />
-            Goals
-          </TabsTrigger>
-        </TabsList>
+      {/* 3. Bills & Subscriptions — inline */}
+      <BillsSubscriptions
+        bills={bills}
+        subscriptions={subscriptions}
+        onCreateBill={(b) => createBill.mutate(b)}
+        onMarkBillPaid={(id) => markBillPaid.mutate(id)}
+        onCreateSubscription={(s) => createSubscription.mutate(s)}
+        onCancelSubscription={(id) => cancelSubscription.mutate(id)}
+      />
 
-        <TabsContent value="overview" className="mt-4 space-y-4">
-          <MoneyOverview accounts={accounts} bills={bills} subscriptions={subscriptions} goals={goals} />
+      {/* 4. Savings Goals — inline */}
+      <SavingsGoals
+        goals={goals}
+        onCreateGoal={(g) => createGoal.mutate(g)}
+        onUpdateGoal={(u) => updateGoal.mutate(u)}
+        onCompleteGoal={(id) => completeGoal.mutate(id)}
+        isCreating={createGoal.isPending}
+      />
+
+      {/* 5. Manage Details — collapsible advanced section */}
+      <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full py-2">
+          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${detailsOpen ? "rotate-180" : ""}`} />
+          Manage accounts, budgets & transactions
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 pt-2">
           <AccountManager
             accounts={accounts}
             onCreateAccount={(a) => createAccount.mutate(a)}
@@ -95,29 +93,17 @@ export default function Money() {
             onShowImport={() => setShowImporter(true)}
             isAdding={addTransaction.isPending}
           />
-        </TabsContent>
+        </CollapsibleContent>
+      </Collapsible>
 
-        <TabsContent value="bills" className="mt-4">
-          <BillsSubscriptions
-            bills={bills}
-            subscriptions={subscriptions}
-            onCreateBill={(b) => createBill.mutate(b)}
-            onMarkBillPaid={(id) => markBillPaid.mutate(id)}
-            onCreateSubscription={(s) => createSubscription.mutate(s)}
-            onCancelSubscription={(id) => cancelSubscription.mutate(id)}
-          />
-        </TabsContent>
-
-        <TabsContent value="goals" className="mt-4">
-          <SavingsGoals
-            goals={goals}
-            onCreateGoal={(g) => createGoal.mutate(g)}
-            onUpdateGoal={(u) => updateGoal.mutate(u)}
-            onCompleteGoal={(id) => completeGoal.mutate(id)}
-            isCreating={createGoal.isPending}
-          />
-        </TabsContent>
-      </Tabs>
+      {/* CSV Importer overlay */}
+      {showImporter && (
+        <TransactionImporter
+          userId={user.id}
+          onComplete={() => setShowImporter(false)}
+          onCancel={() => setShowImporter(false)}
+        />
+      )}
 
       {/* Footer */}
       <footer className="py-6 text-center">

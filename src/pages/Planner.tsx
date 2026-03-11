@@ -4,11 +4,10 @@ import { format, addWeeks, subWeeks, isToday, isBefore, startOfDay } from "date-
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Plus, RotateCcw, BarChart3, UtensilsCrossed } from "lucide-react";
+import { Plus, RotateCcw, BarChart3, UtensilsCrossed, ArrowRight } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
-import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
 
@@ -34,7 +33,6 @@ import { QuickAddSheet } from "@/components/planner/QuickAddSheet";
 import { PlannerRoutineManager } from "@/components/planner/PlannerRoutineManager";
 import { PlannerCalendarConnect } from "@/components/planner/PlannerCalendarConnect";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
-import { PlannerWellnessBanner } from "@/components/planner/PlannerWellnessBanner";
 import { useHealthData } from "@/hooks/useHealthData";
 import { useDailySynthesis } from "@/hooks/useDailySynthesis";
 import { useProjects } from "@/hooks/useProjects";
@@ -118,6 +116,7 @@ const Planner = () => {
   const { activeProjects } = useProjects(user.id, activeSeason?.id);
 
   const googleConnection = connections.find((c) => c.provider === "google_calendar");
+  const isCalendarConnected = !!googleConnection;
 
   const handlePushToCalendar = useCallback(
     (item: PlannerItem) => {
@@ -265,7 +264,7 @@ const Planner = () => {
 
   return (
     <div className="space-y-0 -mx-4 sm:-mx-6 -my-6">
-      {/* Controllable bar */}
+      {/* Header */}
       <div className="px-4 sm:px-6 pt-4 pb-2">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -296,8 +295,32 @@ const Planner = () => {
             )}
           </div>
         </div>
-        <ControllablePoweredBy controllables={["awareness", "habit", "wellness", "environment"]} />
-        <PlannerWellnessBanner userId={user.id} selectedDate={selectedDate} />
+
+        {/* Calendar connection status or connect CTA */}
+        {!isCalendarConnected ? (
+          <div className="rounded-lg border border-accent/30 bg-accent/5 p-3 mb-2">
+            <p className="text-sm font-medium text-foreground mb-1">Connect your calendar</p>
+            <p className="text-xs text-muted-foreground mb-2">Your plan becomes smarter when it knows your real schedule. Connect Google Calendar to see your day structure and track Plan vs. Actual.</p>
+            <Button variant="outline" size="sm" onClick={() => startGoogleCalSync.mutate()} disabled={startGoogleCalSync.isPending}>
+              {startGoogleCalSync.isPending ? "Connecting…" : "Connect Google Calendar"}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+            <span>📅 Calendar connected{googleConnection?.last_synced_at ? ` · Last sync ${format(new Date(googleConnection.last_synced_at), "h:mm a")}` : ""}</span>
+            <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => triggerSync.mutate(googleConnection!.id)} disabled={triggerSync.isPending}>
+              {triggerSync.isPending ? "Syncing…" : "Refresh"}
+            </Button>
+          </div>
+        )}
+
+        {/* View Plan vs Actual on Today CTA */}
+        <button
+          onClick={() => navigate("/home#pva")}
+          className="flex items-center gap-1 text-xs text-accent hover:text-accent/80 transition-colors mb-1"
+        >
+          View Plan vs Actual on Today <ArrowRight className="h-3 w-3" />
+        </button>
       </div>
 
       {/* Date strip (mobile) */}

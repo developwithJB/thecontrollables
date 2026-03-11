@@ -1,8 +1,7 @@
 import { useEffect, useCallback, useMemo, useState, useRef } from "react";
 import { format } from "date-fns";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Target, Check, X } from "lucide-react";
+import { Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,7 +15,7 @@ import { useReset } from "@/hooks/useReset";
 import { useDashboardSummary } from "@/hooks/useDashboardSummary";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { useWelcomeBack } from "@/hooks/useWelcomeBack";
-import { WelcomeBackScreen, WelcomeBackFollowUp, WelcomeBackBanner } from "@/components/welcome-back";
+import { WelcomeBackScreen, WelcomeBackFollowUp } from "@/components/welcome-back";
 import { useBadges } from "@/hooks/useBadges";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useEntitlements } from "@/hooks/useEntitlements";
@@ -36,37 +35,27 @@ import { useHealthData } from "@/hooks/useHealthData";
 import { useAutoWearableSync } from "@/hooks/useAutoWearableSync";
 import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
-import { FirstDashboardBanner } from "@/components/dashboard/FirstDashboardBanner";
 import { useDailySynthesis } from "@/hooks/useDailySynthesis";
 
 // Dashboard modules
-import { MainQuestModule } from "@/components/dashboard/MainQuestModule";
-import { XpMomentumModule } from "@/components/dashboard/XpMomentumModule";
-import { IntegrityMeterModule } from "@/components/dashboard/IntegrityMeterModule";
-import { TimeCurrencyModule } from "@/components/dashboard/TimeCurrencyModule";
-import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule";
 import { SnapshotSelector } from "@/components/dashboard/SnapshotSelector";
 import { StartSnapshotDialog } from "@/components/dashboard/StartSnapshotDialog";
 import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
 import { TodayActions } from "@/components/dashboard/TodayActions";
-import { SnapshotReviewCard } from "@/components/dashboard/SnapshotReviewCard";
-import { DailyAlignmentSpotlight } from "@/components/dashboard/DailyAlignmentSpotlight";
+import { DailyBriefingCard } from "@/components/dashboard/DailyBriefingCard";
 import { AskDashboardBar } from "@/components/dashboard/AskDashboardBar";
 import { ForecastCard } from "@/components/dashboard/ForecastCard";
-import { AIRecommendedActions } from "@/components/dashboard/AIRecommendedActions";
 import { SeasonComplete } from "@/components/SeasonComplete";
 import { CompactRingsRow } from "@/components/dashboard/CompactRingsRow";
 import {
-  MainQuestSkeleton,
   ResetProgressSkeleton,
-  SmallModuleSkeleton,
 } from "@/components/dashboard/DashboardSkeletons";
 import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
-import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 import { ConfirmLastNightDialog } from "@/components/dashboard/ConfirmLastNightDialog";
 import { ValidatePlanDialog } from "@/components/dashboard/ValidatePlanDialog";
 import { SeasonSetup } from "@/components/dashboard/SeasonSetup";
 import { useProjects } from "@/hooks/useProjects";
+
 export default function Home() {
   usePageViewTracking("Today");
   const { trackEvent } = useAnalytics();
@@ -79,7 +68,6 @@ export default function Home() {
   const [showJourneySwitcher, setShowJourneySwitcher] = useState(false);
   const [showMissionEdit, setShowMissionEdit] = useState(false);
   const [editingMissionTitle, setEditingMissionTitle] = useState("");
-  const [showInsights, setShowInsights] = useState(false);
   const [showConfirmLastNight, setShowConfirmLastNight] = useState(false);
   const [showValidatePlan, setShowValidatePlan] = useState(false);
   const [validatePlanCompleted, setValidatePlanCompleted] = useState(false);
@@ -227,7 +215,7 @@ export default function Home() {
   // Auto-sync wearable data on dashboard load (throttled to every 4 hours)
   useAutoWearableSync(user.id, wearableProvider, wearableConnected);
 
-  // Check if Google Calendar is connected for first-dashboard banner
+  // Check if Google Calendar is connected
   const { data: calendarConnected = false } = useQuery({
     queryKey: ["planner-connection-active", user.id],
     queryFn: async () => {
@@ -340,7 +328,6 @@ export default function Home() {
 
   const defaultCheckoutPlan = getDefaultCheckoutPlan();
   const useInlinePaywall = shouldUseInlinePaywall();
-  const showDashboardPaywallPromo = useInlinePaywall;
 
   const startCheckout = useCallback(
     (plan?: Parameters<typeof initiateCheckout>[0], source = "home") => {
@@ -487,27 +474,11 @@ export default function Home() {
   }
 
   const todayAlreadyCompleted = completedDays.some((d) => d.day_number === currentDay);
+  const hasPvaData = pvaData.some(d => d.items.length > 0 || (d.health && d.health.recovery !== null));
 
   return (
     <div className="space-y-4">
-      {/* Controllable "Powered by" */}
-      <ControllablePoweredBy controllables={["awareness", "perspective", "habit", "wellness", "environment"]} />
-
-      {showReturnBanner && <WelcomeBackBanner />}
-
-      {/* Daily Alignment Spotlight */}
-      {!entitlementsLoading && (
-        <DailyAlignmentSpotlight
-          userId={user.id}
-          isPaid={isPaid}
-          nudgeEnabled={nudgeEnabled}
-          onEnable={handleEnableDailyAlignment}
-          onUpgrade={() => startCheckout(undefined, "daily_alignment_spotlight")}
-          onDismiss={() => {}}
-        />
-      )}
-
-      {/* Greeting Banner */}
+      {/* 1. Greeting Banner */}
       <GreetingBanner
         userId={user.id}
         totalXp={totalXp}
@@ -527,33 +498,17 @@ export default function Home() {
         }}
       />
 
-
-      {/* Main Quest - only show when no active season AND no active quest */}
-      {dashboardLoading ? <MainQuestSkeleton /> : !activeQuest && !activeSeason && (
-        <MainQuestModule
-          activeQuest={activeQuest}
-          onCreateQuest={handleCreateQuest}
-          onUpdateQuest={handleUpdateQuest}
-          onCompleteQuest={completeQuest}
-          isCreating={isCreatingQuest}
-          isUpdating={isUpdatingQuest}
-          isCompleting={isCompletingQuest}
-          disabled={!isAuthReady}
-        />
-      )}
-
-      {/* Snapshot Review */}
-      {(((hasEndedTrial && !isPaid) || (!activeSession && allSessions.some(s => s.status === "completed" || s.status === "expired" || s.status === "paused"))) ||
-        (activeSession && (isCompleted || isExpired))) && !resetLoading && !dashboardLoading && (
-        <SnapshotReviewCard
-          userId={user.id}
+      {/* 2. Daily Briefing Card — single morning AI brief */}
+      {!entitlementsLoading && (
+        <DailyBriefingCard
           isPaid={isPaid}
-          onStartNewSnapshot={canStartSnapshot ? () => setShowJourneySwitcher(true) : undefined}
-          onUpgrade={() => startCheckout(undefined, "snapshot_review_card")}
+          isTrialing={isTrialing}
+          hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
+          onUpgrade={() => startCheckout(undefined, "daily_briefing")}
         />
       )}
 
-      {/* Today's Actions */}
+      {/* 3. Today's Actions */}
       {(resetLoading || dashboardLoading) ? <ResetProgressSkeleton /> : (
         <TodayActions
           userId={user.id}
@@ -586,40 +541,48 @@ export default function Home() {
         />
       )}
 
-      {/* Confirm Last Night Dialog */}
+      {/* 4. Plan vs Actual */}
+      {hasPvaData ? (
+        <div id="pva">
+          <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} syntheses={pvaSyntheses} projects={activeProjects} />
+        </div>
+      ) : (
+        <div id="pva" className="rounded-xl border border-border/50 bg-card/30 p-4 text-center space-y-2">
+          <p className="text-sm text-muted-foreground">
+            {!calendarConnected && !wearableConnected
+              ? "Connect your calendar and wearable to see Plan vs. Actual."
+              : !calendarConnected
+              ? "Connect your calendar to see the full Plan vs. Actual picture."
+              : "Connect your wearable to complete the Plan vs. Actual view."}
+          </p>
+          <Button variant="outline" size="sm" onClick={() => navigate(calendarConnected ? "/wellness" : "/planner")}>
+            {calendarConnected ? "Connect Wearable →" : "Connect Calendar →"}
+          </Button>
+        </div>
+      )}
+
+      {/* 5. Compact 5 Rings */}
+      <CompactRingsRow userId={user.id} />
+
+      {/* 6. Forecast */}
+      <ForecastCard data={intelligenceData} />
+
+      {/* 7. Ask Dashboard — conversational entry point near bottom */}
+      <AskDashboardBar />
+
+      {/* --- Dialogs (modal overlays, no visual footprint) --- */}
       <ConfirmLastNightDialog
         open={showConfirmLastNight}
         onOpenChange={setShowConfirmLastNight}
         userId={user.id}
       />
 
-      {/* Validate Plan Dialog */}
       <ValidatePlanDialog
         open={showValidatePlan}
         onOpenChange={setShowValidatePlan}
         userId={user.id}
         onComplete={() => setValidatePlanCompleted(true)}
       />
-
-      {/* Ask Dashboard — directly after actions for seamless collapse */}
-      <AskDashboardBar />
-
-      {/* Compact 5 Rings */}
-      <CompactRingsRow userId={user.id} />
-
-      {/* Plan vs Actual */}
-      <FirstDashboardBanner
-        calendarConnected={calendarConnected}
-        wearableConnected={wearableConnected}
-        visitCount={dashboardVisitCount}
-      />
-      {pvaData.some(d => d.items.length > 0 || (d.health && d.health.recovery !== null)) && (
-        <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} syntheses={pvaSyntheses} projects={activeProjects} />
-      )}
-
-      {/* Forecast + Recommendations */}
-      <ForecastCard data={intelligenceData} />
-      <AIRecommendedActions data={intelligenceData} />
 
       {/* Snapshot Selector Dialog */}
       {activeSession && !isCompleted && (
@@ -736,7 +699,7 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      {/* Footer */}
+      {/* 8. Footer */}
       <footer className="py-6 text-center space-y-1">
         {dashboardVisitCount > 5 && <p className="text-xs text-muted-foreground/60">Quiet momentum. One check-in at a time.</p>}
         <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} AGB Coaching</p>
