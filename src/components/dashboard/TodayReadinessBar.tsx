@@ -78,7 +78,7 @@ export function TodayReadinessBar({ health, plannerCount, wearableConnected, cal
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-lg border border-border/40 bg-card/60 px-3 py-2.5"
+      className="rounded-lg border border-border/40 bg-card/60 px-3 py-2.5 space-y-1.5"
     >
       <div className="flex items-center gap-3 overflow-x-auto scrollbar-none">
         {/* Recovery */}
