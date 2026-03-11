@@ -19,7 +19,10 @@ import { PlannerItemRow } from "./PlannerItemRow";
 import { ActivityItemRow } from "./ActivityItemRow";
 import type { PlannerItem } from "@/hooks/usePlanner";
 import type { ActivityItem } from "@/hooks/usePlannerActivity";
-import { CalendarOff } from "lucide-react";
+import { CalendarOff, UtensilsCrossed } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 interface PlannerDayViewProps {
   date: Date;
