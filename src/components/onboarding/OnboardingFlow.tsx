@@ -24,7 +24,7 @@ import type { BuildScore } from "@/lib/build";
 import type { OnboardingStep } from "@/hooks/useOnboarding";
 
 // Internal step type that includes transitional states
-type InternalOnboardingStep = OnboardingStep | "connect_calendar" | "connect_wearable" | "orientation" | "starting" | "skip_confirmation" | "recovery" | "meet_guides";
+type InternalOnboardingStep = OnboardingStep | "connect_calendar" | "connect_wearable" | "connection_summary" | "orientation" | "starting" | "skip_confirmation" | "recovery" | "meet_guides";
 
 interface OnboardingFlowProps {
   userId: string;
