@@ -107,6 +107,8 @@ async function syncOura(accessToken: string, userId: string, supabase: any) {
   return synced;
 }
 
+const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function syncWhoop(accessToken: string, userId: string, supabase: any) {
   const now = new Date();
   const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(now.getDate() - 7);
@@ -115,62 +117,101 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
   const headers = { Authorization: `Bearer ${accessToken}` };
   const baseUrl = "https://api.prod.whoop.com/developer/v1";
 
-  let cyclesSynced = 0;
+  const counts = { cycles: 0, recoveries: 0, sleeps: 0, workouts: 0 };
 
-  // 1. Fetch Cycles (contains strain)
+  // In-memory stores keyed by WHOOP id for cross-referencing
+  const cyclesById: Record<string, any> = {};
+  // dayMap keyed by YYYY-MM-DD for normalized output
+  const dayMap: Record<string, { strain_score?: number; active_minutes?: number; recovery_score?: number; hrv_ms?: number; heart_rate_avg?: number; sleep_minutes?: number; sleep_performance_pct?: number }> = {};
+
+  // ── 1. Fetch Cycles (contains strain) ──
   try {
     const resp = await fetch(`${baseUrl}/cycle?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}&limit=25`, { headers });
-    if (resp.ok) {
+    if (!resp.ok) {
+      const body = await resp.text();
+      console.error(`[WHOOP] Cycles API ${resp.status}: ${body}`);
+    } else {
       const data = await resp.json();
       for (const cycle of data.records || []) {
-        const whoopId = String(cycle.id);
+        const id = String(cycle.id);
+        const date = cycle.start?.split("T")[0];
+        if (!date) continue;
+        cyclesById[id] = { date, score: cycle.score };
+        if (!dayMap[date]) dayMap[date] = {};
+        if (cycle.score?.strain != null) {
+          dayMap[date].strain_score = cycle.score.strain;
+          dayMap[date].active_minutes = Math.round(cycle.score.strain * 5);
+        }
+        counts.cycles++;
+        // Also upsert to whoop_cycles for history
         await supabase.from("whoop_cycles").upsert({
-          user_id: userId,
-          whoop_id: whoopId,
-          start_time: cycle.start,
-          end_time: cycle.end,
-          strain: cycle.score?.strain,
-          kilojoules: cycle.score?.kilojoule,
-          avg_heart_rate: cycle.score?.average_heart_rate,
-          max_heart_rate: cycle.score?.max_heart_rate,
+          user_id: userId, whoop_id: id, start_time: cycle.start, end_time: cycle.end,
+          strain: cycle.score?.strain, kilojoules: cycle.score?.kilojoule,
+          avg_heart_rate: cycle.score?.average_heart_rate, max_heart_rate: cycle.score?.max_heart_rate,
         }, { onConflict: "user_id,whoop_id" });
-        cyclesSynced++;
       }
     }
-  } catch (e) { console.error("WHOOP cycles error:", e); }
+  } catch (e) { console.error("[WHOOP] Cycles fetch error:", e); }
 
-  // 2. Fetch Recovery
+  await delay(300);
+
+  // ── 2. Fetch Recovery ──
   try {
     const resp = await fetch(`${baseUrl}/recovery?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}&limit=25`, { headers });
-    if (resp.ok) {
+    if (!resp.ok) {
+      const body = await resp.text();
+      console.error(`[WHOOP] Recovery API ${resp.status}: ${body}`);
+    } else {
       const data = await resp.json();
       for (const rec of data.records || []) {
-        const whoopId = String(rec.cycle_id);
+        // Map to parent cycle's date
+        const cycleId = String(rec.cycle_id);
+        const parentCycle = cyclesById[cycleId];
+        const date = parentCycle?.date ?? rec.created_at?.split("T")[0];
+        if (!date) continue;
+        if (!dayMap[date]) dayMap[date] = {};
+        dayMap[date].recovery_score = rec.score?.recovery_score ?? undefined;
+        dayMap[date].hrv_ms = rec.score?.hrv_rmssd_milli ?? undefined;
+        dayMap[date].heart_rate_avg = rec.score?.resting_heart_rate ?? undefined;
+        counts.recoveries++;
+        // Also upsert to whoop_recoveries
         await supabase.from("whoop_recoveries").upsert({
-          user_id: userId,
-          whoop_id: whoopId,
-          whoop_cycle_id: String(rec.cycle_id),
-          recovery_score: rec.score?.recovery_score,
-          resting_heart_rate: rec.score?.resting_heart_rate,
-          hrv_rmssd_milli: rec.score?.hrv_rmssd_milli,
-          spo2_percentage: rec.score?.spo2_percentage,
-          skin_temp_celsius: rec.score?.skin_temp_celsius,
-          recorded_at: rec.created_at,
+          user_id: userId, whoop_id: cycleId, whoop_cycle_id: cycleId,
+          recovery_score: rec.score?.recovery_score, resting_heart_rate: rec.score?.resting_heart_rate,
+          hrv_rmssd_milli: rec.score?.hrv_rmssd_milli, spo2_percentage: rec.score?.spo2_percentage,
+          skin_temp_celsius: rec.score?.skin_temp_celsius, recorded_at: rec.created_at,
         }, { onConflict: "user_id,whoop_id" });
       }
     }
-  } catch (e) { console.error("WHOOP recovery error:", e); }
+  } catch (e) { console.error("[WHOOP] Recovery fetch error:", e); }
 
-  // 3. Fetch Sleep
+  await delay(300);
+
+  // ── 3. Fetch Sleep ──
   try {
     const resp = await fetch(`${baseUrl}/activity/sleep?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}&limit=25`, { headers });
-    if (resp.ok) {
+    if (!resp.ok) {
+      const body = await resp.text();
+      console.error(`[WHOOP] Sleep API ${resp.status}: ${body}`);
+    } else {
       const data = await resp.json();
       for (const sleep of data.records || []) {
-        const whoopId = String(sleep.id);
+        // Use end time date (when sleep ended = the morning it applies to)
+        const date = sleep.end?.split("T")[0];
+        if (!date) continue;
+        if (!dayMap[date]) dayMap[date] = {};
+        const totalSleepMs = (sleep.score?.stage_summary?.total_light_sleep_time_milli || 0)
+          + (sleep.score?.stage_summary?.total_slow_wave_sleep_time_milli || 0)
+          + (sleep.score?.stage_summary?.total_rem_sleep_time_milli || 0);
+        dayMap[date].sleep_minutes = Math.round(totalSleepMs / 60000);
+        // Capture native sleep performance score from WHOOP
+        if (sleep.score?.sleep_performance_percentage != null) {
+          dayMap[date].sleep_performance_pct = sleep.score.sleep_performance_percentage;
+        }
+        counts.sleeps++;
+        // Also upsert to whoop_sleeps
         await supabase.from("whoop_sleeps").upsert({
-          user_id: userId,
-          whoop_id: whoopId,
+          user_id: userId, whoop_id: String(sleep.id),
           sleep_performance_pct: sleep.score?.sleep_performance_percentage,
           sleep_consistency_pct: sleep.score?.sleep_consistency_percentage,
           sleep_efficiency_pct: sleep.score?.sleep_efficiency_percentage,
@@ -182,87 +223,56 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
           total_rem_ms: sleep.score?.stage_summary?.total_rem_sleep_time_milli,
           sleep_cycle_count: sleep.score?.stage_summary?.sleep_cycle_count,
           disturbance_count: sleep.score?.stage_summary?.disturbance_count,
-          start_time: sleep.start,
-          end_time: sleep.end,
+          start_time: sleep.start, end_time: sleep.end,
         }, { onConflict: "user_id,whoop_id" });
       }
     }
-  } catch (e) { console.error("WHOOP sleep error:", e); }
+  } catch (e) { console.error("[WHOOP] Sleep fetch error:", e); }
 
-  // 4. Fetch Workouts
+  await delay(300);
+
+  // ── 4. Fetch Workouts (informational) ──
   try {
     const resp = await fetch(`${baseUrl}/activity/workout?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}&limit=25`, { headers });
-    if (resp.ok) {
+    if (!resp.ok) {
+      const body = await resp.text();
+      console.error(`[WHOOP] Workouts API ${resp.status}: ${body}`);
+    } else {
       const data = await resp.json();
       for (const workout of data.records || []) {
-        const whoopId = String(workout.id);
+        counts.workouts++;
         await supabase.from("whoop_workouts").upsert({
-          user_id: userId,
-          whoop_id: whoopId,
+          user_id: userId, whoop_id: String(workout.id),
           activity_type: workout.sport_id ? String(workout.sport_id) : null,
-          strain: workout.score?.strain,
-          avg_heart_rate: workout.score?.average_heart_rate,
-          start_time: workout.start,
-          end_time: workout.end,
-          whoop_cycle_id: workout.score?.zone_duration ? null : null,
+          strain: workout.score?.strain, avg_heart_rate: workout.score?.average_heart_rate,
+          start_time: workout.start, end_time: workout.end, whoop_cycle_id: null,
         }, { onConflict: "user_id,whoop_id" });
       }
     }
-  } catch (e) { console.error("WHOOP workouts error:", e); }
+  } catch (e) { console.error("[WHOOP] Workouts fetch error:", e); }
 
-  // 5. Normalize into health_sync_data for BrainBodyTracker compatibility
-  // Group by date from cycles and recovery
-  const { data: recentRecoveries } = await supabase.from("whoop_recoveries").select("*").eq("user_id", userId).order("recorded_at", { ascending: false }).limit(7);
-  const { data: recentSleeps } = await supabase.from("whoop_sleeps").select("*").eq("user_id", userId).order("end_time", { ascending: false }).limit(7);
-  const { data: recentCycles } = await supabase.from("whoop_cycles").select("*").eq("user_id", userId).order("start_time", { ascending: false }).limit(7);
-
-  const dayMap: Record<string, any> = {};
-
-  for (const rec of recentRecoveries || []) {
-    const date = rec.recorded_at ? rec.recorded_at.split("T")[0] : null;
-    if (!date) continue;
-    if (!dayMap[date]) dayMap[date] = {};
-    dayMap[date].heart_rate_avg = rec.resting_heart_rate;
-    dayMap[date].recovery_score = rec.recovery_score;
-    dayMap[date].hrv_ms = rec.hrv_rmssd_milli;
-  }
-
-  for (const sleep of recentSleeps || []) {
-    const date = sleep.end_time ? sleep.end_time.split("T")[0] : null;
-    if (!date) continue;
-    if (!dayMap[date]) dayMap[date] = {};
-    const totalSleepMs = (sleep.total_light_ms || 0) + (sleep.total_sws_ms || 0) + (sleep.total_rem_ms || 0);
-    dayMap[date].sleep_minutes = Math.round(totalSleepMs / 60000);
-  }
-
-  for (const cycle of recentCycles || []) {
-    const date = cycle.start_time ? cycle.start_time.split("T")[0] : null;
-    if (!date) continue;
-    if (!dayMap[date]) dayMap[date] = {};
-    // Use strain as a proxy for active minutes (WHOOP strain 0-21 → scale to minutes)
-    if (cycle.strain) {
-      dayMap[date].active_minutes = Math.round(cycle.strain * 5);
-      dayMap[date].strain_score = cycle.strain;
-    }
-  }
+  // ── 5. Normalize into health_sync_data from in-memory dayMap ──
+  console.log(`[WHOOP] Sync counts — cycles:${counts.cycles} recoveries:${counts.recoveries} sleeps:${counts.sleeps} workouts:${counts.workouts}`);
+  console.log(`[WHOOP] dayMap dates: ${Object.keys(dayMap).join(", ")}`);
 
   for (const [date, data] of Object.entries(dayMap)) {
+    console.log(`[WHOOP] Normalizing ${date}:`, JSON.stringify(data));
     await supabase.from("health_sync_data").upsert({
       user_id: userId,
       sync_date: date,
       source: "whoop",
       steps: null,
-      sleep_minutes: (data as any).sleep_minutes ?? null,
-      active_minutes: (data as any).active_minutes ?? null,
-      heart_rate_avg: (data as any).heart_rate_avg ?? null,
-      recovery_score: (data as any).recovery_score ?? null,
-      hrv_ms: (data as any).hrv_ms ?? null,
-      strain_score: (data as any).strain_score ?? null,
+      sleep_minutes: data.sleep_minutes ?? null,
+      active_minutes: data.active_minutes ?? null,
+      heart_rate_avg: data.heart_rate_avg ?? null,
+      recovery_score: data.recovery_score ?? null,
+      hrv_ms: data.hrv_ms ?? null,
+      strain_score: data.strain_score ?? null,
       synced_at: new Date().toISOString(),
     }, { onConflict: "user_id,sync_date,source" });
   }
 
-  return cyclesSynced;
+  return counts.cycles;
 }
 
 Deno.serve(async (req) => {
