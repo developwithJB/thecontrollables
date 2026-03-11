@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/collapsible";
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { HierarchyExplainer } from "@/components/dashboard/HierarchyExplainer";
+
 interface MainQuest {
   id: string;
   title: string;
