@@ -70,7 +70,7 @@ export function ProjectManager({ open, onClose, userId, seasonId }: ProjectManag
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Settings2 className="w-5 h-5 text-primary" />
-            Projects
+            Chapters
           </SheetTitle>
         </SheetHeader>
 
