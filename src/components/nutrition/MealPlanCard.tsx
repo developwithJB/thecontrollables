@@ -211,6 +211,83 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
           </div>
         </div>
 
+        {/* Persistent Action Toolbar */}
+        {todayPlan && (todayPlan.meals as any[]).length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="text-[11px] h-8 gap-1.5 font-medium"
+              onClick={() => {
+                if (todayPlan?.meals) {
+                  const meals = todayPlan.meals as MealPlanMeal[];
+                  meals.forEach((meal) => {
+                    addMealToPlanner.mutate({ meal });
+                  });
+                }
+              }}
+              disabled={addMealToPlanner.isPending}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              Add to Calendar
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[11px] h-7 text-muted-foreground"
+              onClick={() => setShowShare(true)}
+            >
+              <Share2 className="w-3 h-3 mr-1" />
+              Share
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[11px] h-7 text-muted-foreground"
+              onClick={() => setShowConfig(true)}
+            >
+              <Settings2 className="w-3 h-3 mr-1" />
+              Edit meals
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[11px] h-7 text-muted-foreground"
+              onClick={() => setShowLibrary(true)}
+            >
+              <BookOpen className="w-3 h-3 mr-1" />
+              Recipes
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[11px] h-7 text-muted-foreground"
+              onClick={handleGenerate}
+              disabled={generatePlan.isPending}
+            >
+              {generatePlan.isPending ? (
+                <Loader2 className="w-3 h-3 animate-spin mr-1" />
+              ) : (
+                <Sparkles className="w-3 h-3 mr-1" />
+              )}
+              Regenerate
+            </Button>
+          </div>
+        ) : (
+          <div>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full text-xs"
+              onClick={() => setShowBuilder(true)}
+              disabled={generatePlan.isPending}
+            >
+              <Sparkles className="w-3 h-3 mr-1" />
+              Generate Today's Meal Plan
+            </Button>
+          </div>
+        )}
+
         {/* Content: Today or Week view */}
         {view === "week" && userId ? (
           <MealWeekComparison userId={userId} slotConfig={getSlotConfig()} />
@@ -454,82 +531,8 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
                 })}
               </div>
             )}
-
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="text-[11px] h-8 gap-1.5 font-medium"
-                onClick={() => {
-                  if (todayPlan?.meals) {
-                    const meals = todayPlan.meals as MealPlanMeal[];
-                    meals.forEach((meal) => {
-                      addMealToPlanner.mutate({ meal });
-                    });
-                  }
-                }}
-                disabled={addMealToPlanner.isPending}
-              >
-                <Calendar className="w-3.5 h-3.5" />
-                Add to Calendar
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-[11px] h-7 text-muted-foreground"
-                onClick={() => setShowShare(true)}
-              >
-                <Share2 className="w-3 h-3 mr-1" />
-                Share
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-[11px] h-7 text-muted-foreground"
-                onClick={() => setShowConfig(true)}
-              >
-                <Settings2 className="w-3 h-3 mr-1" />
-                Edit meals
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-[11px] h-7 text-muted-foreground"
-                onClick={() => setShowLibrary(true)}
-              >
-                <BookOpen className="w-3 h-3 mr-1" />
-                Recipes
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-[11px] h-7 text-muted-foreground"
-                onClick={handleGenerate}
-                disabled={generatePlan.isPending}
-              >
-                {generatePlan.isPending ? (
-                  <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                ) : (
-                  <Sparkles className="w-3 h-3 mr-1" />
-                )}
-                Regenerate
-              </Button>
-            </div>
           </div>
-        ) : (
-          <div className="space-y-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              className="w-full text-xs"
-              onClick={() => setShowBuilder(true)}
-              disabled={generatePlan.isPending}
-            >
-              <Sparkles className="w-3 h-3 mr-1" />
-              Generate Today's Meal Plan
-            </Button>
-          </div>
-        )}
+        ) : null}
       </div>
 
       {/* Meal Tracker Bottom Sheet */}
