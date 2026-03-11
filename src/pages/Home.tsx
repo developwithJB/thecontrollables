@@ -514,7 +514,9 @@ export default function Home() {
         streakDays={consecutiveStreak}
         visitCount={dashboardVisitCount}
         isPaid={isPaid || isTrialing}
-        missionTitle={activeQuest?.title}
+        seasonName={activeSeason?.name}
+        onSeasonClick={() => setShowSeasonSetup(true)}
+        missionTitle={!activeSeason ? activeQuest?.title : undefined}
         onMissionClick={() => {
           if (activeQuest) { setEditingMissionTitle(activeQuest.title); setShowMissionEdit(true); }
         }}
