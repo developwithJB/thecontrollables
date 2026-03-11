@@ -265,9 +265,11 @@ export function WearableSummaryCard({ userId, isPaid, onUpgrade }: WearableSumma
             {/* Strain */}
             <div className="rounded-lg p-3 text-center bg-orange-500/10">
               <Zap className="h-4 w-4 mx-auto mb-1 text-orange-400" />
-              <p className="text-xl font-bold text-orange-400">
-                {strain != null ? strain.toFixed(1) : "--"}
-              </p>
+              <MetricValue
+                value={strain != null ? strain.toFixed(1) : null}
+                syncing={syncing}
+                className="text-orange-400"
+              />
               <p className="text-[10px] text-muted-foreground mt-0.5">Strain</p>
             </div>
           </div>
