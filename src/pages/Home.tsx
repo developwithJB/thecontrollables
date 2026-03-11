@@ -47,6 +47,7 @@ import { AskDashboardBar } from "@/components/dashboard/AskDashboardBar";
 import { ForecastCard } from "@/components/dashboard/ForecastCard";
 import { SeasonComplete } from "@/components/SeasonComplete";
 import { CompactRingsRow } from "@/components/dashboard/CompactRingsRow";
+import { TodayReadinessBar } from "@/components/dashboard/TodayReadinessBar";
 import {
   ResetProgressSkeleton,
 } from "@/components/dashboard/DashboardSkeletons";
