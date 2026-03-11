@@ -8,7 +8,7 @@ interface GroceryRhythmCardProps {
   recoveryLow?: boolean;
 }
 
-export function GroceryRhythmCard({ userId, plannerCount }: GroceryRhythmCardProps) {
+export function GroceryRhythmCard({ userId, plannerCount, recoveryLow }: GroceryRhythmCardProps) {
   // Count meals planned this week
   const { data: weekMealCount = 0 } = useQuery({
     queryKey: ["meal-week-count", userId],
