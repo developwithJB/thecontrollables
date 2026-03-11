@@ -34,6 +34,7 @@ import { PlannerCalendarConnect } from "@/components/planner/PlannerCalendarConn
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 import { PlannerWellnessBanner } from "@/components/planner/PlannerWellnessBanner";
 import { useHealthData } from "@/hooks/useHealthData";
+import { useDailySynthesis } from "@/hooks/useDailySynthesis";
 
 const Planner = () => {
   const user = useLifeOSUser();
