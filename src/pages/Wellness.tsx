@@ -17,6 +17,8 @@ import { BrainBodyTracker } from "@/components/dashboard/BrainBodyTracker";
 import { WellnessGoalsCard } from "@/components/dashboard/WellnessGoalsCard";
 import { WearableSummaryCard } from "@/components/wellness/WearableSummaryCard";
 import { WearableTrendsCard } from "@/components/wellness/WearableTrendsCard";
+import { BodyReadinessCard } from "@/components/wellness/BodyReadinessCard";
+import { BodyStateGuidance } from "@/components/wellness/BodyStateGuidance";
 import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
 import { MealPlanBuilder } from "@/components/nutrition/MealPlanBuilder";
 import { useMealTracking, type MealSlotConfig } from "@/hooks/useMealTracking";
