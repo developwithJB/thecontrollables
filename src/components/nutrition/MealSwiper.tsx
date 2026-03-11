@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useImperativeHandle, forwardRef } from "react";
 import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Check, X, Bookmark, Clock, Flame, UtensilsCrossed } from "lucide-react";
@@ -15,6 +15,10 @@ export interface SwipeMeal {
   emoji: string;
 }
 
+export interface MealSwiperHandle {
+  advance: () => void;
+}
+
 interface MealSwiperProps {
   meals: SwipeMeal[];
   onAccept: (meal: SwipeMeal) => void;
@@ -22,18 +26,21 @@ interface MealSwiperProps {
   onSaveToLibrary: (meal: SwipeMeal) => void;
   onRegenerate?: (meal: SwipeMeal) => void;
   currentMealType?: string;
+  /** When true, accept/save won't auto-advance; parent must call ref.advance() */
+  deferAdvance?: boolean;
 }
 
 const SWIPE_THRESHOLD = 100;
 
-export const MealSwiper = ({
+export const MealSwiper = forwardRef<MealSwiperHandle, MealSwiperProps>(({
   meals,
   onAccept,
   onReject,
   onSaveToLibrary,
   onRegenerate,
   currentMealType = "meal",
-}: MealSwiperProps) => {
+  deferAdvance = false,
+}, ref) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitDirection, setExitDirection] = useState<"left" | "right" | "up" | null>(null);
   
