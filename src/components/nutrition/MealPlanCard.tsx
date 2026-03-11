@@ -511,20 +511,11 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
               variant="secondary"
               size="sm"
               className="w-full text-xs"
-              onClick={() => setShowConfig(true)}
+              onClick={() => setShowBuilder(true)}
               disabled={generatePlan.isPending}
             >
-              {generatePlan.isPending ? (
-                <>
-                  <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                  Satellite is planning...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  Generate Today's Meal Plan
-                </>
-              )}
+              <Sparkles className="w-3 h-3 mr-1" />
+              Generate Today's Meal Plan
             </Button>
           </div>
         )}
