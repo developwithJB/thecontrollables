@@ -170,6 +170,7 @@ serve(async (req) => {
         // Check if already pushed (has external_event_id with same connection)
         if (item.external_event_id && item.connection_id === connection_id) {
           // PATCH existing event
+          console.log("[GCAL-PUSH] PATCH event:", item.external_event_id, "title:", item.title);
           const patchRes = await fetch(
             `https://www.googleapis.com/calendar/v3/calendars/primary/events/${item.external_event_id}`,
             {
@@ -184,11 +185,13 @@ serve(async (req) => {
 
           if (!patchRes.ok) {
             const errText = await patchRes.text();
+            console.error("[GCAL-PUSH] PATCH failed:", patchRes.status, errText);
             throw new Error(`PATCH failed [${patchRes.status}]: ${errText}`);
           }
           pushed++;
         } else {
           // POST new event
+          console.log("[GCAL-PUSH] POST new event:", item.title, JSON.stringify(eventBody));
           const postRes = await fetch(
             "https://www.googleapis.com/calendar/v3/calendars/primary/events",
             {
@@ -203,10 +206,12 @@ serve(async (req) => {
 
           if (!postRes.ok) {
             const errText = await postRes.text();
+            console.error("[GCAL-PUSH] POST failed:", postRes.status, errText);
             throw new Error(`POST failed [${postRes.status}]: ${errText}`);
           }
 
           const created = await postRes.json();
+          console.log("[GCAL-PUSH] Created event:", created.id);
 
           // Save external_event_id back to planner item
           await adminSupabase
