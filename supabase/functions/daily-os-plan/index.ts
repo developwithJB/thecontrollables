@@ -396,8 +396,8 @@ Rules:
 - fallback_plan: 2 items for low-energy days
 - why_today: 1-2 sentences connecting the priorities to the user's real data
 - source values: "Snapshot", "Planner", "Promise", "Wellness", "Build", "Guide"
-- deep_link values: "/reset", "/planner", "/dashboard"
-- action_link values: "/planner", "/reset", "/dashboard"`;
+- deep_link values MUST be one of: "/home", "/dashboard", "/planner", "/wellness", "/growth", "/wealth", "/reset". Do NOT invent routes.
+- action_link values MUST be one of: "/home", "/dashboard", "/planner", "/wellness", "/growth", "/wealth", "/reset". Do NOT invent routes.`;
 
           const userPrompt = `Today is ${today}. Here is the user's context:
 

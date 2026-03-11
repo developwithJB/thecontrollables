@@ -236,10 +236,13 @@ export function DailyOSCard({
     trackEvent("engagement", "daily_os_refreshed", { refresh_count: refreshCount + 1 });
   };
 
+  const VALID_ROUTES = ["/home", "/dashboard", "/planner", "/wellness", "/growth", "/wealth", "/reset"];
+
   const handleQuickAction = (link: string, label: string) => {
     trackEvent("daily_os_interaction", "daily_os_quick_action_tapped", { action: label });
     if (link.startsWith("/")) {
-      navigate(link);
+      const target = VALID_ROUTES.includes(link) ? link : "/home";
+      navigate(target);
     }
   };
 
