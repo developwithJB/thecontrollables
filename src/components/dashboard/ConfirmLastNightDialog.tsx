@@ -60,6 +60,7 @@ export function ConfirmLastNightDialog({ open, onOpenChange, userId }: ConfirmLa
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [wearableSynced, setWearableSynced] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const { logWellness } = useWellness(userId);
   const healthData = useHealthData(userId);
   const queryClient = useQueryClient();
