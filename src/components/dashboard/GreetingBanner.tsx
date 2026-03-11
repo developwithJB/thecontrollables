@@ -12,7 +12,10 @@ interface GreetingBannerProps {
   streakDays?: number;
   visitCount: number;
   isPaid?: boolean;
-  // Mission indicator
+  // Season / Direction indicator
+  seasonName?: string | null;
+  onSeasonClick?: () => void;
+  /** @deprecated Use seasonName — kept as fallback */
   missionTitle?: string | null;
   onMissionClick?: () => void;
   // Snapshot Focus indicator
