@@ -1,164 +1,100 @@
 
-# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-## Overview
+# Phase 2: Fuel Plan Intelligence Layer
 
-Three interconnected deliverables:
-1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
-2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
-3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
+## Current State
+- **FuelTodayCard**: Shows tonight's meal, next unplanned slot, grocery gap warning. No body/calendar awareness.
+- **MealPlanBuilder**: Uses mood chips (Light & fresh, High protein, Comfort food, Surprise me). No body or calendar context passed to AI.
+- **ai-meal-plan edge function**: Generates meals based on preferences/mood. No awareness of recovery, calendar load, or budget.
+- **GroceryRhythmCard**: Shows weekly meal count + takeout risk + calendar-aware spending warning. Solid as-is.
+- **PlannerBodyContext + TodayReadinessBar**: Already combine body + calendar signals. No fuel context.
+- **AI Briefing**: Already includes meal plan context in prompts. Already handles "low recovery + unplanned meals" in prompt rules.
+- **CalendarIntelligence utility**: Already produces dayType, meetingCount, etc.
 
----
+## What to Build
 
-## Part 1: AI Insight Engine
+### 1. New Utility: `src/lib/fuelIntelligence.ts`
+Pure function that takes body state (recovery, sleep, strain) + calendar intel + meal plan data and produces fuel guidance.
 
-### New Edge Function: `admin-insights`
+**Inputs**: `{ recovery?: number, sleepMinutes?: number, strain?: number, calendarDayType?: string, meetingCount?: number, hasMeals: boolean, mealCount: number }`
 
-**File: `supabase/functions/admin-insights/index.ts`**
-
-This function:
-1. Verifies the caller is an admin (same pattern as `admin-analytics`)
-2. Queries aggregated metrics from the last 7 days using the service role client:
-   - `app_events` grouped by `event_name` and day-of-week
-   - `completed_actions` grouped by `controllable`
-   - `daily_resets` count per user (for retention correlation)
-   - `reset_sessions` completion rates
-   - `user_entitlements` conversion data
-   - `user_onboarding` activation delays
-3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
-   - 3 behavioral insights
-   - 2 retention risks
-   - 2 growth opportunities
-   - 1 experiment recommendation
-4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
-5. Returns the insights directly (no caching table needed initially -- can add later)
-
-**Prompt structure:**
-```
-You are a product analytics advisor for a personal growth app called The Controllables.
-Given the following 7-day metrics, generate actionable insights.
-
-[structured data blob]
-
-Return insights as structured tool output.
+**Outputs**:
+```typescript
+interface FuelIntelligence {
+  mealFit: "quick_easy" | "recovery_friendly" | "high_protein" | "prep_friendly" | "standard";
+  suggestion: string;       // e.g. "Low recovery — choose easy, supportive meals"
+  dinnerAdvice: string | null; // e.g. "Tonight's plan may be too ambitious for your schedule"
+  tags: string[];           // suggested meal tags for the AI
+}
 ```
 
-**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+Rules:
+- Low recovery → "recovery_friendly", suggest easy supportive meals
+- High strain → "high_protein", prioritize protein
+- Heavy/fragmented day → "quick_easy", reduce prep effort
+- Light/focus/recovery day → "prep_friendly", good for cooking
+- Poor sleep → reduce decision fatigue, suggest familiar meals
 
-**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+### 2. Enhance FuelTodayCard — Body + Calendar Context
+**File**: `src/components/dashboard/FuelTodayCard.tsx`
 
-### New Admin Component: AI Insights Panel
+Accept optional `fuelIntel` prop (`FuelIntelligence | null`). When present, show a contextual line above the dinner row:
+- "Recovery is low — keep meals simple tonight"
+- "Busy evening ahead — tonight's plan may need a simpler swap"
+- "Light evening + strong readiness — good time for a higher-prep meal"
+- "Sleep was short — choose something familiar and easy"
 
-**File: `src/components/admin/AIInsightsPanel.tsx`**
+### 3. Enhance MealPlanBuilder — Pass Context Tags to AI
+**File**: `src/components/nutrition/MealPlanBuilder.tsx`
 
-- A card with "Weekly Intelligence" header and a "Generate Insights" button
-- On click, calls the `admin-insights` edge function
-- Displays results in categorized sections:
-  - Behavioral Insights (brain icon, blue accent)
-  - Retention Risks (alert icon, amber accent)
-  - Growth Opportunities (trending-up icon, green accent)
-  - Experiment Recommendation (flask icon, purple accent)
-- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
-- Loading state with skeleton cards
-- Error state with retry button
-- "Last generated" timestamp display
+Accept optional `contextTags` prop (string[]). Pass these to `onGenerate` so the edge function receives body/calendar context. Show a small context chip at the top of the builder: e.g., "🔋 Recovery mode — suggesting easier meals".
 
-### Integration into Admin.tsx
+### 4. Enhance ai-meal-plan Edge Function — Use Context Tags
+**File**: `supabase/functions/ai-meal-plan/index.ts`
 
-- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
-- The tab renders `<AIInsightsPanel />`
+Accept optional `context_tags` and `body_context` in the request body. Add to system prompt:
+- "Context: The user is having a [heavy/light] day with [low/strong] recovery. Prioritize [quick, easy, recovery-friendly] meals."
 
----
+### 5. Compute + Pass FuelIntelligence in Home.tsx
+**File**: `src/pages/Home.tsx`
 
-## Part 2: Enhanced Action Center
+Import `getFuelIntelligence` from the new utility. Compute it from existing `healthLatest` + `calendarIntel` + `todayPlan` data (already available). Pass to `FuelTodayCard`.
 
-**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
+### 6. Compute + Pass FuelIntelligence in Planner.tsx
+**File**: `src/pages/Planner.tsx`
 
-Replace the three "Coming soon" cards with working functionality:
+Compute `fuelIntel` for the selected day. Pass `contextTags` to the `MealPlanBuilder` that's embedded in `PlannerDayView` (if applicable — check if builder is used there).
 
-### A. Send Nudge Campaign
-- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
-- Confirmation dialog before sending
-- Calls the existing `send-daily-nudge` edge function for each selected user
-- Shows progress and results
+### 7. Enhance GroceryRhythmCard — Recovery Context
+**File**: `src/components/money/GroceryRhythmCard.tsx`
 
-### B. Grant Trial Extension
-- Search for a specific user by email
-- Set extension duration (7 days, 14 days, 30 days)
-- Calls `admin-users?action=grant_access` with an `expires_at` parameter
-- Confirmation toast on success
+Accept optional `recoveryLow` boolean. When true + few meals planned:
+- "Low recovery + no meal plan = higher convenience spending risk"
 
-### C. Export with More Segments
-- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
-- Risk tier data fetched from `admin-analytics?resource=retention_radar`
-- CSV includes: email, signup date, last active, risk tier, paid status, source
+### 8. Enhance ai-briefing — Cross-reference Body + Meals
+Already done well. Add one additional rule to the prompt:
+- "If recovery is low and meals are planned, acknowledge the preparation. If strain is high, suggest protein-focused meals."
 
-### D. Quick Stats Bar
-- Show counts above the action cards: Total Users, Free, Paid, At Risk
-- Derived from the `users` prop already passed in
+## Files to Create
+| File | Purpose |
+|---|---|
+| `src/lib/fuelIntelligence.ts` | Pure utility: derive meal guidance from body + calendar state |
 
----
+## Files to Modify
+| File | Change |
+|---|---|
+| `src/components/dashboard/FuelTodayCard.tsx` | Accept fuelIntel prop, show contextual guidance line |
+| `src/components/nutrition/MealPlanBuilder.tsx` | Accept contextTags prop, show context chip, pass to generation |
+| `supabase/functions/ai-meal-plan/index.ts` | Accept context_tags/body_context, add to system prompt |
+| `src/pages/Home.tsx` | Compute fuelIntel, pass to FuelTodayCard |
+| `src/pages/Planner.tsx` | Compute fuelIntel for selected day |
+| `src/components/money/GroceryRhythmCard.tsx` | Accept recoveryLow prop, enhanced insight |
+| `supabase/functions/ai-briefing/index.ts` | Add recovery+meal cross-reference prompt rule |
 
-## Part 3: Landing Page Updates
+## What Does NOT Change
+- No database migrations
+- MealSwiper stays as-is
+- WellnessFuelSummary stays as-is
+- Existing GroceryRhythmCard logic preserved, just extended
+- All body intelligence and calendar intelligence components unchanged
 
-**File: `src/pages/Landing.tsx`**
-
-Update the hero copy to reflect the free trial:
-- Change hero tagline to emphasize "Try the full experience free for 7 days"
-- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
-- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
-
-**File: `src/components/landing/FeatureGrid.tsx`**
-
-- Update the Free/Premium labeling:
-  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
-  - "Experience History" -- add "Free during trial" badge
-  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
-
-**File: `src/components/landing/HowItWorksSection.tsx`**
-
-- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
-
----
-
-## Part 4: README Update
-
-**File: `README.md`**
-
-Update to v1.5.0 reflecting all recent changes:
-
-1. **Version bump**: `v1.4.1` to `v1.5.0`
-2. **New section: "Admin Command Center"** after Technical Reference:
-   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
-   - Mention the `admin-analytics` and `admin-insights` edge functions
-   - Document the AI Insight Engine capability
-3. **Update "Free vs. Premium" table**:
-   - Add "7-Day Free Trial" row explaining full access during first Snapshot
-   - Update AI Guide from "---" to "5 msgs/day during trial"
-   - Update Experience History from "---" to "During trial"
-4. **Update Backend Functions table**:
-   - Add `admin-analytics` -- Admin data aggregation and executive metrics
-   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
-5. **Update Key Data Tables**:
-   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
-   - Add `ai_usage_logs` -- Daily AI message tracking
-6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
-
----
-
-## Technical Summary
-
-| File | Change | Type |
-|------|--------|------|
-| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
-| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
-| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
-| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
-| `src/pages/Admin.tsx` | Add Insights tab | Edit |
-| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
-| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
-| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
-| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
-| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
-
-No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
