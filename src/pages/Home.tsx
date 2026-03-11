@@ -524,7 +524,7 @@ export default function Home() {
         }}
       />
 
-      {/* 1b. Readiness Bar — instant cross-system signal */}
+      {/* 2. Readiness Bar — Tier 1: How am I doing? */}
       <TodayReadinessBar
         health={healthLatest}
         plannerCount={todayPlannerItems.length}
