@@ -36,6 +36,7 @@ import { useHealthData } from "@/hooks/useHealthData";
 import { useAutoWearableSync } from "@/hooks/useAutoWearableSync";
 import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
+import { useDailySynthesis } from "@/hooks/useDailySynthesis";
 
 // Dashboard modules
 import { MainQuestModule } from "@/components/dashboard/MainQuestModule";
@@ -217,6 +218,8 @@ export default function Home() {
       };
     });
   }, [weekRange.days, weekPlannerItems, healthTrend]);
+
+  const pvaSyntheses = useDailySynthesis(pvaData);
 
   const [showSeasonComplete, setShowSeasonComplete] = useState(false);
   useEffect(() => {
@@ -550,7 +553,7 @@ export default function Home() {
 
       {/* Plan vs Actual */}
       {pvaData.some(d => d.items.length > 0 || (d.health && d.health.recovery !== null)) && (
-        <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} />
+        <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} syntheses={pvaSyntheses} />
       )}
 
       {/* Forecast + Recommendations */}

@@ -1067,6 +1067,30 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_synthesis: {
+        Row: {
+          created_at: string | null
+          id: string
+          synthesis_date: string
+          synthesis_text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          synthesis_date: string
+          synthesis_text: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          synthesis_date?: string
+          synthesis_text?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_nudge_logs: {
         Row: {
           created_at: string
