@@ -428,7 +428,6 @@ const Planner = () => {
               </>
             );
           })()}
-          )}
           <PlannerDayView
             date={selectedDate}
             items={dayItems}
