@@ -1,164 +1,88 @@
 
-# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
+
+# Season Close & Roll-Up
 
 ## Overview
+Redesign `SeasonComplete.tsx` into a rich close-out screen with project stats, wearable aggregates, AI reflection, and a downloadable Season Certificate. Extend the `generate-certificate` edge function to support a "season" type. Update `Home.tsx` to pass new data. Add manual close trigger support.
 
-Three interconnected deliverables:
-1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
-2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
-3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
+## Database Migration
 
----
+Add `season_id` column to `certificates` table (nullable, for season-type certs):
 
-## Part 1: AI Insight Engine
-
-### New Edge Function: `admin-insights`
-
-**File: `supabase/functions/admin-insights/index.ts`**
-
-This function:
-1. Verifies the caller is an admin (same pattern as `admin-analytics`)
-2. Queries aggregated metrics from the last 7 days using the service role client:
-   - `app_events` grouped by `event_name` and day-of-week
-   - `completed_actions` grouped by `controllable`
-   - `daily_resets` count per user (for retention correlation)
-   - `reset_sessions` completion rates
-   - `user_entitlements` conversion data
-   - `user_onboarding` activation delays
-3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
-   - 3 behavioral insights
-   - 2 retention risks
-   - 2 growth opportunities
-   - 1 experiment recommendation
-4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
-5. Returns the insights directly (no caching table needed initially -- can add later)
-
-**Prompt structure:**
-```
-You are a product analytics advisor for a personal growth app called The Controllables.
-Given the following 7-day metrics, generate actionable insights.
-
-[structured data blob]
-
-Return insights as structured tool output.
+```sql
+ALTER TABLE public.certificates 
+  ADD COLUMN IF NOT EXISTS season_id uuid REFERENCES public.seasons(id),
+  ADD COLUMN IF NOT EXISTS certificate_type text DEFAULT 'snapshot';
+-- Allow season certs (no reset_session_id required)
+ALTER TABLE public.certificates ALTER COLUMN reset_session_id DROP NOT NULL;
 ```
 
-**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+## Files to Modify
 
-**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+### 1. `supabase/functions/generate-certificate/index.ts`
+- Accept new request shape: `{ season_id, type: "season" }` alongside existing `{ reset_session_id }` for snapshots
+- When `type === "season"`:
+  - Fetch season record (name, started_at, completed_at/now)
+  - Fetch all projects for that season with momentum scores
+  - Fetch aggregate `health_sync_data` for the season date range (avg recovery, best/worst week recovery)
+  - Identify most-completed and most-struggled projects by task completion ratio from `planner_items`
+  - Call Lovable AI (gemini-2.5-flash) with all stats to generate a one-paragraph Season reflection
+  - Generate a Season-specific SVG certificate design: season name, duration, project list, reflection text
+  - Upload to `certificates` storage bucket, upsert to `certificates` table with `season_id` and `certificate_type = 'season'`
 
-### New Admin Component: AI Insights Panel
+### 2. `src/components/SeasonComplete.tsx` — Full Redesign
+New props interface:
+```typescript
+interface SeasonCompleteProps {
+  season: Season;                    // full season object
+  projects: Project[];               // all projects in this season
+  seasonSnapshots: SeasonSnapshot[];  // existing
+  progress: SeasonProgress;          // existing
+  healthData: HealthMetrics[];       // season-range health data
+  onStartNewSeason: () => void;
+  onDismiss: () => void;
+}
+```
 
-**File: `src/components/admin/AIInsightsPanel.tsx`**
+New sections:
+- **Header**: Season name + duration ("New City, New Start · 67 days")
+- **Project Cards**: Each project with emoji, momentum score bar, completion status (done/paused/active task counts)
+- **Wearable Aggregate**: Average recovery, best week, hardest week (computed client-side from healthData)
+- **Standout Projects**: "Most momentum" and "Most struggled" based on momentum_score or task completion ratio
+- **AI Reflection**: Call `generate-certificate` with `type: "season"` which returns both `certificate_url` and `reflection_text`. Display the reflection paragraph.
+- **Season Certificate**: Download button using existing `CertificatePreview` pattern
+- **CTA**: "Start a new Season →" opens SeasonSetup
 
-- A card with "Weekly Intelligence" header and a "Generate Insights" button
-- On click, calls the `admin-insights` edge function
-- Displays results in categorized sections:
-  - Behavioral Insights (brain icon, blue accent)
-  - Retention Risks (alert icon, amber accent)
-  - Growth Opportunities (trending-up icon, green accent)
-  - Experiment Recommendation (flask icon, purple accent)
-- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
-- Loading state with skeleton cards
-- Error state with retry button
-- "Last generated" timestamp display
+### 3. `src/hooks/useSeason.ts`
+- Add `closeSeason` callback for manual close (sets `completed_at` to now, `status` to `completed`)
+- Extend `shouldShowSeasonComplete` to also check if `ends_at` has passed
+- Return `closeSeason` from hook
 
-### Integration into Admin.tsx
+### 4. `src/hooks/useCertificate.ts`
+- Add a `useSeasonCertificate(seasonId)` export that queries `certificates` by `season_id` instead of `reset_session_id`, and calls `generate-certificate` with `{ season_id, type: "season" }`
 
-- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
-- The tab renders `<AIInsightsPanel />`
+### 5. `src/pages/Home.tsx`
+- Pass `activeSeason`, `activeProjects`, and season-range health data to `SeasonComplete`
+- Fetch health data for the season date range (started_at to now) from `health_sync_data`
+- Wire "Start a new Season" CTA to open `SeasonSetup` instead of directly calling `startSeason`
+- Add a manual "Close Season" action (via `closeSeason`) accessible from `SeasonBanner` or settings
 
----
+### 6. `src/components/dashboard/SeasonBanner.tsx`
+- Add a "Close Season" menu option that triggers the manual close flow
 
-## Part 2: Enhanced Action Center
+## Key Logic
 
-**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
+**Best/Hardest Week** (client-side from healthData array):
+- Group health records by ISO week
+- Average recovery_score per week
+- Best = highest avg, Hardest = lowest avg
 
-Replace the three "Coming soon" cards with working functionality:
+**Most Momentum / Most Struggled**:
+- Rank projects by `momentum_score` — highest = most momentum, lowest = most struggled
 
-### A. Send Nudge Campaign
-- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
-- Confirmation dialog before sending
-- Calls the existing `send-daily-nudge` edge function for each selected user
-- Shows progress and results
+**AI Reflection** (edge function, gemini-2.5-flash):
+- Prompt: "Write one paragraph reflecting on a user's Season. Season: [name], [X days]. Projects: [list with momentum scores]. Average recovery: [X%]. Best week recovery: [X%]. Hardest week: [X%]. Most progress: [project]. Most struggled: [project]. Be specific, reference project names, connect body data to output."
 
-### B. Grant Trial Extension
-- Search for a specific user by email
-- Set extension duration (7 days, 14 days, 30 days)
-- Calls `admin-users?action=grant_access` with an `expires_at` parameter
-- Confirmation toast on success
+## Hierarchy Preserved
+Snapshots = weekly pulse (unchanged). Projects = month-scale container. Seasons = life-scale arc. No changes to snapshot mechanics.
 
-### C. Export with More Segments
-- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
-- Risk tier data fetched from `admin-analytics?resource=retention_radar`
-- CSV includes: email, signup date, last active, risk tier, paid status, source
-
-### D. Quick Stats Bar
-- Show counts above the action cards: Total Users, Free, Paid, At Risk
-- Derived from the `users` prop already passed in
-
----
-
-## Part 3: Landing Page Updates
-
-**File: `src/pages/Landing.tsx`**
-
-Update the hero copy to reflect the free trial:
-- Change hero tagline to emphasize "Try the full experience free for 7 days"
-- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
-- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
-
-**File: `src/components/landing/FeatureGrid.tsx`**
-
-- Update the Free/Premium labeling:
-  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
-  - "Experience History" -- add "Free during trial" badge
-  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
-
-**File: `src/components/landing/HowItWorksSection.tsx`**
-
-- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
-
----
-
-## Part 4: README Update
-
-**File: `README.md`**
-
-Update to v1.5.0 reflecting all recent changes:
-
-1. **Version bump**: `v1.4.1` to `v1.5.0`
-2. **New section: "Admin Command Center"** after Technical Reference:
-   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
-   - Mention the `admin-analytics` and `admin-insights` edge functions
-   - Document the AI Insight Engine capability
-3. **Update "Free vs. Premium" table**:
-   - Add "7-Day Free Trial" row explaining full access during first Snapshot
-   - Update AI Guide from "---" to "5 msgs/day during trial"
-   - Update Experience History from "---" to "During trial"
-4. **Update Backend Functions table**:
-   - Add `admin-analytics` -- Admin data aggregation and executive metrics
-   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
-5. **Update Key Data Tables**:
-   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
-   - Add `ai_usage_logs` -- Daily AI message tracking
-6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
-
----
-
-## Technical Summary
-
-| File | Change | Type |
-|------|--------|------|
-| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
-| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
-| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
-| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
-| `src/pages/Admin.tsx` | Add Insights tab | Edit |
-| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
-| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
-| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
-| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
-| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
-
-No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
