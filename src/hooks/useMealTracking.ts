@@ -358,6 +358,7 @@ export function useMealTracking(userId: string | null) {
     generatePlan,
     updatePlanMeals,
     generateWeekPlan,
+    saveWeekPlan,
     dailyTotals,
     addMealToPlanner,
   };
