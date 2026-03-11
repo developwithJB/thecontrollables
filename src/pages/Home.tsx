@@ -269,7 +269,7 @@ export default function Home() {
   const todayFuelIntel = useMemo(() => {
     return getFuelIntelligence({
       recovery: healthLatest?.recovery,
-      sleepMinutes: healthLatest?.sleep ? healthLatest.sleep * 60 : null,
+      sleepMinutes: healthLatest?.sleepMinutes,
       strain: healthLatest?.strain,
       calendarDayType: todayCalendarIntel?.dayType,
       meetingCount: todayCalendarIntel?.meetingCount ?? 0,
