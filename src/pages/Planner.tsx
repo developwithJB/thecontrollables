@@ -37,6 +37,8 @@ import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 import { PlannerWellnessBanner } from "@/components/planner/PlannerWellnessBanner";
 import { useHealthData } from "@/hooks/useHealthData";
 import { useDailySynthesis } from "@/hooks/useDailySynthesis";
+import { useProjects } from "@/hooks/useProjects";
+import { useSeason } from "@/hooks/useSeason";
 
 const Planner = () => {
   const user = useLifeOSUser();
