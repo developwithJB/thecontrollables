@@ -105,9 +105,9 @@ export const PlannerDayView = ({
     <div className="flex-1 px-4 py-3">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-base font-semibold text-foreground">{todayLabel}</h2>
-        {mealCount > 0 && (
+        {meals.length > 0 && (
           <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-            <UtensilsCrossed className="w-3 h-3" /> {mealCount} meals
+            <UtensilsCrossed className="w-3 h-3" /> {meals.length} meals
           </span>
         )}
       </div>
