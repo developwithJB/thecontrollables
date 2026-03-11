@@ -23,7 +23,9 @@ export function MealLogEntry({
   emoji,
   existingAnalysis,
   existingDescription,
+  plannedMealName,
   onSubmit,
+  onConfirmAsEaten,
   isAnalyzing,
 }: MealLogEntryProps) {
   const [mode, setMode] = useState<"idle" | "text" | "photo">("idle");
