@@ -242,7 +242,7 @@ export function WeekPlanReviewSheet({
       </Sheet>
 
       {/* Slot Picker Dialog */}
-      <AlertDialog open={!!pendingAssign} onOpenChange={(v) => !v && setPendingAssign(null)}>
+      <AlertDialog open={!!pendingAssign} onOpenChange={(v) => { if (!v) handleSlotCancel(); }}>
         <AlertDialogContent className="max-w-sm max-h-[70vh] overflow-auto">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-sm">
@@ -283,7 +283,7 @@ export function WeekPlanReviewSheet({
             })}
           </div>
 
-          <AlertDialogCancel className="mt-3 w-full text-xs gap-1">
+          <AlertDialogCancel className="mt-3 w-full text-xs gap-1" onClick={handleSlotCancel}>
             <X className="w-3 h-3" /> Skip This Meal
           </AlertDialogCancel>
         </AlertDialogContent>
