@@ -254,9 +254,11 @@ export function WearableSummaryCard({ userId, isPaid, onUpgrade }: WearableSumma
             {/* Sleep */}
             <div className="rounded-lg p-3 text-center bg-blue-500/10">
               <Moon className="h-4 w-4 mx-auto mb-1 text-blue-400" />
-              <p className="text-xl font-bold text-blue-400">
-                {sleepMins != null ? formatMinutes(sleepMins) : "--"}
-              </p>
+              <MetricValue
+                value={formatMinutes(sleepMins)}
+                syncing={syncing}
+                className="text-blue-400"
+              />
               <p className="text-[10px] text-muted-foreground mt-0.5">Sleep</p>
             </div>
 
