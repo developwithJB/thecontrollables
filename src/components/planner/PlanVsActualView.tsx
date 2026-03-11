@@ -92,6 +92,7 @@ export const PlanVsActualView = ({
   onPushToCalendar,
   view: initialView = "day",
   isWearableConnected = false,
+  syntheses = {},
 }: PlanVsActualViewProps) => {
   const [view, setView] = useState(initialView);
   const [weekOffset, setWeekOffset] = useState(0);
