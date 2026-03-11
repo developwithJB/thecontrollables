@@ -188,7 +188,7 @@ export default function Home() {
     shouldShowSeasonComplete,
   } = useSeason(user.id);
 
-  const { createProject } = useProjects(user.id, activeSeason?.id);
+  const { createProject, activeProjects } = useProjects(user.id, activeSeason?.id);
 
   const { rings, completedCount } = useDailyRings(user.id);
   const { data: intelligenceData } = useDashboardIntelligence(user.id, completedCount, rings);
