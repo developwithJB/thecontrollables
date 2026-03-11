@@ -167,7 +167,7 @@ export function ProjectManager({ open, onClose, userId, seasonId }: ProjectManag
               disabled={!canAddProject}
             >
               <Plus className="w-4 h-4 mr-2" />
-              {canAddProject ? "Add Project" : "5 active projects max"}
+              {canAddProject ? "Add Chapter" : "5 active chapters max"}
             </Button>
           ) : (
             <div className="rounded-lg border p-3 space-y-3">
