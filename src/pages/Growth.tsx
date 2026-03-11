@@ -37,6 +37,7 @@ import { SnapshotReviewCard } from "@/components/dashboard/SnapshotReviewCard";
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
+import { GrowthBodyInsight } from "@/components/dashboard/GrowthBodyInsight";
 
 export default function Growth() {
   usePageViewTracking("Growth");
