@@ -363,9 +363,21 @@ Deno.serve(async (req) => {
     }
 
     let daysSynced: number;
-    if (provider === "fitbit") daysSynced = await syncFitbit(accessToken, userId, serviceSupabase);
-    else if (provider === "oura") daysSynced = await syncOura(accessToken, userId, serviceSupabase);
-    else daysSynced = await syncWhoop(accessToken, userId, serviceSupabase);
+    let syncedDates: string[] = [];
+    if (provider === "fitbit") {
+      daysSynced = await syncFitbit(accessToken, userId, serviceSupabase);
+      // Fitbit syncs last 7 days
+      for (let i = 0; i < 7; i++) { const d = new Date(); d.setDate(d.getDate() - i); syncedDates.push(formatDate(d)); }
+    } else if (provider === "oura") {
+      daysSynced = await syncOura(accessToken, userId, serviceSupabase);
+      for (let i = 0; i < 7; i++) { const d = new Date(); d.setDate(d.getDate() - i); syncedDates.push(formatDate(d)); }
+    } else {
+      daysSynced = await syncWhoop(accessToken, userId, serviceSupabase);
+      for (let i = 0; i < 7; i++) { const d = new Date(); d.setDate(d.getDate() - i); syncedDates.push(formatDate(d)); }
+    }
+
+    // Post-sync: attribute project IDs to health records
+    await attributeProjectIds(userId, syncedDates, provider, serviceSupabase);
 
     await serviceSupabase
       .from("wearable_connections")
