@@ -251,6 +251,7 @@ RULES:
 - If WHOOP data is present, weave biometric signals into your observation and suggestion. Reference recovery, sleep quality, or strain when relevant.
 - If planner data is present, reference yesterday's completion and today's load.
 - If meal plan data is present, weave food context into your readiness read. Low recovery + unplanned meals = suggest quick simple options. Busy day + planned meals = acknowledge preparation. No meals planned = note food decisions are open.
+- If calendar shape data is provided, reference schedule pressure and focus availability in your readiness read. E.g. "Heavy calendar today — protect your one focus window before noon." or "Focus day — ideal conditions for deep work."
 - No motivational fluff. Be real.
 - Format as 3 separate lines`;
 
