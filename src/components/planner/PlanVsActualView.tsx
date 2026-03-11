@@ -378,7 +378,7 @@ export const PlanVsActualView = ({
                 mode === "project" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
               )}
             >
-              Project
+              Chapter
             </button>
             <button
               onClick={() => { setMode("day"); setSelectedProjectFilter(null); }}
