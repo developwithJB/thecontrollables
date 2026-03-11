@@ -228,7 +228,7 @@ export function useMealTracking(userId: string | null) {
     },
   });
 
-  // Generate week plan (7 days)
+  // Generate week plan (7 days) — returns results WITHOUT saving to DB
   const generateWeekPlan = useMutation({
     mutationFn: async (opts?: MealSlotConfig & { preferences?: string; calorie_target?: number }) => {
       if (!userId) throw new Error("Not authenticated");
@@ -252,29 +252,45 @@ export function useMealTracking(userId: string | null) {
         if (fnError) throw fnError;
 
         const plan = fnData as { meals: MealPlanMeal[]; satellite_tip: string };
-
-        await supabase.from("meal_plans").upsert({
-          user_id: userId,
-          plan_date: dateStr,
-          meals: plan.meals as any,
-          generated_by: "ai",
-        }, { onConflict: "user_id,plan_date" });
-
         results.push({ date: dateStr, meals: plan.meals });
       }
 
       return results;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["meal-plan", userId] });
-      queryClient.invalidateQueries({ queryKey: ["meal-week-comparison", userId] });
-      queryClient.invalidateQueries({ queryKey: ["meal-week-plans", userId] });
-      toast({ title: "🛰️ Week plan generated", description: "7 days of fuel mapped out." });
-    },
     onError: (err: any) => {
       toast({
         title: "Week plan failed",
         description: err?.message || "Could not generate week plan",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Save confirmed week plan to DB (called after user reviews)
+  const saveWeekPlan = useMutation({
+    mutationFn: async (days: { date: string; meals: MealPlanMeal[] }[]) => {
+      if (!userId) throw new Error("Not authenticated");
+
+      for (const day of days) {
+        if (day.meals.length === 0) continue;
+        await supabase.from("meal_plans").upsert({
+          user_id: userId,
+          plan_date: day.date,
+          meals: day.meals as any,
+          generated_by: "ai",
+        }, { onConflict: "user_id,plan_date" });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meal-plan", userId] });
+      queryClient.invalidateQueries({ queryKey: ["meal-week-comparison", userId] });
+      queryClient.invalidateQueries({ queryKey: ["meal-week-plans", userId] });
+      toast({ title: "🛰️ Week plan saved", description: "7 days of fuel confirmed." });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Save failed",
+        description: err?.message || "Could not save week plan",
         variant: "destructive",
       });
     },
@@ -342,6 +358,7 @@ export function useMealTracking(userId: string | null) {
     generatePlan,
     updatePlanMeals,
     generateWeekPlan,
+    saveWeekPlan,
     dailyTotals,
     addMealToPlanner,
   };

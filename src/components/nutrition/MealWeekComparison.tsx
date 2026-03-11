@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, startOfDay, addDays } from "date-fns";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles, ChevronDown, ChevronUp, Calendar, Share2 } from "lucide-react";
 import { GroceryListSheet } from "./GroceryListSheet";
 import { MealShareCard } from "./MealShareCard";
+import { WeekPlanReviewSheet } from "./WeekPlanReviewSheet";
 
 interface MealWeekComparisonProps {
   userId: string;
@@ -24,9 +25,26 @@ interface DayData {
 
 export function MealWeekComparison({ userId, slotConfig }: MealWeekComparisonProps) {
   const today = useMemo(() => startOfDay(new Date()), []);
-  const { generateWeekPlan } = useMealTracking(userId);
+  const { generateWeekPlan, saveWeekPlan } = useMealTracking(userId);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
+  const [reviewData, setReviewData] = useState<{ date: string; meals: MealPlanMeal[] }[] | null>(null);
+
+  const handleGenerate = useCallback(() => {
+    generateWeekPlan.mutate(slotConfig, {
+      onSuccess: (data) => {
+        setReviewData(data);
+      },
+    });
+  }, [generateWeekPlan, slotConfig]);
+
+  const handleConfirmWeek = useCallback((days: { date: string; meals: MealPlanMeal[] }[]) => {
+    saveWeekPlan.mutate(days, {
+      onSuccess: () => {
+        setReviewData(null);
+      },
+    });
+  }, [saveWeekPlan]);
 
   // Fetch week plans (today + 6 future days for generation, past 6 + today for comparison)
   const { data: weekData } = useQuery({
@@ -168,7 +186,7 @@ export function MealWeekComparison({ userId, slotConfig }: MealWeekComparisonPro
         variant="secondary"
         size="sm"
         className="w-full text-xs"
-        onClick={() => generateWeekPlan.mutate(slotConfig)}
+        onClick={handleGenerate}
         disabled={generateWeekPlan.isPending}
       >
         {generateWeekPlan.isPending ? (
@@ -289,6 +307,17 @@ export function MealWeekComparison({ userId, slotConfig }: MealWeekComparisonPro
               calories: upcomingPlans.map[d].reduce((s, m) => s + (m.est_calories || 0), 0),
               mealCount: upcomingPlans.map[d].length,
             }))}
+        />
+      )}
+
+      {/* Week plan review walkthrough */}
+      {reviewData && (
+        <WeekPlanReviewSheet
+          open={!!reviewData}
+          onOpenChange={(val) => { if (!val) setReviewData(null); }}
+          generatedDays={reviewData}
+          onConfirm={handleConfirmWeek}
+          isSaving={saveWeekPlan.isPending}
         />
       )}
     </div>
