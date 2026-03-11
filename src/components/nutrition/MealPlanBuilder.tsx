@@ -55,6 +55,8 @@ export function MealPlanBuilder({
   onConfirm,
   isGenerating,
   onGenerate,
+  contextTags,
+  contextLabel,
 }: MealPlanBuilderProps) {
   const [phase, setPhase] = useState<BuilderPhase>("preferences");
   const [mood, setMood] = useState("");
