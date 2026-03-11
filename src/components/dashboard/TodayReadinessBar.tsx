@@ -139,6 +139,11 @@ export function TodayReadinessBar({ health, plannerCount, wearableConnected, cal
           </>
         )}
       </div>
+
+      {/* Interpretation line */}
+      {interpretation && (
+        <p className="text-[11px] text-muted-foreground leading-snug pl-0.5">{interpretation}</p>
+      )}
     </motion.div>
   );
 }
