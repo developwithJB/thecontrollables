@@ -3,6 +3,9 @@ import { AnimatePresence } from "framer-motion";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { useReset } from "@/hooks/useReset";
 import { useOnboardingAnalytics } from "@/hooks/useOnboardingAnalytics";
+import { OnboardingWelcome } from "./OnboardingWelcome";
+import { OnboardingCalendarConnect } from "./OnboardingCalendarConnect";
+import { OnboardingWearableConnect } from "./OnboardingWearableConnect";
 import { OnboardingAssessment } from "./OnboardingAssessment";
 import { OnboardingArchetypeResult } from "./OnboardingArchetypeResult";
 import { OnboardingJourneySelection } from "./OnboardingJourneySelection";
@@ -20,7 +23,7 @@ import type { BuildScore } from "@/lib/build";
 import type { OnboardingStep } from "@/hooks/useOnboarding";
 
 // Internal step type that includes transitional states
-type InternalOnboardingStep = OnboardingStep | "orientation" | "starting" | "skip_confirmation" | "recovery" | "meet_guides";
+type InternalOnboardingStep = OnboardingStep | "connect_calendar" | "connect_wearable" | "orientation" | "starting" | "skip_confirmation" | "recovery" | "meet_guides";
 
 interface OnboardingFlowProps {
   userId: string;
