@@ -8,6 +8,26 @@ interface TodayReadinessBarProps {
   plannerCount: number;
   wearableConnected: boolean;
   calendarConnected: boolean;
+  trend?: HealthMetrics[];
+}
+
+function getReadinessInterpretation(recovery: number | null, sleepMin: number | null, plannerCount: number, trend?: HealthMetrics[]): string | null {
+  if (recovery === null) return null;
+  const isHeavy = plannerCount > 5;
+  const sleepShort = sleepMin !== null && sleepMin < 360;
+
+  // Check strain streak
+  const strainElevated = trend && trend.slice(0, 3).filter(t => t.strain !== null && t.strain! > 14).length >= 2;
+
+  if (recovery < 34 && isHeavy) return "Low recovery + packed day — protect energy early and cut what you can.";
+  if (recovery < 34 && sleepShort) return "Low recovery and short sleep — simplify the day and recharge tonight.";
+  if (recovery < 34) return "Your body is undercharged. Keep the day light and protect downtime.";
+  if (recovery >= 67 && sleepMin && sleepMin >= 420 && !isHeavy) return "Strong sleep + open day — ideal for deep, focused work.";
+  if (recovery >= 67 && isHeavy) return "Good recovery for a demanding day. Use the charge wisely.";
+  if (recovery >= 67) return "Strong readiness today. Lean into what matters most.";
+  if (sleepShort) return "Moderate recovery, short sleep — front-load important work.";
+  if (strainElevated) return "Strain has been elevated — pace yourself and build in recovery.";
+  return "Steady day ahead. Stay intentional with energy.";
 }
 
 function formatSleep(minutes: number): string {
