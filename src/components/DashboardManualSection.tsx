@@ -92,9 +92,9 @@ const CORE_SECTIONS: ManualSection[] = [
     description: "Your scores across 5 dimensions. Answer a few questions to see where to grow.",
   },
   {
-    title: "Experience",
+    title: "Growth & Experience",
     icon: Sparkles,
-    description: "Your full history: badges, past Snapshots, and momentum trends.",
+    description: "Your self-leadership progress: badges, rings, past Snapshots, and momentum trends.",
   },
 ];
 

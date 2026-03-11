@@ -1,13 +1,13 @@
-import { Home, Heart, Sprout, CalendarDays, Wallet } from "lucide-react";
+import { Sun, CalendarDays, Activity, Sprout, Wallet } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const navItems = [
-  { path: "/home", label: "Home", icon: Home },
-  { path: "/wellness", label: "Wellness", icon: Heart },
+  { path: "/home", label: "Today", icon: Sun },
+  { path: "/planner", label: "Plan", icon: CalendarDays },
+  { path: "/wellness", label: "Body", icon: Activity },
   { path: "/growth", label: "Growth", icon: Sprout },
-  { path: "/planner", label: "Planner", icon: CalendarDays },
-  { path: "/wealth", label: "Wealth", icon: Wallet },
+  { path: "/wealth", label: "Money", icon: Wallet },
 ];
 
 export const BottomNav = () => {

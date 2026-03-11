@@ -1,85 +1,164 @@
 
-
-# Life OS Navigation & IA Refactor
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
 ## Overview
-Rename and reorder the 5 primary navigation tabs. Update routes, labels, icons, and all cross-references. No core logic deleted — this is a renaming + reordering pass.
 
-## Navigation Changes
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-| Old Label | New Label | Route (unchanged) | Icon |
-|---|---|---|---|
-| Home | Today | `/home` | `Sun` (lucide) |
-| Planner | Plan | `/planner` | `CalendarDays` |
-| Wellness | Body | `/wellness` | `Activity` |
-| Growth | Growth | `/growth` | `Sprout` |
-| Wealth | Money | `/wealth` | `Wallet` |
+---
 
-**New order**: Today → Plan → Body → Growth → Money
+## Part 1: AI Insight Engine
 
-## Files to Modify
+### New Edge Function: `admin-insights`
 
-### 1. `src/components/layout/BottomNav.tsx`
-- Update `navItems` array: new order, new labels, new icons
-- Today uses `Sun`, Plan uses `CalendarDays`, Body uses `Activity`
+**File: `supabase/functions/admin-insights/index.ts`**
 
-### 2. `src/components/layout/ControllablePoweredBy.tsx`
-- Update `PAGE_CONTROLLABLES` keys to match new mental model names for internal clarity
-- Update the mapping to match the spec:
-  - today: all 5
-  - plan: awareness, habit, wellness, environment
-  - body: habit, wellness
-  - growth: perspective, habit, environment
-  - money: awareness, perspective, habit, environment
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
 
-### 3. `src/pages/Wellness.tsx`
-- Change `usePageViewTracking("Wellness")` → `usePageViewTracking("Body")`
-- Update any visible page title/header text from "Wellness" to "Body"
-- Update `ControllablePoweredBy` props to use `["habit", "wellness"]` (already correct)
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
 
-### 4. `src/pages/Planner.tsx`
-- Update any visible "Planner" header text to "Plan"
-- Update `ControllablePoweredBy` props
+[structured data blob]
 
-### 5. `src/pages/Home.tsx`
-- Update any visible "Home" or "Dashboard" header text to "Today"
-- Update `ControllablePoweredBy` props
+Return insights as structured tool output.
+```
 
-### 6. `src/pages/Money.tsx`
-- Update any visible "Wealth" text to "Money"
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-### 7. `src/components/dashboard/DailyOSCard.tsx`
-- Update `VALID_ROUTES` array (routes stay the same, just ensure it's current)
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-### 8. `supabase/functions/daily-os-plan/index.ts`
-- Update AI prompt text: replace "Home"/"Planner"/"Wellness"/"Wealth" references with "Today"/"Plan"/"Body"/"Money" in system prompt language (routes stay the same)
+### New Admin Component: AI Insights Panel
 
-### 9. `src/components/DashboardManualSection.tsx`
-- Update section descriptions to use new page names (Today, Plan, Body, Growth, Money)
-- Remove "Experience" as a standalone section concept — fold its description into Growth
-- Remove "Guide" as a standalone section — it lives in settings/onboarding already
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-### 10. `src/components/dashboard/HierarchyExplainer.tsx`
-- No structural change needed — already uses Season/Project/Calendar/Task/Actuals hierarchy
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-### 11. Cross-reference sweep
-Files with visible UI text referencing old names (navigations, toasts, button labels):
-- `src/components/nutrition/WellnessFuelSummary.tsx` — "Plan" button text (already says "Plan")
-- `src/components/dashboard/MoneyCard.tsx` — navigates to `/money` (OK)
-- `supabase/functions/operator-console/index.ts` — "Open Planner" label → "Open Plan"
-- Any `ControllablePoweredBy` usage that passes old page keys
+### Integration into Admin.tsx
 
-### 12. Landing page (`src/pages/Landing.tsx`)
-- Update any feature descriptions that reference old page names
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
-## What Does NOT Change
-- Route paths stay as `/home`, `/planner`, `/wellness`, `/growth`, `/wealth`
-- All page components keep their filenames (Home.tsx, Planner.tsx, Wellness.tsx, etc.)
-- All hooks, logic, and data structures remain
-- The Controllables system stays as the intelligence layer — only the `PAGE_CONTROLLABLES` mapping gets the canonical spec applied
-- Redirect from `/money` → `/wealth` stays
-- Redirect from `/dashboard` → `/home` stays
+---
 
-## Controllable Influence (already mostly implemented via ControllablePoweredBy)
-The `PAGE_CONTROLLABLES` mapping is the single source of truth for which controllables influence each page. This already powers the "Powered by" chips at the bottom of each page. The mapping matches the spec exactly as-is except for key names which use route slugs.
+## Part 2: Enhanced Action Center
 
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
+
+Replace the three "Coming soon" cards with working functionality:
+
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
+
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
+
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
+
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
+
+---
+
+## Part 3: Landing Page Updates
+
+**File: `src/pages/Landing.tsx`**
+
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+
+**File: `src/components/landing/FeatureGrid.tsx`**
+
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+
+**File: `src/components/landing/HowItWorksSection.tsx`**
+
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.

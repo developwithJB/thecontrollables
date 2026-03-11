@@ -93,7 +93,7 @@ export default function Landing() {
               <br />
               Your wearable tracks the reality.
               <br />
-              <span className="text-accent">The Dashboard surfaces the gap.</span>
+              <span className="text-accent">Today surfaces the gap.</span>
             </h1>
 
             {/* Plan → Learn ← Live visual */}
@@ -133,7 +133,7 @@ export default function Landing() {
             </div>
 
             <p className="text-muted-foreground text-sm md:text-base lg:text-lg leading-relaxed text-balance max-w-xs md:max-w-lg mx-auto mb-4">
-              Your tools push data in. The Dashboard notices what matters. Minimal data entry, maximum insight — built on 5 things you can actually control.
+              Your tools push data in. Today notices what matters. Minimal data entry, maximum insight — built on 5 things you can actually control.
             </p>
           </motion.div>
 

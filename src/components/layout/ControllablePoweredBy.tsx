@@ -52,9 +52,9 @@ export const ControllablePoweredBy = ({
 
 // Mapping of pages to their controllables
 export const PAGE_CONTROLLABLES: Record<string, ControllableKey[]> = {
-  home: ["awareness", "perspective", "habit", "wellness", "environment"],
-  wellness: ["habit", "wellness"],
+  today: ["awareness", "perspective", "habit", "wellness", "environment"],
+  plan: ["awareness", "habit", "wellness", "environment"],
+  body: ["habit", "wellness"],
   growth: ["perspective", "habit", "environment"],
-  planner: ["awareness", "habit", "wellness", "environment"],
-  wealth: ["awareness", "perspective", "habit", "environment"],
+  money: ["awareness", "perspective", "habit", "environment"],
 };

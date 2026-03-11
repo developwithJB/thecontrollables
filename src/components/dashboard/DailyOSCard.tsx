@@ -61,7 +61,7 @@ const ENERGY_COLORS: Record<string, string> = {
 const QUICK_ACTION_CONFIG = [
   { key: "/planner", label: "Plan", icon: CalendarDays },
   { key: "/reset", label: "Snapshot", icon: BookOpen },
-  { key: "wellness", label: "Wellness", icon: Activity },
+  { key: "wellness", label: "Body", icon: Activity },
   { key: "meals", label: "Meals", icon: Utensils },
   { key: "promise", label: "Promises", icon: ShieldCheck },
 ];

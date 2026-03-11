@@ -1,13 +1,21 @@
-import { Heart, Sprout, CalendarDays, Wallet } from "lucide-react";
+import { CalendarDays, Activity, Sprout, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const domains = [
   {
+    path: "/planner",
+    label: "Plan",
+    icon: CalendarDays,
+    description: "Calendar & execution",
+    color: "var(--habit)",
+    softColor: "var(--habit-soft)",
+  },
+  {
     path: "/wellness",
-    label: "Wellness",
-    icon: Heart,
-    description: "Body & energy",
+    label: "Body",
+    icon: Activity,
+    description: "Recovery & trends",
     color: "var(--wellness)",
     softColor: "var(--wellness-soft)",
   },
@@ -20,18 +28,10 @@ const domains = [
     softColor: "var(--perspective-soft)",
   },
   {
-    path: "/planner",
-    label: "Planner",
-    icon: CalendarDays,
-    description: "Day & week",
-    color: "var(--habit)",
-    softColor: "var(--habit-soft)",
-  },
-  {
     path: "/wealth",
-    label: "Wealth",
+    label: "Money",
     icon: Wallet,
-    description: "Money rhythm",
+    description: "Financial rhythm",
     color: "var(--awareness)",
     softColor: "var(--awareness-soft)",
   },
