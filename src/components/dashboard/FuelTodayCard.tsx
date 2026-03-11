@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { UtensilsCrossed, Clock, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useMealTracking } from "@/hooks/useMealTracking";
+import { useMealTracking, type MealSlotConfig } from "@/hooks/useMealTracking";
+import { useMealPreferences } from "@/hooks/useMealPreferences";
 import { MealPlanBuilder } from "@/components/nutrition/MealPlanBuilder";
 
 interface FuelTodayCardProps {
@@ -12,8 +13,14 @@ interface FuelTodayCardProps {
 
 export function FuelTodayCard({ userId, isPaid }: FuelTodayCardProps) {
   const navigate = useNavigate();
-  const { todayPlan, planLoading } = useMealTracking(userId);
+  const { todayPlan, planLoading, generatePlan, updatePlanMeals } = useMealTracking(userId);
+  const { preferences } = useMealPreferences(userId);
   const [showBuilder, setShowBuilder] = useState(false);
+
+  const slotConfig: MealSlotConfig = useMemo(() => ({
+    excludeMeals: preferences?.excludeMeals || [],
+    snackCount: preferences?.snackCount ?? 1,
+  }), [preferences]);
 
   if (planLoading || !isPaid) return null;
 
@@ -26,6 +33,29 @@ export function FuelTodayCard({ userId, isPaid }: FuelTodayCardProps) {
     : !dinner
     ? "dinner"
     : null;
+
+  const handleBuilderConfirm = (confirmedMeals: any[]) => {
+    if (todayPlan) {
+      updatePlanMeals.mutate({ planId: todayPlan.id, meals: confirmedMeals });
+    }
+    setShowBuilder(false);
+  };
+
+  const handleGenerate = async (config: any) => {
+    return generatePlan.mutateAsync(config);
+  };
+
+  const builderEl = (
+    <MealPlanBuilder
+      open={showBuilder}
+      onClose={() => setShowBuilder(false)}
+      userId={userId}
+      slotConfig={slotConfig}
+      onConfirm={handleBuilderConfirm}
+      isGenerating={generatePlan.isPending}
+      onGenerate={handleGenerate}
+    />
+  );
 
   // No plan at all — show a compact CTA
   if (meals.length === 0) {
@@ -50,12 +80,7 @@ export function FuelTodayCard({ userId, isPaid }: FuelTodayCardProps) {
             </Button>
           </div>
         </div>
-        {showBuilder && (
-          <MealPlanBuilder
-            userId={userId!}
-            onClose={() => setShowBuilder(false)}
-          />
-        )}
+        {builderEl}
       </>
     );
   }
@@ -128,12 +153,7 @@ export function FuelTodayCard({ userId, isPaid }: FuelTodayCardProps) {
         </div>
       </div>
 
-      {showBuilder && (
-        <MealPlanBuilder
-          userId={userId!}
-          onClose={() => setShowBuilder(false)}
-        />
-      )}
+      {builderEl}
     </>
   );
 }
