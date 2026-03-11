@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ChevronDown } from "lucide-react";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
+import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
 import { useFinancialAccounts, useTransactions, useBudgetBuckets, useRecurringBills, useSubscriptions, useSavingsGoals } from "@/hooks/useMoney";
 import { MoneyOverview } from "@/components/money/MoneyOverview";
 import { BudgetManager } from "@/components/money/BudgetManager";
