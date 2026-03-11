@@ -258,6 +258,11 @@ export default function Home() {
 
   const pvaSyntheses = useDailySynthesis(pvaData, activeProjects);
 
+  // Calendar intelligence for today
+  const todayStr = new Date().toLocaleDateString("sv-SE");
+  const todayPlannerItems = useMemo(() => weekPlannerItems.filter((i: any) => i.scheduled_date === todayStr), [weekPlannerItems, todayStr]);
+  const todayCalendarIntel = useMemo(() => analyzeCalendar(todayPlannerItems), [todayPlannerItems]);
+
   const [showSeasonComplete, setShowSeasonComplete] = useState(false);
   const [showSeasonSetup, setShowSeasonSetup] = useState(false);
   useEffect(() => {
