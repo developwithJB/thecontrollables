@@ -37,6 +37,8 @@ import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 import { useDailySynthesis } from "@/hooks/useDailySynthesis";
 import { analyzeCalendar } from "@/lib/calendarIntelligence";
+import { getFuelIntelligence } from "@/lib/fuelIntelligence";
+import { useMealTracking } from "@/hooks/useMealTracking";
 
 // Dashboard modules
 import { SnapshotSelector } from "@/components/dashboard/SnapshotSelector";
