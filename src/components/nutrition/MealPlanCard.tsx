@@ -495,6 +495,15 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
                 variant="ghost"
                 size="sm"
                 className="text-[11px] h-7 text-muted-foreground"
+                onClick={() => setShowLibrary(true)}
+              >
+                <BookOpen className="w-3 h-3 mr-1" />
+                Recipes
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-[11px] h-7 text-muted-foreground"
                 onClick={handleGenerate}
                 disabled={generatePlan.isPending}
               >
