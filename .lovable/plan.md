@@ -1,67 +1,164 @@
 
-
-# Season Setup, Project Manager & Planner Integration
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
 ## Overview
-Three new components plus modifications to hook and editor to enable full Season → Project → Planner flow.
 
-## Files to Create
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-### 1. `src/components/dashboard/SeasonSetup.tsx`
-A full-screen dialog with 4 steps using internal state machine:
+---
 
-**Step 1 — Name**: "What chapter of life are you in?" with free text input + 3 suggestion chips ("New job / career move", "Health reset", "Building something new") that populate the input on tap.
+## Part 1: AI Insight Engine
 
-**Step 2 — Theme**: "What's the one thing you most want to move forward in the next 90 days?" Free text, stored as `theme_text`.
+### New Edge Function: `admin-insights`
 
-**Step 3 — Controllable Focus**: "Which of the 5 Controllables needs the most attention?" Renders 5 `ControllableCard` components in single-select mode. Maps to the `controllable_focus` enum.
+**File: `supabase/functions/admin-insights/index.ts`**
 
-**Step 4 — First Project**: Name input, emoji picker (grid of ~20 common emojis), color picker (8 preset hex swatches), controllable tag selector. Auto-suggest project name based on season theme using simple mapping (e.g., health theme → "Daily Movement").
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
 
-**CTA**: "Start this Season →" calls `startSeason` (updated to accept all fields) then creates project via supabase insert. Invalidates queries and closes.
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
 
-**Trigger**: Shown on Home when `activeSeason` is null and user is authenticated + onboarded.
+[structured data blob]
 
-### 2. `src/components/dashboard/ProjectManager.tsx`
-A sheet/dialog accessible from dashboard settings or season banner:
+Return insights as structured tool output.
+```
 
-- **Active Projects list**: Cards showing emoji + name + controllable badge + momentum score bar. Max 5 active enforced with soft message.
-- **Create Project form**: Name, emoji grid, color swatches, controllable select. Disabled when 5 active projects exist.
-- **Calendar Mapping section**: Per-project, simple input rows: "When event contains [___] → assign to [Project]". CRUD on `project_calendar_mappings`.
-- **Pause/Close actions**: Status toggle buttons per project card updating `projects.status`.
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-### 3. `src/hooks/useProjects.ts`
-New hook wrapping project CRUD:
-- `useProjects(userId, seasonId)` — fetches active projects for current season
-- `createProject` mutation — inserts into `projects` with user_id, season_id
-- `updateProject` mutation — status changes, name edits
-- `deleteProject` mutation
-- `useCalendarMappings(projectId)` — CRUD for `project_calendar_mappings`
-- Active project count check (max 5 enforcement)
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-## Files to Modify
+### New Admin Component: AI Insights Panel
 
-### 4. `src/hooks/useSeason.ts`
-- Update `startSeason` to accept `{ name, theme_text, controllable_focus }` and insert all fields.
-- Update the `Season` interface to include `theme_text`, `ends_at`, `controllable_focus`.
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-### 5. `src/components/planner/PlannerItemEditor.tsx`
-- Import `useProjects` hook
-- Add a Project selector below the Type/Energy row: small horizontal scroll of project pills (emoji + name, colored by `color_hex`)
-- Add `project_id` to state, pre-populate from calendar keyword match if title matches a mapping
-- Pass `project_id` through `onSave` in both create and update paths
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-### 6. `src/hooks/usePlanner.ts`
-- Add `project_id?: string | null` to `PlannerItem`, `CreatePlannerItemInput`, and `UpdatePlannerItemInput` interfaces
-- Include `project_id` in insert/update mutations
+### Integration into Admin.tsx
 
-### 7. `src/pages/Home.tsx`
-- Import `SeasonSetup`
-- Render `<SeasonSetup open={!activeSeason && isOnboarded} ... />` gated on auth + onboarding complete + no active season
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
-## UI Patterns
-- Emoji picker: 20-item grid of common emojis in a popover
-- Color picker: 8 preset hex circles (indigo, blue, green, emerald, amber, rose, purple, slate)
-- Project pills in planner editor: horizontal scroll with `color_hex` as left border/bg tint
-- All new components use existing shadcn Dialog/Sheet, Button, Input, Card primitives
+---
 
+## Part 2: Enhanced Action Center
+
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
+
+Replace the three "Coming soon" cards with working functionality:
+
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
+
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
+
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
+
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
+
+---
+
+## Part 3: Landing Page Updates
+
+**File: `src/pages/Landing.tsx`**
+
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+
+**File: `src/components/landing/FeatureGrid.tsx`**
+
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+
+**File: `src/components/landing/HowItWorksSection.tsx`**
+
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.

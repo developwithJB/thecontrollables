@@ -65,7 +65,8 @@ import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboardin
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 import { ConfirmLastNightDialog } from "@/components/dashboard/ConfirmLastNightDialog";
 import { ValidatePlanDialog } from "@/components/dashboard/ValidatePlanDialog";
-
+import { SeasonSetup } from "@/components/dashboard/SeasonSetup";
+import { useProjects } from "@/hooks/useProjects";
 export default function Home() {
   usePageViewTracking("Home");
   const { trackEvent } = useAnalytics();
@@ -178,6 +179,7 @@ export default function Home() {
 
   const {
     activeSeason,
+    isLoadingSeason,
     seasonSnapshots,
     seasonProgress,
     startSeason,
@@ -185,6 +187,8 @@ export default function Home() {
     completeSeason,
     shouldShowSeasonComplete,
   } = useSeason(user.id);
+
+  const { createProject } = useProjects(user.id, activeSeason?.id);
 
   const { rings, completedCount } = useDailyRings(user.id);
   const { data: intelligenceData } = useDashboardIntelligence(user.id, completedCount, rings);
@@ -238,9 +242,17 @@ export default function Home() {
   const pvaSyntheses = useDailySynthesis(pvaData);
 
   const [showSeasonComplete, setShowSeasonComplete] = useState(false);
+  const [showSeasonSetup, setShowSeasonSetup] = useState(false);
   useEffect(() => {
     if (shouldShowSeasonComplete) { setShowSeasonComplete(true); completeSeason(); }
   }, [shouldShowSeasonComplete, completeSeason]);
+
+  // Show season setup when no active season and user is onboarded
+  useEffect(() => {
+    if (!needsOnboarding && !onboardingLoading && !isLoadingSeason && !activeSeason && !resetLoading && !showSeasonComplete) {
+      setShowSeasonSetup(true);
+    }
+  }, [needsOnboarding, onboardingLoading, isLoadingSeason, activeSeason, resetLoading, showSeasonComplete]);
 
   // Profile for nudge status
   const { data: userProfile, refetch: refetchProfile } = useQuery({
@@ -646,6 +658,20 @@ export default function Home() {
           onDismiss={() => setShowSeasonComplete(false)}
         />
       )}
+
+      {/* Season Setup Flow */}
+      <SeasonSetup
+        open={showSeasonSetup}
+        onClose={() => setShowSeasonSetup(false)}
+        userId={user.id}
+        onStartSeason={async (params) => {
+          const id = await startSeason(params);
+          return id;
+        }}
+        onCreateProject={async (params) => {
+          await createProject.mutateAsync(params);
+        }}
+      />
 
       {/* Mission Edit Modal */}
       <Dialog open={showMissionEdit} onOpenChange={setShowMissionEdit}>

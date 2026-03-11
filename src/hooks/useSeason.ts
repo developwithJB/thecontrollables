@@ -11,6 +11,9 @@ interface Season {
   completed_at: string | null;
   status: string;
   created_at: string;
+  theme_text: string | null;
+  ends_at: string | null;
+  controllable_focus: string | null;
 }
 
 interface SeasonSnapshot {
@@ -127,13 +130,21 @@ export function useSeason(userId?: string) {
   });
 
   // Start a new season
-  const startSeason = useCallback(async (name?: string): Promise<string | null> => {
+  const startSeason = useCallback(async (params?: string | { name: string; theme_text?: string; controllable_focus?: string }): Promise<string | null> => {
     if (!userId) return null;
     setIsStartingSeason(true);
     try {
+      const insertData: Record<string, any> = { user_id: userId };
+      if (typeof params === "string") {
+        insertData.name = params || null;
+      } else if (params) {
+        insertData.name = params.name || null;
+        if (params.theme_text) insertData.theme_text = params.theme_text;
+        if (params.controllable_focus) insertData.controllable_focus = params.controllable_focus;
+      }
       const { data, error } = await supabase
         .from("seasons")
-        .insert({ user_id: userId, name: name || null })
+        .insert(insertData as any)
         .select("id")
         .single();
       if (error) throw error;
