@@ -14,6 +14,7 @@ import { OnboardingSkipConfirmation } from "./OnboardingSkipConfirmation";
 import { OnboardingRecovery } from "./OnboardingRecovery";
 import { OnboardingOrientation } from "./OnboardingOrientation";
 import { OnboardingMeetGuides } from "./OnboardingMeetGuides";
+import { OnboardingConnectionSummary } from "./OnboardingConnectionSummary";
 import { 
   SNAPSHOTS,
   getRecommendedSnapshot,
