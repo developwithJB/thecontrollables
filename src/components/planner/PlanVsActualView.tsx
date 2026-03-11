@@ -364,7 +364,7 @@ export const PlanVsActualView = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">Project Health</h3>
+          <h3 className="text-sm font-semibold text-foreground">Chapter Health</h3>
           <p className="text-xs text-muted-foreground">
             {format(currentWeekStart, "MMM d")} – {format(addDays(currentWeekStart, 6), "MMM d")}
           </p>
@@ -378,7 +378,7 @@ export const PlanVsActualView = ({
                 mode === "project" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
               )}
             >
-              Project
+              Chapter
             </button>
             <button
               onClick={() => { setMode("day"); setSelectedProjectFilter(null); }}
@@ -410,7 +410,7 @@ export const PlanVsActualView = ({
           >
             {projectStats.length === 0 ? (
               <p className="text-xs text-muted-foreground/60 py-4 text-center">
-                No project activity this week. Assign tasks to projects in the planner.
+                No chapter activity this week. Assign tasks to chapters in the planner.
               </p>
             ) : (
               projectStats.map(stats => (

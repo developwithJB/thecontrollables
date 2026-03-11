@@ -70,7 +70,7 @@ export function ProjectManager({ open, onClose, userId, seasonId }: ProjectManag
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Settings2 className="w-5 h-5 text-primary" />
-            Projects
+            Chapters
           </SheetTitle>
         </SheetHeader>
 
@@ -167,17 +167,17 @@ export function ProjectManager({ open, onClose, userId, seasonId }: ProjectManag
               disabled={!canAddProject}
             >
               <Plus className="w-4 h-4 mr-2" />
-              {canAddProject ? "Add Project" : "5 active projects max"}
+              {canAddProject ? "Add Chapter" : "5 active chapters max"}
             </Button>
           ) : (
             <div className="rounded-lg border p-3 space-y-3">
               {!canAddProject && (
-                <p className="text-xs text-amber-600 dark:text-amber-400">5 active projects keeps focus sharp. Complete or pause one to add another.</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400">5 active chapters keeps focus sharp. Complete or pause one to add another.</p>
               )}
               <Input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="Project name"
+                placeholder="Chapter name"
                 autoFocus
               />
               <div className="flex flex-wrap gap-1.5">

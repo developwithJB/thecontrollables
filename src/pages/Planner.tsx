@@ -1,15 +1,16 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { format, addWeeks, subWeeks, isToday, isBefore, startOfDay } from "date-fns";
+import { format, addWeeks, subWeeks, addMonths, subMonths, isToday, isBefore, startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Plus, RotateCcw, BarChart3, UtensilsCrossed, ArrowRight } from "lucide-react";
+import { Plus, RotateCcw, BarChart3, UtensilsCrossed, ArrowRight, CalendarDays, CalendarRange, Calendar as CalendarIcon } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
+import { cn } from "@/lib/utils";
 
 import {
   usePlannerItems,
@@ -27,6 +28,7 @@ import { usePlannerActivity, groupActivityByDate } from "@/hooks/usePlannerActiv
 import { PlannerDateStrip } from "@/components/planner/PlannerDateStrip";
 import { PlannerDayView } from "@/components/planner/PlannerDayView";
 import { PlannerWeekGrid } from "@/components/planner/PlannerWeekGrid";
+import { PlannerMonthGrid } from "@/components/planner/PlannerMonthGrid";
 import { PlannerItemEditor } from "@/components/planner/PlannerItemEditor";
 import { PlannerFab } from "@/components/planner/PlannerFab";
 import { QuickAddSheet } from "@/components/planner/QuickAddSheet";
@@ -41,6 +43,14 @@ import { useDailySynthesis } from "@/hooks/useDailySynthesis";
 import { useProjects } from "@/hooks/useProjects";
 import { useSeason } from "@/hooks/useSeason";
 
+type ViewMode = "month" | "week" | "day";
+
+const VIEW_ICONS: Record<ViewMode, React.ElementType> = {
+  month: CalendarDays,
+  week: CalendarRange,
+  day: CalendarIcon,
+};
+
 const Planner = () => {
   const user = useLifeOSUser();
   const isMobile = useIsMobile();
@@ -51,6 +61,9 @@ const Planner = () => {
   const callbackHandled = useRef(false);
   const { isPaid, initiateCheckout } = useEntitlements(user.id);
   const [showFuelCheck, setShowFuelCheck] = useState(false);
+
+  // View mode
+  const [viewMode, setViewMode] = useState<ViewMode>(isMobile ? "day" : "week");
 
   // Handle Google Calendar OAuth callback
   useEffect(() => {
@@ -91,6 +104,7 @@ const Planner = () => {
       }
     })();
   }, [searchParams, navigate, toast, queryClient]);
+
   const [showPvA, setShowPvA] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
 
@@ -285,6 +299,35 @@ const Planner = () => {
     [reorderItems]
   );
 
+  // Navigation helpers for month view
+  const handleMonthDateSelect = useCallback((date: Date) => {
+    setSelectedDate(date);
+    setReferenceDate(date);
+    setViewMode("day");
+  }, []);
+
+  // Header date display based on view mode
+  const headerDateLabel = useMemo(() => {
+    if (viewMode === "month") return format(referenceDate, "MMMM yyyy");
+    return `${format(weekRange.days[0], "MMM d")} – ${format(weekRange.days[6], "MMM d")}`;
+  }, [viewMode, referenceDate, weekRange]);
+
+  const handlePrev = useCallback(() => {
+    if (viewMode === "month") {
+      setReferenceDate((d) => subMonths(d, 1));
+    } else {
+      setReferenceDate((d) => subWeeks(d, 1));
+    }
+  }, [viewMode]);
+
+  const handleNext = useCallback(() => {
+    if (viewMode === "month") {
+      setReferenceDate((d) => addMonths(d, 1));
+    } else {
+      setReferenceDate((d) => addWeeks(d, 1));
+    }
+  }, [viewMode]);
+
   return (
     <div className="space-y-0 -mx-4 sm:-mx-6 -my-6">
       {/* Header */}
@@ -293,7 +336,7 @@ const Planner = () => {
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-display font-semibold">Plan</h1>
             <span className="text-xs text-muted-foreground font-mono">
-              {format(weekRange.days[0], "MMM d")} – {format(weekRange.days[6], "MMM d")}
+              {headerDateLabel}
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -317,6 +360,40 @@ const Planner = () => {
               </>
             )}
           </div>
+        </div>
+
+        {/* View mode toggle */}
+        <div className="flex items-center gap-1 mb-2">
+          {(["month", "week", "day"] as ViewMode[]).map((mode) => {
+            const Icon = VIEW_ICONS[mode];
+            return (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={cn(
+                  "flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
+                  viewMode === mode
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span className="capitalize">{mode}</span>
+              </button>
+            );
+          })}
+          <div className="flex-1" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => {
+              setReferenceDate(new Date());
+              setSelectedDate(new Date());
+            }}
+          >
+            Today
+          </Button>
         </div>
 
         {/* Calendar connection status or connect CTA */}
@@ -346,14 +423,14 @@ const Planner = () => {
         </button>
       </div>
 
-      {/* Date strip (mobile) */}
-      {isMobile && (
+      {/* Mobile date strip — only in day/week mode */}
+      {isMobile && viewMode === "day" && (
         <PlannerDateStrip
           days={weekRange.days}
           selectedDate={selectedDate}
           onSelect={setSelectedDate}
-          onPrevWeek={() => setReferenceDate((d) => subWeeks(d, 1))}
-          onNextWeek={() => setReferenceDate((d) => addWeeks(d, 1))}
+          onPrevWeek={handlePrev}
+          onNextWeek={handleNext}
           itemCounts={itemCounts}
         />
       )}
@@ -377,14 +454,30 @@ const Planner = () => {
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden" style={{ height: "calc(100vh - 200px)" }}>
-        {!isMobile && (
+      {viewMode === "month" ? (
+        /* ═══ MONTH VIEW ═══ */
+        <div className="px-4 sm:px-6 py-3">
+          <div className="flex items-center justify-between mb-3">
+            <Button variant="ghost" size="sm" onClick={handlePrev}>← Prev</Button>
+            <h2 className="text-sm font-semibold text-foreground">{format(referenceDate, "MMMM yyyy")}</h2>
+            <Button variant="ghost" size="sm" onClick={handleNext}>Next →</Button>
+          </div>
+          <PlannerMonthGrid
+            currentMonth={referenceDate}
+            selectedDate={selectedDate}
+            onSelectDate={handleMonthDateSelect}
+            itemsByDate={itemsByDate}
+            activityByDate={activityByDate}
+          />
+        </div>
+      ) : viewMode === "week" && !isMobile ? (
+        /* ═══ DESKTOP WEEK VIEW ═══ */
+        <div className="flex-1 flex overflow-hidden" style={{ height: "calc(100vh - 200px)" }}>
           <div className="w-[55%] border-r border-border p-4 overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setReferenceDate((d) => subWeeks(d, 1))}>← Prev</Button>
-                <Button variant="ghost" size="sm" onClick={() => setReferenceDate((d) => addWeeks(d, 1))}>Next →</Button>
-                <Button variant="outline" size="sm" onClick={() => { setReferenceDate(new Date()); setSelectedDate(new Date()); }}>Today</Button>
+                <Button variant="ghost" size="sm" onClick={handlePrev}>← Prev</Button>
+                <Button variant="ghost" size="sm" onClick={handleNext}>Next →</Button>
               </div>
             </div>
             <PlannerWeekGrid
@@ -407,55 +500,137 @@ const Planner = () => {
               />
             </div>
           </div>
-        )}
 
-        <div className={isMobile ? "flex-1 overflow-y-auto" : "w-[45%] overflow-y-auto"}>
-          {/* Calendar load summary for the selected day */}
-          {(() => {
-            const dayCalendarIntel = analyzeCalendar(dayItems);
-            return (
-              <>
-                {dayCalendarIntel && dayCalendarIntel.meetingCount > 0 && (
-                  <PlannerDayLoadSummary intel={dayCalendarIntel} />
-                )}
-                {/* Recovery-aware planning context for today */}
-                {wearableConnected && isToday(selectedDate) && (
-                  <PlannerBodyContext latest={healthLatest} trend={healthTrend} calendarIntel={dayCalendarIntel} />
-                )}
-                {!wearableConnected && isToday(selectedDate) && dayCalendarIntel && dayCalendarIntel.meetingCount > 0 && (
-                  <PlannerBodyContext latest={healthLatest} trend={healthTrend} calendarIntel={dayCalendarIntel} />
-                )}
-              </>
-            );
-          })()}
-          <PlannerDayView
-            date={selectedDate}
-            items={dayItems}
-            activityItems={dayActivity}
-            onToggleStatus={handleToggleStatus}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onReschedule={(item) => { setEditingItem(item); setEditorOpen(true); }}
-            onReorder={handleReorder}
-            onPushToCalendar={handlePushToCalendar}
-            hasGoogleConnection={!!googleConnection}
-            userId={user.id}
+          <div className="w-[45%] overflow-y-auto">
+            {(() => {
+              const dayCalendarIntel = analyzeCalendar(dayItems);
+              return (
+                <>
+                  {dayCalendarIntel && dayCalendarIntel.meetingCount > 0 && (
+                    <PlannerDayLoadSummary intel={dayCalendarIntel} />
+                  )}
+                  {wearableConnected && isToday(selectedDate) && (
+                    <PlannerBodyContext latest={healthLatest} trend={healthTrend} calendarIntel={dayCalendarIntel} />
+                  )}
+                  {!wearableConnected && isToday(selectedDate) && dayCalendarIntel && dayCalendarIntel.meetingCount > 0 && (
+                    <PlannerBodyContext latest={healthLatest} trend={healthTrend} calendarIntel={dayCalendarIntel} />
+                  )}
+                </>
+              );
+            })()}
+            <PlannerDayView
+              date={selectedDate}
+              items={dayItems}
+              activityItems={dayActivity}
+              onToggleStatus={handleToggleStatus}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onReschedule={(item) => { setEditingItem(item); setEditorOpen(true); }}
+              onReorder={handleReorder}
+              onPushToCalendar={handlePushToCalendar}
+              hasGoogleConnection={!!googleConnection}
+              userId={user.id}
+            />
+          </div>
+        </div>
+      ) : viewMode === "week" && isMobile ? (
+        /* ═══ MOBILE WEEK VIEW ═══ */
+        <div className="px-2 py-3">
+          <div className="flex items-center justify-between mb-2 px-2">
+            <Button variant="ghost" size="sm" onClick={handlePrev}>← Prev</Button>
+            <Button variant="ghost" size="sm" onClick={handleNext}>Next →</Button>
+          </div>
+          <PlannerWeekGrid
+            days={weekRange.days}
+            selectedDate={selectedDate}
+            onSelect={(date) => {
+              setSelectedDate(date);
+              setViewMode("day");
+            }}
+            itemsByDate={itemsByDate}
+            activityByDate={activityByDate}
+            mealCountsByDate={weekMealCounts}
           />
-          {isMobile && (
-            <div className="px-4 pb-20">
-              <PlannerCalendarConnect
-                connections={connections}
-                onConnect={() => startGoogleCalSync.mutate()}
-                onSync={(id) => triggerSync.mutate(id)}
-                onPushToday={handlePushToday}
-                isConnecting={startGoogleCalSync.isPending}
-                isSyncing={triggerSync.isPending}
-                isPushing={pushToGoogleCal.isPending}
+        </div>
+      ) : (
+        /* ═══ DAY VIEW ═══ */
+        <div className="flex-1 flex overflow-hidden" style={{ height: isMobile ? undefined : "calc(100vh - 200px)" }}>
+          {!isMobile && (
+            <div className="w-[55%] border-r border-border p-4 overflow-y-auto">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={handlePrev}>← Prev</Button>
+                  <Button variant="ghost" size="sm" onClick={handleNext}>Next →</Button>
+                </div>
+              </div>
+              <PlannerWeekGrid
+                days={weekRange.days}
+                selectedDate={selectedDate}
+                onSelect={setSelectedDate}
+                itemsByDate={itemsByDate}
+                activityByDate={activityByDate}
+                mealCountsByDate={weekMealCounts}
               />
+              <div className="mt-4">
+                <PlannerCalendarConnect
+                  connections={connections}
+                  onConnect={() => startGoogleCalSync.mutate()}
+                  onSync={(id) => triggerSync.mutate(id)}
+                  onPushToday={handlePushToday}
+                  isConnecting={startGoogleCalSync.isPending}
+                  isSyncing={triggerSync.isPending}
+                  isPushing={pushToGoogleCal.isPending}
+                />
+              </div>
             </div>
           )}
+
+          <div className={isMobile ? "flex-1 overflow-y-auto" : "w-[45%] overflow-y-auto"}>
+            {(() => {
+              const dayCalendarIntel = analyzeCalendar(dayItems);
+              return (
+                <>
+                  {dayCalendarIntel && dayCalendarIntel.meetingCount > 0 && (
+                    <PlannerDayLoadSummary intel={dayCalendarIntel} />
+                  )}
+                  {wearableConnected && isToday(selectedDate) && (
+                    <PlannerBodyContext latest={healthLatest} trend={healthTrend} calendarIntel={dayCalendarIntel} />
+                  )}
+                  {!wearableConnected && isToday(selectedDate) && dayCalendarIntel && dayCalendarIntel.meetingCount > 0 && (
+                    <PlannerBodyContext latest={healthLatest} trend={healthTrend} calendarIntel={dayCalendarIntel} />
+                  )}
+                </>
+              );
+            })()}
+            <PlannerDayView
+              date={selectedDate}
+              items={dayItems}
+              activityItems={dayActivity}
+              onToggleStatus={handleToggleStatus}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onReschedule={(item) => { setEditingItem(item); setEditorOpen(true); }}
+              onReorder={handleReorder}
+              onPushToCalendar={handlePushToCalendar}
+              hasGoogleConnection={!!googleConnection}
+              userId={user.id}
+            />
+            {isMobile && (
+              <div className="px-4 pb-20">
+                <PlannerCalendarConnect
+                  connections={connections}
+                  onConnect={() => startGoogleCalSync.mutate()}
+                  onSync={(id) => triggerSync.mutate(id)}
+                  onPushToday={handlePushToday}
+                  isConnecting={startGoogleCalSync.isPending}
+                  isSyncing={triggerSync.isPending}
+                  isPushing={pushToGoogleCal.isPending}
+                />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* FAB for mobile */}
       {isMobile && (

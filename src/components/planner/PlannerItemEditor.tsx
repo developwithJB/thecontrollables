@@ -153,7 +153,7 @@ export const PlannerItemEditor = ({
           {/* Project selector */}
           {activeProjects.length > 0 && (
             <div>
-              <Label>Project</Label>
+              <Label>Chapter</Label>
               <div className="flex gap-1.5 mt-1.5 overflow-x-auto pb-1">
                 <button
                   type="button"

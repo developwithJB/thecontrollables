@@ -205,13 +205,13 @@ export function SeasonSetup({ open, onClose, userId, onStartSeason, onCreateProj
 
             {step === 3 && (
               <div className="flex-1 flex flex-col">
-                <h2 className="font-display text-xl font-semibold text-foreground">Create your first Project</h2>
-                <p className="text-sm text-muted-foreground mt-1 mb-4">Projects are intention containers within your season.</p>
+                <h2 className="font-display text-xl font-semibold text-foreground">Create your first Chapter</h2>
+                <p className="text-sm text-muted-foreground mt-1 mb-4">Chapters are intention containers within your season.</p>
 
                 <Input
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="Project name"
+                  placeholder="Chapter name"
                   autoFocus
                   className="text-base mb-3"
                 />

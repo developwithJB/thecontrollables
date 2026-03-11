@@ -44,7 +44,7 @@ const HIERARCHY_ITEMS: HierarchyItem[] = [
     description: "Your life chapter — the big picture arc you're living in right now.",
   },
   {
-    title: "Project",
+    title: "Chapter",
     subtitle: "Building",
     icon: FolderKanban,
     description: "What you're building within this season. Intention containers.",
@@ -53,7 +53,7 @@ const HIERARCHY_ITEMS: HierarchyItem[] = [
     title: "Calendar Block",
     subtitle: "When",
     icon: Calendar,
-    description: "When you're doing it. Blocks of time allocated to projects.",
+    description: "When you're doing it. Blocks of time allocated to chapters.",
   },
   {
     title: "Task",
@@ -245,7 +245,7 @@ export function DashboardManualSection() {
         </div>
         
         <p className="text-xs text-muted-foreground text-center">
-          Season sets the arc. Projects hold your intent. The rest flows from there.
+          Season sets the arc. Chapters hold your intent. The rest flows from there.
         </p>
       </div>
 
