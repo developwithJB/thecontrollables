@@ -1,71 +1,164 @@
 
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-# Today Page Optimization — Plan + Body = Today
+## Overview
 
-The current Today page structure (Greeting → Briefing → Actions → PvA → Rings → Forecast → Ask) is already close. The changes focus on making each module higher-signal and improving the PvA hero treatment.
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-## Changes
+---
 
-### 1. New `TodayReadinessBar` Component
-Create a new lightweight component that sits between the Greeting and the Briefing card. This is a single horizontal bar showing today's key signals at a glance — answering "How am I today?" in 2 seconds:
+## Part 1: AI Insight Engine
 
+### New Edge Function: `admin-insights`
+
+**File: `supabase/functions/admin-insights/index.ts`**
+
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
+
+**Prompt structure:**
 ```
-Recovery: 72%  |  Sleep: 7h 12m  |  Plan: 6 items  |  Day type: Moderate
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
+
+[structured data blob]
+
+Return insights as structured tool output.
 ```
 
-- Sources: `useHealthData` (latest metrics) + planner items count for today
-- If no wearable: show only plan load + a subtle "Connect wearable" chip
-- If no calendar: show only body data + a subtle "Connect calendar" chip  
-- If both missing: show a gentle "Connect Plan + Body to unlock your daily read"
-- This replaces the need for cross-system insight cards — the bar IS the cross-system insight
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-### 2. Upgrade `DailyBriefingCard`
-The existing briefing already uses Plan + Body context from the edge function. Enhance the **client-side card** to:
-- Show a compact context line above the briefing text: e.g. "Based on 72% recovery + 6 planned items"
-- Pass `healthLatest` and `todayPlannerCount` as props so the card can render context even before the AI briefing loads
-- This makes the briefing feel grounded in real data, not just AI text
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-### 3. Elevate `PlanVsActualView` as Hero Module
-Current behavior requires BOTH sources. Fix:
-- In `Home.tsx`, change `hasPvaData` logic: show PvA whenever calendar data OR wearable data exists (currently requires items AND health)
-- Inside PvA, when one source is missing, show a subtle inline prompt ("Connect your wearable to complete the picture") instead of blocking the whole module
-- Add a small section header above PvA: "Plan vs. Actual" with a subtitle "What was planned · What your body says · What it means"
+### New Admin Component: AI Insights Panel
 
-### 4. Simplify `ForecastCard`
-Current card has 3 tabs (Snapshot/Month/Year). Simplify to show only the most relevant forecast inline — no tabs needed on Today:
-- Show `snapshot_forecast` (or `tomorrow_forecast`) as the primary text
-- Add a single secondary line for "watchout" from `month_forecast` if available
-- Remove the tab UI on the Today page (keep the full tabbed version on Growth if needed)
-- This makes it scannable in 3 seconds instead of requiring tab interaction
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-### 5. Reorder: Rings Below PvA
-Already in the correct position per the last refactor. No change needed — just confirming Rings stay as a supplementary row below PvA, not a hero.
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-### 6. `GreetingBanner` Cleanup
-The greeting currently shows: streak, XP level, Build Level, Season, Snapshot Focus, and a Weekly Insight expander. Simplify:
-- Remove the `Weekly Insight` expander (AI insight belongs in Briefing, not the greeting)
-- Remove `Build Level` badge (belongs on Growth)
-- Keep: greeting + name, streak, season indicator, snapshot focus
-- This makes the greeting a quick identity bar, not a mini-dashboard
+### Integration into Admin.tsx
 
-### 7. `AskDashboardBar` — Minor Polish
-Keep as-is but add one more contextual chip: "What should I protect today?" — the most common synthesis question.
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
-## Files to Modify
+---
 
-| File | Change |
-|---|---|
-| `src/components/dashboard/TodayReadinessBar.tsx` | **NEW** — horizontal signal bar (recovery, sleep, plan load, day type) |
-| `src/pages/Home.tsx` | Add TodayReadinessBar after greeting, pass health/planner data. Fix `hasPvaData` logic to show with either source. Add PvA section header. |
-| `src/components/dashboard/DailyBriefingCard.tsx` | Add optional `healthContext` and `plannerCount` props to show "Based on X% recovery + Y items" context line |
-| `src/components/dashboard/ForecastCard.tsx` | Create a `compact` prop variant — single forecast text + one watchout line, no tabs |
-| `src/components/dashboard/GreetingBanner.tsx` | Remove Weekly Insight expander, remove Build Level badge |
-| `src/components/dashboard/AskDashboardBar.tsx` | Add "What should I protect today?" chip |
+## Part 2: Enhanced Action Center
 
-## What Does NOT Change
-- All hooks, data, and backend logic stay the same
-- Edge function `ai-briefing` already gathers Plan + Body context — no changes needed
-- TodayActions carousel stays in position 3
-- All dialogs (ConfirmLastNight, ValidatePlan, etc.) stay as modal overlays
-- CompactRingsRow stays as supplementary row
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
 
+Replace the three "Coming soon" cards with working functionality:
+
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
+
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
+
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
+
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
+
+---
+
+## Part 3: Landing Page Updates
+
+**File: `src/pages/Landing.tsx`**
+
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+
+**File: `src/components/landing/FeatureGrid.tsx`**
+
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+
+**File: `src/components/landing/HowItWorksSection.tsx`**
+
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.

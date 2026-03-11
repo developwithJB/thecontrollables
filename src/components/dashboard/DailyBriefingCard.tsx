@@ -9,6 +9,8 @@ interface DailyBriefingCardProps {
   isTrialing?: boolean;
   hasActiveSnapshot: boolean;
   onUpgrade?: () => void;
+  healthRecovery?: number | null;
+  plannerCount?: number | null;
 }
 
 const CONTROLLABLE_META: Record<string, { emoji: string; name: string }> = {
@@ -19,7 +21,7 @@ const CONTROLLABLE_META: Record<string, { emoji: string; name: string }> = {
   environment: { emoji: "🚀", name: "Environment" },
 };
 
-export function DailyBriefingCard({ isPaid, isTrialing, hasActiveSnapshot, onUpgrade }: DailyBriefingCardProps) {
+export function DailyBriefingCard({ isPaid, isTrialing, hasActiveSnapshot, onUpgrade, healthRecovery, plannerCount }: DailyBriefingCardProps) {
   const [content, setContent] = useState<string | null>(null);
   const [controllable, setControllable] = useState<string>("awareness");
   const [isLoading, setIsLoading] = useState(false);
@@ -129,6 +131,13 @@ export function DailyBriefingCard({ isPaid, isTrialing, hasActiveSnapshot, onUpg
           <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
         </button>
       </div>
+
+      {/* Context grounding line */}
+      {(healthRecovery !== null && healthRecovery !== undefined) || (plannerCount !== null && plannerCount !== undefined) ? (
+        <p className="text-[10px] text-muted-foreground/60 font-mono mb-2 relative">
+          Based on{healthRecovery !== null && healthRecovery !== undefined ? ` ${Math.round(healthRecovery)}% recovery` : ""}{healthRecovery !== null && healthRecovery !== undefined && plannerCount !== null && plannerCount !== undefined ? " + " : ""}{plannerCount !== null && plannerCount !== undefined ? `${plannerCount} planned items` : ""}
+        </p>
+      ) : null}
 
       <div className="space-y-2 relative">
         {lines.map((line, i) => (

@@ -1,10 +1,7 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Flame, Zap, Orbit, Compass, Sparkles, ChevronDown, ChevronUp, Shield } from "lucide-react";
+import { motion } from "framer-motion";
+import { Flame, Zap, Orbit, Compass } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useInsights } from "@/hooks/useInsights";
-import { useControllableLevels } from "@/hooks/useControllableLevels";
 
 interface GreetingBannerProps {
   userId?: string;
@@ -38,10 +35,6 @@ export function GreetingBanner({
   snapshotEmoji,
   onSnapshotClick,
 }: GreetingBannerProps) {
-  const [showInsight, setShowInsight] = useState(false);
-  
-  // Fetch AI insights for premium users
-  const { data: insightData, isLoading: insightLoading } = useInsights(userId, isPaid);
   // Fetch user's display name from profiles
   const { data: profile } = useQuery({
     queryKey: ["user-profile", userId],
@@ -71,12 +64,6 @@ export function GreetingBanner({
 
   // Calculate level from XP
   const level = Math.floor(totalXp / 500) + 1;
-
-  // Overall Build Level — average of all 5 controllable levels
-  const { data: controllableLevels } = useControllableLevels(userId ?? null);
-  const overallBuildLevel = controllableLevels
-    ? Math.round(controllableLevels.reduce((sum, cl) => sum + cl.level, 0) / controllableLevels.length)
-    : null;
 
   return (
     <motion.div
@@ -128,16 +115,6 @@ export function GreetingBanner({
             <span className="text-sm font-medium text-foreground">Lv {level}</span>
           </div>
 
-          {/* Overall Build Level */}
-          {overallBuildLevel !== null && (
-            <div className="flex items-center gap-1.5" title="Average of all 5 Controllable levels">
-              <div className="p-1 rounded-lg bg-primary/10">
-                <Shield className="w-4 h-4 text-primary" />
-              </div>
-              <span className="text-sm font-medium text-foreground">Build Lv.{overallBuildLevel}</span>
-            </div>
-          )}
-
           {/* Season / Direction indicator */}
           {(seasonName || missionTitle) && (
             <button
@@ -183,43 +160,6 @@ export function GreetingBanner({
         </p>
       )}
 
-      {/* AI-Powered Weekly Insight (Premium only) */}
-      {isPaid && insightData?.insight && (
-        <motion.div
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-3"
-        >
-          <button
-            onClick={() => setShowInsight(!showInsight)}
-            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full group"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span className="font-medium">Weekly Insight</span>
-            {showInsight ? (
-              <ChevronUp className="w-3.5 h-3.5 ml-auto opacity-50 group-hover:opacity-100" />
-            ) : (
-              <ChevronDown className="w-3.5 h-3.5 ml-auto opacity-50 group-hover:opacity-100" />
-            )}
-          </button>
-          
-          <AnimatePresence>
-            {showInsight && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
-                <p className="text-sm text-foreground/80 mt-2 pl-5 border-l-2 border-amber-500/30 leading-relaxed">
-                  {insightData.insight}
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      )}
     </motion.div>
   );
 }

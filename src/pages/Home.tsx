@@ -47,6 +47,7 @@ import { AskDashboardBar } from "@/components/dashboard/AskDashboardBar";
 import { ForecastCard } from "@/components/dashboard/ForecastCard";
 import { SeasonComplete } from "@/components/SeasonComplete";
 import { CompactRingsRow } from "@/components/dashboard/CompactRingsRow";
+import { TodayReadinessBar } from "@/components/dashboard/TodayReadinessBar";
 import {
   ResetProgressSkeleton,
 } from "@/components/dashboard/DashboardSkeletons";
@@ -210,7 +211,7 @@ export default function Home() {
   // Plan vs Actual data for dashboard
   const weekRange = useMemo(() => getWeekRange(new Date()), []);
   const { data: weekPlannerItems = [] } = usePlannerItems(weekRange.start, weekRange.end, user.id);
-  const { trend: healthTrend, isConnected: wearableConnected, provider: wearableProvider } = useHealthData(user.id);
+  const { trend: healthTrend, isConnected: wearableConnected, provider: wearableProvider, latest: healthLatest } = useHealthData(user.id);
 
   // Auto-sync wearable data on dashboard load (throttled to every 4 hours)
   useAutoWearableSync(user.id, wearableProvider, wearableConnected);
@@ -474,7 +475,7 @@ export default function Home() {
   }
 
   const todayAlreadyCompleted = completedDays.some((d) => d.day_number === currentDay);
-  const hasPvaData = pvaData.some(d => d.items.length > 0 || (d.health && d.health.recovery !== null));
+  const hasPvaData = pvaData.some(d => d.items.length > 0) || pvaData.some(d => d.health && d.health.recovery !== null);
 
   return (
     <div className="space-y-4">
@@ -498,6 +499,14 @@ export default function Home() {
         }}
       />
 
+      {/* 1b. Readiness Bar — instant cross-system signal */}
+      <TodayReadinessBar
+        health={healthLatest}
+        plannerCount={weekPlannerItems.filter((i: any) => i.scheduled_date === new Date().toLocaleDateString("sv-SE")).length}
+        wearableConnected={wearableConnected}
+        calendarConnected={calendarConnected}
+      />
+
       {/* 2. Daily Briefing Card — single morning AI brief */}
       {!entitlementsLoading && (
         <DailyBriefingCard
@@ -505,6 +514,8 @@ export default function Home() {
           isTrialing={isTrialing}
           hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
           onUpgrade={() => startCheckout(undefined, "daily_briefing")}
+          healthRecovery={healthLatest?.recovery}
+          plannerCount={weekPlannerItems.filter((i: any) => i.scheduled_date === new Date().toLocaleDateString("sv-SE")).length}
         />
       )}
 
@@ -541,31 +552,35 @@ export default function Home() {
         />
       )}
 
-      {/* 4. Plan vs Actual */}
-      {hasPvaData ? (
-        <div id="pva">
+      {/* 4. Plan vs Actual — hero module */}
+      <div id="pva">
+        <div className="mb-2">
+          <h2 className="text-sm font-semibold text-foreground">Plan vs. Actual</h2>
+          <p className="text-[10px] text-muted-foreground">What was planned · What your body says · What it means</p>
+        </div>
+        {hasPvaData ? (
           <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} syntheses={pvaSyntheses} projects={activeProjects} />
-        </div>
-      ) : (
-        <div id="pva" className="rounded-xl border border-border/50 bg-card/30 p-4 text-center space-y-2">
-          <p className="text-sm text-muted-foreground">
-            {!calendarConnected && !wearableConnected
-              ? "Connect your calendar and wearable to see Plan vs. Actual."
-              : !calendarConnected
-              ? "Connect your calendar to see the full Plan vs. Actual picture."
-              : "Connect your wearable to complete the Plan vs. Actual view."}
-          </p>
-          <Button variant="outline" size="sm" onClick={() => navigate(calendarConnected ? "/wellness" : "/planner")}>
-            {calendarConnected ? "Connect Wearable →" : "Connect Calendar →"}
-          </Button>
-        </div>
-      )}
+        ) : (
+          <div className="rounded-xl border border-border/50 bg-card/30 p-4 text-center space-y-2">
+            <p className="text-sm text-muted-foreground">
+              {!calendarConnected && !wearableConnected
+                ? "Connect your calendar and wearable to see Plan vs. Actual."
+                : !calendarConnected
+                ? "Connect your calendar to see the full picture."
+                : "Connect your wearable to complete the view."}
+            </p>
+            <Button variant="outline" size="sm" onClick={() => navigate(calendarConnected ? "/wellness" : "/planner")}>
+              {calendarConnected ? "Connect Wearable →" : "Connect Calendar →"}
+            </Button>
+          </div>
+        )}
+      </div>
 
       {/* 5. Compact 5 Rings */}
       <CompactRingsRow userId={user.id} />
 
       {/* 6. Forecast */}
-      <ForecastCard data={intelligenceData} />
+      <ForecastCard data={intelligenceData} compact />
 
       {/* 7. Ask Dashboard — conversational entry point near bottom */}
       <AskDashboardBar />
