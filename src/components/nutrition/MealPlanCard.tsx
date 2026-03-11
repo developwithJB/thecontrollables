@@ -457,19 +457,14 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
                 size="sm"
                 className="text-[11px] h-8 gap-1.5 font-medium"
                 onClick={() => {
-                  if (userId && todayPlan?.meals) {
-                    const meals = todayPlan.meals as any[];
-                    meals.forEach((meal: any) => {
-                      const { addMealToPlanner } = window.__mealPlannerBridge || {};
-                      if (addMealToPlanner) {
-                        addMealToPlanner(meal);
-                      } else {
-                        // Fallback to Google Calendar URL
-                        window.open(getCalendarUrl(), "_blank");
-                      }
+                  if (todayPlan?.meals) {
+                    const meals = todayPlan.meals as MealPlanMeal[];
+                    meals.forEach((meal) => {
+                      addMealToPlanner.mutate({ meal });
                     });
                   }
                 }}
+                disabled={addMealToPlanner.isPending}
               >
                 <Calendar className="w-3.5 h-3.5" />
                 Add to Calendar
