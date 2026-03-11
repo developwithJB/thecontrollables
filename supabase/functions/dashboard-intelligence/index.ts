@@ -451,7 +451,7 @@ The ring names map to controllables: Notice=Awareness, Choose=Perspective, Prove
                   memory_comparisons: {
                     type: "array",
                     items: { type: "string" },
-                    description: "2-3 comparison insights that show awareness of historical behavior patterns.",
+                    description: "1-2 comparison insights that show awareness of historical behavior patterns.",
                   },
                   center_rotations: {
                     type: "array",
