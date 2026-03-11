@@ -106,7 +106,7 @@ const Planner = () => {
     usePlannerMutations();
   const { routines, createRoutine, deleteRoutine } = usePlannerRoutines(user.id);
   const { connections, startGoogleCalSync, triggerSync, pushToGoogleCal } = usePlannerConnections(user.id);
-  const { trend: healthTrend } = useHealthData(user.id);
+  const { trend: healthTrend, isConnected: wearableConnected } = useHealthData(user.id);
 
   const googleConnection = connections.find((c) => c.provider === "google_calendar");
 
