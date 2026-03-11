@@ -164,10 +164,12 @@ export function WeekPlanReviewSheet({
 
               <div className="flex-1 overflow-auto">
                 <MealSwiper
+                  ref={swiperRef}
                   key={currentDayIndex}
                   meals={swipeMeals}
                   onAccept={handleAccept}
                   onReject={handleReject}
+                  deferAdvance
                   onSaveToLibrary={handleSaveToLibrary}
                   currentMealType={format(new Date(currentDay.date + "T12:00:00"), "EEEE")}
                 />
