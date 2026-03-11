@@ -275,6 +275,43 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
   return counts.cycles;
 }
 
+async function attributeProjectIds(userId: string, syncedDates: string[], provider: string, supabase: any) {
+  try {
+    for (const date of syncedDates) {
+      // Find projects with planner items on this date
+      const { data: items } = await supabase
+        .from("planner_items")
+        .select("project_id")
+        .eq("user_id", userId)
+        .eq("scheduled_date", date)
+        .not("project_id", "is", null);
+
+      if (!items || items.length === 0) continue;
+
+      // Count items per project to find primary
+      const counts: Record<string, number> = {};
+      for (const item of items) {
+        counts[item.project_id] = (counts[item.project_id] || 0) + 1;
+      }
+
+      const allProjectIds = Object.keys(counts);
+      const primaryProjectId = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+
+      await supabase
+        .from("health_sync_data")
+        .update({
+          project_id: primaryProjectId,
+          attributed_project_ids: allProjectIds,
+        })
+        .eq("user_id", userId)
+        .eq("sync_date", date)
+        .eq("source", provider);
+    }
+  } catch (e) {
+    console.error("[wearable-sync] Project attribution error:", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -363,9 +400,21 @@ Deno.serve(async (req) => {
     }
 
     let daysSynced: number;
-    if (provider === "fitbit") daysSynced = await syncFitbit(accessToken, userId, serviceSupabase);
-    else if (provider === "oura") daysSynced = await syncOura(accessToken, userId, serviceSupabase);
-    else daysSynced = await syncWhoop(accessToken, userId, serviceSupabase);
+    let syncedDates: string[] = [];
+    if (provider === "fitbit") {
+      daysSynced = await syncFitbit(accessToken, userId, serviceSupabase);
+      // Fitbit syncs last 7 days
+      for (let i = 0; i < 7; i++) { const d = new Date(); d.setDate(d.getDate() - i); syncedDates.push(formatDate(d)); }
+    } else if (provider === "oura") {
+      daysSynced = await syncOura(accessToken, userId, serviceSupabase);
+      for (let i = 0; i < 7; i++) { const d = new Date(); d.setDate(d.getDate() - i); syncedDates.push(formatDate(d)); }
+    } else {
+      daysSynced = await syncWhoop(accessToken, userId, serviceSupabase);
+      for (let i = 0; i < 7; i++) { const d = new Date(); d.setDate(d.getDate() - i); syncedDates.push(formatDate(d)); }
+    }
+
+    // Post-sync: attribute project IDs to health records
+    await attributeProjectIds(userId, syncedDates, provider, serviceSupabase);
 
     await serviceSupabase
       .from("wearable_connections")

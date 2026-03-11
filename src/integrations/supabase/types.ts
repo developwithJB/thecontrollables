@@ -1071,6 +1071,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          project_id: string | null
           synthesis_date: string
           synthesis_text: string
           user_id: string
@@ -1078,6 +1079,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          project_id?: string | null
           synthesis_date: string
           synthesis_text: string
           user_id: string
@@ -1085,6 +1087,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          project_id?: string | null
           synthesis_date?: string
           synthesis_text?: string
           user_id?: string
@@ -1231,6 +1234,7 @@ export type Database = {
       health_sync_data: {
         Row: {
           active_minutes: number | null
+          attributed_project_ids: string[] | null
           created_at: string
           heart_rate_avg: number | null
           hrv_ms: number | null
@@ -1248,6 +1252,7 @@ export type Database = {
         }
         Insert: {
           active_minutes?: number | null
+          attributed_project_ids?: string[] | null
           created_at?: string
           heart_rate_avg?: number | null
           hrv_ms?: number | null
@@ -1265,6 +1270,7 @@ export type Database = {
         }
         Update: {
           active_minutes?: number | null
+          attributed_project_ids?: string[] | null
           created_at?: string
           heart_rate_avg?: number | null
           hrv_ms?: number | null
