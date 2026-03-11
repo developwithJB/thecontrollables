@@ -31,6 +31,9 @@ import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { useSeason } from "@/hooks/useSeason";
 import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
 import { useDailyRings } from "@/hooks/useDailyRings";
+import { useHealthData } from "@/hooks/useHealthData";
+import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
+import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 
 // Dashboard modules
 import { MainQuestModule } from "@/components/dashboard/MainQuestModule";
