@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Book } from "lucide-react";
+import { ArrowRight, Book, Calendar, Activity, LayoutDashboard } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
@@ -89,10 +89,36 @@ export default function Landing() {
             className="text-center mb-8 md:mb-12"
           >
             <h1 className="font-display text-2xl md:text-4xl lg:text-5xl font-bold text-foreground mb-3 md:mb-5 text-balance">
-              Stop trying to control everything.
+              Your calendar knows what you planned.
               <br />
-              <span className="text-accent">Start controlling what matters.</span>
+              Your wearable knows what happened.
+              <br />
+              <span className="text-accent">The Dashboard connects the two.</span>
             </h1>
+
+            {/* Plan. Live. Learn. visual */}
+            <div className="flex items-center justify-center gap-3 md:gap-5 mb-4">
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+                  <Calendar className="w-5 h-5 md:w-6 md:h-6 text-accent" />
+                </div>
+                <span className="text-[10px] md:text-xs font-semibold text-muted-foreground">Plan</span>
+              </div>
+              <span className="text-muted-foreground/40 text-lg font-light">→</span>
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <LayoutDashboard className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+                </div>
+                <span className="text-[10px] md:text-xs font-semibold text-muted-foreground">Live</span>
+              </div>
+              <span className="text-muted-foreground/40 text-lg font-light">→</span>
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-wellness/10 border border-wellness/20 flex items-center justify-center">
+                  <Activity className="w-5 h-5 md:w-6 md:h-6 text-wellness" />
+                </div>
+                <span className="text-[10px] md:text-xs font-semibold text-muted-foreground">Learn</span>
+              </div>
+            </div>
 
             <p className="text-muted-foreground text-sm md:text-base lg:text-lg leading-relaxed text-balance max-w-xs md:max-w-lg mx-auto mb-4">
               Wellness, money, habits, time, and mindset — managed through one calm system built on 5 things you can actually control. Full access for 7 days. No credit card.

@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 
 const wellnessTheme = getControllableTheme("wellness");
 import { Button } from "@/components/ui/button";
-import { useMealTracking, type MealSlotConfig } from "@/hooks/useMealTracking";
+import { useMealTracking, type MealSlotConfig, type MealPlanMeal } from "@/hooks/useMealTracking";
 import { useMealPreferences } from "@/hooks/useMealPreferences";
 import { MealTracker } from "./MealTracker";
 
@@ -26,7 +26,7 @@ const MAIN_MEALS = [
 ];
 
 export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
-  const { todayPlan, generatePlan, updatePlanMeals, dailyTotals, todayMeals } = useMealTracking(userId);
+  const { todayPlan, generatePlan, updatePlanMeals, dailyTotals, todayMeals, addMealToPlanner } = useMealTracking(userId);
   const { preferences, savePreferences } = useMealPreferences(userId);
   const [showTracker, setShowTracker] = useState(false);
   const [view, setView] = useState<"today" | "week">("today");
@@ -453,12 +453,20 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
 
             <div className="flex flex-wrap gap-2 pt-1">
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="sm"
-                className="text-[11px] h-7 text-muted-foreground"
-                onClick={() => window.open(getCalendarUrl(), "_blank")}
+                className="text-[11px] h-8 gap-1.5 font-medium"
+                onClick={() => {
+                  if (todayPlan?.meals) {
+                    const meals = todayPlan.meals as MealPlanMeal[];
+                    meals.forEach((meal) => {
+                      addMealToPlanner.mutate({ meal });
+                    });
+                  }
+                }}
+                disabled={addMealToPlanner.isPending}
               >
-                <Calendar className="w-3 h-3 mr-1" />
+                <Calendar className="w-3.5 h-3.5" />
                 Add to Calendar
               </Button>
               <Button

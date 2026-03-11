@@ -1,98 +1,164 @@
 
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-# Reframe Dashboard as Intelligence Layer Between Calendar & Wearable
+## Overview
 
-This is a large feature set with 5 distinct workstreams. Here's the implementation plan:
-
----
-
-## 1. Plan vs Actual View — Add Wearable Data Track
-
-**Current state:** `PlanVsActualView` exists but only shows planner items (planned tasks with done/missed/partial status). No wearable data is displayed.
-
-**Changes:**
-
-### `src/components/planner/PlanVsActualView.tsx` — Major rewrite
-- Add a new `HealthMetrics` prop per day alongside the existing `items` array
-- For each day card, show two side-by-side columns: **Planned** (existing task list) and **Actual** (wearable metrics: recovery %, sleep score, HRV, strain)
-- Add a one-line AI observation per day when wearable data exists, generated client-side using simple heuristics (not an AI call — e.g. "Low recovery (32%) — 5 tasks scheduled. Consider lighter output.")
-- Update the `PvADay` interface to include optional `health` field
-
-### `src/pages/Planner.tsx` — Wire health data into PvA
-- Import `useHealthData` and pass `trend` data (7-day array) into `pvaData`, matching by date
-- Map each health row to the corresponding day in the week view
-
-### `src/pages/Home.tsx` — Surface PvA on Dashboard
-- Add a collapsible "Plan vs Actual" card to the dashboard layout
-- Import `PlanVsActualView`, fetch planner items for the current week via `usePlanner`, and health data via `useHealthData`
-- Show it below the greeting/rings section
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
 ---
 
-## 2. Wearable-Aware Scheduling Banner
+## Part 1: AI Insight Engine
 
-**Current state:** `PlannerWellnessBanner` already exists and shows recovery-based messages. It only uses today's data.
+### New Edge Function: `admin-insights`
 
-**Changes:**
+**File: `supabase/functions/admin-insights/index.ts`**
 
-### `src/components/planner/PlannerWellnessBanner.tsx` — Enhance for tomorrow forecast
-- When viewing tomorrow's date in the Planner, fetch tomorrow's forecast (if available from `health_sync_data`) or use today's recovery as a proxy
-- Show a dismissible banner with scheduling suggestions: "Your recovery is [score]%. Consider scheduling high-focus work in the morning and lighter tasks after 2pm."
-- Add `useState` for dismissed state; only show when `selectedDate` is tomorrow
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
 
-### `src/pages/Planner.tsx` — Pass `selectedDate` to banner
-- Pass the currently selected date to `PlannerWellnessBanner` so it can tailor messaging for tomorrow vs today
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
+
+[structured data blob]
+
+Return insights as structured tool output.
+```
+
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+
+### New Admin Component: AI Insights Panel
+
+**File: `src/components/admin/AIInsightsPanel.tsx`**
+
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
+
+### Integration into Admin.tsx
+
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
 ---
 
-## 3. Meal Plan → Calendar Write
+## Part 2: Enhanced Action Center
 
-### `src/components/nutrition/MealPlanCard.tsx` — Add "Add to Calendar" button
-- After a meal plan is generated, show a prominent "Add to Calendar" button on each meal card
-- On tap, call the existing `planner-gcal-push` edge function (or create a planner item with meal details that can then be pushed)
-- Implementation: Create a planner item of type `time_block` with the meal name as title, prep time as duration, and grocery list in description. Then optionally push to Google Calendar if connected.
-- Surface the button prominently in the meal plan results — not buried in a menu
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
 
-### `src/hooks/useMealTracking.ts` — Add `addMealToPlanner` mutation
-- New mutation that inserts a `planner_items` row with meal data and optionally triggers gcal push
+Replace the three "Coming soon" cards with working functionality:
 
----
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
 
-## 4. Daily OS Briefing — Include Plan vs Actual Context
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
 
-### `supabase/functions/ai-briefing/index.ts` — Enrich prompt with planner + wearable data
-- Fetch yesterday's `health_sync_data` row (recovery score) for the user
-- Fetch yesterday's `planner_items` count (total scheduled vs completed)
-- Fetch today's `planner_items` count (scheduled load)
-- Add these to `contextParts` before the AI call
-- Update `systemPrompt` to instruct: "Open with a one-sentence readiness read before listing actions. Reference yesterday's recovery, yesterday's completion rate, and today's load."
-- The briefing already fetches WHOOP data but doesn't include planner completion stats — add those
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
 
----
-
-## 5. Landing Page Hero Update
-
-### `src/pages/Landing.tsx` — Update hero section
-- Replace the current h1 tagline with: "Your calendar knows what you planned. Your wearable knows what happened. The Dashboard connects the two."
-- Add a three-icon visual below the hero text: Calendar icon → Dashboard logo → Wearable icon with label "Plan. Live. Learn."
-- Keep the CTA and controllables grid intact
-
-### `src/components/landing/HowItWorksSection.tsx` — Update first step
-- Change the first item's title and description to lead with the calendar-wearable-dashboard framing instead of "Plan Your Day"
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
 
 ---
 
-## Files Summary
+## Part 3: Landing Page Updates
 
-| Action | File |
-|--------|------|
-| Edit | `src/components/planner/PlanVsActualView.tsx` — add health metrics track + AI observation |
-| Edit | `src/pages/Planner.tsx` — wire health data into PvA |
-| Edit | `src/pages/Home.tsx` — surface PvA card on dashboard |
-| Edit | `src/components/planner/PlannerWellnessBanner.tsx` — tomorrow-aware dismissible banner |
-| Edit | `src/components/nutrition/MealPlanCard.tsx` — add "Add to Calendar" button |
-| Edit | `src/hooks/useMealTracking.ts` — add meal-to-planner mutation |
-| Edit | `supabase/functions/ai-briefing/index.ts` — enrich with planner completion + today's load |
-| Edit | `src/pages/Landing.tsx` — new hero tagline + three-icon visual |
-| Edit | `src/components/landing/HowItWorksSection.tsx` — update first step framing |
+**File: `src/pages/Landing.tsx`**
 
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+
+**File: `src/components/landing/FeatureGrid.tsx`**
+
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+
+**File: `src/components/landing/HowItWorksSection.tsx`**
+
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.

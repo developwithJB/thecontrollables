@@ -80,8 +80,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Gather context: active session, recent reflections, build scores, controllable levels
-    const [sessionRes, reflectionsRes, buildRes, actionsRes] = await Promise.all([
+    // Gather context: active session, recent reflections, build scores, controllable levels, planner stats
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const [sessionRes, reflectionsRes, buildRes, actionsRes, yesterdayHealthRes, yesterdayPlannerRes, todayPlannerRes] = await Promise.all([
       serviceClient.from('reset_sessions').select('current_day, journey_id, start_date')
         .eq('user_id', userId).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       serviceClient.from('daily_resets').select('day_number, reflection, completed_at')
@@ -90,6 +91,12 @@ Deno.serve(async (req) => {
         .eq('user_id', userId).maybeSingle(),
       serviceClient.from('completed_actions').select('controllable, xp_awarded')
         .eq('user_id', userId).not('controllable', 'is', null),
+      serviceClient.from('health_sync_data').select('recovery_score, sleep_minutes, hrv_ms')
+        .eq('user_id', userId).eq('sync_date', yesterday).maybeSingle(),
+      serviceClient.from('planner_items').select('id, status')
+        .eq('user_id', userId).eq('scheduled_date', yesterday),
+      serviceClient.from('planner_items').select('id')
+        .eq('user_id', userId).eq('scheduled_date', today),
     ]);
 
     const currentDay = sessionRes.data?.current_day || 1;
@@ -133,6 +140,20 @@ Deno.serve(async (req) => {
     );
     contextParts.push(`Controllable Levels (Overall Build Lv.${overallLevel}):\n${levelLines.join('\n')}`);
 
+    // Plan vs Actual context
+    if (yesterdayHealthRes.data) {
+      const yh = yesterdayHealthRes.data;
+      contextParts.push(`Yesterday's recovery: ${yh.recovery_score ?? 'unknown'}%${yh.sleep_minutes ? `, sleep: ${Math.round(yh.sleep_minutes / 60)}h` : ''}`);
+    }
+    if (yesterdayPlannerRes.data && yesterdayPlannerRes.data.length > 0) {
+      const total = yesterdayPlannerRes.data.length;
+      const completed = yesterdayPlannerRes.data.filter((i: any) => i.status === 'done').length;
+      contextParts.push(`Yesterday's planner: ${completed}/${total} items completed (${Math.round((completed/total)*100)}% completion rate)`);
+    }
+    if (todayPlannerRes.data) {
+      contextParts.push(`Today's scheduled load: ${todayPlannerRes.data.length} items in planner`);
+    }
+
     // Fetch WHOOP biometric data
     const [whoopRecoveryRes, whoopSleepRes, whoopCycleRes] = await Promise.all([
       serviceClient.from('whoop_recoveries').select('recovery_score, hrv_rmssd_milli, resting_heart_rate, recorded_at')
@@ -167,7 +188,7 @@ Deno.serve(async (req) => {
     const systemPrompt = `You are ${controllableInfo.emoji} ${controllableInfo.name} from The Controllables — a daily briefing operator.
 
 Generate a personalized morning micro-briefing in EXACTLY 3 lines:
-1. **Pattern observation** — Something you noticed from their recent reflections or build data (be specific, not generic)
+1. **Readiness read** — Open with a one-sentence read on today's readiness. Reference yesterday's recovery score, yesterday's task completion rate, and today's scheduled load if available. E.g. "Your recovery is strong today. You have 4 items scheduled. Here's where to focus first."
 2. **Today's controllable focus** — One sentence connecting today's controllable (${controllableInfo.name}) to their current situation
 3. **One actionable suggestion** — A concrete, small thing they can do today
 
@@ -176,6 +197,7 @@ RULES:
 - Be specific to THEIR data, not generic advice
 - Match the voice of ${controllableInfo.name}: ${controllableInfo.key === 'habit' ? 'direct, action-focused' : controllableInfo.key === 'awareness' ? 'observational, calm' : controllableInfo.key === 'perspective' ? 'wise, reframing' : controllableInfo.key === 'wellness' ? 'systems-focused' : 'design-focused'}
 - If WHOOP data is present, weave biometric signals into your observation and suggestion. Reference recovery, sleep quality, or strain when relevant.
+- If planner data is present, reference yesterday's completion and today's load.
 - No motivational fluff. Be real.
 - Format as 3 separate lines`;
 

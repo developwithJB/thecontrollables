@@ -33,6 +33,7 @@ import { PlannerRoutineManager } from "@/components/planner/PlannerRoutineManage
 import { PlannerCalendarConnect } from "@/components/planner/PlannerCalendarConnect";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 import { PlannerWellnessBanner } from "@/components/planner/PlannerWellnessBanner";
+import { useHealthData } from "@/hooks/useHealthData";
 
 const Planner = () => {
   const user = useLifeOSUser();
@@ -105,6 +106,7 @@ const Planner = () => {
     usePlannerMutations();
   const { routines, createRoutine, deleteRoutine } = usePlannerRoutines(user.id);
   const { connections, startGoogleCalSync, triggerSync, pushToGoogleCal } = usePlannerConnections(user.id);
+  const { trend: healthTrend } = useHealthData(user.id);
 
   const googleConnection = connections.find((c) => c.provider === "google_calendar");
 
@@ -176,13 +178,14 @@ const Planner = () => {
   const dayItems = itemsByDate[selectedDateKey] ?? [];
   const dayActivity = activityByDate[selectedDateKey] ?? [];
 
-  // Derive Plan vs Actual data
+  // Derive Plan vs Actual data with health metrics
   const pvaData = useMemo(() => {
     const today = startOfDay(new Date());
     return weekRange.days.map((date) => {
       const key = format(date, "yyyy-MM-dd");
       const dayItems = itemsByDate[key] ?? [];
       const isPast = isBefore(date, today) && !isToday(date);
+      const healthForDay = healthTrend.find(h => h.date === key) ?? null;
       return {
         date,
         items: dayItems.map((item) => {
@@ -199,9 +202,10 @@ const Planner = () => {
             type: item.item_type as "task" | "time_block" | "routine_instance" | "external_event",
           };
         }),
+        health: healthForDay,
       };
     });
-  }, [weekRange.days, itemsByDate]);
+  }, [weekRange.days, itemsByDate, healthTrend]);
 
   // Handlers
   const handleToggleStatus = useCallback(
@@ -278,7 +282,7 @@ const Planner = () => {
           </div>
         </div>
         <ControllablePoweredBy controllables={["awareness", "habit", "wellness", "environment"]} />
-        <PlannerWellnessBanner userId={user.id} />
+        <PlannerWellnessBanner userId={user.id} selectedDate={selectedDate} />
       </div>
 
       {/* Date strip (mobile) */}

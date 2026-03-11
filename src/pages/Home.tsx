@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useMemo, useState, useRef } from "react";
+import { format } from "date-fns";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Target, Check, X } from "lucide-react";
@@ -31,6 +32,9 @@ import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { useSeason } from "@/hooks/useSeason";
 import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
 import { useDailyRings } from "@/hooks/useDailyRings";
+import { useHealthData } from "@/hooks/useHealthData";
+import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
+import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 
 // Dashboard modules
 import { MainQuestModule } from "@/components/dashboard/MainQuestModule";
@@ -181,6 +185,34 @@ export default function Home() {
 
   const { rings, completedCount } = useDailyRings(user.id);
   const { data: intelligenceData } = useDashboardIntelligence(user.id, completedCount, rings);
+
+  // Plan vs Actual data for dashboard
+  const weekRange = useMemo(() => getWeekRange(new Date()), []);
+  const { data: weekPlannerItems = [] } = usePlannerItems(weekRange.start, weekRange.end, user.id);
+  const { trend: healthTrend } = useHealthData(user.id);
+  
+  const pvaData = useMemo(() => {
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    return weekRange.days.map((date: Date) => {
+      const key = format(date, "yyyy-MM-dd");
+      const dayItems = weekPlannerItems.filter((i: any) => i.scheduled_date === key);
+      const isPast = date < todayDate;
+      const isTodayDate = format(date, "yyyy-MM-dd") === format(todayDate, "yyyy-MM-dd");
+      const healthForDay = healthTrend.find(h => h.date === key) ?? null;
+      return {
+        date,
+        items: dayItems.map((item: any) => {
+          let status: "done" | "partial" | "missed" | "planned" = "planned";
+          if (item.status === "done") status = "done";
+          else if (item.status === "skipped") status = "partial";
+          else if (isPast && !isTodayDate) status = "missed";
+          return { id: item.id, title: item.title, status, type: item.item_type };
+        }),
+        health: healthForDay,
+      };
+    });
+  }, [weekRange.days, weekPlannerItems, healthTrend]);
 
   const [showSeasonComplete, setShowSeasonComplete] = useState(false);
   useEffect(() => {
@@ -511,6 +543,11 @@ export default function Home() {
 
       {/* Compact 5 Rings */}
       <CompactRingsRow userId={user.id} />
+
+      {/* Plan vs Actual */}
+      {pvaData.some(d => d.items.length > 0 || (d.health && d.health.recovery !== null)) && (
+        <PlanVsActualView days={pvaData} view="week" />
+      )}
 
       {/* Forecast + Recommendations */}
       <ForecastCard data={intelligenceData} />
