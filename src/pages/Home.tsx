@@ -504,10 +504,11 @@ export default function Home() {
       {/* 1b. Readiness Bar — instant cross-system signal */}
       <TodayReadinessBar
         health={healthLatest}
-        plannerCount={weekPlannerItems.filter((i: any) => i.scheduled_date === new Date().toLocaleDateString("sv-SE")).length}
+        plannerCount={todayPlannerItems.length}
         wearableConnected={wearableConnected}
         calendarConnected={calendarConnected}
         trend={healthTrend}
+        calendarIntel={todayCalendarIntel}
       />
 
       {/* 2. Daily Briefing Card — single morning AI brief */}
