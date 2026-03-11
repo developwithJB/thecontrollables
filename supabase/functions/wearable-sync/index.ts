@@ -275,6 +275,43 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
   return counts.cycles;
 }
 
+async function attributeProjectIds(userId: string, syncedDates: string[], provider: string, supabase: any) {
+  try {
+    for (const date of syncedDates) {
+      // Find projects with planner items on this date
+      const { data: items } = await supabase
+        .from("planner_items")
+        .select("project_id")
+        .eq("user_id", userId)
+        .eq("scheduled_date", date)
+        .not("project_id", "is", null);
+
+      if (!items || items.length === 0) continue;
+
+      // Count items per project to find primary
+      const counts: Record<string, number> = {};
+      for (const item of items) {
+        counts[item.project_id] = (counts[item.project_id] || 0) + 1;
+      }
+
+      const allProjectIds = Object.keys(counts);
+      const primaryProjectId = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+
+      await supabase
+        .from("health_sync_data")
+        .update({
+          project_id: primaryProjectId,
+          attributed_project_ids: allProjectIds,
+        })
+        .eq("user_id", userId)
+        .eq("sync_date", date)
+        .eq("source", provider);
+    }
+  } catch (e) {
+    console.error("[wearable-sync] Project attribution error:", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });

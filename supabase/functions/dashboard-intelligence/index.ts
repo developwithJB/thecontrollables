@@ -6,42 +6,77 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+interface SynthesisDayInput {
+  date: string;
+  planned: number;
+  completed: number;
+  recovery: number | null;
+  hrv: number | null;
+  strain: number | null;
+  project_id?: string | null;
+  project_name?: string | null;
+  project_controllable?: string | null;
+}
+
 async function handleDailySynthesis(
   supabase: any,
   userId: string,
-  days: Array<{ date: string; planned: number; completed: number; recovery: number | null; hrv: number | null; strain: number | null }>
+  days: SynthesisDayInput[]
 ) {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-  // Check cache first
-  const dates = days.map((d) => d.date);
+  // Build cache keys: "date" for non-project, "date:projectId" for project-specific
+  const cacheKeyFor = (d: SynthesisDayInput) => d.project_id ? `${d.date}:${d.project_id}` : d.date;
+
+  // Check cache — query with project_id awareness
+  const dates = [...new Set(days.map((d) => d.date))];
   const { data: cached } = await supabase
     .from("daily_synthesis")
-    .select("synthesis_date, synthesis_text")
+    .select("synthesis_date, synthesis_text, project_id")
     .eq("user_id", userId)
     .in("synthesis_date", dates);
 
   const cachedMap: Record<string, string> = {};
   (cached || []).forEach((row: any) => {
-    cachedMap[row.synthesis_date] = row.synthesis_text;
+    const key = row.project_id ? `${row.synthesis_date}:${row.project_id}` : row.synthesis_date;
+    cachedMap[key] = row.synthesis_text;
   });
 
-  // Find days that need generation
-  const uncachedDays = days.filter((d) => !cachedMap[d.date]);
+  // Find days/projects that need generation
+  const uncachedDays = days.filter((d) => !cachedMap[cacheKeyFor(d)]);
 
   if (uncachedDays.length === 0) {
     return { syntheses: cachedMap };
   }
 
-  // Generate synthesis for uncached days
+  // Generate synthesis for uncached entries
   const dayDescriptions = uncachedDays.map((d) => {
-    const parts = [`Date: ${d.date}. ${d.planned} tasks planned, ${d.completed} completed.`];
+    const parts: string[] = [];
+    if (d.project_name) {
+      parts.push(`Date: ${d.date}. Project: "${d.project_name}" (${d.project_controllable || "general"}).`);
+    } else {
+      parts.push(`Date: ${d.date}.`);
+    }
+    parts.push(`${d.planned} tasks planned, ${d.completed} completed.`);
     if (d.recovery !== null) parts.push(`Recovery: ${Math.round(d.recovery)}%.`);
     if (d.hrv !== null) parts.push(`HRV: ${Math.round(d.hrv)}ms.`);
     if (d.strain !== null) parts.push(`Strain: ${d.strain.toFixed(1)}.`);
     return parts.join(" ");
   }).join("\n\n");
+
+  const systemPrompt = `You generate brief observational synthesis lines for a self-leadership app. For each entry provided, generate ONE sentence (max 18 words) that connects the user's body state (recovery, HRV, strain) to their task output. Be observational, not judgmental. Never use the word "missed." Focus on the pattern, not the failure.
+
+When a Project name is provided, reference it by name and tailor your observation to the project type:
+- If the controllable is "wellness" or the project is fitness-related, reference physical readiness (e.g. recovery, strain capacity, sleep quality).
+- If the controllable is "habit", "awareness", or "perspective", or the project is work/creative, reference cognitive readiness (e.g. HRV for focus, recovery for decision quality).
+- If the controllable is "environment", reference environmental capacity and energy allocation.
+
+Examples:
+- "Recovery 71% during your App Launch block Tuesday — solid output day."
+- "Low HRV on your Fitness project day — your body signaled to scale back."
+- "High recovery, low output on Content Creation — the schedule wasn't structured for it."
+- "Strong output on a low recovery day — you pushed through, check rest tonight."`;
 
   const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -52,25 +87,15 @@ async function handleDailySynthesis(
     body: JSON.stringify({
       model: "google/gemini-3-flash-preview",
       messages: [
-        {
-          role: "system",
-          content: `You generate brief observational synthesis lines for a self-leadership app. For each day provided, generate ONE sentence (max 18 words) that connects the user's body state (recovery, HRV, strain) to their task output. Be observational, not judgmental. Never use the word "missed." Focus on the pattern, not the failure. Examples:
-- "High recovery, low output — your body was ready but the schedule wasn't structured for it."
-- "Recovery at 38% with 3 tasks planned — the mismatch explains how the day felt."
-- "95% recovery, strain of 4.4 — you left a lot in the tank today."
-- "Strong output on a low recovery day — you pushed through, check rest tonight."`,
-        },
-        {
-          role: "user",
-          content: dayDescriptions,
-        },
+        { role: "system", content: systemPrompt },
+        { role: "user", content: dayDescriptions },
       ],
       tools: [
         {
           type: "function",
           function: {
             name: "return_syntheses",
-            description: "Return synthesis sentences for each day.",
+            description: "Return synthesis sentences for each entry.",
             parameters: {
               type: "object",
               properties: {
@@ -80,6 +105,7 @@ async function handleDailySynthesis(
                     type: "object",
                     properties: {
                       date: { type: "string", description: "The date in yyyy-MM-dd format" },
+                      project_name: { type: "string", description: "The project name if provided, or empty string" },
                       synthesis: { type: "string", description: "One observational sentence, max 18 words" },
                     },
                     required: ["date", "synthesis"],
@@ -110,21 +136,32 @@ async function handleDailySynthesis(
   if (!toolCall?.function?.arguments) throw new Error("No tool call response for synthesis");
 
   const parsed = JSON.parse(toolCall.function.arguments);
-  const generatedList: Array<{ date: string; synthesis: string }> = parsed.syntheses || [];
+  const generatedList: Array<{ date: string; project_name?: string; synthesis: string }> = parsed.syntheses || [];
 
-  // Cache generated syntheses using service role client to bypass RLS for insert
+  // Cache generated syntheses
   const serviceClient = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  for (const item of generatedList) {
-    cachedMap[item.date] = item.synthesis;
+  // Match generated results back to uncached days to get project_id
+  for (let i = 0; i < generatedList.length; i++) {
+    const gen = generatedList[i];
+    // Find the matching uncached day entry
+    const matchDay = uncachedDays.find(d => d.date === gen.date && (
+      (!d.project_name && !gen.project_name) ||
+      (d.project_name === gen.project_name)
+    )) || uncachedDays[i]; // fallback to index
+
+    const projectId = matchDay?.project_id ?? null;
+    const key = projectId ? `${gen.date}:${projectId}` : gen.date;
+    cachedMap[key] = gen.synthesis;
+
     await serviceClient
       .from("daily_synthesis")
       .upsert(
-        { user_id: userId, synthesis_date: item.date, synthesis_text: item.synthesis },
-        { onConflict: "user_id,synthesis_date" }
+        { user_id: userId, synthesis_date: gen.date, synthesis_text: gen.synthesis, project_id: projectId },
+        { onConflict: "user_id,synthesis_date,project_id" }
       );
   }
 
