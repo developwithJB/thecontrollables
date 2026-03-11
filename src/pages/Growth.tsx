@@ -48,6 +48,7 @@ export default function Growth() {
   const { isPaid, initiateCheckout, isCheckingOut } = useEntitlements(user.id);
   const { currentBuild } = useBuildAssessment();
   const { rings, completedCount } = useDailyRings(user.id);
+  const { isConnected: wearableConnected, latest: healthLatest, trend: healthTrend } = useHealthData(user.id);
   const intelligence = useDashboardIntelligence(user.id, completedCount, rings);
   const {
     activeSession,
