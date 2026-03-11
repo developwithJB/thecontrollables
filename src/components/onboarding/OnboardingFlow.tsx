@@ -14,6 +14,7 @@ import { OnboardingSkipConfirmation } from "./OnboardingSkipConfirmation";
 import { OnboardingRecovery } from "./OnboardingRecovery";
 import { OnboardingOrientation } from "./OnboardingOrientation";
 import { OnboardingMeetGuides } from "./OnboardingMeetGuides";
+import { OnboardingConnectionSummary } from "./OnboardingConnectionSummary";
 import { 
   SNAPSHOTS,
   getRecommendedSnapshot,
@@ -23,7 +24,7 @@ import type { BuildScore } from "@/lib/build";
 import type { OnboardingStep } from "@/hooks/useOnboarding";
 
 // Internal step type that includes transitional states
-type InternalOnboardingStep = OnboardingStep | "connect_calendar" | "connect_wearable" | "orientation" | "starting" | "skip_confirmation" | "recovery" | "meet_guides";
+type InternalOnboardingStep = OnboardingStep | "connect_calendar" | "connect_wearable" | "connection_summary" | "orientation" | "starting" | "skip_confirmation" | "recovery" | "meet_guides";
 
 interface OnboardingFlowProps {
   userId: string;
@@ -74,6 +75,9 @@ export function OnboardingFlow({
   const [buildResult, setBuildResult] = useState<BuildScore | null>(null);
   const [selectedSnapshot, setSelectedSnapshot] = useState<Snapshot | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState(false);
+  const [wearableConnected, setWearableConnected] = useState(false);
+  const [wearableProvider, setWearableProvider] = useState<string | undefined>();
   
   // Timeout tracking for stuck states
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -335,6 +339,7 @@ export function OnboardingFlow({
           <OnboardingCalendarConnect
             key="connect-calendar"
             onConnected={() => {
+              setCalendarConnected(true);
               trackStepChange("connect_calendar", "connect_wearable");
               setCurrentStep("connect_wearable");
             }}
@@ -348,13 +353,27 @@ export function OnboardingFlow({
         {currentStep === "connect_wearable" && (
           <OnboardingWearableConnect
             key="connect-wearable"
-            onConnected={() => {
-              trackStepChange("connect_wearable", "build_assessment");
-              onUpdateOnboarding({ step: "build_assessment" });
-              setCurrentStep("build_assessment");
+            onConnected={(provider?: string) => {
+              setWearableConnected(true);
+              if (provider) setWearableProvider(provider);
+              trackStepChange("connect_wearable", "connection_summary");
+              setCurrentStep("connection_summary");
             }}
             onSkip={() => {
-              trackStepChange("connect_wearable", "build_assessment");
+              trackStepChange("connect_wearable", "connection_summary");
+              setCurrentStep("connection_summary");
+            }}
+          />
+        )}
+
+        {currentStep === "connection_summary" && (
+          <OnboardingConnectionSummary
+            key="connection-summary"
+            calendarConnected={calendarConnected}
+            wearableConnected={wearableConnected}
+            wearableProvider={wearableProvider}
+            onContinue={() => {
+              trackStepChange("connection_summary", "build_assessment");
               onUpdateOnboarding({ step: "build_assessment" });
               setCurrentStep("build_assessment");
             }}

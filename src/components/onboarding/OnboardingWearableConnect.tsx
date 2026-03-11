@@ -9,7 +9,7 @@ import { toast } from "sonner";
 type WearableProvider = "whoop" | "oura" | "fitbit";
 
 interface OnboardingWearableConnectProps {
-  onConnected: () => void;
+  onConnected: (provider?: string) => void;
   onSkip: () => void;
 }
 
@@ -43,10 +43,10 @@ export function OnboardingWearableConnect({ onConnected, onSkip }: OnboardingWea
 
   useEffect(() => {
     if (connected) {
-      const timer = setTimeout(onConnected, 1500);
+      const timer = setTimeout(() => onConnected(activeTab), 1500);
       return () => clearTimeout(timer);
     }
-  }, [connected, onConnected]);
+  }, [connected, onConnected, activeTab]);
 
   const handleConnect = async (provider: WearableProvider) => {
     setConnecting(provider);
