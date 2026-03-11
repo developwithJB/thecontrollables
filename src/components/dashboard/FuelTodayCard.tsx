@@ -9,9 +9,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfWeek, endOfWeek } from "date-fns";
 
+import type { FuelIntelligence } from "@/lib/fuelIntelligence";
+
 interface FuelTodayCardProps {
   userId: string | null;
   isPaid: boolean;
+  fuelIntel?: FuelIntelligence | null;
 }
 
 export function FuelTodayCard({ userId, isPaid }: FuelTodayCardProps) {
