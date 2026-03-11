@@ -644,17 +644,30 @@ export default function Home() {
       )}
 
       {/* Season Complete Overlay */}
-      {showSeasonComplete && seasonProgress && (
+      {showSeasonComplete && seasonProgress && activeSeason && (
         <SeasonComplete
-          seasonName={activeSeason?.name}
-          snapshots={seasonSnapshots}
+          season={{
+            id: activeSeason.id,
+            name: activeSeason.name,
+            started_at: activeSeason.started_at,
+            completed_at: activeSeason.completed_at,
+            created_at: activeSeason.created_at,
+          }}
+          projects={(activeProjects || []).map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            emoji: p.emoji,
+            momentum_score: p.momentum_score,
+            status: p.status,
+            controllable: p.controllable,
+          }))}
+          seasonSnapshots={seasonSnapshots}
           progress={seasonProgress}
+          healthData={seasonHealthData}
           onStartNewSeason={async () => {
             setShowSeasonComplete(false);
-            const newSeasonId = await startSeason();
-            if (newSeasonId) setShowJourneySwitcher(true);
+            setShowSeasonSetup(true);
           }}
-          onTakeBreak={() => setShowSeasonComplete(false)}
           onDismiss={() => setShowSeasonComplete(false)}
         />
       )}
