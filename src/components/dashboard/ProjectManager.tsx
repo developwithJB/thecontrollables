@@ -172,7 +172,7 @@ export function ProjectManager({ open, onClose, userId, seasonId }: ProjectManag
           ) : (
             <div className="rounded-lg border p-3 space-y-3">
               {!canAddProject && (
-                <p className="text-xs text-amber-600 dark:text-amber-400">5 active projects keeps focus sharp. Complete or pause one to add another.</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400">5 active chapters keeps focus sharp. Complete or pause one to add another.</p>
               )}
               <Input
                 value={newName}
