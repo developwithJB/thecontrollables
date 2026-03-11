@@ -533,6 +533,29 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
           totalCalories={plannedTotals.calories}
         />
       )}
+
+      {/* Collaborative Meal Plan Builder */}
+      <MealPlanBuilder
+        open={showBuilder}
+        onClose={() => setShowBuilder(false)}
+        userId={userId}
+        slotConfig={getSlotConfig()}
+        onConfirm={(meals) => {
+          updatePlanMeals.mutate({
+            planId: todayPlan?.id || "new",
+            meals,
+          });
+        }}
+        isGenerating={generatePlan.isPending}
+        onGenerate={async (config: any) => {
+          return new Promise((resolve, reject) => {
+            generatePlan.mutate(config, {
+              onSuccess: (data) => resolve(data),
+              onError: (err) => reject(err),
+            });
+          });
+        }}
+      />
     </>
   );
 }
