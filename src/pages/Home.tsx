@@ -506,6 +506,7 @@ export default function Home() {
         plannerCount={weekPlannerItems.filter((i: any) => i.scheduled_date === new Date().toLocaleDateString("sv-SE")).length}
         wearableConnected={wearableConnected}
         calendarConnected={calendarConnected}
+        trend={healthTrend}
       />
 
       {/* 2. Daily Briefing Card — single morning AI brief */}
