@@ -390,6 +390,7 @@ const Planner = () => {
               onSelect={setSelectedDate}
               itemsByDate={itemsByDate}
               activityByDate={activityByDate}
+              mealCountsByDate={weekMealCounts}
             />
             <div className="mt-4">
               <PlannerCalendarConnect

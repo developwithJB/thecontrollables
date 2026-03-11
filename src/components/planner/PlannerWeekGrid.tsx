@@ -85,6 +85,12 @@ export const PlannerWeekGrid = ({
                   </span>
                 </div>
               )}
+              {mealCount > 0 && (
+                <div className="flex items-center gap-0.5 min-w-0">
+                  <span className="text-[10px]">🍽️</span>
+                  <span className="text-[10px] text-muted-foreground">{mealCount} meals</span>
+                </div>
+              )}
               {(items.length + activity.length) > 4 && (
                 <span className="text-[10px] text-muted-foreground">
                   +{items.length + activity.length - 4} more

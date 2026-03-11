@@ -210,6 +210,7 @@ RULES:
 - Match the voice of ${controllableInfo.name}: ${controllableInfo.key === 'habit' ? 'direct, action-focused' : controllableInfo.key === 'awareness' ? 'observational, calm' : controllableInfo.key === 'perspective' ? 'wise, reframing' : controllableInfo.key === 'wellness' ? 'systems-focused' : 'design-focused'}
 - If WHOOP data is present, weave biometric signals into your observation and suggestion. Reference recovery, sleep quality, or strain when relevant.
 - If planner data is present, reference yesterday's completion and today's load.
+- If meal plan data is present, weave food context into your readiness read. Low recovery + unplanned meals = suggest quick simple options. Busy day + planned meals = acknowledge preparation. No meals planned = note food decisions are open.
 - No motivational fluff. Be real.
 - Format as 3 separate lines`;
 

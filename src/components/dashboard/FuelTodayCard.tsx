@@ -164,6 +164,24 @@ export function FuelTodayCard({ userId, isPaid }: FuelTodayCardProps) {
           </div>
         )}
 
+        {/* Grocery gap warning */}
+        {showGroceryGap && (
+          <div className="flex items-center gap-1.5 bg-accent/10 rounded-md px-2 py-1">
+            <AlertTriangle className="w-3 h-3 text-accent shrink-0" />
+            <p className="text-[10px] text-accent">
+              Ingredients not confirmed — generate your grocery list
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[10px] h-5 px-1.5 text-accent ml-auto"
+              onClick={() => navigate("/wellness")}
+            >
+              Open
+            </Button>
+          </div>
+        )}
+
         {/* Summary row */}
         <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1">

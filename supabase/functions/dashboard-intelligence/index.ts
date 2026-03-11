@@ -357,6 +357,11 @@ If WHOOP biometric data is present, factor it into your analysis:
 - If recovery > 66% and sleep > 85%, note strong readiness — good day for deep work or challenging tasks.
 - Weave biometric signals into pattern_detected, best_next_move, and recommended_actions when relevant.
 
+If meal planning data is present, factor nutrition into forecasts:
+- If meal planning coverage is low (< 3 days) and calendar is heavy, note food-related spending risk in forecast.
+- Low recovery + no meals planned = recommend quick supportive meals.
+- Strong meal planning supports body consistency, reduces spending, and lowers decision fatigue — acknowledge it.
+
 For the forecast fields:
 - snapshot_forecast: Project the remaining days of the current snapshot (7-day cycle) based on trajectory. What's likely to happen and what to watch for.
 - month_forecast: Project the current month's outcome based on patterns. Include likely completion rates and key risks.

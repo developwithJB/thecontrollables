@@ -112,6 +112,27 @@ export const PlannerDayView = ({
         )}
       </div>
 
+      {/* Meal slot summary */}
+      {meals.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3 text-[10px] text-muted-foreground">
+          {lunch ? (
+            <span>🍽️ Lunch: <span className="text-foreground/80 font-medium">{lunch.name}</span></span>
+          ) : isBusyDay ? (
+            <span className="text-accent italic">Light lunch suggested — busy day</span>
+          ) : null}
+          {dinner ? (
+            <span>🍽️ Dinner: <span className="text-foreground/80 font-medium">{dinner.name}</span></span>
+          ) : isBusyDay ? (
+            <span className="text-accent italic">Simple dinner suggested — busy day</span>
+          ) : null}
+        </div>
+      )}
+      {isBusyDay && hasEmptySlots && meals.length === 0 && (
+        <div className="flex items-center gap-1.5 mb-3 text-[10px] text-accent italic">
+          <UtensilsCrossed className="w-3 h-3" /> Busy day — keep meals light
+        </div>
+      )}
+
       {sortedItems.length === 0 && activityItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <CalendarOff className="h-10 w-10 text-muted-foreground/30 mb-3" />
