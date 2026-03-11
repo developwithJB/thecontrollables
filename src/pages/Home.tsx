@@ -586,7 +586,7 @@ export default function Home() {
         visitCount={dashboardVisitCount}
       />
       {pvaData.some(d => d.items.length > 0 || (d.health && d.health.recovery !== null)) && (
-        <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} syntheses={pvaSyntheses} />
+        <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} syntheses={pvaSyntheses} projects={activeProjects} />
       )}
 
       {/* Forecast + Recommendations */}
