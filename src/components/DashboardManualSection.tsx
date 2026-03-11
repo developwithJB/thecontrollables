@@ -53,7 +53,7 @@ const HIERARCHY_ITEMS: HierarchyItem[] = [
     title: "Calendar Block",
     subtitle: "When",
     icon: Calendar,
-    description: "When you're doing it. Blocks of time allocated to projects.",
+    description: "When you're doing it. Blocks of time allocated to chapters.",
   },
   {
     title: "Task",

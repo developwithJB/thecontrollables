@@ -30,7 +30,7 @@ const HIERARCHY_LEVELS = [
     icon: Calendar,
     title: "Calendar Block",
     subtitle: "When",
-    description: "When you're doing it. Blocks of time allocated to projects.",
+    description: "When you're doing it. Blocks of time allocated to chapters.",
     example: "Deep Work 9–11am",
   },
   {
