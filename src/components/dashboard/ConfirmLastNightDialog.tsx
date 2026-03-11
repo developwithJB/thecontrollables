@@ -13,7 +13,8 @@ import { useWellness } from "@/hooks/useWellness";
 import { useHealthData } from "@/hooks/useHealthData";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Activity, Moon as MoonIcon, Utensils, Wifi } from "lucide-react";
+import { Activity, Loader2, Moon as MoonIcon, RefreshCw, Utensils, Wifi } from "lucide-react";
+import { toast } from "sonner";
 
 const STEPS = [
   { key: "sleep", question: "How did you sleep last night?", emojis: ["😩", "😕", "😐", "🙂", "😴"], scale: "Terrible → Amazing" },
