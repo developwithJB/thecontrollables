@@ -466,31 +466,18 @@ export const usePlannerConnections = (userId?: string) => {
 
   const pushToGoogleCal = useMutation({
     mutationFn: async ({ connectionId, itemIds, date }: { connectionId: string; itemIds?: string[]; date?: string }) => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
+      const { data, error } = await supabase.functions.invoke("planner-gcal-push", {
+        body: {
+          connection_id: connectionId,
+          ...(itemIds ? { item_ids: itemIds } : {}),
+          ...(date ? { date } : {}),
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+      });
 
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/planner-gcal-push`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            connection_id: connectionId,
-            ...(itemIds ? { item_ids: itemIds } : {}),
-            ...(date ? { date } : {}),
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to push to Google Calendar");
-      }
-      return response.json();
+      if (error) throw new Error(error.message || "Failed to push to Google Calendar");
+      if (data?.error) throw new Error(data.error);
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["planner-items"] });

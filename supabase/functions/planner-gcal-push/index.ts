@@ -27,18 +27,21 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error("[GCAL-PUSH] Auth failed:", userError?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
     const body = await req.json();
-    const { connection_id, item_ids, date } = body;
+    const { connection_id, item_ids, date, timezone } = body;
+    const userTimezone = timezone || "America/New_York";
+
+    console.log("[GCAL-PUSH] User:", userId, "connection:", connection_id, "items:", item_ids, "date:", date, "tz:", userTimezone);
 
     if (!connection_id) {
       return new Response(JSON.stringify({ error: "connection_id required" }), {
@@ -139,24 +142,24 @@ serve(async (req) => {
           // Timed event
           eventBody.start = {
             dateTime: `${item.scheduled_date}T${item.start_time}`,
-            timeZone: "UTC",
+            timeZone: userTimezone,
           };
           eventBody.end = {
             dateTime: `${item.scheduled_date}T${item.end_time}`,
-            timeZone: "UTC",
+            timeZone: userTimezone,
           };
         } else if (item.start_time) {
           // Start time only — default 1 hour
           eventBody.start = {
             dateTime: `${item.scheduled_date}T${item.start_time}`,
-            timeZone: "UTC",
+            timeZone: userTimezone,
           };
           // Parse start_time and add 1 hour
           const [h, m, s] = item.start_time.split(":").map(Number);
           const endH = String(Math.min(h + 1, 23)).padStart(2, "0");
           eventBody.end = {
             dateTime: `${item.scheduled_date}T${endH}:${String(m).padStart(2, "0")}:${String(s || 0).padStart(2, "0")}`,
-            timeZone: "UTC",
+            timeZone: userTimezone,
           };
         } else {
           // All-day event
@@ -167,6 +170,7 @@ serve(async (req) => {
         // Check if already pushed (has external_event_id with same connection)
         if (item.external_event_id && item.connection_id === connection_id) {
           // PATCH existing event
+          console.log("[GCAL-PUSH] PATCH event:", item.external_event_id, "title:", item.title);
           const patchRes = await fetch(
             `https://www.googleapis.com/calendar/v3/calendars/primary/events/${item.external_event_id}`,
             {
@@ -181,11 +185,13 @@ serve(async (req) => {
 
           if (!patchRes.ok) {
             const errText = await patchRes.text();
+            console.error("[GCAL-PUSH] PATCH failed:", patchRes.status, errText);
             throw new Error(`PATCH failed [${patchRes.status}]: ${errText}`);
           }
           pushed++;
         } else {
           // POST new event
+          console.log("[GCAL-PUSH] POST new event:", item.title, JSON.stringify(eventBody));
           const postRes = await fetch(
             "https://www.googleapis.com/calendar/v3/calendars/primary/events",
             {
@@ -200,10 +206,12 @@ serve(async (req) => {
 
           if (!postRes.ok) {
             const errText = await postRes.text();
+            console.error("[GCAL-PUSH] POST failed:", postRes.status, errText);
             throw new Error(`POST failed [${postRes.status}]: ${errText}`);
           }
 
           const created = await postRes.json();
+          console.log("[GCAL-PUSH] Created event:", created.id);
 
           // Save external_event_id back to planner item
           await adminSupabase
