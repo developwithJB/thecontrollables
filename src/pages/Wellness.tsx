@@ -135,8 +135,18 @@ export default function Wellness() {
         />
       )}
 
-      {/* 4. Fuel Summary */}
-      <WellnessFuelSummary userId={user.id} />
+      {/* 4. Fuel Plan — primary nutrition module */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-lg">🍽️</span>
+          <h2 className="text-base font-semibold text-foreground">Fuel Plan</h2>
+        </div>
+        <MealPlanCard
+          userId={user.id}
+          isPaid={isPaid}
+          onUpgrade={() => startCheckout("fuel_plan")}
+        />
+      </div>
 
       {/* 5. Wellness Goals */}
       <WellnessGoalsCard userId={user.id} />

@@ -48,6 +48,7 @@ import { ForecastCard } from "@/components/dashboard/ForecastCard";
 import { SeasonComplete } from "@/components/SeasonComplete";
 import { CompactRingsRow } from "@/components/dashboard/CompactRingsRow";
 import { TodayReadinessBar } from "@/components/dashboard/TodayReadinessBar";
+import { FuelTodayCard } from "@/components/dashboard/FuelTodayCard";
 import {
   ResetProgressSkeleton,
 } from "@/components/dashboard/DashboardSkeletons";
