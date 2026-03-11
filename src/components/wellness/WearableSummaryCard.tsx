@@ -75,22 +75,9 @@ export function WearableSummaryCard({ userId, isPaid, onUpgrade }: WearableSumma
     return daysSinceConnect > WEARABLE_FREE_WINDOW_DAYS;
   }, [isPaid, connectedAt]);
 
-  const handleConnect = useCallback(async () => {
-    setConnecting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("wearable-oauth-start", {
-        body: { provider: "whoop", redirect_uri: window.location.origin },
-      });
-      if (error || !data?.url) {
-        toast.error(data?.error || "Failed to start wearable connection");
-        return;
-      }
-      window.location.href = data.url;
-    } catch {
-      toast.error("Failed to connect wearable");
-    } finally {
-      setConnecting(false);
-    }
+  const handleConnect = useCallback(() => {
+    // Navigate to integrations page so user can pick their provider
+    window.location.href = "/integrations";
   }, []);
 
   const handleSync = useCallback(async () => {
