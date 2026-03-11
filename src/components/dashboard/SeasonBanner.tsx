@@ -1,6 +1,13 @@
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Check, Zap, CalendarDays } from "lucide-react";
+import { Check, Zap, CalendarDays, MoreVertical, XCircle } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 interface SeasonSnapshot {
   id: string;
@@ -22,11 +29,12 @@ interface SeasonBannerProps {
   seasonName?: string | null;
   snapshots: SeasonSnapshot[];
   progress: SeasonProgress;
+  onCloseSeason?: () => void;
 }
 
 const WEEK_LABELS = ["Week 1", "Week 2", "Week 3", "Week 4"];
 
-export function SeasonBanner({ seasonName, snapshots, progress }: SeasonBannerProps) {
+export function SeasonBanner({ seasonName, snapshots, progress, onCloseSeason }: SeasonBannerProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: -8 }}
@@ -43,9 +51,26 @@ export function SeasonBanner({ seasonName, snapshots, progress }: SeasonBannerPr
                 {seasonName || "4-Week Season"}
               </span>
             </div>
-            <span className="text-xs text-muted-foreground">
-              Week {progress.weekNumber} of 4
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">
+                Week {progress.weekNumber} of 4
+              </span>
+              {onCloseSeason && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                      <MoreVertical className="w-3.5 h-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={onCloseSeason} className="text-destructive">
+                      <XCircle className="w-3.5 h-3.5 mr-2" />
+                      Close Season
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
           </div>
 
           {/* 4-segment progress bar */}
@@ -54,7 +79,6 @@ export function SeasonBanner({ seasonName, snapshots, progress }: SeasonBannerPr
               const snapshot = snapshots[i];
               const isCompleted = snapshot?.status === "completed";
               const isActive = snapshot && snapshot.status === "active";
-              const isFuture = !snapshot;
 
               return (
                 <div key={label} className="flex-1 relative">
