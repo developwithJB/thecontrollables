@@ -127,6 +127,10 @@ export default function Wellness() {
       )}
 
 
+      {/* Fuel Summary (read-only — planning lives in Planner) */}
+      <WellnessFuelSummary userId={user.id} />
+
+
       {/* Wellness Streak History */}
       {wellnessLogs.length > 0 && (
         <motion.div

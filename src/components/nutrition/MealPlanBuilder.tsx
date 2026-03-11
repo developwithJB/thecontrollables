@@ -180,6 +180,16 @@ export function MealPlanBuilder({
   };
 
   const handleSaveToLibrary = (meal: SwipeMeal) => {
+    saveRecipe.mutate({
+      name: meal.name,
+      description: meal.description,
+      emoji: meal.emoji,
+      meal_type: meal.mealType,
+      est_calories: meal.calories,
+      prep_minutes: meal.prepMinutes,
+      tags: meal.tags,
+      source: "swiper",
+    });
     addChat("satellite", `Saved ${meal.name} to your library! Let me find another option...`);
     generateForSlot(swapSlot || currentSlot);
   };

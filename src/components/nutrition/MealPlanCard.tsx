@@ -567,6 +567,9 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
           });
         }}
       />
+
+      {/* Recipe Library */}
+      <RecipeLibrary open={showLibrary} onOpenChange={setShowLibrary} userId={userId} />
     </>
   );
 }
