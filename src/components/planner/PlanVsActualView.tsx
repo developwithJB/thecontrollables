@@ -120,11 +120,13 @@ function computeProjectStats(
   const secondRate = secondHalf.length > 0 ? secondHalf.filter(i => i.status === "done").length / secondHalf.length : 0;
   const momentum: "up" | "down" | "stable" = secondRate > firstRate + 0.1 ? "up" : secondRate < firstRate - 0.1 ? "down" : "stable";
 
-  // Latest synthesis
+  // Latest synthesis — look up by date:projectId key first, fallback to date-only
   let latestSynthesis: string | null = null;
   for (let i = filteredDays.length - 1; i >= 0; i--) {
-    const key = format(filteredDays[i].date, "yyyy-MM-dd");
-    if (syntheses[key]) { latestSynthesis = syntheses[key]; break; }
+    const dateKey = format(filteredDays[i].date, "yyyy-MM-dd");
+    const projectKey = projectId ? `${dateKey}:${projectId}` : dateKey;
+    if (syntheses[projectKey]) { latestSynthesis = syntheses[projectKey]; break; }
+    if (syntheses[dateKey]) { latestSynthesis = syntheses[dateKey]; break; }
   }
 
   return {
