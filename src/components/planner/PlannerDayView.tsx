@@ -77,23 +77,29 @@ export const PlannerDayView = ({
 
   const todayLabel = isToday(date) ? "Today" : format(date, "EEEE, MMM d");
 
-  // Meal count for this day
+  // Meal details for this day
   const dateKey = format(date, "yyyy-MM-dd");
-  const { data: mealCount = 0 } = useQuery({
-    queryKey: ["meal-plan-count", userId, dateKey],
+  const { data: mealData } = useQuery({
+    queryKey: ["meal-plan-detail", userId, dateKey],
     queryFn: async () => {
-      if (!userId) return 0;
+      if (!userId) return null;
       const { data } = await supabase
         .from("meal_plans")
         .select("meals")
         .eq("user_id", userId)
         .eq("plan_date", dateKey)
         .maybeSingle();
-      return data ? ((data.meals as any[])?.length || 0) : 0;
+      return data ? ((data.meals as any[]) || []) : [];
     },
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
   });
+
+  const meals = mealData || [];
+  const lunch = meals.find((m: any) => m.meal_type === "lunch");
+  const dinner = meals.find((m: any) => m.meal_type === "dinner");
+  const isBusyDay = items.length >= 5;
+  const hasEmptySlots = !lunch || !dinner;
 
   return (
     <div className="flex-1 px-4 py-3">
