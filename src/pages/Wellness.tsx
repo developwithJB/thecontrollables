@@ -17,6 +17,8 @@ import { BrainBodyTracker } from "@/components/dashboard/BrainBodyTracker";
 import { WellnessGoalsCard } from "@/components/dashboard/WellnessGoalsCard";
 import { WearableSummaryCard } from "@/components/wellness/WearableSummaryCard";
 import { WearableTrendsCard } from "@/components/wellness/WearableTrendsCard";
+import { BodyReadinessCard } from "@/components/wellness/BodyReadinessCard";
+import { BodyStateGuidance } from "@/components/wellness/BodyStateGuidance";
 import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
 import { MealPlanBuilder } from "@/components/nutrition/MealPlanBuilder";
 import { useMealTracking, type MealSlotConfig } from "@/hooks/useMealTracking";
@@ -65,7 +67,7 @@ export default function Wellness() {
 
   const { isPaid, isLoading: entitlementsLoading, initiateCheckout } = useEntitlements(user.id);
   const { streak: wellnessStreak, logWellness, recentLogs: wellnessLogs } = useWellness(user.id);
-  const { isConnected: wearableConnected } = useHealthData(user.id);
+  const { isConnected: wearableConnected, latest: healthLatest, trend: healthTrend } = useHealthData(user.id);
   const { activeSession, isCompleted, isExpired } = useReset(user.id);
 
   const { data: allSessions = [] } = useQuery({
@@ -106,6 +108,16 @@ export default function Wellness() {
 
       {/* 1. Wearable Integration (primary) */}
       <WearableSummaryCard userId={user.id} isPaid={isPaid} onUpgrade={() => startCheckout("wearable_summary")} />
+
+      {/* 1b. Body Readiness Interpretation */}
+      {wearableConnected && healthLatest.recovery !== null && (
+        <BodyReadinessCard latest={healthLatest} trend={healthTrend} />
+      )}
+
+      {/* 1c. Subjective vs Objective Comparison */}
+      {wearableConnected && (
+        <BodyStateGuidance userId={user.id} latest={healthLatest} />
+      )}
 
       {/* 2. Wearable Trends */}
       <WearableTrendsCard userId={user.id} isPaid={isPaid} onUpgrade={() => startCheckout("wearable_trends")} />

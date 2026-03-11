@@ -33,6 +33,7 @@ import { QuickAddSheet } from "@/components/planner/QuickAddSheet";
 import { PlannerRoutineManager } from "@/components/planner/PlannerRoutineManager";
 import { PlannerCalendarConnect } from "@/components/planner/PlannerCalendarConnect";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
+import { PlannerBodyContext } from "@/components/planner/PlannerBodyContext";
 import { useHealthData } from "@/hooks/useHealthData";
 import { useDailySynthesis } from "@/hooks/useDailySynthesis";
 import { useProjects } from "@/hooks/useProjects";
@@ -111,7 +112,7 @@ const Planner = () => {
     usePlannerMutations();
   const { routines, createRoutine, deleteRoutine } = usePlannerRoutines(user.id);
   const { connections, startGoogleCalSync, triggerSync, pushToGoogleCal } = usePlannerConnections(user.id);
-  const { trend: healthTrend, isConnected: wearableConnected } = useHealthData(user.id);
+  const { trend: healthTrend, latest: healthLatest, isConnected: wearableConnected } = useHealthData(user.id);
   const { activeSeason } = useSeason(user.id);
   const { activeProjects } = useProjects(user.id, activeSeason?.id);
 
@@ -407,6 +408,10 @@ const Planner = () => {
         )}
 
         <div className={isMobile ? "flex-1 overflow-y-auto" : "w-[45%] overflow-y-auto"}>
+          {/* Recovery-aware planning context for today */}
+          {wearableConnected && isToday(selectedDate) && (
+            <PlannerBodyContext latest={healthLatest} trend={healthTrend} />
+          )}
           <PlannerDayView
             date={selectedDate}
             items={dayItems}

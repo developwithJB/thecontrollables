@@ -17,6 +17,7 @@ import { getDefaultCheckoutPlan } from "@/lib/featureFlags";
 import { canStartNewSnapshot, hasUsedFreeTrial } from "@/lib/entitlements";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useHealthData } from "@/hooks/useHealthData";
 
 import { DailyRings } from "@/components/dashboard/DailyRings";
 import { WeeklyRecapCard } from "@/components/dashboard/WeeklyRecapCard";
@@ -36,6 +37,7 @@ import { SnapshotReviewCard } from "@/components/dashboard/SnapshotReviewCard";
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
+import { GrowthBodyInsight } from "@/components/dashboard/GrowthBodyInsight";
 
 export default function Growth() {
   usePageViewTracking("Growth");
@@ -46,6 +48,7 @@ export default function Growth() {
   const { isPaid, initiateCheckout, isCheckingOut } = useEntitlements(user.id);
   const { currentBuild } = useBuildAssessment();
   const { rings, completedCount } = useDailyRings(user.id);
+  const { isConnected: wearableConnected, latest: healthLatest, trend: healthTrend } = useHealthData(user.id);
   const intelligence = useDashboardIntelligence(user.id, completedCount, rings);
   const {
     activeSession,
@@ -199,6 +202,13 @@ export default function Growth() {
 
       {/* 5 Daily Rings — the hero of Growth */}
       <DailyRings userId={user.id} />
+
+      {/* Body Intelligence — supporting layer */}
+      {wearableConnected && healthLatest.recovery !== null && (
+        <div className="max-w-sm mx-auto w-full">
+          <GrowthBodyInsight userId={user.id} latest={healthLatest} trend={healthTrend} />
+        </div>
+      )}
 
       {/* Circle */}
       {hasActiveSession && (

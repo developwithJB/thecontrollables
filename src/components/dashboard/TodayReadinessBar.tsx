@@ -8,6 +8,26 @@ interface TodayReadinessBarProps {
   plannerCount: number;
   wearableConnected: boolean;
   calendarConnected: boolean;
+  trend?: HealthMetrics[];
+}
+
+function getReadinessInterpretation(recovery: number | null, sleepMin: number | null, plannerCount: number, trend?: HealthMetrics[]): string | null {
+  if (recovery === null) return null;
+  const isHeavy = plannerCount > 5;
+  const sleepShort = sleepMin !== null && sleepMin < 360;
+
+  // Check strain streak
+  const strainElevated = trend && trend.slice(0, 3).filter(t => t.strain !== null && t.strain! > 14).length >= 2;
+
+  if (recovery < 34 && isHeavy) return "Low recovery + packed day — protect energy early and cut what you can.";
+  if (recovery < 34 && sleepShort) return "Low recovery and short sleep — simplify the day and recharge tonight.";
+  if (recovery < 34) return "Your body is undercharged. Keep the day light and protect downtime.";
+  if (recovery >= 67 && sleepMin && sleepMin >= 420 && !isHeavy) return "Strong sleep + open day — ideal for deep, focused work.";
+  if (recovery >= 67 && isHeavy) return "Good recovery for a demanding day. Use the charge wisely.";
+  if (recovery >= 67) return "Strong readiness today. Lean into what matters most.";
+  if (sleepShort) return "Moderate recovery, short sleep — front-load important work.";
+  if (strainElevated) return "Strain has been elevated — pace yourself and build in recovery.";
+  return "Steady day ahead. Stay intentional with energy.";
 }
 
 function formatSleep(minutes: number): string {
@@ -30,7 +50,7 @@ function getDayType(recovery: number | null, plannerCount: number): string {
   return isHeavy ? "Caution" : "Conserve";
 }
 
-export function TodayReadinessBar({ health, plannerCount, wearableConnected, calendarConnected }: TodayReadinessBarProps) {
+export function TodayReadinessBar({ health, plannerCount, wearableConnected, calendarConnected, trend }: TodayReadinessBarProps) {
   const hasAnyData = wearableConnected || calendarConnected;
 
   if (!hasAnyData) {
@@ -52,12 +72,13 @@ export function TodayReadinessBar({ health, plannerCount, wearableConnected, cal
   }
 
   const dayType = getDayType(health?.recovery ?? null, plannerCount);
+  const interpretation = wearableConnected ? getReadinessInterpretation(health?.recovery ?? null, health?.sleepMinutes ?? null, plannerCount, trend) : null;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-lg border border-border/40 bg-card/60 px-3 py-2.5"
+      className="rounded-lg border border-border/40 bg-card/60 px-3 py-2.5 space-y-1.5"
     >
       <div className="flex items-center gap-3 overflow-x-auto scrollbar-none">
         {/* Recovery */}
@@ -118,6 +139,11 @@ export function TodayReadinessBar({ health, plannerCount, wearableConnected, cal
           </>
         )}
       </div>
+
+      {/* Interpretation line */}
+      {interpretation && (
+        <p className="text-[11px] text-muted-foreground leading-snug pl-0.5">{interpretation}</p>
+      )}
     </motion.div>
   );
 }

@@ -1,101 +1,164 @@
 
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-# Phase 2 Wearable Intelligence Layer
+## Overview
 
-## Current State
-- **Body page**: Shows raw `WearableSummaryCard` (numbers only) + `WearableTrendsCard` (sparklines). No interpretation or guidance.
-- **Today page**: `TodayReadinessBar` shows recovery/sleep numbers but no interpretation. `DailyBriefingCard` gets wearable data server-side but the client doesn't show body-state interpretation beyond the AI text.
-- **Plan page**: Has `useHealthData` import but only uses it for PvA overlay. No recovery-aware planning recommendations.
-- **Growth page**: No wearable data used at all.
-- **AI Briefing edge function**: Already fetches WHOOP data + health_sync_data and includes in prompts. Already solid.
-- **Dashboard Intelligence edge function**: Fetches health data for synthesis but doesn't produce body-state interpretations.
-- **`useHealthData` hook**: Returns `latest` + `trend` (7 days) — this is the foundation.
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-## What to Build
+---
 
-### 1. New Component: `BodyReadinessCard` — Body Page Interpretation Layer
-**File:** `src/components/wellness/BodyReadinessCard.tsx`
+## Part 1: AI Insight Engine
 
-A card that sits between `WearableSummaryCard` and `WearableTrendsCard` on the Body page. It takes `useHealthData` output and produces:
+### New Edge Function: `admin-insights`
 
-- **Readiness headline**: e.g., "Your body is undercharged today" / "Strong recovery — good day for effort"
-- **Recovery interpretation**: "Recovery is low at 42%. Prioritize energy protection."
-- **Sleep interpretation**: "6h 12m sleep — below your 7-day average of 7h 20m"
-- **Strain interpretation**: "Strain has been elevated for 3 days. Recovery behaviors matter tonight."
-- **Body recommendation**: One actionable line based on the combination
+**File: `supabase/functions/admin-insights/index.ts`**
 
-All logic is client-side, rule-based (no AI call needed):
-- Recovery >= 67: "Strong recovery"
-- Recovery 34-66: "Moderate recovery"  
-- Recovery < 34: "Low recovery"
-- Sleep trend declining (avg last 3 < avg last 7): "Sleep debt building"
-- Strain elevated 3+ consecutive days above 14: "Elevated strain pattern"
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
 
-### 2. New Component: `BodyStateGuidance` — Subjective vs Objective
-**File:** `src/components/wellness/BodyStateGuidance.tsx`
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
 
-Compact card on Body page that compares the user's latest manual wellness log (from `wellness_logs`) with wearable data. Shows:
-- "You reported high energy, but recovery is low — your body may need more than you feel"
-- "Your body and self-report are aligned today"
-- "Your body looks more recovered than you feel"
+[structured data blob]
 
-Query: latest `wellness_logs` entry for today vs `useHealthData.latest`.
+Return insights as structured tool output.
+```
 
-### 3. Upgrade Body Page (`src/pages/Wellness.tsx`)
-Insert `BodyReadinessCard` after `WearableSummaryCard` and `BodyStateGuidance` after that, before `WearableTrendsCard`. Only render when wearable is connected.
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-### 4. New Component: `PlannerBodyContext` — Planner Recovery Recommendation
-**File:** `src/components/planner/PlannerBodyContext.tsx`
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-Small banner at the top of PlannerDayView (when wearable is connected) showing a single recovery-aware planning tip:
-- Low recovery: "Low recovery today — reduce overload and add buffer time"
-- Poor sleep: "Short sleep — consider moving deep work earlier"
-- Strong readiness: "Strong readiness — good day for focused blocks"
-- Elevated strain: "Elevated strain — consider lighter effort windows"
+### New Admin Component: AI Insights Panel
 
-### 5. Add PlannerBodyContext to Planner (`src/pages/Planner.tsx`)
-Pass `useHealthData` latest to the day view area. Render `PlannerBodyContext` above the day items when `isToday(selectedDate)` and wearable is connected.
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-### 6. New Component: `GrowthBodyInsight` — Growth Page Supporting Layer  
-**File:** `src/components/dashboard/GrowthBodyInsight.tsx`
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-Compact card on Growth page showing one body-aware growth insight:
-- Compare latest Notice check-in energy (from `wellness_logs` or `circuit_checks`) with wearable recovery
-- Show pattern insights: "Your best Growth days tend to follow stronger sleep" (derived from 7-day trend)
-- Support Charge ring with passive body data context
+### Integration into Admin.tsx
 
-### 7. Add GrowthBodyInsight to Growth Page (`src/pages/Growth.tsx`)
-Import `useHealthData`, render `GrowthBodyInsight` after `DailyRings` when wearable is connected.
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
-### 8. Enhance TodayReadinessBar — Add Interpretation
-**File:** `src/components/dashboard/TodayReadinessBar.tsx`
+---
 
-Add a second line below the metrics row: a single interpretation sentence using the same rule-based logic as `BodyReadinessCard`. Examples:
-- "Low recovery + packed day — protect energy early"
-- "Strong sleep + moderate load — good day for focused work"
+## Part 2: Enhanced Action Center
 
-This turns the readiness bar from data display into data interpretation.
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
 
-## Files to Create
-| File | Purpose |
-|---|---|
-| `src/components/wellness/BodyReadinessCard.tsx` | Body page: interpret recovery, sleep, strain into guidance |
-| `src/components/wellness/BodyStateGuidance.tsx` | Body page: subjective vs objective comparison |
-| `src/components/planner/PlannerBodyContext.tsx` | Planner: recovery-aware planning tip |
-| `src/components/dashboard/GrowthBodyInsight.tsx` | Growth: body-aware growth insight |
+Replace the three "Coming soon" cards with working functionality:
 
-## Files to Modify
-| File | Change |
-|---|---|
-| `src/pages/Wellness.tsx` | Add BodyReadinessCard + BodyStateGuidance after WearableSummaryCard |
-| `src/pages/Planner.tsx` | Add PlannerBodyContext above day items for today |
-| `src/pages/Growth.tsx` | Import useHealthData, add GrowthBodyInsight after DailyRings |
-| `src/components/dashboard/TodayReadinessBar.tsx` | Add interpretation line below metrics |
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
 
-## What Does NOT Change
-- No database changes — all interpretation is client-side rule-based using existing `health_sync_data`
-- No edge function changes — AI briefing already uses wearable data well
-- `useHealthData` hook stays the same — it already provides everything needed
-- `WearableSummaryCard` and `WearableTrendsCard` stay as-is (numbers + sparklines)
-- All entitlement gating stays the same
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
 
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
+
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
+
+---
+
+## Part 3: Landing Page Updates
+
+**File: `src/pages/Landing.tsx`**
+
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+
+**File: `src/components/landing/FeatureGrid.tsx`**
+
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+
+**File: `src/components/landing/HowItWorksSection.tsx`**
+
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
