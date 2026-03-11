@@ -110,7 +110,6 @@ export function useDailyOSPlan(userId: string | null) {
 export function useUpdateDailyOSInteraction() {
   const queryClient = useQueryClient();
   const today = new Date().toLocaleDateString("sv-SE");
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   return useMutation({
     mutationFn: async ({ planId, itemId, state }: { planId: string; itemId: string; state: InteractionState }) => {
@@ -132,20 +131,28 @@ export function useUpdateDailyOSInteraction() {
       return updated;
     },
     onMutate: async ({ itemId, state }) => {
-      // Optimistic update
+      // Cancel and optimistically update ALL matching queries
       await queryClient.cancelQueries({ queryKey: [QUERY_KEY] });
-      const prev = queryClient.getQueryData<DailyOSResponse>([QUERY_KEY]);
-      if (prev) {
-        queryClient.setQueryData<DailyOSResponse>([QUERY_KEY], {
-          ...prev,
-          interactions: { ...prev.interactions, [itemId]: state },
-        });
+
+      // Find the active query data by partial key match
+      const queries = queryClient.getQueriesData<DailyOSResponse>({ queryKey: [QUERY_KEY] });
+      const snapshots: { queryKey: readonly unknown[]; data: DailyOSResponse }[] = [];
+
+      for (const [queryKey, data] of queries) {
+        if (data) {
+          snapshots.push({ queryKey, data });
+          queryClient.setQueryData<DailyOSResponse>(queryKey, {
+            ...data,
+            interactions: { ...data.interactions, [itemId]: state },
+          });
+        }
       }
-      return { prev };
+      return { snapshots };
     },
     onError: (_err, _vars, ctx) => {
-      if (ctx?.prev) {
-        queryClient.setQueryData([QUERY_KEY], ctx.prev);
+      // Rollback all snapshots
+      for (const { queryKey, data } of ctx?.snapshots ?? []) {
+        queryClient.setQueryData(queryKey, data);
       }
     },
   });
