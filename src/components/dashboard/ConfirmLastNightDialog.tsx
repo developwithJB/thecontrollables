@@ -100,9 +100,26 @@ export function ConfirmLastNightDialog({ open, onOpenChange, userId }: ConfirmLa
     }
   }, [step, ratings, notesStep]);
 
+  const handleFreshSync = useCallback(async () => {
+    if (!healthData.provider) return;
+    setSyncing(true);
+    try {
+      const { error } = await supabase.functions.invoke("wearable-sync", {
+        body: { provider: healthData.provider },
+      });
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ["health-data-trend", userId] });
+      await queryClient.invalidateQueries({ queryKey: ["wearable-connection-any", userId] });
+      setWearableSynced(true);
+      toast.success("Wearable data synced");
+    } catch (err) {
+      console.error("Fresh sync failed:", err);
+      toast.error("Sync failed — you can still rate manually");
+    }
+    setSyncing(false);
+  }, [healthData.provider, queryClient, userId]);
+
   const handleWearableContinue = useCallback(() => {
-    setWearableSynced(true);
-    // Pre-fill sleep and movement from wearable, user can override
     setStep(sleepStep);
   }, [sleepStep]);
 
