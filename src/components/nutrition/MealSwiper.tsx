@@ -60,6 +60,16 @@ export const MealSwiper = forwardRef<MealSwiperHandle, MealSwiperProps>(({
     y.set(0);
   }, [x, y]);
 
+  useImperativeHandle(ref, () => ({
+    advance: handleNext,
+  }), [handleNext]);
+
+  const scheduleAdvance = useCallback(() => {
+    if (!deferAdvance) {
+      setTimeout(handleNext, 200);
+    }
+  }, [deferAdvance, handleNext]);
+
   const handleDragEnd = useCallback(
     (_: any, info: PanInfo) => {
       if (!currentMeal) return;
@@ -67,22 +77,22 @@ export const MealSwiper = forwardRef<MealSwiperHandle, MealSwiperProps>(({
       if (info.offset.x > SWIPE_THRESHOLD) {
         setExitDirection("right");
         onAccept(currentMeal);
-        setTimeout(handleNext, 200);
+        scheduleAdvance();
       } else if (info.offset.x < -SWIPE_THRESHOLD) {
         setExitDirection("left");
         onReject(currentMeal);
-        setTimeout(handleNext, 200);
+        scheduleAdvance();
       } else if (info.offset.y < -SWIPE_THRESHOLD) {
         setExitDirection("up");
         onSaveToLibrary(currentMeal);
-        setTimeout(handleNext, 200);
+        scheduleAdvance();
       } else {
         // Snap back
         x.set(0);
         y.set(0);
       }
     },
-    [currentMeal, onAccept, onReject, onSaveToLibrary, handleNext, x, y]
+    [currentMeal, onAccept, onReject, onSaveToLibrary, scheduleAdvance, x, y]
   );
 
   if (!currentMeal || currentIndex >= meals.length) {
