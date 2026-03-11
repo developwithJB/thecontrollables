@@ -185,6 +185,34 @@ export default function Home() {
   const { rings, completedCount } = useDailyRings(user.id);
   const { data: intelligenceData } = useDashboardIntelligence(user.id, completedCount, rings);
 
+  // Plan vs Actual data for dashboard
+  const weekRange = useMemo(() => getWeekRange(new Date()), []);
+  const { data: weekPlannerItems = [] } = usePlannerItems(weekRange.start, weekRange.end, user.id);
+  const { trend: healthTrend } = useHealthData(user.id);
+  
+  const pvaData = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const { format: fmtDate, isBefore, isToday: isTodayFn } = require("date-fns");
+    return weekRange.days.map((date: Date) => {
+      const key = fmtDate(date, "yyyy-MM-dd");
+      const dayItems = weekPlannerItems.filter((i: any) => i.scheduled_date === key);
+      const isPast = isBefore(date, today) && !isTodayFn(date);
+      const healthForDay = healthTrend.find(h => h.date === key) ?? null;
+      return {
+        date,
+        items: dayItems.map((item: any) => {
+          let status: "done" | "partial" | "missed" | "planned" = "planned";
+          if (item.status === "done") status = "done";
+          else if (item.status === "skipped") status = "partial";
+          else if (isPast) status = "missed";
+          return { id: item.id, title: item.title, status, type: item.item_type };
+        }),
+        health: healthForDay,
+      };
+    });
+  }, [weekRange.days, weekPlannerItems, healthTrend]);
+
   const [showSeasonComplete, setShowSeasonComplete] = useState(false);
   useEffect(() => {
     if (shouldShowSeasonComplete) { setShowSeasonComplete(true); completeSeason(); }
