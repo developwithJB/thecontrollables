@@ -320,7 +320,7 @@ const Planner = () => {
           <MealPlanCard
             userId={user.id}
             isPaid={isPaid}
-            onUpgrade={() => initiateCheckout("plus_monthly", { source: "planner_fuel_check" })}
+            onUpgrade={() => initiateCheckout("plus", { source: "planner_fuel_check" })}
           />
         </div>
       )}
