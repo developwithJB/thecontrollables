@@ -39,6 +39,7 @@ import { useDailySynthesis } from "@/hooks/useDailySynthesis";
 import { analyzeCalendar } from "@/lib/calendarIntelligence";
 import { getFuelIntelligence } from "@/lib/fuelIntelligence";
 import { useMealTracking } from "@/hooks/useMealTracking";
+import { useWeeklyReview } from "@/hooks/useWeeklyReview";
 
 // Dashboard modules
 import { SnapshotSelector } from "@/components/dashboard/SnapshotSelector";
