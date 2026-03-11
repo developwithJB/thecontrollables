@@ -135,18 +135,18 @@ export function GreetingBanner({
             </div>
           )}
 
-          {/* Mission indicator - clickable with tooltip */}
-          {missionTitle && (
+          {/* Season / Direction indicator */}
+          {(seasonName || missionTitle) && (
             <button
-              onClick={onMissionClick}
+              onClick={seasonName ? onSeasonClick : onMissionClick}
               className="flex items-center gap-1.5 hover:bg-primary/10 px-2 py-1 -mx-1 rounded-lg transition-colors group"
-              title={`Direction: ${missionTitle}`}
+              title={seasonName ? `Season: ${seasonName}` : `Direction: ${missionTitle}`}
             >
               <div className="p-1 rounded-lg bg-primary/10">
-                <Target className="w-4 h-4 text-primary" />
+                <Orbit className="w-4 h-4 text-primary" />
               </div>
-              <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                Mission
+              <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors truncate max-w-[120px]">
+                {seasonName || missionTitle}
               </span>
             </button>
           )}

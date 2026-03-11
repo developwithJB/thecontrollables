@@ -245,7 +245,7 @@ export function DashboardManualSection() {
         </div>
         
         <p className="text-xs text-muted-foreground text-center">
-          You don't manage all three at once. Just focus on today.
+          Season sets the arc. Projects hold your intent. The rest flows from there.
         </p>
       </div>
 

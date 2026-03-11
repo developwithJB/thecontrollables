@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Target, Camera, ArrowRight } from "lucide-react";
+import { Orbit, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HierarchyExplainer } from "@/components/dashboard/HierarchyExplainer";
 
@@ -24,14 +24,14 @@ export function OnboardingMissionReveal({
       className="min-h-screen flex flex-col items-center justify-center px-6 py-12"
     >
       <div className="max-w-sm w-full text-center">
-        {/* Mission Icon */}
+        {/* Season Icon */}
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.1, type: "spring" }}
           className="mx-auto mb-6 p-4 rounded-2xl bg-primary/10 w-fit"
         >
-          <Target className="w-10 h-10 text-primary" />
+          <Orbit className="w-10 h-10 text-primary" />
         </motion.div>
 
         {/* Title */}
@@ -41,10 +41,10 @@ export function OnboardingMissionReveal({
           transition={{ delay: 0.2 }}
           className="font-display text-2xl font-semibold text-foreground mb-2"
         >
-          Your Direction
+          Your Season Direction
         </motion.h1>
 
-        {/* Mission Title */}
+        {/* Season / Mission Title */}
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -62,13 +62,13 @@ export function OnboardingMissionReveal({
           className="space-y-3 mb-8"
         >
           <p className="text-sm text-muted-foreground">
-            This is your north star. You live under it — you don't complete it.
+            This is your north star for this season. Projects, tasks, and daily actions all flow from here.
           </p>
-          
-          {/* Connection to Snapshot */}
+
+          {/* Connection to first Snapshot */}
           <div className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-muted/50">
             <div className="p-1.5 rounded-lg bg-primary/10">
-              <Target className="w-3.5 h-3.5 text-primary" />
+              <Orbit className="w-3.5 h-3.5 text-primary" />
             </div>
             <span className="text-xs text-muted-foreground">guides</span>
             <div className="p-1.5 rounded-lg bg-muted">
@@ -78,7 +78,7 @@ export function OnboardingMissionReveal({
           </div>
 
           <p className="text-xs text-muted-foreground/70">
-            Your Snapshot serves your Mission. You can change it anytime.
+            Your Snapshot serves your Season. You can change it anytime.
           </p>
         </motion.div>
 
@@ -90,7 +90,7 @@ export function OnboardingMissionReveal({
           className="mb-8 p-4 rounded-xl bg-card border border-border"
         >
           <p className="text-xs font-medium text-muted-foreground mb-3">How it works:</p>
-          <HierarchyExplainer variant="compact" highlighted="mission" />
+          <HierarchyExplainer variant="compact" highlighted="season" />
         </motion.div>
 
         {/* CTA */}

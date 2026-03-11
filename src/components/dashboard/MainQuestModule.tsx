@@ -146,7 +146,7 @@ export function MainQuestModule({
             
             {/* Hierarchy Visual */}
             <div className="py-2 border-b border-border">
-              <HierarchyExplainer variant="compact" highlighted="mission" />
+              <HierarchyExplainer variant="compact" highlighted="season" />
             </div>
             
             <div className="space-y-4 pt-2">

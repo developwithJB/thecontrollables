@@ -191,7 +191,7 @@ export function ProjectManager({ open, onClose, userId, seasonId }: ProjectManag
                 ))}
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {CONTROLLABLES.map(c => (
+                {CONTROLLABLE_LIST.map(c => (
                   <button key={c.type} onClick={() => setNewControllable(c.type)} className={`text-xs px-2 py-1 rounded-full border ${newControllable === c.type ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}>
                     {c.emoji} {c.label}
                   </button>

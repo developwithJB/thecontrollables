@@ -246,13 +246,13 @@ export function SeasonSetup({ open, onClose, userId, onStartSeason, onCreateProj
                 {/* Controllable tag */}
                 <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Controllable</label>
                 <div className="flex flex-wrap gap-1.5">
-                  {CONTROLLABLES.map(c => (
+                  {CONTROLLABLE_LIST.map(c => (
                     <button
                       key={c.type}
                       onClick={() => setProjectControllable(c.type as ControllableFocus)}
                       className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${projectControllable === c.type ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
                     >
-                      {c.emoji} {c.title}
+                      {c.emoji} {c.label}
                     </button>
                   ))}
                 </div>

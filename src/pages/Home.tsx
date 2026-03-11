@@ -528,8 +528,8 @@ export default function Home() {
       />
 
 
-      {/* Main Quest - only show when no active quest */}
-      {dashboardLoading ? <MainQuestSkeleton /> : !activeQuest && (
+      {/* Main Quest - only show when no active season AND no active quest */}
+      {dashboardLoading ? <MainQuestSkeleton /> : !activeQuest && !activeSeason && (
         <MainQuestModule
           activeQuest={activeQuest}
           onCreateQuest={handleCreateQuest}
