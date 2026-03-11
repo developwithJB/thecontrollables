@@ -40,11 +40,21 @@ function getRecoveryBg(score: number | null | undefined) {
   return "bg-red-500/10";
 }
 
-function formatMinutes(mins: number | null | undefined): string {
-  if (!mins) return "--";
+function formatMinutes(mins: number | null | undefined): string | null {
+  if (mins == null) return null;
   const hours = Math.floor(mins / 60);
   const m = mins % 60;
   return `${hours}h ${m}m`;
+}
+
+function MetricValue({ value, syncing, className }: { value: ReactNode | null; syncing: boolean; className?: string }) {
+  if (syncing && value == null) {
+    return <Skeleton className="h-7 w-16 mx-auto rounded-md" />;
+  }
+  if (value == null) {
+    return <p className="text-[10px] text-muted-foreground leading-tight mt-1">Awaiting today's data</p>;
+  }
+  return <p className={`text-xl font-bold ${className ?? ""}`}>{value}</p>;
 }
 
 export function WearableSummaryCard({ userId, isPaid, onUpgrade }: WearableSummaryCardProps) {
