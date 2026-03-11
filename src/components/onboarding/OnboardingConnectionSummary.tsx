@@ -73,7 +73,7 @@ export function OnboardingConnectionSummary({
                 <div className="flex items-center gap-2 px-4 py-3 text-left">
                   {isConnected ? (
                     <>
-                      <Check className="h-4 w-4 shrink-0 text-green-500" />
+                      <Check className="h-4 w-4 shrink-0 text-primary" />
                       <span className="text-sm font-medium text-foreground">
                         {label}
                       </span>
