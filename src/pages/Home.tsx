@@ -568,6 +568,11 @@ export default function Home() {
       <CompactRingsRow userId={user.id} />
 
       {/* Plan vs Actual */}
+      <FirstDashboardBanner
+        calendarConnected={calendarConnected}
+        wearableConnected={wearableConnected}
+        visitCount={dashboardVisitCount}
+      />
       {pvaData.some(d => d.items.length > 0 || (d.health && d.health.recovery !== null)) && (
         <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} syntheses={pvaSyntheses} />
       )}
