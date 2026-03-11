@@ -178,6 +178,7 @@ export function MealPlanBuilder({
 
   const handleReject = (meal: SwipeMeal) => {
     addChat("satellite", "No worries, let me find something else...");
+    setRejectedNames((prev) => [...prev, meal.name]);
     // Generate another suggestion for the same slot
     generateForSlot(swapSlot || currentSlot);
   };
