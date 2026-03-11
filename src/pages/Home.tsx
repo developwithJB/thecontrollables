@@ -550,7 +550,7 @@ export default function Home() {
 
       {/* Plan vs Actual */}
       {pvaData.some(d => d.items.length > 0 || (d.health && d.health.recovery !== null)) && (
-        <PlanVsActualView days={pvaData} view="week" />
+        <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} />
       )}
 
       {/* Forecast + Recommendations */}

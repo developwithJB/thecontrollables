@@ -300,7 +300,7 @@ const Planner = () => {
       {/* Plan vs Actual overlay */}
       {showPvA && (
         <div className="px-4 py-3 border-b border-border bg-card/50">
-          <PlanVsActualView days={pvaData} view="week" />
+          <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} />
         </div>
       )}
 
