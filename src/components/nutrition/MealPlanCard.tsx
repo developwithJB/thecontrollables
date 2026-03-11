@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 
 const wellnessTheme = getControllableTheme("wellness");
 import { Button } from "@/components/ui/button";
-import { useMealTracking, type MealSlotConfig } from "@/hooks/useMealTracking";
+import { useMealTracking, type MealSlotConfig, type MealPlanMeal } from "@/hooks/useMealTracking";
 import { useMealPreferences } from "@/hooks/useMealPreferences";
 import { MealTracker } from "./MealTracker";
 
