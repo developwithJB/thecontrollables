@@ -1,19 +1,34 @@
 import { motion } from "framer-motion";
-import { Brain } from "lucide-react";
+import { Brain, Calendar } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import type { HealthMetrics } from "@/hooks/useHealthData";
+import type { CalendarIntelligence } from "@/lib/calendarIntelligence";
 
 interface GrowthBodyInsightProps {
   userId: string;
   latest: HealthMetrics;
   trend: HealthMetrics[];
+  calendarIntel?: CalendarIntelligence | null;
 }
 
-function deriveInsight(latest: HealthMetrics, trend: HealthMetrics[], selfEnergy: number | null): string | null {
+function deriveInsight(latest: HealthMetrics, trend: HealthMetrics[], selfEnergy: number | null, calendarIntel?: CalendarIntelligence | null): string | null {
   const recovery = latest.recovery;
+  const isHeavy = calendarIntel && (calendarIntel.dayType === "heavy" || calendarIntel.dayType === "admin_heavy");
+  const isFragmented = calendarIntel?.dayType === "fragmented";
+
+  // Calendar-aware growth insights (highest priority when schedule is demanding)
+  if (isHeavy && recovery !== null && recovery < 40) {
+    return "Low recovery + dense schedule — keep growth actions small and achievable today.";
+  }
+  if (isFragmented) {
+    return "High context-switching may reduce reflection quality — find one quiet moment for your rings.";
+  }
+  if (isHeavy) {
+    return "Dense schedule today — simplify growth actions. Smaller reps still count.";
+  }
 
   // Mismatch detection
   if (selfEnergy !== null && recovery !== null) {
@@ -43,7 +58,7 @@ function deriveInsight(latest: HealthMetrics, trend: HealthMetrics[], selfEnergy
   return null;
 }
 
-export function GrowthBodyInsight({ userId, latest, trend }: GrowthBodyInsightProps) {
+export function GrowthBodyInsight({ userId, latest, trend, calendarIntel }: GrowthBodyInsightProps) {
   const today = format(new Date(), "yyyy-MM-dd");
 
   const { data: wellnessLog } = useQuery({
@@ -65,16 +80,24 @@ export function GrowthBodyInsight({ userId, latest, trend }: GrowthBodyInsightPr
     ? Math.round(((wellnessLog.sleep_rating ?? 3) + (wellnessLog.movement_rating ?? 3) + (wellnessLog.nutrition_rating ?? 3)) / 3)
     : null;
 
-  const insight = deriveInsight(latest, trend, selfEnergy);
+  const insight = deriveInsight(latest, trend, selfEnergy, calendarIntel);
   if (!insight) return null;
+
+  const isCalendarInsight = calendarIntel && (calendarIntel.dayType === "heavy" || calendarIntel.dayType === "admin_heavy" || calendarIntel.dayType === "fragmented");
 
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
       <Card className="border-border/40 bg-card/60">
         <CardContent className="p-3 flex items-start gap-2.5">
-          <Brain className="w-4 h-4 mt-0.5 shrink-0 text-primary/70" />
+          {isCalendarInsight ? (
+            <Calendar className="w-4 h-4 mt-0.5 shrink-0 text-primary/70" />
+          ) : (
+            <Brain className="w-4 h-4 mt-0.5 shrink-0 text-primary/70" />
+          )}
           <div>
-            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Body Intelligence</p>
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-0.5">
+              {isCalendarInsight ? "Schedule Intelligence" : "Body Intelligence"}
+            </p>
             <p className="text-xs text-foreground/90 leading-relaxed">{insight}</p>
           </div>
         </CardContent>

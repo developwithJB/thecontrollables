@@ -1,127 +1,164 @@
 
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-# Phase 2: Calendar Intelligence Layer
+## Overview
 
-## Current State
-- **Planner items** have `start_time`, `end_time`, `item_type` (task/time_block/routine_instance/external_event) — enough to derive meeting density, focus gaps, and context-switching load
-- **TodayReadinessBar** already shows planner count + body state interpretation — uses `plannerCount` as a simple number
-- **PlannerBodyContext** shows recovery-aware tips — no calendar shape awareness
-- **GrowthBodyInsight** uses wearable data only — no schedule context
-- **GroceryRhythmCard** has meal count — no calendar load context
-- **AI Briefing** sends `todayPlannerRes.data.length` — just a count, no time structure
-- **Dashboard Intelligence** sends `plannerItems` as title/status — no time-based analysis
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-## What to Build
+---
 
-### 1. Calendar Intelligence Utility (`src/lib/calendarIntelligence.ts`)
-Pure function library that takes today's `PlannerItem[]` and produces structured signals. All downstream components use this single source of truth.
+## Part 1: AI Insight Engine
 
-**Inputs**: array of PlannerItem with start_time/end_time  
-**Outputs**:
-```typescript
-interface CalendarIntelligence {
-  dayType: "heavy" | "light" | "focus" | "fragmented" | "recovery_window" | "admin_heavy" | "moderate";
-  meetingCount: number;
-  meetingMinutes: number;
-  focusBlocks: { start: string; end: string; minutes: number }[];
-  longestFocusBlock: number; // minutes
-  contextSwitches: number;
-  overloadedPeriod: "morning" | "afternoon" | "evening" | null;
-  interpretation: string; // human-readable summary
-  plannerTip: string; // actionable recommendation
-}
+### New Edge Function: `admin-insights`
+
+**File: `supabase/functions/admin-insights/index.ts`**
+
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
+
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
+
+[structured data blob]
+
+Return insights as structured tool output.
 ```
 
-Rules (all client-side):
-- Meetings = items with both start_time and end_time (external_event or time_block)
-- Focus blocks = gaps ≥ 45 min between meetings
-- Context switches = number of meeting-to-meeting transitions with < 15 min gap
-- Fragmented = 4+ context switches
-- Heavy = 4+ hours of meetings
-- Overloaded period = AM/PM half with > 60% of meetings
-- Focus day = < 2 meetings, longest focus block > 2h
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-### 2. Enhance PlannerBodyContext — Add Calendar Shape
-**File**: `src/components/planner/PlannerBodyContext.tsx`
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-Add `calendarIntel` as optional prop. Combine body + calendar into a single tip:
-- Low recovery + heavy day → "Low recovery on a packed day — cut what you can and protect breaks."
-- Strong recovery + focus day → "Strong readiness + open schedule — ideal for deep work."
-- Fragmented day → "High context-switching risk today — batch similar tasks."
-- Overloaded afternoon → "Afternoon is dense with meetings — front-load focus work."
+### New Admin Component: AI Insights Panel
 
-### 3. New Component: `PlannerDayLoadSummary`
-**File**: `src/components/planner/PlannerDayLoadSummary.tsx`
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-Compact card at top of PlannerDayView showing:
-- Day type badge (Heavy / Light / Focus / Fragmented)
-- Meeting count + total meeting time
-- Best focus window
-- Overload warning if applicable
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-Only renders when the day has timed items.
+### Integration into Admin.tsx
 
-### 4. Enhance TodayReadinessBar — Calendar Intelligence
-**File**: `src/components/dashboard/TodayReadinessBar.tsx`
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
-Add `calendarIntel` optional prop. Enhance interpretation to include calendar shape:
-- Current: "Low recovery + packed day — protect energy early"
-- New: "Low recovery + fragmented afternoon — protect morning for focus work"
+---
 
-Replace raw "X items" with day type + meeting count when calendar intel is available.
+## Part 2: Enhanced Action Center
 
-### 5. Enhance GrowthBodyInsight — Calendar Context  
-**File**: `src/components/dashboard/GrowthBodyInsight.tsx`
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
 
-Add `calendarIntel` optional prop. Add calendar-aware growth insight rules:
-- Heavy schedule day → "Dense schedule today — keep growth actions small and achievable"
-- Fragmented day → "High context-switching may reduce reflection quality — find one quiet moment"
+Replace the three "Coming soon" cards with working functionality:
 
-### 6. Enhance GroceryRhythmCard — Calendar Pattern
-**File**: `src/components/money/GroceryRhythmCard.tsx`
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
 
-Add `plannerCount` optional prop. When plannerCount > 6 and meals < 3:
-- "Heavy schedule + few meals planned — convenience spending risk is higher"
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
 
-### 7. AI Briefing — Calendar Shape Context
-**File**: `supabase/functions/ai-briefing/index.ts`
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
 
-Enhance today's planner query to include `start_time, end_time, item_type`. Compute meeting count, total meeting minutes, and focus availability server-side. Add to context:
-- "Today's schedule: X meetings (Yh Zm total), longest focus block: Ah Bm, day type: Heavy/Focus/etc."
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
 
-Add prompt rule: "If calendar shape is provided, reference schedule pressure and focus availability in your readiness read."
+---
 
-### 8. Dashboard Intelligence — Calendar in Forecasts
-**File**: `supabase/functions/dashboard-intelligence/index.ts`
+## Part 3: Landing Page Updates
 
-Same enhancement: compute meeting density from planner items (which are already fetched). Add to contextPrompt:
-- "Calendar load today: X meetings, Y total meeting hours, Z context switches"
+**File: `src/pages/Landing.tsx`**
 
-Add prompt rule: "If calendar load is heavy, factor schedule pressure into energy_trend and recommended_actions."
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
 
-## Files to Create
-| File | Purpose |
-|---|---|
-| `src/lib/calendarIntelligence.ts` | Pure utility: derive calendar signals from planner items |
-| `src/components/planner/PlannerDayLoadSummary.tsx` | Visual day load summary card for Planner |
+**File: `src/components/landing/FeatureGrid.tsx`**
 
-## Files to Modify
-| File | Change |
-|---|---|
-| `src/components/planner/PlannerBodyContext.tsx` | Accept + use calendarIntel prop |
-| `src/components/dashboard/TodayReadinessBar.tsx` | Accept + use calendarIntel prop, smarter interpretation |
-| `src/components/dashboard/GrowthBodyInsight.tsx` | Accept + use calendarIntel prop |
-| `src/components/money/GroceryRhythmCard.tsx` | Accept plannerCount prop, calendar-aware insight |
-| `src/pages/Planner.tsx` | Compute calendarIntel for selected day, pass to components, add PlannerDayLoadSummary |
-| `src/pages/Home.tsx` | Compute calendarIntel from today's items, pass to TodayReadinessBar |
-| `src/pages/Growth.tsx` | Compute calendarIntel, pass to GrowthBodyInsight |
-| `src/pages/Money.tsx` | Pass plannerCount to GroceryRhythmCard |
-| `supabase/functions/ai-briefing/index.ts` | Fetch start_time/end_time, compute calendar shape, add to context + prompt |
-| `supabase/functions/dashboard-intelligence/index.ts` | Compute calendar density from existing planner data, add to context + prompt |
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
 
-## What Does NOT Change
-- No database migrations — planner_items already has start_time/end_time
-- No new hooks — uses existing `usePlannerItems` / `useTodayPlannerItems`
-- Existing body intelligence components keep working when calendarIntel is undefined
-- All edge function structure preserved — just richer context
+**File: `src/components/landing/HowItWorksSection.tsx`**
 
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.

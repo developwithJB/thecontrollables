@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ChevronDown } from "lucide-react";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
+import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
 import { useFinancialAccounts, useTransactions, useBudgetBuckets, useRecurringBills, useSubscriptions, useSavingsGoals } from "@/hooks/useMoney";
 import { MoneyOverview } from "@/components/money/MoneyOverview";
 import { BudgetManager } from "@/components/money/BudgetManager";
@@ -17,6 +18,11 @@ export default function Money() {
   const user = useLifeOSUser();
   const [showImporter, setShowImporter] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+
+  // Calendar load for spending risk signal
+  const moneyWeekRange = useMemo(() => getWeekRange(new Date()), []);
+  const { data: moneyPlannerItems = [] } = usePlannerItems(moneyWeekRange.start, moneyWeekRange.end, user.id);
+  const weekPlannerCount = moneyPlannerItems.length;
 
   const { accounts, createAccount, deleteAccount } = useFinancialAccounts(user.id);
   const { transactions, addTransaction, isLoading: txnLoading } = useTransactions(user.id);
@@ -46,7 +52,7 @@ export default function Money() {
       />
 
       {/* 1b. Grocery Rhythm — food → spending insight */}
-      <GroceryRhythmCard userId={user.id} />
+      <GroceryRhythmCard userId={user.id} plannerCount={weekPlannerCount} />
 
       {/* 2. Monthly Overview */}
       <MoneyOverview accounts={accounts} bills={bills} subscriptions={subscriptions} goals={goals} />

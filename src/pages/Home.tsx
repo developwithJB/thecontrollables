@@ -36,6 +36,7 @@ import { useAutoWearableSync } from "@/hooks/useAutoWearableSync";
 import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 import { useDailySynthesis } from "@/hooks/useDailySynthesis";
+import { analyzeCalendar } from "@/lib/calendarIntelligence";
 
 // Dashboard modules
 import { SnapshotSelector } from "@/components/dashboard/SnapshotSelector";
@@ -256,6 +257,11 @@ export default function Home() {
   }, [weekRange.days, weekPlannerItems, healthTrend]);
 
   const pvaSyntheses = useDailySynthesis(pvaData, activeProjects);
+
+  // Calendar intelligence for today
+  const todayStr = new Date().toLocaleDateString("sv-SE");
+  const todayPlannerItems = useMemo(() => weekPlannerItems.filter((i: any) => i.scheduled_date === todayStr), [weekPlannerItems, todayStr]);
+  const todayCalendarIntel = useMemo(() => analyzeCalendar(todayPlannerItems), [todayPlannerItems]);
 
   const [showSeasonComplete, setShowSeasonComplete] = useState(false);
   const [showSeasonSetup, setShowSeasonSetup] = useState(false);
@@ -503,10 +509,11 @@ export default function Home() {
       {/* 1b. Readiness Bar — instant cross-system signal */}
       <TodayReadinessBar
         health={healthLatest}
-        plannerCount={weekPlannerItems.filter((i: any) => i.scheduled_date === new Date().toLocaleDateString("sv-SE")).length}
+        plannerCount={todayPlannerItems.length}
         wearableConnected={wearableConnected}
         calendarConnected={calendarConnected}
         trend={healthTrend}
+        calendarIntel={todayCalendarIntel}
       />
 
       {/* 2. Daily Briefing Card — single morning AI brief */}
@@ -517,7 +524,7 @@ export default function Home() {
           hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
           onUpgrade={() => startCheckout(undefined, "daily_briefing")}
           healthRecovery={healthLatest?.recovery}
-          plannerCount={weekPlannerItems.filter((i: any) => i.scheduled_date === new Date().toLocaleDateString("sv-SE")).length}
+          plannerCount={todayPlannerItems.length}
         />
       )}
 

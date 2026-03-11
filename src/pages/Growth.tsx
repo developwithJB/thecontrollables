@@ -18,6 +18,8 @@ import { canStartNewSnapshot, hasUsedFreeTrial } from "@/lib/entitlements";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useHealthData } from "@/hooks/useHealthData";
+import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
+import { analyzeCalendar } from "@/lib/calendarIntelligence";
 
 import { DailyRings } from "@/components/dashboard/DailyRings";
 import { WeeklyRecapCard } from "@/components/dashboard/WeeklyRecapCard";
@@ -49,6 +51,16 @@ export default function Growth() {
   const { currentBuild } = useBuildAssessment();
   const { rings, completedCount } = useDailyRings(user.id);
   const { isConnected: wearableConnected, latest: healthLatest, trend: healthTrend } = useHealthData(user.id);
+
+  // Calendar intelligence for today
+  const growthWeekRange = useMemo(() => getWeekRange(new Date()), []);
+  const { data: growthPlannerItems = [] } = usePlannerItems(growthWeekRange.start, growthWeekRange.end, user.id);
+  const growthCalendarIntel = useMemo(() => {
+    const todayStr = new Date().toLocaleDateString("sv-SE");
+    const todayItems = growthPlannerItems.filter((i: any) => i.scheduled_date === todayStr);
+    return analyzeCalendar(todayItems);
+  }, [growthPlannerItems]);
+
   const intelligence = useDashboardIntelligence(user.id, completedCount, rings);
   const {
     activeSession,
@@ -203,12 +215,12 @@ export default function Growth() {
       {/* 5 Daily Rings — the hero of Growth */}
       <DailyRings userId={user.id} />
 
-      {/* Body Intelligence — supporting layer */}
-      {wearableConnected && healthLatest.recovery !== null && (
+      {/* Body & Schedule Intelligence — supporting layer */}
+      {(wearableConnected && healthLatest.recovery !== null) || (growthCalendarIntel && growthCalendarIntel.meetingCount > 0) ? (
         <div className="max-w-sm mx-auto w-full">
-          <GrowthBodyInsight userId={user.id} latest={healthLatest} trend={healthTrend} />
+          <GrowthBodyInsight userId={user.id} latest={healthLatest} trend={healthTrend} calendarIntel={growthCalendarIntel} />
         </div>
-      )}
+      ) : null}
 
       {/* Circle */}
       {hasActiveSession && (

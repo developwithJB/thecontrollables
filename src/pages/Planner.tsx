@@ -34,6 +34,8 @@ import { PlannerRoutineManager } from "@/components/planner/PlannerRoutineManage
 import { PlannerCalendarConnect } from "@/components/planner/PlannerCalendarConnect";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 import { PlannerBodyContext } from "@/components/planner/PlannerBodyContext";
+import { PlannerDayLoadSummary } from "@/components/planner/PlannerDayLoadSummary";
+import { analyzeCalendar } from "@/lib/calendarIntelligence";
 import { useHealthData } from "@/hooks/useHealthData";
 import { useDailySynthesis } from "@/hooks/useDailySynthesis";
 import { useProjects } from "@/hooks/useProjects";
@@ -408,10 +410,24 @@ const Planner = () => {
         )}
 
         <div className={isMobile ? "flex-1 overflow-y-auto" : "w-[45%] overflow-y-auto"}>
-          {/* Recovery-aware planning context for today */}
-          {wearableConnected && isToday(selectedDate) && (
-            <PlannerBodyContext latest={healthLatest} trend={healthTrend} />
-          )}
+          {/* Calendar load summary for the selected day */}
+          {(() => {
+            const dayCalendarIntel = analyzeCalendar(dayItems);
+            return (
+              <>
+                {dayCalendarIntel && dayCalendarIntel.meetingCount > 0 && (
+                  <PlannerDayLoadSummary intel={dayCalendarIntel} />
+                )}
+                {/* Recovery-aware planning context for today */}
+                {wearableConnected && isToday(selectedDate) && (
+                  <PlannerBodyContext latest={healthLatest} trend={healthTrend} calendarIntel={dayCalendarIntel} />
+                )}
+                {!wearableConnected && isToday(selectedDate) && dayCalendarIntel && dayCalendarIntel.meetingCount > 0 && (
+                  <PlannerBodyContext latest={healthLatest} trend={healthTrend} calendarIntel={dayCalendarIntel} />
+                )}
+              </>
+            );
+          })()}
           <PlannerDayView
             date={selectedDate}
             items={dayItems}

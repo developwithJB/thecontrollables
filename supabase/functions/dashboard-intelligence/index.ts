@@ -211,7 +211,7 @@ serve(async (req) => {
       supabase.from("notice_entries" as any).select("mood, energy_level, stress_level").eq("user_id", userId).gte("entry_date", sevenDaysAgo).limit(7),
       supabase.from("proof_actions").select("completed, category").eq("user_id", userId).gte("action_date", sevenDaysAgo).limit(14),
       supabase.from("reset_sessions").select("start_date, current_day, journey_id, status").eq("user_id", userId).eq("status", "active").limit(1).maybeSingle(),
-      supabase.from("planner_items").select("title, scheduled_date, status, item_type").eq("user_id", userId).gte("scheduled_date", todayStr).order("scheduled_date").limit(10),
+      supabase.from("planner_items").select("title, scheduled_date, status, item_type, start_time, end_time").eq("user_id", userId).gte("scheduled_date", todayStr).order("scheduled_date").limit(20),
       serviceClient.from("whoop_recoveries").select("recovery_score, hrv_rmssd_milli, resting_heart_rate, spo2_percentage, skin_temp_celsius, recorded_at").eq("user_id", userId).gte("recorded_at", sevenDaysAgo).order("recorded_at", { ascending: false }).limit(7),
       serviceClient.from("whoop_sleeps").select("sleep_performance_pct, sleep_efficiency_pct, respiratory_rate, total_in_bed_ms, total_rem_ms, total_sws_ms, start_time, end_time").eq("user_id", userId).gte("end_time", sevenDaysAgo).order("end_time", { ascending: false }).limit(7),
       serviceClient.from("whoop_cycles").select("strain, kilojoules, avg_heart_rate, max_heart_rate, start_time").eq("user_id", userId).gte("start_time", sevenDaysAgo).order("start_time", { ascending: false }).limit(7),
@@ -276,6 +276,21 @@ serve(async (req) => {
 
     const upcomingPlanner = (plannerItems?.data || []).slice(0, 5).map((i: any) => `${i.scheduled_date}: ${i.title} (${i.status})`).join("; ");
 
+    // Calendar shape analysis for today's items
+    const todayPlannerItems = (plannerItems?.data || []).filter((i: any) => i.scheduled_date === todayStr);
+    const timedToday = todayPlannerItems.filter((i: any) => i.start_time && i.end_time);
+    let calendarShapeContext = "";
+    if (timedToday.length > 0) {
+      const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return (h || 0) * 60 + (m || 0); };
+      const meetings = timedToday.map((i: any) => ({ start: toMin(i.start_time), end: toMin(i.end_time) })).filter((e: any) => e.end > e.start).sort((a: any, b: any) => a.start - b.start);
+      const meetingMinutes = meetings.reduce((s: number, e: any) => s + (e.end - e.start), 0);
+      let contextSwitches = 0;
+      for (let i = 0; i < meetings.length - 1; i++) {
+        if (meetings[i + 1].start - meetings[i].end < 15) contextSwitches++;
+      }
+      calendarShapeContext = `\nCalendar load today: ${meetings.length} timed meetings, ${Math.round(meetingMinutes / 60 * 10) / 10} total meeting hours, ${contextSwitches} context switches`;
+    }
+
     // Meal planning context
     const mealPlanData = weekMealPlans?.data || [];
     const daysWithMeals = mealPlanData.filter((p: any) => ((p.meals as any[])?.length || 0) > 0).length;
@@ -329,7 +344,7 @@ Average stress (7d): ${avgStress}/5
 Proof action completion rate (7d): ${proofCompletionRate}%
 ${snapshotContext}
 Upcoming planned items: ${upcomingPlanner || "none"}
-${mealCoverageContext}${whoopContext}
+${mealCoverageContext}${whoopContext}${calendarShapeContext}
 `;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -361,6 +376,12 @@ If meal planning data is present, factor nutrition into forecasts:
 - If meal planning coverage is low (< 3 days) and calendar is heavy, note food-related spending risk in forecast.
 - Low recovery + no meals planned = recommend quick supportive meals.
 - Strong meal planning supports body consistency, reduces spending, and lowers decision fatigue — acknowledge it.
+
+If calendar load data is present, factor schedule pressure into analysis:
+- If calendar load is heavy (4+ meetings or 3+ hours), flag schedule pressure in energy_trend and recommend protecting focus windows.
+- If context switches are high (3+), note fragmentation risk in stress_load signal.
+- Heavy schedule + low recovery = high-risk day. Recommend simplification in recommended_actions.
+- Light schedule + strong recovery = opportunity day. Recommend deep work or proactive growth actions.
 
 For the forecast fields:
 - snapshot_forecast: Project the remaining days of the current snapshot (7-day cycle) based on trajectory. What's likely to happen and what to watch for.

@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
         .eq('user_id', userId).eq('sync_date', yesterday).maybeSingle(),
       serviceClient.from('planner_items').select('id, status')
         .eq('user_id', userId).eq('scheduled_date', yesterday),
-      serviceClient.from('planner_items').select('id')
+      serviceClient.from('planner_items').select('id, status, start_time, end_time, item_type')
         .eq('user_id', userId).eq('scheduled_date', today),
       serviceClient.from('meal_plans').select('meals')
         .eq('user_id', userId).eq('plan_date', today).maybeSingle(),
@@ -153,7 +153,47 @@ Deno.serve(async (req) => {
       contextParts.push(`Yesterday's planner: ${completed}/${total} items completed (${Math.round((completed/total)*100)}% completion rate)`);
     }
     if (todayPlannerRes.data) {
-      contextParts.push(`Today's scheduled load: ${todayPlannerRes.data.length} items in planner`);
+      const todayItems = todayPlannerRes.data as any[];
+      contextParts.push(`Today's scheduled load: ${todayItems.length} items in planner`);
+
+      // Calendar shape analysis
+      const timedItems = todayItems.filter((i: any) => i.start_time && i.end_time);
+      if (timedItems.length > 0) {
+        const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+        const meetings = timedItems.map((i: any) => ({ start: toMin(i.start_time), end: toMin(i.end_time) })).filter((e: any) => e.end > e.start).sort((a: any, b: any) => a.start - b.start);
+        const meetingMinutes = meetings.reduce((s: number, e: any) => s + (e.end - e.start), 0);
+        const meetingHours = Math.round(meetingMinutes / 60 * 10) / 10;
+
+        // Focus blocks (gaps >= 45 min)
+        let longestFocus = 0;
+        for (let i = 0; i < meetings.length - 1; i++) {
+          const gap = meetings[i + 1].start - meetings[i].end;
+          if (gap > longestFocus) longestFocus = gap;
+        }
+        // Before first / after last
+        if (meetings.length > 0) {
+          const beforeFirst = meetings[0].start - 480; // from 8am
+          const afterLast = 1080 - meetings[meetings.length - 1].end; // until 6pm
+          if (beforeFirst > longestFocus) longestFocus = beforeFirst;
+          if (afterLast > longestFocus) longestFocus = afterLast;
+        }
+
+        // Context switches
+        let contextSwitches = 0;
+        for (let i = 0; i < meetings.length - 1; i++) {
+          if (meetings[i + 1].start - meetings[i].end < 15) contextSwitches++;
+        }
+
+        // Day type
+        let calDayType = 'moderate';
+        if (contextSwitches >= 4) calDayType = 'fragmented';
+        else if (meetingMinutes >= 240) calDayType = 'heavy';
+        else if (meetings.length <= 1 && longestFocus >= 120) calDayType = 'focus';
+        else if (meetings.length === 0) calDayType = 'light';
+
+        const focusLabel = longestFocus >= 60 ? `${Math.floor(longestFocus / 60)}h ${longestFocus % 60}m` : `${longestFocus}m`;
+        contextParts.push(`Calendar shape: ${meetings.length} timed meetings (${meetingHours}h total), longest focus block: ${focusLabel}, ${contextSwitches} context switches, day type: ${calDayType}`);
+      }
     }
 
     // Meal plan context
@@ -211,6 +251,7 @@ RULES:
 - If WHOOP data is present, weave biometric signals into your observation and suggestion. Reference recovery, sleep quality, or strain when relevant.
 - If planner data is present, reference yesterday's completion and today's load.
 - If meal plan data is present, weave food context into your readiness read. Low recovery + unplanned meals = suggest quick simple options. Busy day + planned meals = acknowledge preparation. No meals planned = note food decisions are open.
+- If calendar shape data is provided, reference schedule pressure and focus availability in your readiness read. E.g. "Heavy calendar today — protect your one focus window before noon." or "Focus day — ideal conditions for deep work."
 - No motivational fluff. Be real.
 - Format as 3 separate lines`;
 
