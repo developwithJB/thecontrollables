@@ -499,6 +499,14 @@ export default function Home() {
         }}
       />
 
+      {/* 1b. Readiness Bar — instant cross-system signal */}
+      <TodayReadinessBar
+        health={healthLatest}
+        plannerCount={weekPlannerItems.filter((i: any) => i.scheduled_date === new Date().toLocaleDateString("sv-SE")).length}
+        wearableConnected={wearableConnected}
+        calendarConnected={calendarConnected}
+      />
+
       {/* 2. Daily Briefing Card — single morning AI brief */}
       {!entitlementsLoading && (
         <DailyBriefingCard
@@ -506,6 +514,8 @@ export default function Home() {
           isTrialing={isTrialing}
           hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
           onUpgrade={() => startCheckout(undefined, "daily_briefing")}
+          healthRecovery={healthLatest?.recovery}
+          plannerCount={weekPlannerItems.filter((i: any) => i.scheduled_date === new Date().toLocaleDateString("sv-SE")).length}
         />
       )}
 
