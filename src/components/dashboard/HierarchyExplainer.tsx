@@ -20,7 +20,7 @@ const HIERARCHY_LEVELS = [
   {
     key: "project",
     icon: FolderKanban,
-    title: "Project",
+    title: "Chapter",
     subtitle: "Building",
     description: "What you're building within this season. Intention containers.",
     example: "Morning Routine, Skill Building",

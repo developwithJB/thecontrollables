@@ -245,7 +245,7 @@ export function DashboardManualSection() {
         </div>
         
         <p className="text-xs text-muted-foreground text-center">
-          Season sets the arc. Projects hold your intent. The rest flows from there.
+          Season sets the arc. Chapters hold your intent. The rest flows from there.
         </p>
       </div>
 

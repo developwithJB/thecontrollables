@@ -177,7 +177,7 @@ export function ProjectManager({ open, onClose, userId, seasonId }: ProjectManag
               <Input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="Project name"
+                placeholder="Chapter name"
                 autoFocus
               />
               <div className="flex flex-wrap gap-1.5">

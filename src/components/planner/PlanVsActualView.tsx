@@ -410,7 +410,7 @@ export const PlanVsActualView = ({
           >
             {projectStats.length === 0 ? (
               <p className="text-xs text-muted-foreground/60 py-4 text-center">
-                No project activity this week. Assign tasks to projects in the planner.
+                No chapter activity this week. Assign tasks to chapters in the planner.
               </p>
             ) : (
               projectStats.map(stats => (
