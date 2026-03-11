@@ -33,6 +33,7 @@ export const PlannerWeekGrid = ({
         const dateKey = format(day, "yyyy-MM-dd");
         const items = itemsByDate[dateKey] ?? [];
         const activity = activityByDate[dateKey] ?? [];
+        const mealCount = mealCountsByDate[dateKey] ?? 0;
         const selected = isSameDay(day, selectedDate);
         const today = isToday(day);
 
