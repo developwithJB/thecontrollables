@@ -159,11 +159,10 @@ export const MealSwiper = ({
 
             {/* Content */}
             <div>
-              <span className="text-3xl">{currentMeal.emoji}</span>
-              <h3 className="font-display text-lg font-semibold text-foreground mt-3 mb-1">
+              <h3 className="font-display text-lg font-semibold text-foreground mb-1">
                 {currentMeal.name}
               </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
                 {currentMeal.description}
               </p>
             </div>
