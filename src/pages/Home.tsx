@@ -179,6 +179,7 @@ export default function Home() {
 
   const {
     activeSeason,
+    isLoadingSeason,
     seasonSnapshots,
     seasonProgress,
     startSeason,
