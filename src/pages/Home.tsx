@@ -496,7 +496,8 @@ export default function Home() {
           canStartSnapshot || !!activeSession ? setShowJourneySwitcher(true) : startCheckout(undefined, "greeting_banner_snapshot");
         }}
       />
-  
+
+  const { createProject } = useProjects(user.id, activeSeason?.id);
 
       {/* Main Quest - only show when no active quest */}
       {dashboardLoading ? <MainQuestSkeleton /> : !activeQuest && (
