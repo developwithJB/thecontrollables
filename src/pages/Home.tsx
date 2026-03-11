@@ -33,6 +33,7 @@ import { useSeason } from "@/hooks/useSeason";
 import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
 import { useDailyRings } from "@/hooks/useDailyRings";
 import { useHealthData } from "@/hooks/useHealthData";
+import { useAutoWearableSync } from "@/hooks/useAutoWearableSync";
 import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 
@@ -189,7 +190,10 @@ export default function Home() {
   // Plan vs Actual data for dashboard
   const weekRange = useMemo(() => getWeekRange(new Date()), []);
   const { data: weekPlannerItems = [] } = usePlannerItems(weekRange.start, weekRange.end, user.id);
-  const { trend: healthTrend } = useHealthData(user.id);
+  const { trend: healthTrend, isConnected: wearableConnected, provider: wearableProvider } = useHealthData(user.id);
+
+  // Auto-sync wearable data on dashboard load (throttled to every 4 hours)
+  useAutoWearableSync(user.id, wearableProvider, wearableConnected);
   
   const pvaData = useMemo(() => {
     const todayDate = new Date();

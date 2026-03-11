@@ -75,22 +75,9 @@ export function WearableSummaryCard({ userId, isPaid, onUpgrade }: WearableSumma
     return daysSinceConnect > WEARABLE_FREE_WINDOW_DAYS;
   }, [isPaid, connectedAt]);
 
-  const handleConnect = useCallback(async () => {
-    setConnecting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("wearable-oauth-start", {
-        body: { provider: "whoop", redirect_uri: window.location.origin },
-      });
-      if (error || !data?.url) {
-        toast.error(data?.error || "Failed to start wearable connection");
-        return;
-      }
-      window.location.href = data.url;
-    } catch {
-      toast.error("Failed to connect wearable");
-    } finally {
-      setConnecting(false);
-    }
+  const handleConnect = useCallback(() => {
+    // Navigate to integrations page so user can pick their provider
+    window.location.href = "/integrations";
   }, []);
 
   const handleSync = useCallback(async () => {
@@ -274,8 +261,8 @@ export function WearableSummaryCard({ userId, isPaid, onUpgrade }: WearableSumma
             </div>
           </div>
 
-          {/* Additional vitals row */}
-          {(latest.restingHR != null || latest.steps != null) && (
+          {/* Additional vitals row — hide steps for WHOOP (doesn't provide them) */}
+          {(latest.restingHR != null || (latest.steps != null && provider !== "whoop")) && (
             <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/50">
               {latest.restingHR != null && (
                 <div className="text-center flex-1">
@@ -283,7 +270,7 @@ export function WearableSummaryCard({ userId, isPaid, onUpgrade }: WearableSumma
                   <p className="text-[10px] text-muted-foreground">Resting HR</p>
                 </div>
               )}
-              {latest.steps != null && (
+              {latest.steps != null && provider !== "whoop" && (
                 <div className="text-center flex-1">
                   <p className="text-xs font-medium text-foreground">{latest.steps.toLocaleString()}</p>
                   <p className="text-[10px] text-muted-foreground">Steps</p>
