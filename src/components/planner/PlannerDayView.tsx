@@ -35,6 +35,7 @@ interface PlannerDayViewProps {
   onReorder: (items: { id: string; sort_order: number }[]) => void;
   onPushToCalendar?: (item: PlannerItem) => void;
   hasGoogleConnection?: boolean;
+  userId?: string;
 }
 
 export const PlannerDayView = ({
