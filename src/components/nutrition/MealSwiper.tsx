@@ -20,6 +20,7 @@ interface MealSwiperProps {
   onAccept: (meal: SwipeMeal) => void;
   onReject: (meal: SwipeMeal) => void;
   onSaveToLibrary: (meal: SwipeMeal) => void;
+  onRegenerate?: (meal: SwipeMeal) => void;
   currentMealType?: string;
 }
 
