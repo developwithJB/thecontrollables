@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
         .eq('user_id', userId).eq('sync_date', yesterday).maybeSingle(),
       serviceClient.from('planner_items').select('id, status')
         .eq('user_id', userId).eq('scheduled_date', yesterday),
-      serviceClient.from('planner_items').select('id')
+      serviceClient.from('planner_items').select('id, status, start_time, end_time, item_type')
         .eq('user_id', userId).eq('scheduled_date', today),
       serviceClient.from('meal_plans').select('meals')
         .eq('user_id', userId).eq('plan_date', today).maybeSingle(),
