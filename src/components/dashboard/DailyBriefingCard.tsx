@@ -21,7 +21,7 @@ const CONTROLLABLE_META: Record<string, { emoji: string; name: string }> = {
   environment: { emoji: "🚀", name: "Environment" },
 };
 
-export function DailyBriefingCard({ isPaid, isTrialing, hasActiveSnapshot, onUpgrade }: DailyBriefingCardProps) {
+export function DailyBriefingCard({ isPaid, isTrialing, hasActiveSnapshot, onUpgrade, healthRecovery, plannerCount }: DailyBriefingCardProps) {
   const [content, setContent] = useState<string | null>(null);
   const [controllable, setControllable] = useState<string>("awareness");
   const [isLoading, setIsLoading] = useState(false);
