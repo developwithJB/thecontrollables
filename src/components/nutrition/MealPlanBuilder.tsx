@@ -4,7 +4,7 @@ import { Sparkles, Loader2, X, ArrowLeft, Check, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { MealSwiper, type SwipeMeal } from "./MealSwiper";
-import { useMealTracking, type MealSlotConfig } from "@/hooks/useMealTracking";
+import { useMealTracking, useSaveRecipe, type MealSlotConfig } from "@/hooks/useMealTracking";
 import { useMealPreferences } from "@/hooks/useMealPreferences";
 
 type BuilderPhase =
