@@ -40,6 +40,7 @@ export function WeekPlanReviewSheet({
   const [keptMeals, setKeptMeals] = useState<Record<number, MealPlanMeal[]>>({});
   const [dayComplete, setDayComplete] = useState<Record<number, boolean>>({});
   const [pendingAssign, setPendingAssign] = useState<MealPlanMeal | null>(null);
+  const swiperRef = useRef<MealSwiperHandle>(null);
 
   const currentDay = generatedDays[currentDayIndex];
   const allDaysReviewed = currentDayIndex >= generatedDays.length || Object.keys(dayComplete).length === generatedDays.length;
