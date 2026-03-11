@@ -232,7 +232,7 @@ export default function Home() {
           if (item.status === "done") status = "done";
           else if (item.status === "skipped") status = "partial";
           else if (isPast && !isTodayDate) status = "missed";
-          return { id: item.id, title: item.title, status, type: item.item_type };
+          return { id: item.id, title: item.title, status, type: item.item_type, project_id: item.project_id ?? null };
         }),
         health: healthForDay,
       };
