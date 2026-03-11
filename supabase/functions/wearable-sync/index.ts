@@ -164,9 +164,9 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
     } else {
       const data = await resp.json();
       for (const rec of data.records || []) {
-        // Map to parent cycle's date
-        const cycleId = String(rec.cycle_id);
-        const parentCycle = cyclesById[cycleId];
+        // v2: recovery may have cycle_id or sleep_id for cross-referencing
+        const cycleId = rec.cycle_id ? String(rec.cycle_id) : null;
+        const parentCycle = cycleId ? cyclesById[cycleId] : null;
         const date = parentCycle?.date ?? rec.created_at?.split("T")[0];
         if (!date) continue;
         if (!dayMap[date]) dayMap[date] = {};
