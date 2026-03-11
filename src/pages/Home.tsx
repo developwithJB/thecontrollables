@@ -65,7 +65,8 @@ import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboardin
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 import { ConfirmLastNightDialog } from "@/components/dashboard/ConfirmLastNightDialog";
 import { ValidatePlanDialog } from "@/components/dashboard/ValidatePlanDialog";
-
+import { SeasonSetup } from "@/components/dashboard/SeasonSetup";
+import { useProjects } from "@/hooks/useProjects";
 export default function Home() {
   usePageViewTracking("Home");
   const { trackEvent } = useAnalytics();
