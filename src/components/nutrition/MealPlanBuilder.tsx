@@ -61,6 +61,7 @@ export function MealPlanBuilder({
   const [currentSuggestions, setCurrentSuggestions] = useState<SwipeMeal[]>([]);
   const [swapSlot, setSwapSlot] = useState<MealTypeSlot | null>(null);
   const [chatMessages, setChatMessages] = useState<{ from: "satellite" | "user"; text: string }[]>([]);
+  const [rejectedNames, setRejectedNames] = useState<string[]>([]);
 
   const { preferences } = useMealPreferences(userId);
   const saveRecipe = useSaveRecipe(userId);
