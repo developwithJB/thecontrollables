@@ -17,6 +17,7 @@ import { getDefaultCheckoutPlan } from "@/lib/featureFlags";
 import { canStartNewSnapshot, hasUsedFreeTrial } from "@/lib/entitlements";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useHealthData } from "@/hooks/useHealthData";
 
 import { DailyRings } from "@/components/dashboard/DailyRings";
 import { WeeklyRecapCard } from "@/components/dashboard/WeeklyRecapCard";
