@@ -50,7 +50,7 @@ function getDayType(recovery: number | null, plannerCount: number): string {
   return isHeavy ? "Caution" : "Conserve";
 }
 
-export function TodayReadinessBar({ health, plannerCount, wearableConnected, calendarConnected }: TodayReadinessBarProps) {
+export function TodayReadinessBar({ health, plannerCount, wearableConnected, calendarConnected, trend }: TodayReadinessBarProps) {
   const hasAnyData = wearableConnected || calendarConnected;
 
   if (!hasAnyData) {
