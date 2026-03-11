@@ -6,6 +6,131 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function handleDailySynthesis(
+  supabase: any,
+  userId: string,
+  days: Array<{ date: string; planned: number; completed: number; recovery: number | null; hrv: number | null; strain: number | null }>
+) {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+  // Check cache first
+  const dates = days.map((d) => d.date);
+  const { data: cached } = await supabase
+    .from("daily_synthesis")
+    .select("synthesis_date, synthesis_text")
+    .eq("user_id", userId)
+    .in("synthesis_date", dates);
+
+  const cachedMap: Record<string, string> = {};
+  (cached || []).forEach((row: any) => {
+    cachedMap[row.synthesis_date] = row.synthesis_text;
+  });
+
+  // Find days that need generation
+  const uncachedDays = days.filter((d) => !cachedMap[d.date]);
+
+  if (uncachedDays.length === 0) {
+    return { syntheses: cachedMap };
+  }
+
+  // Generate synthesis for uncached days
+  const dayDescriptions = uncachedDays.map((d) => {
+    const parts = [`Date: ${d.date}. ${d.planned} tasks planned, ${d.completed} completed.`];
+    if (d.recovery !== null) parts.push(`Recovery: ${Math.round(d.recovery)}%.`);
+    if (d.hrv !== null) parts.push(`HRV: ${Math.round(d.hrv)}ms.`);
+    if (d.strain !== null) parts.push(`Strain: ${d.strain.toFixed(1)}.`);
+    return parts.join(" ");
+  }).join("\n\n");
+
+  const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        {
+          role: "system",
+          content: `You generate brief observational synthesis lines for a self-leadership app. For each day provided, generate ONE sentence (max 18 words) that connects the user's body state (recovery, HRV, strain) to their task output. Be observational, not judgmental. Never use the word "missed." Focus on the pattern, not the failure. Examples:
+- "High recovery, low output — your body was ready but the schedule wasn't structured for it."
+- "Recovery at 38% with 3 tasks planned — the mismatch explains how the day felt."
+- "95% recovery, strain of 4.4 — you left a lot in the tank today."
+- "Strong output on a low recovery day — you pushed through, check rest tonight."`,
+        },
+        {
+          role: "user",
+          content: dayDescriptions,
+        },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "return_syntheses",
+            description: "Return synthesis sentences for each day.",
+            parameters: {
+              type: "object",
+              properties: {
+                syntheses: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      date: { type: "string", description: "The date in yyyy-MM-dd format" },
+                      synthesis: { type: "string", description: "One observational sentence, max 18 words" },
+                    },
+                    required: ["date", "synthesis"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["syntheses"],
+              additionalProperties: false,
+            },
+          },
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "return_syntheses" } },
+    }),
+  });
+
+  if (!aiResponse.ok) {
+    const errText = await aiResponse.text();
+    console.error("AI gateway error for synthesis:", aiResponse.status, errText);
+    if (aiResponse.status === 429) throw new Error("Rate limited");
+    if (aiResponse.status === 402) throw new Error("Payment required");
+    throw new Error("AI gateway error");
+  }
+
+  const aiData = await aiResponse.json();
+  const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+  if (!toolCall?.function?.arguments) throw new Error("No tool call response for synthesis");
+
+  const parsed = JSON.parse(toolCall.function.arguments);
+  const generatedList: Array<{ date: string; synthesis: string }> = parsed.syntheses || [];
+
+  // Cache generated syntheses using service role client to bypass RLS for insert
+  const serviceClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
+  for (const item of generatedList) {
+    cachedMap[item.date] = item.synthesis;
+    await serviceClient
+      .from("daily_synthesis")
+      .upsert(
+        { user_id: userId, synthesis_date: item.date, synthesis_text: item.synthesis },
+        { onConflict: "user_id,synthesis_date" }
+      );
+  }
+
+  return { syntheses: cachedMap };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -22,8 +147,19 @@ serve(async (req) => {
     const { data: { user }, error: authErr } = await supabase.auth.getUser();
     if (authErr || !user) throw new Error("Unauthorized");
 
-    const { completedCount, rings } = await req.json();
+    const body = await req.json();
     const userId = user.id;
+
+    // Branch: daily_synthesis action
+    if (body.action === "daily_synthesis") {
+      const result = await handleDailySynthesis(supabase, userId, body.days || []);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Default: existing dashboard intelligence flow
+    const { completedCount, rings } = body;
     const todayStr = new Date().toISOString().slice(0, 10);
 
     // Gather context data in parallel
