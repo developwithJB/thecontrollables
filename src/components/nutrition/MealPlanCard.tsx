@@ -35,6 +35,7 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
   const [showConfig, setShowConfig] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showBuilder, setShowBuilder] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
 
   // Meal config state — initialized from saved preferences
   const [enabledMeals, setEnabledMeals] = useState<Record<string, boolean>>({
