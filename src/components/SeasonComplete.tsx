@@ -255,16 +255,16 @@ export function SeasonComplete({
                     <p className="text-lg font-bold text-foreground">{wearable.avgRecovery}%</p>
                     <p className="text-[10px] text-muted-foreground">Avg Recovery</p>
                   </div>
-                  {wearable.bestWeek && (
+          {wearable.bestWeek && (
                     <div className="text-center">
-                      <TrendingUp className="w-4 h-4 mx-auto text-green-500 mb-1" />
+                      <TrendingUp className="w-4 h-4 mx-auto text-primary mb-1" />
                       <p className="text-lg font-bold text-foreground">{wearable.bestWeek.avg}%</p>
                       <p className="text-[10px] text-muted-foreground">Best Week</p>
                     </div>
                   )}
                   {wearable.hardestWeek && (
                     <div className="text-center">
-                      <TrendingDown className="w-4 h-4 mx-auto text-orange-500 mb-1" />
+                      <TrendingDown className="w-4 h-4 mx-auto text-destructive mb-1" />
                       <p className="text-lg font-bold text-foreground">{wearable.hardestWeek.avg}%</p>
                       <p className="text-[10px] text-muted-foreground">Hardest Week</p>
                     </div>
