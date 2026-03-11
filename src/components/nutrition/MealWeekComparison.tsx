@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, startOfDay, addDays } from "date-fns";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles, ChevronDown, ChevronUp, Calendar, Share2 } from "lucide-react";
 import { GroceryListSheet } from "./GroceryListSheet";
 import { MealShareCard } from "./MealShareCard";
+import { WeekPlanReviewSheet } from "./WeekPlanReviewSheet";
 
 interface MealWeekComparisonProps {
   userId: string;
