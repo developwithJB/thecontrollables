@@ -26,7 +26,7 @@ const MAIN_MEALS = [
 ];
 
 export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
-  const { todayPlan, generatePlan, updatePlanMeals, dailyTotals, todayMeals } = useMealTracking(userId);
+  const { todayPlan, generatePlan, updatePlanMeals, dailyTotals, todayMeals, addMealToPlanner } = useMealTracking(userId);
   const { preferences, savePreferences } = useMealPreferences(userId);
   const [showTracker, setShowTracker] = useState(false);
   const [view, setView] = useState<"today" | "week">("today");
