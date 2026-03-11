@@ -97,6 +97,8 @@ Deno.serve(async (req) => {
         .eq('user_id', userId).eq('scheduled_date', yesterday),
       serviceClient.from('planner_items').select('id')
         .eq('user_id', userId).eq('scheduled_date', today),
+      serviceClient.from('meal_plans').select('meals')
+        .eq('user_id', userId).eq('plan_date', today).maybeSingle(),
     ]);
 
     const currentDay = sessionRes.data?.current_day || 1;
