@@ -75,6 +75,9 @@ export function OnboardingFlow({
   const [buildResult, setBuildResult] = useState<BuildScore | null>(null);
   const [selectedSnapshot, setSelectedSnapshot] = useState<Snapshot | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState(false);
+  const [wearableConnected, setWearableConnected] = useState(false);
+  const [wearableProvider, setWearableProvider] = useState<string | undefined>();
   
   // Timeout tracking for stuck states
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
