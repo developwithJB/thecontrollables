@@ -276,6 +276,11 @@ serve(async (req) => {
 
     const upcomingPlanner = (plannerItems?.data || []).slice(0, 5).map((i: any) => `${i.scheduled_date}: ${i.title} (${i.status})`).join("; ");
 
+    // Meal planning context
+    const mealPlanData = weekMealPlans?.data || [];
+    const daysWithMeals = mealPlanData.filter((p: any) => ((p.meals as any[])?.length || 0) > 0).length;
+    const mealCoverageContext = `Meals planned this week: ${daysWithMeals}/7 days${daysWithMeals < 3 ? " — low meal planning increases takeout risk and unplanned spending" : ""}`;
+
     // WHOOP biometric context
     const whoopRecoveryData = whoopRecoveries.data || [];
     const whoopSleepData = whoopSleeps.data || [];
