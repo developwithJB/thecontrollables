@@ -115,7 +115,7 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
   const startParam = sevenDaysAgo.toISOString();
   const endParam = now.toISOString();
   const headers = { Authorization: `Bearer ${accessToken}` };
-  const baseUrl = "https://api.prod.whoop.com/developer/v1";
+  const baseUrl = "https://api.prod.whoop.com/developer/v2";
 
   const counts = { cycles: 0, recoveries: 0, sleeps: 0, workouts: 0 };
 
@@ -164,9 +164,9 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
     } else {
       const data = await resp.json();
       for (const rec of data.records || []) {
-        // Map to parent cycle's date
-        const cycleId = String(rec.cycle_id);
-        const parentCycle = cyclesById[cycleId];
+        // v2: recovery may have cycle_id or sleep_id for cross-referencing
+        const cycleId = rec.cycle_id ? String(rec.cycle_id) : null;
+        const parentCycle = cycleId ? cyclesById[cycleId] : null;
         const date = parentCycle?.date ?? rec.created_at?.split("T")[0];
         if (!date) continue;
         if (!dayMap[date]) dayMap[date] = {};
