@@ -17,7 +17,7 @@ interface FuelTodayCardProps {
   fuelIntel?: FuelIntelligence | null;
 }
 
-export function FuelTodayCard({ userId, isPaid }: FuelTodayCardProps) {
+export function FuelTodayCard({ userId, isPaid, fuelIntel }: FuelTodayCardProps) {
   const navigate = useNavigate();
   const { todayPlan, planLoading, generatePlan, updatePlanMeals } = useMealTracking(userId);
   const { preferences } = useMealPreferences(userId);
