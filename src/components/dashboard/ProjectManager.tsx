@@ -10,14 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useProjects, useCalendarMappings, type Project, type ControllableFocus } from "@/hooks/useProjects";
-
-const CONTROLLABLES: { type: ControllableFocus; emoji: string; label: string }[] = [
-  { type: "awareness", emoji: "🦉", label: "Awareness" },
-  { type: "perspective", emoji: "🦅", label: "Perspective" },
-  { type: "habit", emoji: "🐺", label: "Habit" },
-  { type: "wellness", emoji: "🐬", label: "Wellness" },
-  { type: "environment", emoji: "🦁", label: "Environment" },
-];
+import { CONTROLLABLE_LIST } from "@/lib/controllableTheme";
 
 const PROJECT_EMOJIS = ["🎯", "💪", "📚", "🏃", "✍️", "🧘", "💼", "🎨", "🌱", "🔥", "🧠", "💡", "🏠", "🤝", "📈", "🎵", "🍎", "⚡", "🛠️", "🌟"];
 const PROJECT_COLORS = ["#6366f1", "#3b82f6", "#10b981", "#059669", "#f59e0b", "#f43f5e", "#8b5cf6", "#64748b"];
