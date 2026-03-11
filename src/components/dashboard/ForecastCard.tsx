@@ -5,6 +5,7 @@ import type { DashboardIntelligence } from "@/hooks/useDashboardIntelligence";
 
 interface ForecastCardProps {
   data: DashboardIntelligence | null;
+  compact?: boolean;
 }
 
 export const ForecastCard = ({ data }: ForecastCardProps) => {
