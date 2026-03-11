@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { format, addDays, startOfWeek, isToday, isBefore, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Check, Circle, Minus, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, Circle, Minus, Calendar, ChevronLeft, ChevronRight, Heart, Moon, Activity, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import type { HealthMetrics } from "@/hooks/useHealthData";
 
 type PvAStatus = "done" | "partial" | "missed" | "planned";
 
@@ -19,6 +20,7 @@ interface PvAItem {
 interface PvADay {
   date: Date;
   items: PvAItem[];
+  health?: HealthMetrics | null;
 }
 
 interface PlanVsActualViewProps {
@@ -50,6 +52,31 @@ const statusConfig: Record<PvAStatus, { icon: React.ReactNode; className: string
   },
 };
 
+function generateObservation(items: PvAItem[], health: HealthMetrics | null | undefined): string | null {
+  if (!health) return null;
+  const recovery = health.recovery;
+  const taskCount = items.length;
+  const doneCount = items.filter(i => i.status === "done").length;
+  const missedCount = items.filter(i => i.status === "missed").length;
+
+  if (recovery !== null && recovery < 33 && taskCount >= 3) {
+    return `Low recovery (${recovery}%) — ${taskCount} tasks scheduled. Consider whether output matched effort.`;
+  }
+  if (recovery !== null && recovery >= 67 && doneCount === taskCount && taskCount > 0) {
+    return `Strong recovery (${recovery}%) and ${doneCount}/${taskCount} tasks completed. Great alignment.`;
+  }
+  if (recovery !== null && recovery >= 67 && missedCount > 0) {
+    return `Recovery was high (${recovery}%) but ${missedCount} tasks missed. Energy wasn't the bottleneck.`;
+  }
+  if (health.sleepMinutes !== null && health.sleepMinutes < 360 && taskCount > 0) {
+    return `Short sleep (${Math.round(health.sleepMinutes / 60)}h) — ${doneCount}/${taskCount} completed. Sleep affects follow-through.`;
+  }
+  if (recovery !== null && taskCount > 0) {
+    return `Recovery: ${recovery}% · ${doneCount}/${taskCount} tasks completed.`;
+  }
+  return null;
+}
+
 export const PlanVsActualView = ({
   days,
   onPushToCalendar,
@@ -74,12 +101,13 @@ export const PlanVsActualView = ({
       return {
         date,
         items: dayData?.items || [],
+        health: dayData?.health,
       };
     });
   }, [currentWeekStart, days]);
 
   const todayData = useMemo(
-    () => days.find((d) => isToday(d.date)) || { date: today, items: [] },
+    () => days.find((d) => isToday(d.date)) || { date: today, items: [], health: null },
     [days, today]
   );
 
@@ -163,8 +191,9 @@ export const PlanVsActualView = ({
           exit={{ opacity: 0, x: -10 }}
           className="space-y-3"
         >
-          {displayDays.map(({ date, items }) => {
+          {displayDays.map(({ date, items, health }) => {
             const isPast = isBefore(date, today) && !isToday(date);
+            const observation = generateObservation(items, health);
             return (
               <div key={format(date, "yyyy-MM-dd")}>
                 {view === "week" && (
@@ -175,35 +204,80 @@ export const PlanVsActualView = ({
                     {isToday(date) ? "Today" : format(date, "EEE d")}
                   </div>
                 )}
-                {items.length === 0 ? (
-                  <p className="text-xs text-muted-foreground/60 py-1">
-                    {isPast ? "Nothing tracked" : "Nothing planned"}
-                  </p>
-                ) : (
-                  <div className="space-y-1">
-                    {items.map((item) => {
-                      const config = statusConfig[item.status];
-                      return (
-                        <div
-                          key={item.id}
-                          className={cn(
-                            "flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs",
-                            config.className
-                          )}
-                        >
-                          {config.icon}
-                          <span className="flex-1 truncate font-medium">{item.title}</span>
-                          {item.plannedTime && (
-                            <span className="text-[10px] opacity-70">
-                              {item.plannedTime}
-                              {item.actualTime && item.actualTime !== item.plannedTime && (
-                                <> → {item.actualTime}</>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Planned column */}
+                  <div>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Planned</p>
+                    {items.length === 0 ? (
+                      <p className="text-xs text-muted-foreground/60 py-1">
+                        {isPast ? "Nothing tracked" : "Nothing planned"}
+                      </p>
+                    ) : (
+                      <div className="space-y-1">
+                        {items.map((item) => {
+                          const config = statusConfig[item.status];
+                          return (
+                            <div
+                              key={item.id}
+                              className={cn(
+                                "flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[11px]",
+                                config.className
                               )}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
+                            >
+                              {config.icon}
+                              <span className="flex-1 truncate font-medium">{item.title}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actual (wearable) column */}
+                  <div>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Body</p>
+                    {health && (health.recovery !== null || health.sleepMinutes !== null) ? (
+                      <div className="space-y-1">
+                        {health.recovery !== null && (
+                          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border bg-muted/30 text-[11px]">
+                            <Heart className="w-3 h-3 text-wellness" />
+                            <span className="text-foreground font-medium">Recovery</span>
+                            <span className="ml-auto font-mono text-muted-foreground">{health.recovery}%</span>
+                          </div>
+                        )}
+                        {health.sleepMinutes !== null && (
+                          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border bg-muted/30 text-[11px]">
+                            <Moon className="w-3 h-3 text-accent" />
+                            <span className="text-foreground font-medium">Sleep</span>
+                            <span className="ml-auto font-mono text-muted-foreground">{Math.round(health.sleepMinutes / 60)}h {health.sleepMinutes % 60}m</span>
+                          </div>
+                        )}
+                        {health.hrv !== null && (
+                          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border bg-muted/30 text-[11px]">
+                            <Brain className="w-3 h-3 text-awareness" />
+                            <span className="text-foreground font-medium">HRV</span>
+                            <span className="ml-auto font-mono text-muted-foreground">{health.hrv}ms</span>
+                          </div>
+                        )}
+                        {health.strain !== null && (
+                          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border bg-muted/30 text-[11px]">
+                            <Activity className="w-3 h-3 text-habit" />
+                            <span className="text-foreground font-medium">Strain</span>
+                            <span className="ml-auto font-mono text-muted-foreground">{health.strain}</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground/60 py-1">No wearable data</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* AI Observation */}
+                {observation && (
+                  <div className="mt-1.5 px-2.5 py-1.5 rounded-lg bg-accent/5 border border-accent/10 text-[11px] text-muted-foreground italic">
+                    {observation}
                   </div>
                 )}
               </div>

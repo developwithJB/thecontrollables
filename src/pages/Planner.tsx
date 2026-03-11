@@ -282,7 +282,7 @@ const Planner = () => {
           </div>
         </div>
         <ControllablePoweredBy controllables={["awareness", "habit", "wellness", "environment"]} />
-        <PlannerWellnessBanner userId={user.id} />
+        <PlannerWellnessBanner userId={user.id} selectedDate={selectedDate} />
       </div>
 
       {/* Date strip (mobile) */}

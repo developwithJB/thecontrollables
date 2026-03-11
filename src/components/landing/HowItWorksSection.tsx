@@ -4,8 +4,8 @@ import { Calendar, Brain, Camera, Layers, DollarSign, Plug } from "lucide-react"
 const steps = [
   {
     icon: Calendar,
-    title: "Plan Your Day",
-    description: "Open your Planner. See your tasks, events, and routines. Sync with Google Calendar if you want — or keep it simple.",
+    title: "Plan It",
+    description: "Your calendar holds the plan. Sync Google Calendar or build from scratch — tasks, meals, routines, all in one view.",
     color: "text-accent",
     bgColor: "bg-accent/10",
   },
