@@ -82,6 +82,7 @@ export function MealPlanBuilder({
     setCurrentSuggestions([]);
     setSwapSlot(null);
     setChatMessages([]);
+    setRejectedNames([]);
   }, []);
 
   const handleClose = () => {
