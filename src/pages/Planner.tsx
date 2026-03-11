@@ -271,8 +271,11 @@ const Planner = () => {
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant={showPvA ? "default" : "ghost"} size="icon" className="h-8 w-8" onClick={() => setShowPvA((v) => !v)} title="Plan vs Actual">
+            <Button variant={showPvA ? "default" : "ghost"} size="icon" className="h-8 w-8" onClick={() => { setShowPvA((v) => !v); setShowFuelCheck(false); }} title="Plan vs Actual">
               <BarChart3 className="h-4 w-4" />
+            </Button>
+            <Button variant={showFuelCheck ? "default" : "ghost"} size="icon" className="h-8 w-8" onClick={() => { setShowFuelCheck((v) => !v); setShowPvA(false); }} title="Fuel Check">
+              <UtensilsCrossed className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRoutineManagerOpen(true)}>
               <RotateCcw className="h-4 w-4" />
