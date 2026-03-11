@@ -453,12 +453,25 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
 
             <div className="flex flex-wrap gap-2 pt-1">
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="sm"
-                className="text-[11px] h-7 text-muted-foreground"
-                onClick={() => window.open(getCalendarUrl(), "_blank")}
+                className="text-[11px] h-8 gap-1.5 font-medium"
+                onClick={() => {
+                  if (userId && todayPlan?.meals) {
+                    const meals = todayPlan.meals as any[];
+                    meals.forEach((meal: any) => {
+                      const { addMealToPlanner } = window.__mealPlannerBridge || {};
+                      if (addMealToPlanner) {
+                        addMealToPlanner(meal);
+                      } else {
+                        // Fallback to Google Calendar URL
+                        window.open(getCalendarUrl(), "_blank");
+                      }
+                    });
+                  }
+                }}
               >
-                <Calendar className="w-3 h-3 mr-1" />
+                <Calendar className="w-3.5 h-3.5" />
                 Add to Calendar
               </Button>
               <Button

@@ -293,6 +293,44 @@ export function useMealTracking(userId: string | null) {
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   );
 
+  // Add meal to planner as a time_block
+  const addMealToPlanner = useMutation({
+    mutationFn: async ({ meal, date }: { meal: MealPlanMeal; date?: string }) => {
+      if (!userId) throw new Error("Not authenticated");
+      const planDate = date || today;
+      
+      const mealTimeMap: Record<string, { start: string; end: string }> = {
+        breakfast: { start: "07:00", end: "07:30" },
+        lunch: { start: "12:00", end: "12:30" },
+        dinner: { start: "18:00", end: "18:30" },
+        snack: { start: "15:00", end: "15:15" },
+      };
+      const times = mealTimeMap[meal.meal_type] || mealTimeMap.snack;
+
+      const { error } = await supabase
+        .from("planner_items" as any)
+        .insert({
+          user_id: userId,
+          title: `🛰️ ${meal.name}`,
+          item_type: "time_block",
+          scheduled_date: planDate,
+          start_time: times.start,
+          end_time: times.end,
+          description: `${meal.description}\n~${meal.est_calories} cal${meal.est_protein ? ` · ${meal.est_protein}g protein` : ""}`,
+          sort_order: 0,
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["planner-items"] });
+      queryClient.invalidateQueries({ queryKey: ["planner-items-today"] });
+      toast({ title: "🛰️ Added to Planner", description: "Meal block added to your schedule." });
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to add", description: err?.message || "Could not add meal to planner", variant: "destructive" });
+    },
+  });
+
   return {
     todayMeals,
     mealsLoading,
@@ -303,5 +341,6 @@ export function useMealTracking(userId: string | null) {
     updatePlanMeals,
     generateWeekPlan,
     dailyTotals,
+    addMealToPlanner,
   };
 }
