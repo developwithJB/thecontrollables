@@ -178,13 +178,14 @@ const Planner = () => {
   const dayItems = itemsByDate[selectedDateKey] ?? [];
   const dayActivity = activityByDate[selectedDateKey] ?? [];
 
-  // Derive Plan vs Actual data
+  // Derive Plan vs Actual data with health metrics
   const pvaData = useMemo(() => {
     const today = startOfDay(new Date());
     return weekRange.days.map((date) => {
       const key = format(date, "yyyy-MM-dd");
       const dayItems = itemsByDate[key] ?? [];
       const isPast = isBefore(date, today) && !isToday(date);
+      const healthForDay = healthTrend.find(h => h.date === key) ?? null;
       return {
         date,
         items: dayItems.map((item) => {
@@ -201,9 +202,10 @@ const Planner = () => {
             type: item.item_type as "task" | "time_block" | "routine_instance" | "external_event",
           };
         }),
+        health: healthForDay,
       };
     });
-  }, [weekRange.days, itemsByDate]);
+  }, [weekRange.days, itemsByDate, healthTrend]);
 
   // Handlers
   const handleToggleStatus = useCallback(
