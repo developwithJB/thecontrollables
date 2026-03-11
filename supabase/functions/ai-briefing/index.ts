@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
 
     // Gather context: active session, recent reflections, build scores, controllable levels, planner stats
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-    const [sessionRes, reflectionsRes, buildRes, actionsRes, yesterdayHealthRes, yesterdayPlannerRes, todayPlannerRes] = await Promise.all([
+    const [sessionRes, reflectionsRes, buildRes, actionsRes, yesterdayHealthRes, yesterdayPlannerRes, todayPlannerRes, todayMealPlanRes] = await Promise.all([
       serviceClient.from('reset_sessions').select('current_day, journey_id, start_date')
         .eq('user_id', userId).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       serviceClient.from('daily_resets').select('day_number, reflection, completed_at')
@@ -97,6 +97,8 @@ Deno.serve(async (req) => {
         .eq('user_id', userId).eq('scheduled_date', yesterday),
       serviceClient.from('planner_items').select('id')
         .eq('user_id', userId).eq('scheduled_date', today),
+      serviceClient.from('meal_plans').select('meals')
+        .eq('user_id', userId).eq('plan_date', today).maybeSingle(),
     ]);
 
     const currentDay = sessionRes.data?.current_day || 1;
@@ -154,6 +156,16 @@ Deno.serve(async (req) => {
       contextParts.push(`Today's scheduled load: ${todayPlannerRes.data.length} items in planner`);
     }
 
+    // Meal plan context
+    const todayMeals = (todayMealPlanRes.data?.meals as any[]) || [];
+    if (todayMeals.length > 0) {
+      const mealNames = todayMeals.map((m: any) => `${m.meal_type}: ${m.name}`).join(', ');
+      const dinnerMeal = todayMeals.find((m: any) => m.meal_type === 'dinner');
+      contextParts.push(`Today's meal plan: ${mealNames}.${dinnerMeal ? ` Dinner: ${dinnerMeal.name}.` : ''}`);
+    } else {
+      contextParts.push('No meals planned today — food decisions remain open.');
+    }
+
     // Fetch WHOOP biometric data
     const [whoopRecoveryRes, whoopSleepRes, whoopCycleRes] = await Promise.all([
       serviceClient.from('whoop_recoveries').select('recovery_score, hrv_rmssd_milli, resting_heart_rate, recorded_at')
@@ -198,6 +210,7 @@ RULES:
 - Match the voice of ${controllableInfo.name}: ${controllableInfo.key === 'habit' ? 'direct, action-focused' : controllableInfo.key === 'awareness' ? 'observational, calm' : controllableInfo.key === 'perspective' ? 'wise, reframing' : controllableInfo.key === 'wellness' ? 'systems-focused' : 'design-focused'}
 - If WHOOP data is present, weave biometric signals into your observation and suggestion. Reference recovery, sleep quality, or strain when relevant.
 - If planner data is present, reference yesterday's completion and today's load.
+- If meal plan data is present, weave food context into your readiness read. Low recovery + unplanned meals = suggest quick simple options. Busy day + planned meals = acknowledge preparation. No meals planned = note food decisions are open.
 - No motivational fluff. Be real.
 - Format as 3 separate lines`;
 

@@ -9,6 +9,7 @@ interface PlannerWeekGridProps {
   onSelect: (date: Date) => void;
   itemsByDate: Record<string, PlannerItem[]>;
   activityByDate?: Record<string, { id: string; isConfirmed: boolean }[]>;
+  mealCountsByDate?: Record<string, number>;
 }
 
 const miniStatusIcon = {
@@ -24,6 +25,7 @@ export const PlannerWeekGrid = ({
   onSelect,
   itemsByDate,
   activityByDate = {},
+  mealCountsByDate = {},
 }: PlannerWeekGridProps) => {
   return (
     <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden border border-border">
@@ -31,6 +33,7 @@ export const PlannerWeekGrid = ({
         const dateKey = format(day, "yyyy-MM-dd");
         const items = itemsByDate[dateKey] ?? [];
         const activity = activityByDate[dateKey] ?? [];
+        const mealCount = mealCountsByDate[dateKey] ?? 0;
         const selected = isSameDay(day, selectedDate);
         const today = isToday(day);
 
@@ -80,6 +83,12 @@ export const PlannerWeekGrid = ({
                   <span className="text-[11px] truncate text-muted-foreground">
                     {activity.filter(a => a.isConfirmed).length} logged
                   </span>
+                </div>
+              )}
+              {mealCount > 0 && (
+                <div className="flex items-center gap-0.5 min-w-0">
+                  <span className="text-[10px]">🍽️</span>
+                  <span className="text-[10px] text-muted-foreground">{mealCount} meals</span>
                 </div>
               )}
               {(items.length + activity.length) > 4 && (

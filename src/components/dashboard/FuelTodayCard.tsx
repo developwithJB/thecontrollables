@@ -1,10 +1,13 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { UtensilsCrossed, Clock, ArrowRight, Sparkles } from "lucide-react";
+import { UtensilsCrossed, Clock, ArrowRight, Sparkles, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMealTracking, type MealSlotConfig } from "@/hooks/useMealTracking";
 import { useMealPreferences } from "@/hooks/useMealPreferences";
 import { MealPlanBuilder } from "@/components/nutrition/MealPlanBuilder";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format, startOfWeek, endOfWeek } from "date-fns";
 
 interface FuelTodayCardProps {
   userId: string | null;
@@ -16,6 +19,29 @@ export function FuelTodayCard({ userId, isPaid }: FuelTodayCardProps) {
   const { todayPlan, planLoading, generatePlan, updatePlanMeals } = useMealTracking(userId);
   const { preferences } = useMealPreferences(userId);
   const [showBuilder, setShowBuilder] = useState(false);
+
+  // Check if grocery list has been generated this week
+  const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const { data: weekMealPlans } = useQuery({
+    queryKey: ["week-meal-plans-grocery-check", userId, weekStart],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data } = await supabase
+        .from("meal_plans")
+        .select("id, meals")
+        .eq("user_id", userId)
+        .gte("plan_date", weekStart)
+        .lte("plan_date", weekEnd);
+      return data || [];
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const hasPlannedMeals = (weekMealPlans?.length ?? 0) > 0;
+  const totalWeekMeals = weekMealPlans?.reduce((sum, p) => sum + ((p.meals as any[])?.length || 0), 0) ?? 0;
+  const showGroceryGap = hasPlannedMeals && totalWeekMeals >= 3;
 
   const slotConfig: MealSlotConfig = useMemo(() => ({
     excludeMeals: preferences?.excludeMeals || [],
@@ -134,6 +160,24 @@ export function FuelTodayCard({ userId, isPaid }: FuelTodayCardProps) {
               onClick={() => setShowBuilder(true)}
             >
               <Sparkles className="w-2.5 h-2.5 mr-1" /> Suggest
+            </Button>
+          </div>
+        )}
+
+        {/* Grocery gap warning */}
+        {showGroceryGap && (
+          <div className="flex items-center gap-1.5 bg-accent/10 rounded-md px-2 py-1">
+            <AlertTriangle className="w-3 h-3 text-accent shrink-0" />
+            <p className="text-[10px] text-accent">
+              Ingredients not confirmed — generate your grocery list
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[10px] h-5 px-1.5 text-accent ml-auto"
+              onClick={() => navigate("/wellness")}
+            >
+              Open
             </Button>
           </div>
         )}

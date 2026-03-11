@@ -205,7 +205,7 @@ serve(async (req) => {
     // Service client for WHOOP data (needs service role to bypass RLS on whoop tables)
     const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const [ringsHistory, wellnessLogs, noticeEntries, proofActions, activeSession, plannerItems, whoopRecoveries, whoopSleeps, whoopCycles] = await Promise.all([
+    const [ringsHistory, wellnessLogs, noticeEntries, proofActions, activeSession, plannerItems, whoopRecoveries, whoopSleeps, whoopCycles, weekMealPlans] = await Promise.all([
       supabase.from("daily_rings").select("*").eq("user_id", userId).gte("ring_date", sevenDaysAgo).order("ring_date", { ascending: false }).limit(7),
       supabase.from("wellness_logs" as any).select("*").eq("user_id", userId).gte("log_date", sevenDaysAgo).order("log_date", { ascending: false }).limit(7),
       supabase.from("notice_entries" as any).select("mood, energy_level, stress_level").eq("user_id", userId).gte("entry_date", sevenDaysAgo).limit(7),
@@ -215,6 +215,7 @@ serve(async (req) => {
       serviceClient.from("whoop_recoveries").select("recovery_score, hrv_rmssd_milli, resting_heart_rate, spo2_percentage, skin_temp_celsius, recorded_at").eq("user_id", userId).gte("recorded_at", sevenDaysAgo).order("recorded_at", { ascending: false }).limit(7),
       serviceClient.from("whoop_sleeps").select("sleep_performance_pct, sleep_efficiency_pct, respiratory_rate, total_in_bed_ms, total_rem_ms, total_sws_ms, start_time, end_time").eq("user_id", userId).gte("end_time", sevenDaysAgo).order("end_time", { ascending: false }).limit(7),
       serviceClient.from("whoop_cycles").select("strain, kilojoules, avg_heart_rate, max_heart_rate, start_time").eq("user_id", userId).gte("start_time", sevenDaysAgo).order("start_time", { ascending: false }).limit(7),
+      supabase.from("meal_plans").select("plan_date, meals").eq("user_id", userId).gte("plan_date", sevenDaysAgo).order("plan_date").limit(7),
     ]);
 
     // Build context summary
@@ -275,6 +276,11 @@ serve(async (req) => {
 
     const upcomingPlanner = (plannerItems?.data || []).slice(0, 5).map((i: any) => `${i.scheduled_date}: ${i.title} (${i.status})`).join("; ");
 
+    // Meal planning context
+    const mealPlanData = weekMealPlans?.data || [];
+    const daysWithMeals = mealPlanData.filter((p: any) => ((p.meals as any[])?.length || 0) > 0).length;
+    const mealCoverageContext = `Meals planned this week: ${daysWithMeals}/7 days${daysWithMeals < 3 ? " — low meal planning increases takeout risk and unplanned spending" : ""}`;
+
     // WHOOP biometric context
     const whoopRecoveryData = whoopRecoveries.data || [];
     const whoopSleepData = whoopSleeps.data || [];
@@ -322,7 +328,8 @@ Average energy (7d): ${avgEnergy}/5
 Average stress (7d): ${avgStress}/5
 Proof action completion rate (7d): ${proofCompletionRate}%
 ${snapshotContext}
-Upcoming planned items: ${upcomingPlanner || "none"}${whoopContext}
+Upcoming planned items: ${upcomingPlanner || "none"}
+${mealCoverageContext}${whoopContext}
 `;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -349,6 +356,11 @@ If WHOOP biometric data is present, factor it into your analysis:
 - If strain is high (>14) + recovery is low (<50%), flag overtraining risk. Recommend recovery day.
 - If recovery > 66% and sleep > 85%, note strong readiness — good day for deep work or challenging tasks.
 - Weave biometric signals into pattern_detected, best_next_move, and recommended_actions when relevant.
+
+If meal planning data is present, factor nutrition into forecasts:
+- If meal planning coverage is low (< 3 days) and calendar is heavy, note food-related spending risk in forecast.
+- Low recovery + no meals planned = recommend quick supportive meals.
+- Strong meal planning supports body consistency, reduces spending, and lowers decision fatigue — acknowledge it.
 
 For the forecast fields:
 - snapshot_forecast: Project the remaining days of the current snapshot (7-day cycle) based on trajectory. What's likely to happen and what to watch for.

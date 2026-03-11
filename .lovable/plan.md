@@ -1,75 +1,164 @@
 
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-# Weave Fuel Plan Across Life OS
+## Overview
 
-## Current State
-- **Today**: `FuelTodayCard` already renders on Home — shows tonight's meal, next unplanned slot, swap actions. Missing: grocery gap warning.
-- **Plan (Day View)**: Shows meal count badge ("🍽️ 3 meals"). Missing: lunch/dinner slot detail, energy-aware meal suggestions.
-- **Plan (Week Grid)**: No meal visibility at all.
-- **Money**: `GroceryRhythmCard` already renders with weekly meal count and takeout risk.
-- **AI Briefing**: Does NOT fetch or reference meal plan data.
-- **Dashboard Intelligence**: Does NOT include meal planning context in forecasts.
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-## Changes
+---
 
-### 1. Enhance FuelTodayCard — Add Grocery Gap Warning
-**File:** `src/components/dashboard/FuelTodayCard.tsx`
+## Part 1: AI Insight Engine
 
-Query today's meal ingredients and check if a grocery list exists for the week. If meals are planned but no grocery list has been generated, show a subtle warning: "Ingredients not confirmed — generate your grocery list."
+### New Edge Function: `admin-insights`
 
-Add a query to `meal_plans` for this week to check if any grocery list action has been taken (derive from plan count vs. a simple "has grocery been generated" check). Show inline warning below the dinner row.
+**File: `supabase/functions/admin-insights/index.ts`**
 
-### 2. PlannerDayView — Show Lunch & Dinner Slots
-**File:** `src/components/planner/PlannerDayView.tsx`
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
 
-Replace the simple "🍽️ X meals" badge with a compact meal slot summary below the day header showing actual meal names for lunch and dinner (the two most relevant planning slots). Query already exists — extend it to return meal details, not just count.
-
+**Prompt structure:**
 ```
-🍽️ Lunch: Chicken Salad · Dinner: Pasta Carbonara
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
+
+[structured data blob]
+
+Return insights as structured tool output.
 ```
 
-If a slot is empty on a busy day (5+ planner items), show: "Light meal suggested — busy day."
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-### 3. PlannerWeekGrid — Add Meal Dots Per Day
-**File:** `src/components/planner/PlannerWeekGrid.tsx`
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-Add a `mealCountsByDate` prop (Record<string, number>) passed from `Planner.tsx`. Show a small 🍽️ indicator per day cell when meals > 0, alongside existing task indicators.
+### New Admin Component: AI Insights Panel
 
-**File:** `src/pages/Planner.tsx`
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-Fetch weekly meal counts and pass as prop to `PlannerWeekGrid`.
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-### 4. AI Briefing — Include Meal Plan Context
-**File:** `supabase/functions/ai-briefing/index.ts`
+### Integration into Admin.tsx
 
-Add a query for today's `meal_plans` row. If meals exist, add to context: "Today's meal plan: [meal names]. Dinner: [name]." If no meals are planned, add: "No meals planned today — food decisions remain open."
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
-Update the system prompt to include: "If meal plan data is present, weave food context into your readiness read. Low recovery + unplanned meals = suggest quick simple options. Busy day + planned meals = acknowledge preparation."
+---
 
-### 5. Dashboard Intelligence — Include Meal Planning in Forecasts
-**File:** `supabase/functions/dashboard-intelligence/index.ts`
+## Part 2: Enhanced Action Center
 
-Add a query for this week's meal plans (count of days with plans). Add to context prompt:
-- "Meals planned this week: X/7 days"
-- "If meal planning is low and calendar is heavy, note food-related spending risk in forecast"
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
 
-Update the system prompt to include nutrition as a factor in forecasts and recommended actions.
+Replace the three "Coming soon" cards with working functionality:
 
-## Files to Modify
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
 
-| File | Change |
-|---|---|
-| `src/components/dashboard/FuelTodayCard.tsx` | Add grocery gap warning when meals planned but no grocery list |
-| `src/components/planner/PlannerDayView.tsx` | Show lunch/dinner names + energy-aware suggestion on busy days |
-| `src/components/planner/PlannerWeekGrid.tsx` | Add `mealCountsByDate` prop, show 🍽️ indicator per day |
-| `src/pages/Planner.tsx` | Fetch weekly meal counts, pass to WeekGrid |
-| `supabase/functions/ai-briefing/index.ts` | Query today's meal plan, add to context + prompt rules |
-| `supabase/functions/dashboard-intelligence/index.ts` | Query weekly meal plan coverage, add to context + forecast prompt |
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
 
-## What Does NOT Change
-- No new database tables or migrations
-- No new components created (all enhancements to existing)
-- FuelTodayCard position on Today stays the same
-- GroceryRhythmCard on Money stays as-is
-- All existing hooks and edge function structure preserved
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
 
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
+
+---
+
+## Part 3: Landing Page Updates
+
+**File: `src/pages/Landing.tsx`**
+
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+
+**File: `src/components/landing/FeatureGrid.tsx`**
+
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+
+**File: `src/components/landing/HowItWorksSection.tsx`**
+
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.

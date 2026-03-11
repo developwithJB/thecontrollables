@@ -77,34 +77,61 @@ export const PlannerDayView = ({
 
   const todayLabel = isToday(date) ? "Today" : format(date, "EEEE, MMM d");
 
-  // Meal count for this day
+  // Meal details for this day
   const dateKey = format(date, "yyyy-MM-dd");
-  const { data: mealCount = 0 } = useQuery({
-    queryKey: ["meal-plan-count", userId, dateKey],
+  const { data: mealData } = useQuery({
+    queryKey: ["meal-plan-detail", userId, dateKey],
     queryFn: async () => {
-      if (!userId) return 0;
+      if (!userId) return null;
       const { data } = await supabase
         .from("meal_plans")
         .select("meals")
         .eq("user_id", userId)
         .eq("plan_date", dateKey)
         .maybeSingle();
-      return data ? ((data.meals as any[])?.length || 0) : 0;
+      return data ? ((data.meals as any[]) || []) : [];
     },
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
   });
 
+  const meals = mealData || [];
+  const lunch = meals.find((m: any) => m.meal_type === "lunch");
+  const dinner = meals.find((m: any) => m.meal_type === "dinner");
+  const isBusyDay = items.length >= 5;
+  const hasEmptySlots = !lunch || !dinner;
+
   return (
     <div className="flex-1 px-4 py-3">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-base font-semibold text-foreground">{todayLabel}</h2>
-        {mealCount > 0 && (
+        {meals.length > 0 && (
           <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-            <UtensilsCrossed className="w-3 h-3" /> {mealCount} meals
+            <UtensilsCrossed className="w-3 h-3" /> {meals.length} meals
           </span>
         )}
       </div>
+
+      {/* Meal slot summary */}
+      {meals.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3 text-[10px] text-muted-foreground">
+          {lunch ? (
+            <span>🍽️ Lunch: <span className="text-foreground/80 font-medium">{lunch.name}</span></span>
+          ) : isBusyDay ? (
+            <span className="text-accent italic">Light lunch suggested — busy day</span>
+          ) : null}
+          {dinner ? (
+            <span>🍽️ Dinner: <span className="text-foreground/80 font-medium">{dinner.name}</span></span>
+          ) : isBusyDay ? (
+            <span className="text-accent italic">Simple dinner suggested — busy day</span>
+          ) : null}
+        </div>
+      )}
+      {isBusyDay && hasEmptySlots && meals.length === 0 && (
+        <div className="flex items-center gap-1.5 mb-3 text-[10px] text-accent italic">
+          <UtensilsCrossed className="w-3 h-3" /> Busy day — keep meals light
+        </div>
+      )}
 
       {sortedItems.length === 0 && activityItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
