@@ -1,6 +1,7 @@
-import { useCallback, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { ChevronDown, ArrowRight } from "lucide-react";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { useWellness } from "@/hooks/useWellness";
 import { useEntitlements } from "@/hooks/useEntitlements";
@@ -8,15 +9,16 @@ import { usePageViewTracking } from "@/hooks/useAnalytics";
 import { useQueryClient } from "@tanstack/react-query";
 import { getDefaultCheckoutPlan } from "@/lib/featureFlags";
 import { useToast } from "@/hooks/use-toast";
+import { useHealthData } from "@/hooks/useHealthData";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 import { BrainBodyTracker } from "@/components/dashboard/BrainBodyTracker";
 import { WellnessGoalsCard } from "@/components/dashboard/WellnessGoalsCard";
 import { WearableSummaryCard } from "@/components/wellness/WearableSummaryCard";
 import { WearableTrendsCard } from "@/components/wellness/WearableTrendsCard";
-import { DailyOSCard } from "@/components/dashboard/DailyOSCard";
 import { WellnessFuelSummary } from "@/components/nutrition/WellnessFuelSummary";
 import { WellnessStreakHistory } from "@/components/experience/WellnessStreakHistory";
-import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 import { useReset } from "@/hooks/useReset";
 import { isInActiveTrial } from "@/lib/entitlements";
 import { useQuery } from "@tanstack/react-query";
@@ -25,9 +27,11 @@ import { supabase } from "@/integrations/supabase/client";
 export default function Wellness() {
   usePageViewTracking("Body");
   const user = useLifeOSUser();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Handle wearable OAuth callback params
   useEffect(() => {
@@ -40,7 +44,6 @@ export default function Wellness() {
       queryClient.invalidateQueries({ queryKey: ["health-data-trend"] });
       queryClient.invalidateQueries({ queryKey: ["brain-body"] });
       queryClient.invalidateQueries({ queryKey: ["wellness-goals"] });
-      // Auto-trigger initial sync so goals populate immediately
       supabase.functions.invoke("wearable-sync", { body: { provider: connected } }).then(() => {
         queryClient.invalidateQueries({ queryKey: ["health-sync-today"] });
         queryClient.invalidateQueries({ queryKey: ["health-data-trend"] });
@@ -59,6 +62,7 @@ export default function Wellness() {
 
   const { isPaid, isLoading: entitlementsLoading, initiateCheckout } = useEntitlements(user.id);
   const { streak: wellnessStreak, logWellness, recentLogs: wellnessLogs } = useWellness(user.id);
+  const { isConnected: wearableConnected } = useHealthData(user.id);
   const { activeSession, isCompleted, isExpired } = useReset(user.id);
 
   const { data: allSessions = [] } = useQuery({
@@ -71,7 +75,6 @@ export default function Wellness() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const isTrialing = isInActiveTrial(isPaid, !!activeSession, isCompleted, isExpired, allSessions.length);
   const defaultCheckoutPlan = getDefaultCheckoutPlan();
 
   const startCheckout = useCallback(
@@ -98,49 +101,69 @@ export default function Wellness() {
         <p className="text-muted-foreground text-sm">How your body is doing — recovery, sleep, strain, and trends.</p>
       </div>
 
-      <ControllablePoweredBy controllables={["habit", "wellness"]} />
-
-      {/* Wearable Integration */}
+      {/* 1. Wearable Integration (primary) */}
       <WearableSummaryCard userId={user.id} isPaid={isPaid} onUpgrade={() => startCheckout("wearable_summary")} />
+
+      {/* 2. Wearable Trends */}
       <WearableTrendsCard userId={user.id} isPaid={isPaid} onUpgrade={() => startCheckout("wearable_trends")} />
 
-      {/* Brain & Body Tracker */}
-      <BrainBodyTracker
-        userId={user.id}
-        streak={wellnessStreak}
-        onLogWellness={() => {}}
-        onQuickLog={handleQuickLog}
-      />
-
-      {/* Wellness Goals */}
-      <WellnessGoalsCard userId={user.id} />
-
-      {/* Daily OS */}
-      {!entitlementsLoading && (
-        <DailyOSCard
+      {/* 3. Manual Body Tracker (secondary fallback) */}
+      {wearableConnected ? (
+        <Collapsible>
+          <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full py-2">
+            <ChevronDown className="h-3.5 w-3.5" />
+            Manual body tracking
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <BrainBodyTracker
+              userId={user.id}
+              streak={wellnessStreak}
+              onLogWellness={() => {}}
+              onQuickLog={handleQuickLog}
+            />
+          </CollapsibleContent>
+        </Collapsible>
+      ) : (
+        <BrainBodyTracker
           userId={user.id}
-          isPaid={isPaid}
-          isTrialing={isTrialing}
-          hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
-          onUpgrade={() => startCheckout("daily_os")}
+          streak={wellnessStreak}
+          onLogWellness={() => {}}
+          onQuickLog={handleQuickLog}
         />
       )}
 
-
-      {/* Fuel Summary (read-only — planning lives in Planner) */}
+      {/* 4. Fuel Summary */}
       <WellnessFuelSummary userId={user.id} />
 
+      {/* 5. Wellness Goals */}
+      <WellnessGoalsCard userId={user.id} />
 
-      {/* Wellness Streak History */}
+      {/* 6. Streak History (collapsible) */}
       {wellnessLogs.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <WellnessStreakHistory recentLogs={wellnessLogs} streak={wellnessStreak} />
-        </motion.div>
+        <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
+          <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full py-2">
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${historyOpen ? "rotate-180" : ""}`} />
+            Wellness history
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <WellnessStreakHistory recentLogs={wellnessLogs} streak={wellnessStreak} />
+            </motion.div>
+          </CollapsibleContent>
+        </Collapsible>
       )}
+
+      {/* Link back to Today */}
+      <button
+        onClick={() => navigate("/home")}
+        className="flex items-center gap-1.5 text-xs text-accent hover:text-accent/80 transition-colors mx-auto"
+      >
+        See how your body data affects your day <ArrowRight className="h-3 w-3" />
+      </button>
 
       {/* Footer */}
       <footer className="py-6 text-center">

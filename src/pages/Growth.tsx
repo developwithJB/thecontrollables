@@ -12,6 +12,7 @@ import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
 import { useReset } from "@/hooks/useReset";
 import { useCircle } from "@/hooks/useCircle";
 import { useSeason } from "@/hooks/useSeason";
+import { useDashboardSummary } from "@/hooks/useDashboardSummary";
 import { getDefaultCheckoutPlan } from "@/lib/featureFlags";
 import { canStartNewSnapshot, hasUsedFreeTrial } from "@/lib/entitlements";
 import { useQuery } from "@tanstack/react-query";
@@ -30,6 +31,8 @@ import { ProofHistory } from "@/components/dashboard/IGProofHistory";
 import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
 import { CircleCard } from "@/components/dashboard/CircleCard";
 import { SeasonBanner } from "@/components/dashboard/SeasonBanner";
+import { MainQuestModule } from "@/components/dashboard/MainQuestModule";
+import { SnapshotReviewCard } from "@/components/dashboard/SnapshotReviewCard";
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
@@ -53,6 +56,17 @@ export default function Growth() {
     acceptCovenant,
     isAcceptingCovenant,
   } = useReset(user.id);
+
+  const {
+    activeQuest,
+    createQuest,
+    isCreatingQuest,
+    updateQuest,
+    isUpdatingQuest,
+    completeQuest,
+    isCompletingQuest,
+    isAuthReady,
+  } = useDashboardSummary(user.id);
 
   const {
     myCircle,
@@ -89,6 +103,11 @@ export default function Growth() {
   const [showProof, setShowProof] = useState(false);
   const hasActiveSession = !!activeSession && !isCompleted && !isExpired;
   const todayAlreadyCompleted = completedDays.some((d) => d.day_number === currentDay);
+  const hasEndedTrial = useMemo(() => {
+    if (isPaid) return false;
+    return allSessions.some((s) => s.status === "completed" || s.status === "expired" || s.status === "paused");
+  }, [allSessions, isPaid]);
+  const canStartSnapshot = useMemo(() => canStartNewSnapshot(isPaid, allSessions.length), [isPaid, allSessions.length]);
 
   // Circle invites
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
@@ -131,6 +150,31 @@ export default function Growth() {
       {/* Season Banner */}
       {activeSeason && seasonProgress && (
         <SeasonBanner seasonName={activeSeason.name} snapshots={seasonSnapshots} progress={seasonProgress} onCloseSeason={closeSeason} />
+      )}
+
+      {/* Main Quest — fallback for users without seasons */}
+      {!activeQuest && !activeSeason && (
+        <MainQuestModule
+          activeQuest={activeQuest}
+          onCreateQuest={(data) => createQuest(data)}
+          onUpdateQuest={(data) => updateQuest(data)}
+          onCompleteQuest={completeQuest}
+          isCreating={isCreatingQuest}
+          isUpdating={isUpdatingQuest}
+          isCompleting={isCompletingQuest}
+          disabled={!isAuthReady}
+        />
+      )}
+
+      {/* Snapshot Review — moved from Today */}
+      {(((hasEndedTrial && !isPaid) || (!activeSession && allSessions.some(s => s.status === "completed" || s.status === "expired" || s.status === "paused"))) ||
+        (activeSession && (isCompleted || isExpired))) && (
+        <SnapshotReviewCard
+          userId={user.id}
+          isPaid={isPaid}
+          onStartNewSnapshot={canStartSnapshot ? () => navigate("/home?openFocus=1") : undefined}
+          onUpgrade={() => startCheckout("snapshot_review_card")}
+        />
       )}
 
       {/* Reset Progress */}
@@ -234,7 +278,7 @@ export default function Growth() {
         )}
       </AnimatePresence>
 
-      {/* AI Recommended Actions */}
+      {/* AI Recommended Actions — deeper reflection lives here */}
       <div className="max-w-sm mx-auto w-full">
         <AIRecommendedActions data={intelligence.data} />
       </div>
