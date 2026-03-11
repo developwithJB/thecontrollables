@@ -552,25 +552,29 @@ export default function Home() {
         />
       )}
 
-      {/* 4. Plan vs Actual */}
-      {hasPvaData ? (
-        <div id="pva">
+      {/* 4. Plan vs Actual — hero module */}
+      <div id="pva">
+        <div className="mb-2">
+          <h2 className="text-sm font-semibold text-foreground">Plan vs. Actual</h2>
+          <p className="text-[10px] text-muted-foreground">What was planned · What your body says · What it means</p>
+        </div>
+        {hasPvaData ? (
           <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} syntheses={pvaSyntheses} projects={activeProjects} />
-        </div>
-      ) : (
-        <div id="pva" className="rounded-xl border border-border/50 bg-card/30 p-4 text-center space-y-2">
-          <p className="text-sm text-muted-foreground">
-            {!calendarConnected && !wearableConnected
-              ? "Connect your calendar and wearable to see Plan vs. Actual."
-              : !calendarConnected
-              ? "Connect your calendar to see the full Plan vs. Actual picture."
-              : "Connect your wearable to complete the Plan vs. Actual view."}
-          </p>
-          <Button variant="outline" size="sm" onClick={() => navigate(calendarConnected ? "/wellness" : "/planner")}>
-            {calendarConnected ? "Connect Wearable →" : "Connect Calendar →"}
-          </Button>
-        </div>
-      )}
+        ) : (
+          <div className="rounded-xl border border-border/50 bg-card/30 p-4 text-center space-y-2">
+            <p className="text-sm text-muted-foreground">
+              {!calendarConnected && !wearableConnected
+                ? "Connect your calendar and wearable to see Plan vs. Actual."
+                : !calendarConnected
+                ? "Connect your calendar to see the full picture."
+                : "Connect your wearable to complete the view."}
+            </p>
+            <Button variant="outline" size="sm" onClick={() => navigate(calendarConnected ? "/wellness" : "/planner")}>
+              {calendarConnected ? "Connect Wearable →" : "Connect Calendar →"}
+            </Button>
+          </div>
+        )}
+      </div>
 
       {/* 5. Compact 5 Rings */}
       <CompactRingsRow userId={user.id} />
