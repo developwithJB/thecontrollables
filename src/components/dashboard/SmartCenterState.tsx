@@ -50,7 +50,9 @@ export const SmartCenterState = ({ completedCount, isFullyCharged, rotations }: 
           transition={{ duration: 0.3 }}
           className={cn(
             "font-bold text-center leading-tight",
-            currentIndex === 0 ? "text-2xl text-accent" : "text-[11px] text-accent/80 max-w-[120px]"
+            currentIndex === 0
+              ? "text-2xl text-accent"
+              : "text-[11px] text-white bg-black/45 rounded-lg px-3 py-1.5 max-w-[120px]"
           )}
         >
           {labels[currentIndex]}

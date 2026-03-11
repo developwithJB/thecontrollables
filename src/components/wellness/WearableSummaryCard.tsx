@@ -1,5 +1,6 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, RefreshCw, Unlink, Activity, Moon, Zap, Heart, Lock } from "lucide-react";
@@ -39,11 +40,21 @@ function getRecoveryBg(score: number | null | undefined) {
   return "bg-red-500/10";
 }
 
-function formatMinutes(mins: number | null | undefined): string {
-  if (!mins) return "--";
+function formatMinutes(mins: number | null | undefined): string | null {
+  if (mins == null) return null;
   const hours = Math.floor(mins / 60);
   const m = mins % 60;
   return `${hours}h ${m}m`;
+}
+
+function MetricValue({ value, syncing, className }: { value: ReactNode | null; syncing: boolean; className?: string }) {
+  if (syncing && value == null) {
+    return <Skeleton className="h-7 w-16 mx-auto rounded-md" />;
+  }
+  if (value == null) {
+    return <p className="text-[10px] text-muted-foreground leading-tight mt-1">Awaiting today's data</p>;
+  }
+  return <p className={`text-xl font-bold ${className ?? ""}`}>{value}</p>;
 }
 
 export function WearableSummaryCard({ userId, isPaid, onUpgrade }: WearableSummaryCardProps) {
@@ -229,9 +240,11 @@ export function WearableSummaryCard({ userId, isPaid, onUpgrade }: WearableSumma
             {/* Recovery */}
             <div className={`rounded-lg p-3 text-center ${getRecoveryBg(recoveryScore)}`}>
               <Heart className={`h-4 w-4 mx-auto mb-1 ${getRecoveryColor(recoveryScore)}`} />
-              <p className={`text-xl font-bold ${getRecoveryColor(recoveryScore)}`}>
-                {recoveryScore != null ? `${Math.round(recoveryScore)}%` : "--"}
-              </p>
+              <MetricValue
+                value={recoveryScore != null ? `${Math.round(recoveryScore)}%` : null}
+                syncing={syncing}
+                className={getRecoveryColor(recoveryScore)}
+              />
               <p className="text-[10px] text-muted-foreground mt-0.5">Recovery</p>
               {latest.hrv != null && (
                 <p className="text-[10px] text-muted-foreground">HRV {Math.round(latest.hrv)}ms</p>
@@ -241,18 +254,22 @@ export function WearableSummaryCard({ userId, isPaid, onUpgrade }: WearableSumma
             {/* Sleep */}
             <div className="rounded-lg p-3 text-center bg-blue-500/10">
               <Moon className="h-4 w-4 mx-auto mb-1 text-blue-400" />
-              <p className="text-xl font-bold text-blue-400">
-                {sleepMins != null ? formatMinutes(sleepMins) : "--"}
-              </p>
+              <MetricValue
+                value={formatMinutes(sleepMins)}
+                syncing={syncing}
+                className="text-blue-400"
+              />
               <p className="text-[10px] text-muted-foreground mt-0.5">Sleep</p>
             </div>
 
             {/* Strain */}
             <div className="rounded-lg p-3 text-center bg-orange-500/10">
               <Zap className="h-4 w-4 mx-auto mb-1 text-orange-400" />
-              <p className="text-xl font-bold text-orange-400">
-                {strain != null ? strain.toFixed(1) : "--"}
-              </p>
+              <MetricValue
+                value={strain != null ? strain.toFixed(1) : null}
+                syncing={syncing}
+                className="text-orange-400"
+              />
               <p className="text-[10px] text-muted-foreground mt-0.5">Strain</p>
             </div>
           </div>
