@@ -20,6 +20,29 @@ export function FuelTodayCard({ userId, isPaid }: FuelTodayCardProps) {
   const { preferences } = useMealPreferences(userId);
   const [showBuilder, setShowBuilder] = useState(false);
 
+  // Check if grocery list has been generated this week
+  const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const { data: weekMealPlans } = useQuery({
+    queryKey: ["week-meal-plans-grocery-check", userId, weekStart],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data } = await supabase
+        .from("meal_plans")
+        .select("id, meals")
+        .eq("user_id", userId)
+        .gte("plan_date", weekStart)
+        .lte("plan_date", weekEnd);
+      return data || [];
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const hasPlannedMeals = (weekMealPlans?.length ?? 0) > 0;
+  const totalWeekMeals = weekMealPlans?.reduce((sum, p) => sum + ((p.meals as any[])?.length || 0), 0) ?? 0;
+  const showGroceryGap = hasPlannedMeals && totalWeekMeals >= 3;
+
   const slotConfig: MealSlotConfig = useMemo(() => ({
     excludeMeals: preferences?.excludeMeals || [],
     snackCount: preferences?.snackCount ?? 1,
