@@ -8,8 +8,38 @@ interface ForecastCardProps {
   compact?: boolean;
 }
 
-export const ForecastCard = ({ data }: ForecastCardProps) => {
+export const ForecastCard = ({ data, compact = false }: ForecastCardProps) => {
   if (!data) return null;
+
+  const primaryForecast = data.snapshot_forecast || data.tomorrow_forecast;
+  const watchout = data.month_forecast && data.month_forecast !== primaryForecast
+    ? data.month_forecast
+    : null;
+
+  // Compact mode: single inline forecast, no tabs
+  if (compact) {
+    if (!primaryForecast) return null;
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-xl border border-border/50 bg-card/50 p-4"
+      >
+        <div className="flex items-center gap-2 mb-2">
+          <Compass className="w-3.5 h-3.5 text-accent/70" />
+          <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
+            Forecast
+          </h3>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">{primaryForecast}</p>
+        {watchout && (
+          <p className="text-[10px] text-muted-foreground/50 mt-2 border-t border-border/30 pt-2">
+            ⚠ {watchout}
+          </p>
+        )}
+      </motion.div>
+    );
+  }
 
   const tabs = [
     {

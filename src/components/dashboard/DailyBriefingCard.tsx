@@ -132,6 +132,13 @@ export function DailyBriefingCard({ isPaid, isTrialing, hasActiveSnapshot, onUpg
         </button>
       </div>
 
+      {/* Context grounding line */}
+      {(healthRecovery !== null && healthRecovery !== undefined) || (plannerCount !== null && plannerCount !== undefined) ? (
+        <p className="text-[10px] text-muted-foreground/60 font-mono mb-2 relative">
+          Based on{healthRecovery !== null && healthRecovery !== undefined ? ` ${Math.round(healthRecovery)}% recovery` : ""}{healthRecovery !== null && healthRecovery !== undefined && plannerCount !== null && plannerCount !== undefined ? " + " : ""}{plannerCount !== null && plannerCount !== undefined ? `${plannerCount} planned items` : ""}
+        </p>
+      ) : null}
+
       <div className="space-y-2 relative">
         {lines.map((line, i) => (
           <motion.p

@@ -4,9 +4,9 @@ import { MessageSquare } from "lucide-react";
 import { AIChat } from "@/components/AIChat";
 
 const CHIPS = [
+  { label: "What should I protect today?", prompt: "Based on my body data, calendar load, and recent patterns — what should I protect today? What's most at risk?" },
   { label: "Explain today", prompt: "Explain my day today — what patterns do you see in my ring completions, and what should I take away from today?" },
   { label: "Forecast tomorrow", prompt: "Based on my recent patterns, what should I expect tomorrow? What's my biggest risk and best opportunity?" },
-  { label: "Find weak point", prompt: "Analyze my recent data and tell me where my biggest weak point is right now. What controllable needs the most attention?" },
   { label: "Coach me now", prompt: "Give me a focused coaching session right now. Based on what you know about my patterns, what's the most impactful thing I can do in the next hour?" },
 ];
 

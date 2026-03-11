@@ -160,43 +160,6 @@ export function GreetingBanner({
         </p>
       )}
 
-      {/* AI-Powered Weekly Insight (Premium only) */}
-      {isPaid && insightData?.insight && (
-        <motion.div
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-3"
-        >
-          <button
-            onClick={() => setShowInsight(!showInsight)}
-            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full group"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span className="font-medium">Weekly Insight</span>
-            {showInsight ? (
-              <ChevronUp className="w-3.5 h-3.5 ml-auto opacity-50 group-hover:opacity-100" />
-            ) : (
-              <ChevronDown className="w-3.5 h-3.5 ml-auto opacity-50 group-hover:opacity-100" />
-            )}
-          </button>
-          
-          <AnimatePresence>
-            {showInsight && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
-                <p className="text-sm text-foreground/80 mt-2 pl-5 border-l-2 border-amber-500/30 leading-relaxed">
-                  {insightData.insight}
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      )}
     </motion.div>
   );
 }
