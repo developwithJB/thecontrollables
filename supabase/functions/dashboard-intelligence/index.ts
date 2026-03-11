@@ -446,7 +446,7 @@ The ring names map to controllables: Notice=Awareness, Choose=Perspective, Prove
                       },
                       required: ["text", "ring"],
                     },
-                    description: "3-4 personalized recommended next actions with associated ring.",
+                    description: "1-2 personalized recommended next actions with associated ring. Prefer ONE strong action over many weak ones.",
                   },
                   memory_comparisons: {
                     type: "array",
