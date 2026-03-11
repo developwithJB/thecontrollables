@@ -191,13 +191,13 @@ export default function Home() {
   const { trend: healthTrend } = useHealthData(user.id);
   
   const pvaData = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const { format: fmtDate, isBefore, isToday: isTodayFn } = require("date-fns");
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
     return weekRange.days.map((date: Date) => {
-      const key = fmtDate(date, "yyyy-MM-dd");
+      const key = format(date, "yyyy-MM-dd");
       const dayItems = weekPlannerItems.filter((i: any) => i.scheduled_date === key);
-      const isPast = isBefore(date, today) && !isTodayFn(date);
+      const isPast = date < todayDate;
+      const isTodayDate = format(date, "yyyy-MM-dd") === format(todayDate, "yyyy-MM-dd");
       const healthForDay = healthTrend.find(h => h.date === key) ?? null;
       return {
         date,
@@ -205,7 +205,7 @@ export default function Home() {
           let status: "done" | "partial" | "missed" | "planned" = "planned";
           if (item.status === "done") status = "done";
           else if (item.status === "skipped") status = "partial";
-          else if (isPast) status = "missed";
+          else if (isPast && !isTodayDate) status = "missed";
           return { id: item.id, title: item.title, status, type: item.item_type };
         }),
         health: healthForDay,
