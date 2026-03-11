@@ -30,6 +30,7 @@ interface PlanVsActualViewProps {
   onPushToCalendar?: () => void;
   view?: "day" | "week";
   isWearableConnected?: boolean;
+  syntheses?: Record<string, string>;
 }
 
 const statusConfig: Record<PvAStatus, { icon: React.ReactNode; className: string; label: string }> = {
