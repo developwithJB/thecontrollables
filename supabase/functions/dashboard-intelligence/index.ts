@@ -377,6 +377,12 @@ If meal planning data is present, factor nutrition into forecasts:
 - Low recovery + no meals planned = recommend quick supportive meals.
 - Strong meal planning supports body consistency, reduces spending, and lowers decision fatigue — acknowledge it.
 
+If calendar load data is present, factor schedule pressure into analysis:
+- If calendar load is heavy (4+ meetings or 3+ hours), flag schedule pressure in energy_trend and recommend protecting focus windows.
+- If context switches are high (3+), note fragmentation risk in stress_load signal.
+- Heavy schedule + low recovery = high-risk day. Recommend simplification in recommended_actions.
+- Light schedule + strong recovery = opportunity day. Recommend deep work or proactive growth actions.
+
 For the forecast fields:
 - snapshot_forecast: Project the remaining days of the current snapshot (7-day cycle) based on trajectory. What's likely to happen and what to watch for.
 - month_forecast: Project the current month's outcome based on patterns. Include likely completion rates and key risks.
