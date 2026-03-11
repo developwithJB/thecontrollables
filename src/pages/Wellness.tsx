@@ -67,7 +67,7 @@ export default function Wellness() {
 
   const { isPaid, isLoading: entitlementsLoading, initiateCheckout } = useEntitlements(user.id);
   const { streak: wellnessStreak, logWellness, recentLogs: wellnessLogs } = useWellness(user.id);
-  const { isConnected: wearableConnected } = useHealthData(user.id);
+  const { isConnected: wearableConnected, latest: healthLatest, trend: healthTrend } = useHealthData(user.id);
   const { activeSession, isCompleted, isExpired } = useReset(user.id);
 
   const { data: allSessions = [] } = useQuery({
