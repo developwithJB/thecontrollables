@@ -73,6 +73,7 @@ export default function Growth() {
     activeSeason,
     seasonSnapshots,
     seasonProgress,
+    closeSeason,
   } = useSeason(user.id);
 
   const { data: allSessions = [] } = useQuery({
