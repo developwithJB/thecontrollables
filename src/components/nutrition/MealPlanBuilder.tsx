@@ -111,6 +111,7 @@ export function MealPlanBuilder({
           carbsTarget: preferences?.carbsTarget || undefined,
           fatTarget: preferences?.fatTarget || undefined,
         },
+        exclude_names: rejectedNames.length > 0 ? rejectedNames : undefined,
       });
 
       const meals = result?.meals || result || [];
