@@ -58,7 +58,7 @@ export function OnboardingFlow({
   userId, 
   onComplete, 
   onUpdateOnboarding,
-  initialStep = "build_assessment",
+  initialStep = "welcome_integrations",
   isPaid = false,
   createQuest,
 }: OnboardingFlowProps) {
