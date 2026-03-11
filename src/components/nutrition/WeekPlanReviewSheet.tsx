@@ -1,8 +1,8 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { format } from "date-fns";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { MealSwiper, type SwipeMeal } from "./MealSwiper";
+import { MealSwiper, type SwipeMeal, type MealSwiperHandle } from "./MealSwiper";
 import { type MealPlanMeal } from "@/hooks/useMealTracking";
 import { Check, ChevronRight, Loader2, X } from "lucide-react";
 import {
