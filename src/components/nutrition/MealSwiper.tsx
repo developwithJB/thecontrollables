@@ -31,6 +31,7 @@ export const MealSwiper = ({
   onAccept,
   onReject,
   onSaveToLibrary,
+  onRegenerate,
   currentMealType = "meal",
 }: MealSwiperProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
