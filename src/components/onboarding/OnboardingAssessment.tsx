@@ -188,6 +188,9 @@ export function OnboardingAssessment({
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-6"
         >
+          <p className="text-sm font-medium text-accent mb-1">
+            One last thing — let's see where to focus first
+          </p>
           <p className="text-sm text-muted-foreground mb-2">
             This helps us guide you without judgment
           </p>
