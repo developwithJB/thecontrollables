@@ -276,6 +276,21 @@ serve(async (req) => {
 
     const upcomingPlanner = (plannerItems?.data || []).slice(0, 5).map((i: any) => `${i.scheduled_date}: ${i.title} (${i.status})`).join("; ");
 
+    // Calendar shape analysis for today's items
+    const todayPlannerItems = (plannerItems?.data || []).filter((i: any) => i.scheduled_date === todayStr);
+    const timedToday = todayPlannerItems.filter((i: any) => i.start_time && i.end_time);
+    let calendarShapeContext = "";
+    if (timedToday.length > 0) {
+      const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return (h || 0) * 60 + (m || 0); };
+      const meetings = timedToday.map((i: any) => ({ start: toMin(i.start_time), end: toMin(i.end_time) })).filter((e: any) => e.end > e.start).sort((a: any, b: any) => a.start - b.start);
+      const meetingMinutes = meetings.reduce((s: number, e: any) => s + (e.end - e.start), 0);
+      let contextSwitches = 0;
+      for (let i = 0; i < meetings.length - 1; i++) {
+        if (meetings[i + 1].start - meetings[i].end < 15) contextSwitches++;
+      }
+      calendarShapeContext = `\nCalendar load today: ${meetings.length} timed meetings, ${Math.round(meetingMinutes / 60 * 10) / 10} total meeting hours, ${contextSwitches} context switches`;
+    }
+
     // Meal planning context
     const mealPlanData = weekMealPlans?.data || [];
     const daysWithMeals = mealPlanData.filter((p: any) => ((p.meals as any[])?.length || 0) > 0).length;
