@@ -144,7 +144,7 @@ export function useSeason(userId?: string) {
       }
       const { data, error } = await supabase
         .from("seasons")
-        .insert(insertData)
+        .insert(insertData as any)
         .select("id")
         .single();
       if (error) throw error;
