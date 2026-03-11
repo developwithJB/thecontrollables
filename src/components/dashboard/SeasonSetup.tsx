@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ControllableCard, type ControllableType } from "@/components/ControllableCard";
 import type { ControllableFocus } from "@/hooks/useProjects";
+import { CONTROLLABLE_LIST } from "@/lib/controllableTheme";
 
 const SUGGESTIONS = [
   "New job / career move",
@@ -16,12 +17,12 @@ const SUGGESTIONS = [
   "Building something new",
 ];
 
-const CONTROLLABLES: { type: ControllableType; title: string; emoji: string; description: string }[] = [
+const CONTROLLABLE_DETAILS: { type: ControllableType; title: string; emoji: string; description: string }[] = [
   { type: "awareness", title: "Awareness", emoji: "🦉", description: "See yourself and your patterns clearly" },
-  { type: "perspective", title: "Perspective", emoji: "🦅", description: "Reframe how you see challenges" },
-  { type: "habit", title: "Habit", emoji: "🐺", description: "Build discipline through daily action" },
-  { type: "wellness", title: "Wellness", emoji: "🐬", description: "Protect your energy and recovery" },
-  { type: "environment", title: "Environment", emoji: "🦁", description: "Design surroundings that support you" },
+  { type: "perspective", title: "Perspective", emoji: "🐢", description: "Reframe how you see challenges" },
+  { type: "habit", title: "Habit", emoji: "🦈", description: "Build discipline through daily action" },
+  { type: "wellness", title: "Wellness", emoji: "🛰️", description: "Protect your energy and recovery" },
+  { type: "environment", title: "Environment", emoji: "🚀", description: "Design surroundings that support you" },
 ];
 
 const PROJECT_EMOJIS = ["🎯", "💪", "📚", "🏃", "✍️", "🧘", "💼", "🎨", "🌱", "🔥", "🧠", "💡", "🏠", "🤝", "📈", "🎵", "🍎", "⚡", "🛠️", "🌟"];
