@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { getFeatureFlag } from "@/lib/featureFlags";
 
 export type FirstActionType = "quest" | "operator" | "rep";
-export type OnboardingStep = "build_assessment" | "archetype_result" | "journey_selection" | "completed";
+export type OnboardingStep = "welcome_integrations" | "build_assessment" | "archetype_result" | "journey_selection" | "completed";
 
 export interface UserOnboarding {
   user_id: string;
