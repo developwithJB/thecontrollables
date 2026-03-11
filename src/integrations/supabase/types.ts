@@ -2245,6 +2245,66 @@ export type Database = {
           },
         ]
       }
+      saved_recipes: {
+        Row: {
+          created_at: string
+          description: string | null
+          emoji: string | null
+          est_calories: number | null
+          est_carbs: number | null
+          est_fat: number | null
+          est_protein: number | null
+          id: string
+          image_url: string | null
+          ingredients: Json | null
+          instructions: Json | null
+          meal_type: string
+          name: string
+          prep_minutes: number | null
+          source: string | null
+          tags: string[] | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          est_calories?: number | null
+          est_carbs?: number | null
+          est_fat?: number | null
+          est_protein?: number | null
+          id?: string
+          image_url?: string | null
+          ingredients?: Json | null
+          instructions?: Json | null
+          meal_type?: string
+          name: string
+          prep_minutes?: number | null
+          source?: string | null
+          tags?: string[] | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          est_calories?: number | null
+          est_carbs?: number | null
+          est_fat?: number | null
+          est_protein?: number | null
+          id?: string
+          image_url?: string | null
+          ingredients?: Json | null
+          instructions?: Json | null
+          meal_type?: string
+          name?: string
+          prep_minutes?: number | null
+          source?: string | null
+          tags?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       savings_goals: {
         Row: {
           created_at: string | null
