@@ -601,7 +601,7 @@ export default function Home() {
       </div>
 
       {/* 4b. Fuel Today — compact meal surface */}
-      <FuelTodayCard userId={user.id} isPaid={isPaid || isTrialing} />
+      <FuelTodayCard userId={user.id} isPaid={isPaid || isTrialing} fuelIntel={todayFuelIntel} />
 
       {/* 5. Compact 5 Rings */}
       <CompactRingsRow userId={user.id} />

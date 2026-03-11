@@ -64,11 +64,22 @@ serve(async (req) => {
       .map((m) => `    { "meal_type": "${m}", "name": string, "description": string (brief, 1 line), "est_calories": number, "est_protein": number, "est_carbs": number, "est_fat": number }`)
       .join(",\n");
 
+    // Build body/calendar context line
+    const contextLines: string[] = [];
+    if (Array.isArray(context_tags) && context_tags.length > 0) {
+      contextLines.push(`Body/calendar context tags: ${context_tags.join(", ")}. Prioritize meals matching these tags.`);
+    }
+    if (body_context) {
+      contextLines.push(`Body context: ${body_context}`);
+    }
+    const contextInfo = contextLines.length > 0 ? contextLines.join("\n") : "";
+
     const systemPrompt = `You are 🛰️ Satellite, the Wellness Controllable. Generate a simple, practical meal plan.
 ${targetInfo} ${macroInfo} ${prefInfo}
 ${styleInfo}
 ${restrictionsInfo}
 ${excludeNamesInfo}
+${contextInfo}
 Generate ONLY these meals: ${requestedMeals.join(", ")}.
 Return a JSON object:
 {

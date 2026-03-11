@@ -244,6 +244,13 @@ export function MealPlanBuilder({
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          {/* Context chip when body/calendar intelligence is active */}
+          {contextLabel && phase === "preferences" && chatMessages.length === 0 && (
+            <div className="flex items-center gap-1.5 bg-muted/60 rounded-full px-3 py-1 w-fit mx-auto">
+              <span className="text-[11px] text-muted-foreground">{contextLabel}</span>
+            </div>
+          )}
+
           {/* Chat Messages */}
           <AnimatePresence mode="popLayout">
             {chatMessages.map((msg, i) => (

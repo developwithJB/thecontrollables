@@ -50,6 +50,16 @@ export function GroceryRhythmCard({ userId, plannerCount, recoveryLow }: Grocery
         <span className="font-medium text-foreground">{weekMealCount}</span>
       </div>
 
+      {/* Recovery-aware spending risk */}
+      {recoveryLow && weekMealCount < 3 && !heavyScheduleRisk && (
+        <div className="flex items-start gap-2 rounded-lg bg-orange-500/5 border border-orange-500/10 px-3 py-2">
+          <TrendingDown className="w-3.5 h-3.5 text-orange-500 mt-0.5 shrink-0" />
+          <p className="text-[11px] text-muted-foreground">
+            Low recovery + {weekMealCount === 0 ? "no meal plan" : "few meals planned"} — higher convenience spending risk.
+          </p>
+        </div>
+      )}
+
       {/* Calendar-aware spending risk */}
       {heavyScheduleRisk && (
         <div className="flex items-start gap-2 rounded-lg bg-orange-500/5 border border-orange-500/10 px-3 py-2">

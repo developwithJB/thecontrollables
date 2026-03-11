@@ -131,6 +131,16 @@ export function FuelTodayCard({ userId, isPaid, fuelIntel }: FuelTodayCardProps)
           </button>
         </div>
 
+        {/* Fuel intelligence context line */}
+        {fuelIntel?.dinnerAdvice && (
+          <div className="flex items-start gap-1.5 bg-muted/40 rounded-lg px-2.5 py-1.5">
+            <span className="text-xs shrink-0 mt-px">
+              {fuelIntel.mealFit === "recovery_friendly" ? "🔋" : fuelIntel.mealFit === "high_protein" ? "💪" : fuelIntel.mealFit === "quick_easy" ? "⚡" : fuelIntel.mealFit === "prep_friendly" ? "🍳" : "✨"}
+            </span>
+            <p className="text-[10px] text-muted-foreground">{fuelIntel.dinnerAdvice}</p>
+          </div>
+        )}
+
         {/* Tonight's meal */}
         {dinner ? (
           <div className="flex items-center justify-between bg-muted/30 rounded-lg px-2.5 py-1.5">

@@ -55,7 +55,7 @@ export default function Money() {
       />
 
       {/* 1b. Grocery Rhythm — food → spending insight */}
-      <GroceryRhythmCard userId={user.id} plannerCount={weekPlannerCount} />
+      <GroceryRhythmCard userId={user.id} plannerCount={weekPlannerCount} recoveryLow={recoveryLow} />
 
       {/* 2. Monthly Overview */}
       <MoneyOverview accounts={accounts} bills={bills} subscriptions={subscriptions} goals={goals} />
