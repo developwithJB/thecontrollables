@@ -26,6 +26,7 @@ export interface PlannerItem {
   connection_id: string | null;
   snapshot_action_ref: Record<string, any> | null;
   promise_id: string | null;
+  project_id: string | null;
   completed_at: string | null;
   skipped_at: string | null;
   created_at: string;

@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { format } from "date-fns";
+import { useState, useMemo } from "react";
 import {
   Sheet,
   SheetContent,
@@ -24,6 +23,9 @@ import type {
   CreatePlannerItemInput,
   UpdatePlannerItemInput,
 } from "@/hooks/usePlanner";
+import { useProjects, useCalendarMappings, type Project } from "@/hooks/useProjects";
+import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
+import { useSeason } from "@/hooks/useSeason";
 
 interface PlannerItemEditorProps {
   open: boolean;
@@ -43,6 +45,10 @@ export const PlannerItemEditor = ({
   isSaving,
 }: PlannerItemEditorProps) => {
   const isEditing = !!item;
+  const user = useLifeOSUser();
+  const { activeSeason } = useSeason(user.id);
+  const { activeProjects } = useProjects(user.id, activeSeason?.id);
+  const { mappings } = useCalendarMappings(user.id);
 
   const [title, setTitle] = useState(item?.title ?? "");
   const [itemType, setItemType] = useState<PlannerItemType>(item?.item_type ?? "task");
@@ -51,6 +57,18 @@ export const PlannerItemEditor = ({
   const [endTime, setEndTime] = useState(item?.end_time?.slice(0, 5) ?? "");
   const [energy, setEnergy] = useState<EnergyLevel | "">(item?.energy_level ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
+  const [projectId, setProjectId] = useState<string | null>(item?.project_id ?? null);
+
+  // Auto-match project from calendar keyword mappings
+  const suggestedProjectId = useMemo(() => {
+    if (!title.trim() || mappings.length === 0) return null;
+    const lower = title.toLowerCase();
+    const match = mappings.find(m => lower.includes(m.calendar_event_keyword.toLowerCase()));
+    return match?.project_id ?? null;
+  }, [title, mappings]);
+
+  // Use suggestion if user hasn't manually picked
+  const effectiveProjectId = projectId ?? suggestedProjectId;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +84,7 @@ export const PlannerItemEditor = ({
         end_time: endTime || null,
         energy_level: energy || null,
         description: description.trim() || null,
+        project_id: effectiveProjectId,
       } as UpdatePlannerItemInput);
     } else {
       onSave({
@@ -76,6 +95,7 @@ export const PlannerItemEditor = ({
         end_time: endTime || null,
         energy_level: energy || null,
         description: description.trim() || null,
+        project_id: effectiveProjectId,
       } as CreatePlannerItemInput);
     }
   };
@@ -129,6 +149,44 @@ export const PlannerItemEditor = ({
               </Select>
             </div>
           </div>
+
+          {/* Project selector */}
+          {activeProjects.length > 0 && (
+            <div>
+              <Label>Project</Label>
+              <div className="flex gap-1.5 mt-1.5 overflow-x-auto pb-1">
+                <button
+                  type="button"
+                  onClick={() => setProjectId(null)}
+                  className={`shrink-0 text-xs px-2.5 py-1.5 rounded-full border transition-colors ${
+                    !effectiveProjectId
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  None
+                </button>
+                {activeProjects.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setProjectId(p.id)}
+                    className={`shrink-0 text-xs px-2.5 py-1.5 rounded-full border transition-colors ${
+                      effectiveProjectId === p.id
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border text-muted-foreground hover:bg-muted"
+                    }`}
+                    style={effectiveProjectId === p.id ? {} : { borderLeftColor: p.color_hex, borderLeftWidth: 3 }}
+                  >
+                    {p.emoji} {p.name}
+                  </button>
+                ))}
+              </div>
+              {suggestedProjectId && !projectId && (
+                <p className="text-[10px] text-muted-foreground mt-1">Auto-matched from calendar keyword</p>
+              )}
+            </div>
+          )}
 
           <div>
             <Label>Date</Label>
