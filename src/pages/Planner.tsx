@@ -46,6 +46,9 @@ const Planner = () => {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const callbackHandled = useRef(false);
+  const { isPaid, initiateCheckout } = useEntitlements(user.id);
+  const [showFuelCheck, setShowFuelCheck] = useState(false);
+  const callbackHandled = useRef(false);
 
   // Handle Google Calendar OAuth callback
   useEffect(() => {
