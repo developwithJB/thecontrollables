@@ -9,7 +9,7 @@ import { toast } from "sonner";
 type WearableProvider = "whoop" | "oura" | "fitbit";
 
 interface OnboardingWearableConnectProps {
-  onConnected: () => void;
+  onConnected: (provider?: string) => void;
   onSkip: () => void;
 }
 
