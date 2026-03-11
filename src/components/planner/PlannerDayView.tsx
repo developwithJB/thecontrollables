@@ -49,6 +49,7 @@ export const PlannerDayView = ({
   onReorder,
   onPushToCalendar,
   hasGoogleConnection,
+  userId,
 }: PlannerDayViewProps) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
