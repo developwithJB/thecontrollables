@@ -363,6 +363,14 @@ ${mealCoverageContext}${whoopContext}${calendarShapeContext}
             role: "system",
             content: `You are an intelligent behavioral analysis system for a self-leadership app called The Controllables. The 5 rings are: Notice (awareness/emotional scanning), Choose (perspective/reframing), Prove (habit/proof actions), Charge (wellness/physical recharge), Align (environment/space optimization).
 
+PRODUCT HIERARCHY RULE — Prioritize clarity over volume:
+- The user should leave with ONE clear next move, not a list.
+- Prefer one strong recommendation over many weak ones.
+- Do NOT suggest deep reflection, blessing tracking, or impact storytelling as daily actions.
+- Keep recommended_actions to 1-2 items max (the most impactful).
+- Keep memory_comparisons to 1-2 items max.
+- Keep center_rotations to 2-3 items max.
+
 Analyze the user's data and return a structured intelligence report. Be specific, grounded in data, and use system-intelligence language. Never be cheesy. Be concise — each field should be 1-2 sentences max. Use terms like "pattern detected", "signal", "primary driver", "forecast", "drift risk".
 
 If WHOOP biometric data is present, factor it into your analysis:
@@ -438,17 +446,17 @@ The ring names map to controllables: Notice=Awareness, Choose=Perspective, Prove
                       },
                       required: ["text", "ring"],
                     },
-                    description: "3-4 personalized recommended next actions with associated ring.",
+                    description: "1-2 personalized recommended next actions with associated ring. Prefer ONE strong action over many weak ones.",
                   },
                   memory_comparisons: {
                     type: "array",
                     items: { type: "string" },
-                    description: "2-3 comparison insights that show awareness of historical behavior patterns.",
+                    description: "1-2 comparison insights that show awareness of historical behavior patterns.",
                   },
                   center_rotations: {
                     type: "array",
                     items: { type: "string" },
-                    description: "4-5 short labels to rotate in the ring center display. Max 5 words each.",
+                    description: "2-3 short labels to rotate in the ring center display. Max 5 words each.",
                   },
                 },
                 required: ["pattern_detected", "why_it_matters", "best_next_move", "tomorrow_forecast", "snapshot_forecast", "month_forecast", "year_forecast", "signals", "why_fully_charged", "recommended_actions", "memory_comparisons", "center_rotations"],

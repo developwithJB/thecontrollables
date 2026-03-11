@@ -504,7 +504,9 @@ export default function Home() {
 
   return (
     <div className="space-y-4">
-      {/* 1. Greeting Banner */}
+      {/* ═══ TIER 1 — What kind of day? How am I doing? What matters most? ═══ */}
+
+      {/* 1. Greeting — orientation */}
       <GreetingBanner
         userId={user.id}
         totalXp={totalXp}
@@ -524,7 +526,7 @@ export default function Home() {
         }}
       />
 
-      {/* 1b. Readiness Bar — instant cross-system signal */}
+      {/* 2. Readiness Bar — Tier 1: How am I doing? */}
       <TodayReadinessBar
         health={healthLatest}
         plannerCount={todayPlannerItems.length}
@@ -534,7 +536,7 @@ export default function Home() {
         calendarIntel={todayCalendarIntel}
       />
 
-      {/* 2. Daily Briefing Card — single morning AI brief */}
+      {/* 3. Daily Briefing — Tier 1: What kind of day? What matters most? */}
       {!entitlementsLoading && (
         <DailyBriefingCard
           isPaid={isPaid}
@@ -547,7 +549,7 @@ export default function Home() {
         />
       )}
 
-      {/* 3. Today's Actions */}
+      {/* 4. Today's Actions — Tier 1: What matters most (actionable) */}
       {(resetLoading || dashboardLoading) ? <ResetProgressSkeleton /> : (
         <TodayActions
           userId={user.id}
@@ -580,7 +582,15 @@ export default function Home() {
         />
       )}
 
-      {/* 4. Plan vs Actual — hero module */}
+      {/* 5. Compact Rings — Tier 1: How am I doing? (visual progress) */}
+      <CompactRingsRow userId={user.id} />
+
+      {/* ═══ TIER 2 — What should I eat? What should I protect? ═══ */}
+
+      {/* 6. Fuel Today — Tier 2: What should I eat? */}
+      <FuelTodayCard userId={user.id} isPaid={isPaid || isTrialing} fuelIntel={todayFuelIntel} />
+
+      {/* 7. Plan vs Actual — Tier 1/2: schedule reality + protection */}
       <div id="pva">
         <div className="mb-2">
           <h2 className="text-sm font-semibold text-foreground">Plan vs. Actual</h2>
@@ -604,16 +614,14 @@ export default function Home() {
         )}
       </div>
 
-      {/* 4b. Fuel Today — compact meal surface */}
-      <FuelTodayCard userId={user.id} isPaid={isPaid || isTrialing} fuelIntel={todayFuelIntel} />
+      {/* ═══ TIER 3 — Did I get a win? What should I adjust? ═══ */}
 
-      {/* 5. Compact 5 Rings */}
-      <CompactRingsRow userId={user.id} />
+      {/* 8. Ask Dashboard — utility, always available */}
+      <AskDashboardBar />
 
-      {/* 6. Forecast */}
-      <ForecastCard data={intelligenceData} compact />
+      {/* ═══ TIER 4 — Weekly / optional / secondary ═══ */}
 
-      {/* 6b. Weekly Review Teaser — Thu–Sun for paid users */}
+      {/* 9. Weekly Review Teaser — Thu–Sun for paid users */}
       {weeklyReviewAvailable && weeklyReview && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -632,8 +640,8 @@ export default function Home() {
         </motion.div>
       )}
 
-      {/* 7. Ask Dashboard — conversational entry point near bottom */}
-      <AskDashboardBar />
+      {/* 10. Forecast — Tier 3/4: predictive, not daily-critical */}
+      <ForecastCard data={intelligenceData} compact />
 
       {/* --- Dialogs (modal overlays, no visual footprint) --- */}
       <ConfirmLastNightDialog
