@@ -35,10 +35,6 @@ export function GreetingBanner({
   snapshotEmoji,
   onSnapshotClick,
 }: GreetingBannerProps) {
-  const [showInsight, setShowInsight] = useState(false);
-  
-  // Fetch AI insights for premium users
-  const { data: insightData, isLoading: insightLoading } = useInsights(userId, isPaid);
   // Fetch user's display name from profiles
   const { data: profile } = useQuery({
     queryKey: ["user-profile", userId],
