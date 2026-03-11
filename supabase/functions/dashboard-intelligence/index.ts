@@ -205,7 +205,7 @@ serve(async (req) => {
     // Service client for WHOOP data (needs service role to bypass RLS on whoop tables)
     const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const [ringsHistory, wellnessLogs, noticeEntries, proofActions, activeSession, plannerItems, whoopRecoveries, whoopSleeps, whoopCycles] = await Promise.all([
+    const [ringsHistory, wellnessLogs, noticeEntries, proofActions, activeSession, plannerItems, whoopRecoveries, whoopSleeps, whoopCycles, weekMealPlans] = await Promise.all([
       supabase.from("daily_rings").select("*").eq("user_id", userId).gte("ring_date", sevenDaysAgo).order("ring_date", { ascending: false }).limit(7),
       supabase.from("wellness_logs" as any).select("*").eq("user_id", userId).gte("log_date", sevenDaysAgo).order("log_date", { ascending: false }).limit(7),
       supabase.from("notice_entries" as any).select("mood, energy_level, stress_level").eq("user_id", userId).gte("entry_date", sevenDaysAgo).limit(7),
