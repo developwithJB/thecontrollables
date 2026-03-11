@@ -534,7 +534,7 @@ export default function Home() {
         calendarIntel={todayCalendarIntel}
       />
 
-      {/* 2. Daily Briefing Card — single morning AI brief */}
+      {/* 3. Daily Briefing — Tier 1: What kind of day? What matters most? */}
       {!entitlementsLoading && (
         <DailyBriefingCard
           isPaid={isPaid}
