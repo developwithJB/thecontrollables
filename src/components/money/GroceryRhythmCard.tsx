@@ -5,6 +5,7 @@ import { ShoppingCart, TrendingDown, CheckCircle2, Calendar } from "lucide-react
 interface GroceryRhythmCardProps {
   userId: string | null;
   plannerCount?: number;
+  recoveryLow?: boolean;
 }
 
 export function GroceryRhythmCard({ userId, plannerCount }: GroceryRhythmCardProps) {
