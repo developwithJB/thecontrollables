@@ -43,6 +43,8 @@ interface MealPlanBuilderProps {
   onConfirm: (meals: any[]) => void;
   isGenerating: boolean;
   onGenerate: (config: any) => Promise<any>;
+  contextTags?: string[];
+  contextLabel?: string | null;
 }
 
 export function MealPlanBuilder({
