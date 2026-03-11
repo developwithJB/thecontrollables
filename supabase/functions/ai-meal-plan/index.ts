@@ -68,6 +68,7 @@ serve(async (req) => {
 ${targetInfo} ${macroInfo} ${prefInfo}
 ${styleInfo}
 ${restrictionsInfo}
+${excludeNamesInfo}
 Generate ONLY these meals: ${requestedMeals.join(", ")}.
 Return a JSON object:
 {
