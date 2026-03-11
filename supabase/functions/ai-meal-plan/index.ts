@@ -26,7 +26,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    const { date, preferences, calorie_target, exclude_meals, snack_count, macro_targets, dietary_style, dietary_restrictions, exclude_names } = await req.json();
+    const { date, preferences, calorie_target, exclude_meals, snack_count, macro_targets, dietary_style, dietary_restrictions, exclude_names, context_tags, body_context } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
