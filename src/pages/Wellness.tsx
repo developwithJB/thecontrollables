@@ -126,14 +126,6 @@ export default function Wellness() {
         />
       )}
 
-      {/* Meal Planning */}
-      {!entitlementsLoading && (
-        <MealPlanCard
-          userId={user.id}
-          isPaid={isPaid}
-          onUpgrade={() => startCheckout("meal_plan")}
-        />
-      )}
 
       {/* Wellness Streak History */}
       {wellnessLogs.length > 0 && (

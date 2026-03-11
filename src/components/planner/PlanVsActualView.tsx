@@ -271,7 +271,7 @@ export const PlanVsActualView = ({
 
                   {/* Actual (wearable) column */}
                   <div>
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Body</p>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Actual</p>
                     {health && (health.recovery !== null || health.sleepMinutes !== null) ? (
                       <div className="space-y-1">
                         {health.recovery !== null && (
