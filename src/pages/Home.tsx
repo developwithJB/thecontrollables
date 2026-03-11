@@ -547,7 +547,7 @@ export default function Home() {
         />
       )}
 
-      {/* 3. Today's Actions */}
+      {/* 4. Today's Actions — Tier 1: What matters most (actionable) */}
       {(resetLoading || dashboardLoading) ? <ResetProgressSkeleton /> : (
         <TodayActions
           userId={user.id}
