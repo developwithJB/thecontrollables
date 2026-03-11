@@ -410,9 +410,24 @@ const Planner = () => {
         )}
 
         <div className={isMobile ? "flex-1 overflow-y-auto" : "w-[45%] overflow-y-auto"}>
-          {/* Recovery-aware planning context for today */}
-          {wearableConnected && isToday(selectedDate) && (
-            <PlannerBodyContext latest={healthLatest} trend={healthTrend} />
+          {/* Calendar load summary for the selected day */}
+          {(() => {
+            const dayCalendarIntel = analyzeCalendar(dayItems);
+            return (
+              <>
+                {dayCalendarIntel && dayCalendarIntel.meetingCount > 0 && (
+                  <PlannerDayLoadSummary intel={dayCalendarIntel} />
+                )}
+                {/* Recovery-aware planning context for today */}
+                {wearableConnected && isToday(selectedDate) && (
+                  <PlannerBodyContext latest={healthLatest} trend={healthTrend} calendarIntel={dayCalendarIntel} />
+                )}
+                {!wearableConnected && isToday(selectedDate) && dayCalendarIntel && dayCalendarIntel.meetingCount > 0 && (
+                  <PlannerBodyContext latest={healthLatest} trend={healthTrend} calendarIntel={dayCalendarIntel} />
+                )}
+              </>
+            );
+          })()}
           )}
           <PlannerDayView
             date={selectedDate}

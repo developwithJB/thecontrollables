@@ -524,7 +524,7 @@ export default function Home() {
           hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
           onUpgrade={() => startCheckout(undefined, "daily_briefing")}
           healthRecovery={healthLatest?.recovery}
-          plannerCount={weekPlannerItems.filter((i: any) => i.scheduled_date === new Date().toLocaleDateString("sv-SE")).length}
+          plannerCount={todayPlannerItems.length}
         />
       )}
 

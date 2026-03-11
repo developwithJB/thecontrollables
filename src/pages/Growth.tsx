@@ -215,12 +215,12 @@ export default function Growth() {
       {/* 5 Daily Rings — the hero of Growth */}
       <DailyRings userId={user.id} />
 
-      {/* Body Intelligence — supporting layer */}
-      {wearableConnected && healthLatest.recovery !== null && (
+      {/* Body & Schedule Intelligence — supporting layer */}
+      {(wearableConnected && healthLatest.recovery !== null) || (growthCalendarIntel && growthCalendarIntel.meetingCount > 0) ? (
         <div className="max-w-sm mx-auto w-full">
-          <GrowthBodyInsight userId={user.id} latest={healthLatest} trend={healthTrend} />
+          <GrowthBodyInsight userId={user.id} latest={healthLatest} trend={healthTrend} calendarIntel={growthCalendarIntel} />
         </div>
-      )}
+      ) : null}
 
       {/* Circle */}
       {hasActiveSession && (
