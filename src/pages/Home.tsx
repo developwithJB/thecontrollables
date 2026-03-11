@@ -239,7 +239,7 @@ export default function Home() {
     });
   }, [weekRange.days, weekPlannerItems, healthTrend]);
 
-  const pvaSyntheses = useDailySynthesis(pvaData);
+  const pvaSyntheses = useDailySynthesis(pvaData, activeProjects);
 
   const [showSeasonComplete, setShowSeasonComplete] = useState(false);
   const [showSeasonSetup, setShowSeasonSetup] = useState(false);

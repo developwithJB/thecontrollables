@@ -217,7 +217,7 @@ const Planner = () => {
     });
   }, [weekRange.days, itemsByDate, healthTrend]);
 
-  const pvaSyntheses = useDailySynthesis(pvaData);
+  const pvaSyntheses = useDailySynthesis(pvaData, activeProjects);
 
   // Handlers
   const handleToggleStatus = useCallback(
