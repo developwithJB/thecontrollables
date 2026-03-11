@@ -115,7 +115,7 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
   const startParam = sevenDaysAgo.toISOString();
   const endParam = now.toISOString();
   const headers = { Authorization: `Bearer ${accessToken}` };
-  const baseUrl = "https://api.prod.whoop.com/developer/v1";
+  const baseUrl = "https://api.prod.whoop.com/developer/v2";
 
   const counts = { cycles: 0, recoveries: 0, sleeps: 0, workouts: 0 };
 
