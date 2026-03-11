@@ -475,7 +475,7 @@ export default function Home() {
   }
 
   const todayAlreadyCompleted = completedDays.some((d) => d.day_number === currentDay);
-  const hasPvaData = pvaData.some(d => d.items.length > 0 || (d.health && d.health.recovery !== null));
+  const hasPvaData = pvaData.some(d => d.items.length > 0) || pvaData.some(d => d.health && d.health.recovery !== null);
 
   return (
     <div className="space-y-4">
