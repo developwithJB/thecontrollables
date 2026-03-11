@@ -61,6 +61,7 @@ export function MealPlanBuilder({
   const [currentSuggestions, setCurrentSuggestions] = useState<SwipeMeal[]>([]);
   const [swapSlot, setSwapSlot] = useState<MealTypeSlot | null>(null);
   const [chatMessages, setChatMessages] = useState<{ from: "satellite" | "user"; text: string }[]>([]);
+  const [rejectedNames, setRejectedNames] = useState<string[]>([]);
 
   const { preferences } = useMealPreferences(userId);
   const saveRecipe = useSaveRecipe(userId);
@@ -81,6 +82,7 @@ export function MealPlanBuilder({
     setCurrentSuggestions([]);
     setSwapSlot(null);
     setChatMessages([]);
+    setRejectedNames([]);
   }, []);
 
   const handleClose = () => {
@@ -109,6 +111,7 @@ export function MealPlanBuilder({
           carbsTarget: preferences?.carbsTarget || undefined,
           fatTarget: preferences?.fatTarget || undefined,
         },
+        exclude_names: rejectedNames.length > 0 ? rejectedNames : undefined,
       });
 
       const meals = result?.meals || result || [];
@@ -165,6 +168,7 @@ export function MealPlanBuilder({
       const nextIndex = currentSlotIndex + 1;
       if (nextIndex < activeSlots.length) {
         setCurrentSlotIndex(nextIndex);
+        setRejectedNames([]);
         generateForSlot(activeSlots[nextIndex]);
       } else {
         addChat("satellite", "Your meal plan is ready! Review and confirm below.");
@@ -175,6 +179,7 @@ export function MealPlanBuilder({
 
   const handleReject = (meal: SwipeMeal) => {
     addChat("satellite", "No worries, let me find something else...");
+    setRejectedNames((prev) => [...prev, meal.name]);
     // Generate another suggestion for the same slot
     generateForSlot(swapSlot || currentSlot);
   };

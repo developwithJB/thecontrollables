@@ -26,7 +26,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    const { date, preferences, calorie_target, exclude_meals, snack_count, macro_targets, dietary_style, dietary_restrictions } = await req.json();
+    const { date, preferences, calorie_target, exclude_meals, snack_count, macro_targets, dietary_style, dietary_restrictions, exclude_names } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -36,6 +36,9 @@ serve(async (req) => {
     const styleInfo = dietary_style ? `Dietary style: ${dietary_style}. All meals should follow this style.` : "";
     const restrictionsInfo = Array.isArray(dietary_restrictions) && dietary_restrictions.length > 0
       ? `STRICT dietary restrictions (never include these): ${dietary_restrictions.join(", ")}.`
+      : "";
+    const excludeNamesInfo = Array.isArray(exclude_names) && exclude_names.length > 0
+      ? `Do NOT suggest any of these meals (already rejected by the user): ${exclude_names.join(", ")}. Suggest something completely different.`
       : "";
 
     // Build macro instructions
@@ -65,6 +68,7 @@ serve(async (req) => {
 ${targetInfo} ${macroInfo} ${prefInfo}
 ${styleInfo}
 ${restrictionsInfo}
+${excludeNamesInfo}
 Generate ONLY these meals: ${requestedMeals.join(", ")}.
 Return a JSON object:
 {
