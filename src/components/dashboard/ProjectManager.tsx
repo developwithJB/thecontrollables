@@ -10,14 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useProjects, useCalendarMappings, type Project, type ControllableFocus } from "@/hooks/useProjects";
-
-const CONTROLLABLES: { type: ControllableFocus; emoji: string; label: string }[] = [
-  { type: "awareness", emoji: "🦉", label: "Awareness" },
-  { type: "perspective", emoji: "🦅", label: "Perspective" },
-  { type: "habit", emoji: "🐺", label: "Habit" },
-  { type: "wellness", emoji: "🐬", label: "Wellness" },
-  { type: "environment", emoji: "🦁", label: "Environment" },
-];
+import { CONTROLLABLE_LIST } from "@/lib/controllableTheme";
 
 const PROJECT_EMOJIS = ["🎯", "💪", "📚", "🏃", "✍️", "🧘", "💼", "🎨", "🌱", "🔥", "🧠", "💡", "🏠", "🤝", "📈", "🎵", "🍎", "⚡", "🛠️", "🌟"];
 const PROJECT_COLORS = ["#6366f1", "#3b82f6", "#10b981", "#059669", "#f59e0b", "#f43f5e", "#8b5cf6", "#64748b"];
@@ -96,7 +89,7 @@ export function ProjectManager({ open, onClose, userId, seasonId }: ProjectManag
                   <span className="font-medium text-sm text-foreground flex-1">{project.name}</span>
                   {project.controllable && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                      {CONTROLLABLES.find(c => c.type === project.controllable)?.emoji} {project.controllable}
+                      {CONTROLLABLE_LIST.find(c => c.type === project.controllable)?.emoji} {project.controllable}
                     </span>
                   )}
                 </div>
@@ -198,7 +191,7 @@ export function ProjectManager({ open, onClose, userId, seasonId }: ProjectManag
                 ))}
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {CONTROLLABLES.map(c => (
+                {CONTROLLABLE_LIST.map(c => (
                   <button key={c.type} onClick={() => setNewControllable(c.type)} className={`text-xs px-2 py-1 rounded-full border ${newControllable === c.type ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}>
                     {c.emoji} {c.label}
                   </button>

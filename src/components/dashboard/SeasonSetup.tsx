@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ControllableCard, type ControllableType } from "@/components/ControllableCard";
 import type { ControllableFocus } from "@/hooks/useProjects";
+import { CONTROLLABLE_LIST } from "@/lib/controllableTheme";
 
 const SUGGESTIONS = [
   "New job / career move",
@@ -16,12 +17,12 @@ const SUGGESTIONS = [
   "Building something new",
 ];
 
-const CONTROLLABLES: { type: ControllableType; title: string; emoji: string; description: string }[] = [
+const CONTROLLABLE_DETAILS: { type: ControllableType; title: string; emoji: string; description: string }[] = [
   { type: "awareness", title: "Awareness", emoji: "🦉", description: "See yourself and your patterns clearly" },
-  { type: "perspective", title: "Perspective", emoji: "🦅", description: "Reframe how you see challenges" },
-  { type: "habit", title: "Habit", emoji: "🐺", description: "Build discipline through daily action" },
-  { type: "wellness", title: "Wellness", emoji: "🐬", description: "Protect your energy and recovery" },
-  { type: "environment", title: "Environment", emoji: "🦁", description: "Design surroundings that support you" },
+  { type: "perspective", title: "Perspective", emoji: "🐢", description: "Reframe how you see challenges" },
+  { type: "habit", title: "Habit", emoji: "🦈", description: "Build discipline through daily action" },
+  { type: "wellness", title: "Wellness", emoji: "🛰️", description: "Protect your energy and recovery" },
+  { type: "environment", title: "Environment", emoji: "🚀", description: "Design surroundings that support you" },
 ];
 
 const PROJECT_EMOJIS = ["🎯", "💪", "📚", "🏃", "✍️", "🧘", "💼", "🎨", "🌱", "🔥", "🧠", "💡", "🏠", "🤝", "📈", "🎵", "🍎", "⚡", "🛠️", "🌟"];
@@ -187,7 +188,7 @@ export function SeasonSetup({ open, onClose, userId, onStartSeason, onCreateProj
                 <h2 className="font-display text-xl font-semibold text-foreground">Which Controllable needs the most attention?</h2>
                 <p className="text-sm text-muted-foreground mt-1 mb-3">Pick your primary focus area.</p>
                 <div className="space-y-2 overflow-y-auto max-h-[280px]">
-                  {CONTROLLABLES.map(c => (
+                  {CONTROLLABLE_DETAILS.map(c => (
                     <ControllableCard
                       key={c.type}
                       type={c.type}
@@ -245,13 +246,13 @@ export function SeasonSetup({ open, onClose, userId, onStartSeason, onCreateProj
                 {/* Controllable tag */}
                 <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Controllable</label>
                 <div className="flex flex-wrap gap-1.5">
-                  {CONTROLLABLES.map(c => (
+                  {CONTROLLABLE_LIST.map(c => (
                     <button
                       key={c.type}
                       onClick={() => setProjectControllable(c.type as ControllableFocus)}
                       className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${projectControllable === c.type ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
                     >
-                      {c.emoji} {c.title}
+                      {c.emoji} {c.label}
                     </button>
                   ))}
                 </div>

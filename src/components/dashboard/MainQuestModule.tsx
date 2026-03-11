@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/collapsible";
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { HierarchyExplainer } from "@/components/dashboard/HierarchyExplainer";
+
 interface MainQuest {
   id: string;
   title: string;
@@ -121,9 +122,9 @@ export function MainQuestModule({
             <AlertTriangle className="w-5 h-5 text-muted-foreground" />
           </div>
           <div>
-            <h3 className="font-display font-semibold text-foreground">No Active Mission</h3>
+            <h3 className="font-display font-semibold text-foreground">No Active Direction</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              Your Mission sets direction. You live under it — you don't complete it.
+              Start a Season to set your life direction. Or set a quick mission below.
             </p>
           </div>
         </div>
@@ -145,7 +146,7 @@ export function MainQuestModule({
             
             {/* Hierarchy Visual */}
             <div className="py-2 border-b border-border">
-              <HierarchyExplainer variant="compact" highlighted="mission" />
+              <HierarchyExplainer variant="compact" highlighted="season" />
             </div>
             
             <div className="space-y-4 pt-2">

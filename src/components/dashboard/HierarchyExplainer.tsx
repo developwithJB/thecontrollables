@@ -1,37 +1,53 @@
 import { motion } from "framer-motion";
-import { Target, Camera, CheckCircle, ChevronDown } from "lucide-react";
+import { Orbit, FolderKanban, Calendar, ListChecks, Activity, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HierarchyExplainerProps {
   variant?: "compact" | "expanded";
-  highlighted?: "mission" | "snapshot" | "daily" | null;
+  highlighted?: "season" | "project" | "calendar" | "task" | "actuals" | null;
   className?: string;
 }
 
 const HIERARCHY_LEVELS = [
   {
-    key: "mission",
-    icon: Target,
-    title: "Mission",
-    subtitle: "Your Direction",
-    description: "The north star. You live under it — you don't complete it.",
-    example: "Reclaim Energy",
+    key: "season",
+    icon: Orbit,
+    title: "Season",
+    subtitle: "Life Arc",
+    description: "Your life chapter. The big picture arc you're living in.",
+    example: "New City, New Start",
   },
   {
-    key: "snapshot",
-    icon: Camera,
-    title: "Snapshot",
-    subtitle: "This Week",
-    description: "7-day focused lens. One theme at a time. Weekly reset.",
-    example: "Rest & Recovery Week",
+    key: "project",
+    icon: FolderKanban,
+    title: "Project",
+    subtitle: "Building",
+    description: "What you're building within this season. Intention containers.",
+    example: "Morning Routine, Skill Building",
   },
   {
-    key: "daily",
-    icon: CheckCircle,
-    title: "Daily Check-In",
-    subtitle: "Today",
-    description: "Just today. Nothing more. Missed days don't matter — returning does.",
-    example: "Rate yesterday. Complete today.",
+    key: "calendar",
+    icon: Calendar,
+    title: "Calendar Block",
+    subtitle: "When",
+    description: "When you're doing it. Blocks of time allocated to projects.",
+    example: "Deep Work 9–11am",
+  },
+  {
+    key: "task",
+    icon: ListChecks,
+    title: "Task",
+    subtitle: "What",
+    description: "What specifically happens in each block. The action.",
+    example: "Write chapter outline, 30 min run",
+  },
+  {
+    key: "actuals",
+    icon: Activity,
+    title: "Actuals",
+    subtitle: "Body + Data",
+    description: "What your body and behavior recorded. The truth layer.",
+    example: "Recovery 82%, 7.2h sleep, HRV 48",
   },
 ];
 
@@ -42,19 +58,19 @@ export function HierarchyExplainer({
 }: HierarchyExplainerProps) {
   if (variant === "compact") {
     return (
-      <div className={cn("flex items-center justify-center gap-2 py-3", className)}>
+      <div className={cn("flex flex-wrap items-center justify-center gap-1.5 py-3", className)}>
         {HIERARCHY_LEVELS.map((level, index) => {
           const Icon = level.icon;
           const isHighlighted = highlighted === level.key;
-          
+
           return (
-            <div key={level.key} className="flex items-center gap-2">
+            <div key={level.key} className="flex items-center gap-1.5">
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.08 }}
                 className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors",
+                  "flex items-center gap-1 px-2 py-1.5 rounded-lg transition-colors",
                   isHighlighted
                     ? "bg-primary/20 ring-2 ring-primary/30"
                     : "bg-muted"
@@ -62,13 +78,13 @@ export function HierarchyExplainer({
               >
                 <Icon
                   className={cn(
-                    "w-3.5 h-3.5",
+                    "w-3 h-3",
                     isHighlighted ? "text-primary" : "text-muted-foreground"
                   )}
                 />
                 <span
                   className={cn(
-                    "text-xs font-medium",
+                    "text-[11px] font-medium",
                     isHighlighted ? "text-primary" : "text-muted-foreground"
                   )}
                 >
@@ -97,7 +113,7 @@ export function HierarchyExplainer({
             key={level.key}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
+            transition={{ delay: index * 0.08 }}
           >
             <div
               className={cn(
