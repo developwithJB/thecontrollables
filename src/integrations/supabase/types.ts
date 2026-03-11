@@ -1235,6 +1235,7 @@ export type Database = {
           heart_rate_avg: number | null
           hrv_ms: number | null
           id: string
+          project_id: string | null
           raw_data: Json | null
           recovery_score: number | null
           sleep_minutes: number | null
@@ -1251,6 +1252,7 @@ export type Database = {
           heart_rate_avg?: number | null
           hrv_ms?: number | null
           id?: string
+          project_id?: string | null
           raw_data?: Json | null
           recovery_score?: number | null
           sleep_minutes?: number | null
@@ -1267,6 +1269,7 @@ export type Database = {
           heart_rate_avg?: number | null
           hrv_ms?: number | null
           id?: string
+          project_id?: string | null
           raw_data?: Json | null
           recovery_score?: number | null
           sleep_minutes?: number | null
@@ -1277,7 +1280,15 @@ export type Database = {
           synced_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "health_sync_data_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ig_proof_entries: {
         Row: {
@@ -1783,6 +1794,7 @@ export type Database = {
           external_event_id: string | null
           id: string
           item_type: Database["public"]["Enums"]["planner_item_type"]
+          project_id: string | null
           promise_id: string | null
           routine_id: string | null
           scheduled_date: string
@@ -1805,6 +1817,7 @@ export type Database = {
           external_event_id?: string | null
           id?: string
           item_type?: Database["public"]["Enums"]["planner_item_type"]
+          project_id?: string | null
           promise_id?: string | null
           routine_id?: string | null
           scheduled_date: string
@@ -1827,6 +1840,7 @@ export type Database = {
           external_event_id?: string | null
           id?: string
           item_type?: Database["public"]["Enums"]["planner_item_type"]
+          project_id?: string | null
           promise_id?: string | null
           routine_id?: string | null
           scheduled_date?: string
@@ -1845,6 +1859,13 @@ export type Database = {
             columns: ["connection_id"]
             isOneToOne: false
             referencedRelation: "planner_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planner_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
@@ -1984,6 +2005,92 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      project_calendar_mappings: {
+        Row: {
+          calendar_event_keyword: string
+          created_at: string | null
+          gcal_calendar_id: string | null
+          id: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          calendar_event_keyword: string
+          created_at?: string | null
+          gcal_calendar_id?: string | null
+          id?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          calendar_event_keyword?: string
+          created_at?: string | null
+          gcal_calendar_id?: string | null
+          id?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_calendar_mappings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          color_hex: string | null
+          controllable: Database["public"]["Enums"]["controllable_focus"] | null
+          created_at: string | null
+          emoji: string | null
+          id: string
+          momentum_score: number | null
+          name: string
+          season_id: string | null
+          status: Database["public"]["Enums"]["project_status"] | null
+          user_id: string
+        }
+        Insert: {
+          color_hex?: string | null
+          controllable?:
+            | Database["public"]["Enums"]["controllable_focus"]
+            | null
+          created_at?: string | null
+          emoji?: string | null
+          id?: string
+          momentum_score?: number | null
+          name: string
+          season_id?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          user_id: string
+        }
+        Update: {
+          color_hex?: string | null
+          controllable?:
+            | Database["public"]["Enums"]["controllable_focus"]
+            | null
+          created_at?: string | null
+          emoji?: string | null
+          id?: string
+          momentum_score?: number | null
+          name?: string
+          season_id?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       proof_actions: {
         Row: {
@@ -2365,29 +2472,44 @@ export type Database = {
       seasons: {
         Row: {
           completed_at: string | null
+          controllable_focus:
+            | Database["public"]["Enums"]["controllable_focus"]
+            | null
           created_at: string
+          ends_at: string | null
           id: string
           name: string | null
           started_at: string
           status: string
+          theme_text: string | null
           user_id: string
         }
         Insert: {
           completed_at?: string | null
+          controllable_focus?:
+            | Database["public"]["Enums"]["controllable_focus"]
+            | null
           created_at?: string
+          ends_at?: string | null
           id?: string
           name?: string | null
           started_at?: string
           status?: string
+          theme_text?: string | null
           user_id: string
         }
         Update: {
           completed_at?: string | null
+          controllable_focus?:
+            | Database["public"]["Enums"]["controllable_focus"]
+            | null
           created_at?: string
+          ends_at?: string | null
           id?: string
           name?: string | null
           started_at?: string
           status?: string
+          theme_text?: string | null
           user_id?: string
         }
         Relationships: []
@@ -3471,12 +3593,20 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      controllable_focus:
+        | "awareness"
+        | "perspective"
+        | "habit"
+        | "wellness"
+        | "environment"
       planner_item_status: "todo" | "in_progress" | "done" | "skipped"
       planner_item_type:
         | "task"
         | "time_block"
         | "routine_instance"
         | "external_event"
+      project_status: "active" | "paused" | "complete"
+      season_status: "active" | "closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3605,6 +3735,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      controllable_focus: [
+        "awareness",
+        "perspective",
+        "habit",
+        "wellness",
+        "environment",
+      ],
       planner_item_status: ["todo", "in_progress", "done", "skipped"],
       planner_item_type: [
         "task",
@@ -3612,6 +3749,8 @@ export const Constants = {
         "routine_instance",
         "external_event",
       ],
+      project_status: ["active", "paused", "complete"],
+      season_status: ["active", "closed"],
     },
   },
 } as const
