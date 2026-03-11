@@ -12,6 +12,7 @@ import { TransactionImporter } from "@/components/money/TransactionImporter";
 import { AccountManager } from "@/components/money/AccountManager";
 import { FinancialControllables } from "@/components/money/FinancialControllables";
 import { GroceryRhythmCard } from "@/components/money/GroceryRhythmCard";
+import { useHealthData } from "@/hooks/useHealthData";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export default function Money() {
