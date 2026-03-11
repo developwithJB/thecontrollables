@@ -208,6 +208,8 @@ const Planner = () => {
     });
   }, [weekRange.days, itemsByDate, healthTrend]);
 
+  const pvaSyntheses = useDailySynthesis(pvaData);
+
   // Handlers
   const handleToggleStatus = useCallback(
     (item: PlannerItem) => {
