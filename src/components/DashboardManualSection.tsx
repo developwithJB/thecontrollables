@@ -44,7 +44,7 @@ const HIERARCHY_ITEMS: HierarchyItem[] = [
     description: "Your life chapter — the big picture arc you're living in right now.",
   },
   {
-    title: "Project",
+    title: "Chapter",
     subtitle: "Building",
     icon: FolderKanban,
     description: "What you're building within this season. Intention containers.",
