@@ -11,7 +11,9 @@ interface MealLogEntryProps {
   emoji: string;
   existingAnalysis?: MealAnalysis | null;
   existingDescription?: string | null;
+  plannedMealName?: string | null;
   onSubmit: (data: { description?: string; imageFile?: File; mealType: string }) => Promise<MealAnalysis>;
+  onConfirmAsEaten?: (mealType: string) => void;
   isAnalyzing: boolean;
 }
 
