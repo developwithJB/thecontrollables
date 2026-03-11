@@ -190,6 +190,31 @@ export default function Home() {
 
   const { createProject, activeProjects } = useProjects(user.id, activeSeason?.id);
 
+  // Fetch season-range health data for season close screen
+  const { data: seasonHealthData = [] } = useQuery({
+    queryKey: ["season-health-data", activeSeason?.id, activeSeason?.started_at],
+    queryFn: async () => {
+      if (!activeSeason?.started_at || !user.id) return [];
+      const startDate = activeSeason.started_at.split("T")[0];
+      const endDate = (activeSeason.completed_at || new Date().toISOString()).split("T")[0];
+      const { data, error } = await supabase
+        .from("health_sync_data")
+        .select("sync_date, recovery_score, hrv_ms, strain_score")
+        .eq("user_id", user.id)
+        .gte("sync_date", startDate)
+        .lte("sync_date", endDate);
+      if (error) throw error;
+      return (data || []).map((r: any) => ({
+        sync_date: r.sync_date,
+        recovery_score: r.recovery_score,
+        hrv_ms: r.hrv_ms,
+        strain_score: r.strain_score,
+      }));
+    },
+    enabled: !!activeSeason?.id && !!user.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { rings, completedCount } = useDailyRings(user.id);
   const { data: intelligenceData } = useDashboardIntelligence(user.id, completedCount, rings);
 
