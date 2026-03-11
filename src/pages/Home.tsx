@@ -68,7 +68,7 @@ import { ValidatePlanDialog } from "@/components/dashboard/ValidatePlanDialog";
 import { SeasonSetup } from "@/components/dashboard/SeasonSetup";
 import { useProjects } from "@/hooks/useProjects";
 export default function Home() {
-  usePageViewTracking("Home");
+  usePageViewTracking("Today");
   const { trackEvent } = useAnalytics();
   const user = useLifeOSUser();
   const navigate = useNavigate();

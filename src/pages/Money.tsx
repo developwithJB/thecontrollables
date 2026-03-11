@@ -31,9 +31,9 @@ export default function Money() {
       <div>
         <div className="flex items-center gap-2 mb-1">
           <span className="text-2xl">💰</span>
-          <h1 className="font-display text-2xl font-semibold text-foreground">Wealth</h1>
+          <h1 className="font-display text-2xl font-semibold text-foreground">Money</h1>
         </div>
-        <p className="text-muted-foreground text-sm">Your financial rhythm panel.</p>
+        <p className="text-muted-foreground text-sm">Your financial rhythm — spending, bills, and behavior awareness.</p>
       </div>
 
       <ControllablePoweredBy controllables={["awareness", "perspective", "habit", "environment"]} />

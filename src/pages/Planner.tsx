@@ -269,7 +269,7 @@ const Planner = () => {
       <div className="px-4 sm:px-6 pt-4 pb-2">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-display font-semibold">Planner</h1>
+            <h1 className="text-lg font-display font-semibold">Plan</h1>
             <span className="text-xs text-muted-foreground font-mono">
               {format(weekRange.days[0], "MMM d")} – {format(weekRange.days[6], "MMM d")}
             </span>

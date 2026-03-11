@@ -249,7 +249,7 @@ function buildRulesResponse(ctx: {
   if (todayPlannerItems.length > 0) {
     alternates.push({
       id: "alt_planner",
-      label: "Open Planner",
+      label: "Open Plan",
       deep_link: "/planner",
       xp_reward: 0,
     });

@@ -134,7 +134,7 @@ function buildRulesPlan(context: {
   }
   quickWins.push({
     id: "qw_planner",
-    title: "Open Planner",
+    title: "Open Plan",
     action_link: "/planner",
     reason: "Plan your day",
   });
