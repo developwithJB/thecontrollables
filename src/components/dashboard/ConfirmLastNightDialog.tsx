@@ -13,7 +13,8 @@ import { useWellness } from "@/hooks/useWellness";
 import { useHealthData } from "@/hooks/useHealthData";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Activity, Moon as MoonIcon, Utensils, Wifi } from "lucide-react";
+import { Activity, Loader2, Moon as MoonIcon, RefreshCw, Utensils, Wifi } from "lucide-react";
+import { toast } from "sonner";
 
 const STEPS = [
   { key: "sleep", question: "How did you sleep last night?", emojis: ["😩", "😕", "😐", "🙂", "😴"], scale: "Terrible → Amazing" },
@@ -59,6 +60,7 @@ export function ConfirmLastNightDialog({ open, onOpenChange, userId }: ConfirmLa
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [wearableSynced, setWearableSynced] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const { logWellness } = useWellness(userId);
   const healthData = useHealthData(userId);
   const queryClient = useQueryClient();
@@ -84,6 +86,7 @@ export function ConfirmLastNightDialog({ open, onOpenChange, userId }: ConfirmLa
     setNotes("");
     setSubmitting(false);
     setWearableSynced(false);
+    setSyncing(false);
   }, []);
 
   const handleRate = useCallback((rating: number) => {
@@ -97,9 +100,26 @@ export function ConfirmLastNightDialog({ open, onOpenChange, userId }: ConfirmLa
     }
   }, [step, ratings, notesStep]);
 
+  const handleFreshSync = useCallback(async () => {
+    if (!healthData.provider) return;
+    setSyncing(true);
+    try {
+      const { error } = await supabase.functions.invoke("wearable-sync", {
+        body: { provider: healthData.provider },
+      });
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ["health-data-trend", userId] });
+      await queryClient.invalidateQueries({ queryKey: ["wearable-connection-any", userId] });
+      setWearableSynced(true);
+      toast.success("Wearable data synced");
+    } catch (err) {
+      console.error("Fresh sync failed:", err);
+      toast.error("Sync failed — you can still rate manually");
+    }
+    setSyncing(false);
+  }, [healthData.provider, queryClient, userId]);
+
   const handleWearableContinue = useCallback(() => {
-    setWearableSynced(true);
-    // Pre-fill sleep and movement from wearable, user can override
     setStep(sleepStep);
   }, [sleepStep]);
 
@@ -220,6 +240,32 @@ export function ConfirmLastNightDialog({ open, onOpenChange, userId }: ConfirmLa
                   </p>
                 </div>
 
+                {/* Fresh Sync Button */}
+                {!wearableSynced && (
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={handleFreshSync}
+                    disabled={syncing}
+                  >
+                    {syncing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Syncing latest data…
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4" />
+                        Sync Fresh Data
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {wearableSynced && (
+                  <p className="text-xs text-center text-primary font-medium">✓ Fresh data synced</p>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                   {wearableLatest.sleepMinutes != null && (
                     <div className="bg-muted/50 rounded-xl p-3 text-center">
@@ -261,9 +307,9 @@ export function ConfirmLastNightDialog({ open, onOpenChange, userId }: ConfirmLa
                   )}
                 </div>
 
-                {wearableLatest.sleepMinutes == null && wearableLatest.activeMinutes == null && (
+                {wearableLatest.sleepMinutes == null && wearableLatest.activeMinutes == null && !syncing && (
                   <p className="text-xs text-muted-foreground text-center">
-                    No recent data synced. You can still rate manually below.
+                    No recent data synced. Tap sync above or rate manually below.
                   </p>
                 )}
 
