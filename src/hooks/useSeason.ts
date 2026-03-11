@@ -227,6 +227,7 @@ export function useSeason(userId?: string) {
     startSeason,
     linkSnapshotToSeason,
     completeSeason,
+    closeSeason,
     shouldShowSeasonComplete,
   };
 }
