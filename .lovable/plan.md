@@ -1,164 +1,112 @@
 
-# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-## Overview
+# Phase 2: Daily Decision-Making Hierarchy — System-Wide Implementation
 
-Three interconnected deliverables:
-1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
-2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
-3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
+## What This Is
 
----
+Encode a 4-tier daily goal hierarchy as a product rule that governs the Today page layout, AI briefing logic, dashboard intelligence prompts, and README/branding. This is a structural and prompt-engineering task — no new features, but a reorganization of existing ones plus documentation overhaul.
 
-## Part 1: AI Insight Engine
+## The Hierarchy (for reference)
 
-### New Edge Function: `admin-insights`
+- **Tier 1 (Must Answer)**: What kind of day? How am I doing? What matters most?
+- **Tier 2 (Strong Support)**: What should I eat? What should I protect? What should I simplify?
+- **Tier 3 (Close the Loop)**: Did I get a win? What should I adjust tomorrow?
+- **Tier 4 (Not Daily Required)**: Blessing, deep reflection, weekly patterns, broader impact
 
-**File: `supabase/functions/admin-insights/index.ts`**
+## Changes
 
-This function:
-1. Verifies the caller is an admin (same pattern as `admin-analytics`)
-2. Queries aggregated metrics from the last 7 days using the service role client:
-   - `app_events` grouped by `event_name` and day-of-week
-   - `completed_actions` grouped by `controllable`
-   - `daily_resets` count per user (for retention correlation)
-   - `reset_sessions` completion rates
-   - `user_entitlements` conversion data
-   - `user_onboarding` activation delays
-3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
-   - 3 behavioral insights
-   - 2 retention risks
-   - 2 growth opportunities
-   - 1 experiment recommendation
-4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
-5. Returns the insights directly (no caching table needed initially -- can add later)
+### 1. Create Product Hierarchy Documentation
+**New file**: `docs/DAILY_HIERARCHY.md`
 
-**Prompt structure:**
+Document the 4-tier hierarchy as a product rule. Include tier definitions, page-by-page application, AI/recommendation rules, prompt rules, and feature prioritization guidance. This becomes the canonical reference for all future feature decisions.
+
+### 2. Reorder Home.tsx Layout to Follow Hierarchy
+
+Current order:
+1. Greeting → 2. Readiness Bar → 3. Daily Briefing → 4. Today Actions → 5. Plan vs Actual → 6. Fuel Today → 7. Compact Rings → 8. Forecast → 9. Weekly Review Teaser → 10. Ask Dashboard
+
+New order (Tier 1 first, Tier 2 supportive, Tier 3 lighter, Tier 4 removed from daily):
+1. **Greeting** (orientation)
+2. **Readiness Bar** (Tier 1: How am I doing?)
+3. **Daily Briefing** (Tier 1: What kind of day? What matters most?)
+4. **Today Actions** (Tier 1: What matters most — actionable form)
+5. **Compact Rings** (Tier 1: visual progress check)
+6. **Fuel Today** (Tier 2: What should I eat?)
+7. **Plan vs Actual** (Tier 1/2: schedule reality)
+8. **Ask Dashboard** (utility — always available)
+9. **Weekly Review Teaser** (Tier 4: only Thu–Sun, stays light)
+10. **Forecast** (Tier 3/4: predictive, not daily-critical — move lower)
+
+Key change: Move Compact Rings up (Tier 1 — "How am I doing?"), move Forecast down (predictive = Tier 3/4), keep Fuel Today in Tier 2 position.
+
+### 3. Update `ai-briefing` System Prompt — Hierarchy-Aware
+
+Add the tier hierarchy to the system prompt so the briefing follows this exact priority:
+1. Day type label (Tier 1)
+2. Interpretation: body + calendar + context synthesis (Tier 1)
+3. Focus: one clear next move (Tier 1)
+4. Watchout: what to protect or simplify (Tier 2)
+
+Add explicit instruction: "Do NOT include deep reflection, impact tracking, or blessing prompts. Keep this operational and practical. One clear read, not a list of recommendations."
+
+### 4. Update `dashboard-intelligence` System Prompt — Reduce Volume
+
+Current prompt requests 3–4 recommended actions, 2–3 memory comparisons, 4–5 center rotations, and multi-horizon forecasts. This creates information overload.
+
+Changes to the system prompt:
+- Reduce `recommended_actions` from 3–4 to **1–2** ("prefer one strong recommendation over many weak ones")
+- Add instruction: "Prioritize clarity over volume. The user should leave with ONE clear next move, not a list."
+- Add: "Do not suggest deep reflection, blessing tracking, or impact storytelling as daily actions."
+- Keep forecasts but note they're secondary signals, not primary daily content
+
+### 5. Overhaul README.md — Professional Product Documentation
+
+Remove all Lovable branding. Rewrite as a professional product README for The Dashboard by AGB Coaching.
+
+Key changes:
+- Remove `*Built with [Lovable](https://lovable.dev)*` footer
+- Replace `Lovable AI` references with "Built-in AI" or "AI-powered"
+- Replace `Lovable Cloud` references with "Cloud infrastructure" or just omit
+- Remove `thecontrollables.lovable.app` URL — replace with `thedashboard.agbcoaching.com`
+- Add the Daily Hierarchy as a prominent section in the README
+- Update the "Daily Usage" section to reflect the hierarchy:
+  - Morning: Review your briefing (Tier 1), check Today Actions (Tier 1)
+  - Throughout: Complete planned items, check Fuel (Tier 2)
+  - Evening: Close a ring, log a win (Tier 3)
+- Remove overly technical internal details that aren't user-facing
+- Add "Product Philosophy" section with the hierarchy baked in
+- Clean up edge function table (internal detail — move to a separate `docs/ARCHITECTURE.md` or trim)
+
+### 6. Update index.html — Remove Lovable References
+
+The `index.html` currently has no direct Lovable branding in visible content (good). The `dns-prefetch` to Supabase is functional, not branding — keep it. No changes needed here.
+
+### 7. Add Hierarchy Comment Headers to Home.tsx
+
+Add clear section comment headers in the render block that reference the tier system, making it easy for future development to maintain the hierarchy:
 ```
-You are a product analytics advisor for a personal growth app called The Controllables.
-Given the following 7-day metrics, generate actionable insights.
-
-[structured data blob]
-
-Return insights as structured tool output.
+{/* TIER 1 — What kind of day? How am I doing? */}
+{/* TIER 2 — What should I eat? What should I protect? */}
+{/* TIER 3 — Did I get a win? */}
 ```
 
-**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
+## Files to Create
+| File | Purpose |
+|---|---|
+| `docs/DAILY_HIERARCHY.md` | Canonical product rule document for the 4-tier hierarchy |
 
-**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
+## Files to Modify
+| File | Change |
+|---|---|
+| `src/pages/Home.tsx` | Reorder layout to follow hierarchy (Rings up, Forecast down), add tier comment headers |
+| `supabase/functions/ai-briefing/index.ts` | Add hierarchy awareness to system prompt, reduce fluff |
+| `supabase/functions/dashboard-intelligence/index.ts` | Reduce recommended_actions to 1–2, add "clarity over volume" instruction |
+| `README.md` | Full rewrite: remove Lovable branding, add hierarchy section, professionalize |
 
-### New Admin Component: AI Insights Panel
+## What Does NOT Change
+- No database migrations
+- No new components
+- All existing features preserved — just reordered and prompt-tuned
+- Weekly review, forecast, and deeper features stay — just positioned correctly per tier
+- Landing page has no Lovable branding (already clean)
 
-**File: `src/components/admin/AIInsightsPanel.tsx`**
-
-- A card with "Weekly Intelligence" header and a "Generate Insights" button
-- On click, calls the `admin-insights` edge function
-- Displays results in categorized sections:
-  - Behavioral Insights (brain icon, blue accent)
-  - Retention Risks (alert icon, amber accent)
-  - Growth Opportunities (trending-up icon, green accent)
-  - Experiment Recommendation (flask icon, purple accent)
-- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
-- Loading state with skeleton cards
-- Error state with retry button
-- "Last generated" timestamp display
-
-### Integration into Admin.tsx
-
-- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
-- The tab renders `<AIInsightsPanel />`
-
----
-
-## Part 2: Enhanced Action Center
-
-**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
-
-Replace the three "Coming soon" cards with working functionality:
-
-### A. Send Nudge Campaign
-- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
-- Confirmation dialog before sending
-- Calls the existing `send-daily-nudge` edge function for each selected user
-- Shows progress and results
-
-### B. Grant Trial Extension
-- Search for a specific user by email
-- Set extension duration (7 days, 14 days, 30 days)
-- Calls `admin-users?action=grant_access` with an `expires_at` parameter
-- Confirmation toast on success
-
-### C. Export with More Segments
-- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
-- Risk tier data fetched from `admin-analytics?resource=retention_radar`
-- CSV includes: email, signup date, last active, risk tier, paid status, source
-
-### D. Quick Stats Bar
-- Show counts above the action cards: Total Users, Free, Paid, At Risk
-- Derived from the `users` prop already passed in
-
----
-
-## Part 3: Landing Page Updates
-
-**File: `src/pages/Landing.tsx`**
-
-Update the hero copy to reflect the free trial:
-- Change hero tagline to emphasize "Try the full experience free for 7 days"
-- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
-- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
-
-**File: `src/components/landing/FeatureGrid.tsx`**
-
-- Update the Free/Premium labeling:
-  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
-  - "Experience History" -- add "Free during trial" badge
-  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
-
-**File: `src/components/landing/HowItWorksSection.tsx`**
-
-- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
-
----
-
-## Part 4: README Update
-
-**File: `README.md`**
-
-Update to v1.5.0 reflecting all recent changes:
-
-1. **Version bump**: `v1.4.1` to `v1.5.0`
-2. **New section: "Admin Command Center"** after Technical Reference:
-   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
-   - Mention the `admin-analytics` and `admin-insights` edge functions
-   - Document the AI Insight Engine capability
-3. **Update "Free vs. Premium" table**:
-   - Add "7-Day Free Trial" row explaining full access during first Snapshot
-   - Update AI Guide from "---" to "5 msgs/day during trial"
-   - Update Experience History from "---" to "During trial"
-4. **Update Backend Functions table**:
-   - Add `admin-analytics` -- Admin data aggregation and executive metrics
-   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
-5. **Update Key Data Tables**:
-   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
-   - Add `ai_usage_logs` -- Daily AI message tracking
-6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
-
----
-
-## Technical Summary
-
-| File | Change | Type |
-|------|--------|------|
-| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
-| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
-| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
-| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
-| `src/pages/Admin.tsx` | Add Insights tab | Edit |
-| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
-| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
-| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
-| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
-| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
-
-No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.
