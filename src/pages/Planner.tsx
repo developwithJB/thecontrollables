@@ -397,6 +397,7 @@ const Planner = () => {
             onReorder={handleReorder}
             onPushToCalendar={handlePushToCalendar}
             hasGoogleConnection={!!googleConnection}
+            userId={user.id}
           />
           {isMobile && (
             <div className="px-4 pb-20">

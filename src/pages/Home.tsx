@@ -48,6 +48,7 @@ import { ForecastCard } from "@/components/dashboard/ForecastCard";
 import { SeasonComplete } from "@/components/SeasonComplete";
 import { CompactRingsRow } from "@/components/dashboard/CompactRingsRow";
 import { TodayReadinessBar } from "@/components/dashboard/TodayReadinessBar";
+import { FuelTodayCard } from "@/components/dashboard/FuelTodayCard";
 import {
   ResetProgressSkeleton,
 } from "@/components/dashboard/DashboardSkeletons";
@@ -575,6 +576,9 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* 4b. Fuel Today — compact meal surface */}
+      <FuelTodayCard userId={user.id} isPaid={isPaid || isTrialing} />
 
       {/* 5. Compact 5 Rings */}
       <CompactRingsRow userId={user.id} />

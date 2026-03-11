@@ -19,7 +19,10 @@ import { PlannerItemRow } from "./PlannerItemRow";
 import { ActivityItemRow } from "./ActivityItemRow";
 import type { PlannerItem } from "@/hooks/usePlanner";
 import type { ActivityItem } from "@/hooks/usePlannerActivity";
-import { CalendarOff } from "lucide-react";
+import { CalendarOff, UtensilsCrossed } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
 
 interface PlannerDayViewProps {
   date: Date;
@@ -32,6 +35,7 @@ interface PlannerDayViewProps {
   onReorder: (items: { id: string; sort_order: number }[]) => void;
   onPushToCalendar?: (item: PlannerItem) => void;
   hasGoogleConnection?: boolean;
+  userId?: string;
 }
 
 export const PlannerDayView = ({
@@ -45,6 +49,7 @@ export const PlannerDayView = ({
   onReorder,
   onPushToCalendar,
   hasGoogleConnection,
+  userId,
 }: PlannerDayViewProps) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -72,9 +77,34 @@ export const PlannerDayView = ({
 
   const todayLabel = isToday(date) ? "Today" : format(date, "EEEE, MMM d");
 
+  // Meal count for this day
+  const dateKey = format(date, "yyyy-MM-dd");
+  const { data: mealCount = 0 } = useQuery({
+    queryKey: ["meal-plan-count", userId, dateKey],
+    queryFn: async () => {
+      if (!userId) return 0;
+      const { data } = await supabase
+        .from("meal_plans")
+        .select("meals")
+        .eq("user_id", userId)
+        .eq("plan_date", dateKey)
+        .maybeSingle();
+      return data ? ((data.meals as any[])?.length || 0) : 0;
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+
   return (
     <div className="flex-1 px-4 py-3">
-      <h2 className="text-base font-semibold text-foreground mb-3">{todayLabel}</h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-base font-semibold text-foreground">{todayLabel}</h2>
+        {mealCount > 0 && (
+          <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <UtensilsCrossed className="w-3 h-3" /> {mealCount} meals
+          </span>
+        )}
+      </div>
 
       {sortedItems.length === 0 && activityItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">

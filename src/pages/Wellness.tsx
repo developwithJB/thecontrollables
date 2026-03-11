@@ -17,7 +17,10 @@ import { BrainBodyTracker } from "@/components/dashboard/BrainBodyTracker";
 import { WellnessGoalsCard } from "@/components/dashboard/WellnessGoalsCard";
 import { WearableSummaryCard } from "@/components/wellness/WearableSummaryCard";
 import { WearableTrendsCard } from "@/components/wellness/WearableTrendsCard";
-import { WellnessFuelSummary } from "@/components/nutrition/WellnessFuelSummary";
+import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
+import { MealPlanBuilder } from "@/components/nutrition/MealPlanBuilder";
+import { useMealTracking, type MealSlotConfig } from "@/hooks/useMealTracking";
+import { useMealPreferences } from "@/hooks/useMealPreferences";
 import { WellnessStreakHistory } from "@/components/experience/WellnessStreakHistory";
 import { useReset } from "@/hooks/useReset";
 import { isInActiveTrial } from "@/lib/entitlements";
@@ -132,8 +135,18 @@ export default function Wellness() {
         />
       )}
 
-      {/* 4. Fuel Summary */}
-      <WellnessFuelSummary userId={user.id} />
+      {/* 4. Fuel Plan — primary nutrition module */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-lg">🍽️</span>
+          <h2 className="text-base font-semibold text-foreground">Fuel Plan</h2>
+        </div>
+        <MealPlanCard
+          userId={user.id}
+          isPaid={isPaid}
+          onUpgrade={() => startCheckout("fuel_plan")}
+        />
+      </div>
 
       {/* 5. Wellness Goals */}
       <WellnessGoalsCard userId={user.id} />

@@ -10,6 +10,7 @@ import { TransactionHistory } from "@/components/money/TransactionHistory";
 import { TransactionImporter } from "@/components/money/TransactionImporter";
 import { AccountManager } from "@/components/money/AccountManager";
 import { FinancialControllables } from "@/components/money/FinancialControllables";
+import { GroceryRhythmCard } from "@/components/money/GroceryRhythmCard";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export default function Money() {
@@ -43,6 +44,9 @@ export default function Money() {
         goals={goals}
         transactions={transactions}
       />
+
+      {/* 1b. Grocery Rhythm — food → spending insight */}
+      <GroceryRhythmCard userId={user.id} />
 
       {/* 2. Monthly Overview */}
       <MoneyOverview accounts={accounts} bills={bills} subscriptions={subscriptions} goals={goals} />
