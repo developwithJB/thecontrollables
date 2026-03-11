@@ -223,7 +223,7 @@ export const MealSwiper = forwardRef<MealSwiperHandle, MealSwiperProps>(({
           onClick={() => {
             setExitDirection("left");
             onReject(currentMeal);
-            setTimeout(handleNext, 200);
+            scheduleAdvance();
           }}
         >
           <X className="w-5 h-5" />
@@ -235,7 +235,7 @@ export const MealSwiper = forwardRef<MealSwiperHandle, MealSwiperProps>(({
           onClick={() => {
             setExitDirection("up");
             onSaveToLibrary(currentMeal);
-            setTimeout(handleNext, 200);
+            scheduleAdvance();
           }}
         >
           <Bookmark className="w-4 h-4" />
@@ -247,7 +247,7 @@ export const MealSwiper = forwardRef<MealSwiperHandle, MealSwiperProps>(({
           onClick={() => {
             setExitDirection("right");
             onAccept(currentMeal);
-            setTimeout(handleNext, 200);
+            scheduleAdvance();
           }}
         >
           <Check className="w-5 h-5" />
@@ -260,4 +260,4 @@ export const MealSwiper = forwardRef<MealSwiperHandle, MealSwiperProps>(({
       </p>
     </div>
   );
-};
+});
