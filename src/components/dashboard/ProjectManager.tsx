@@ -89,7 +89,7 @@ export function ProjectManager({ open, onClose, userId, seasonId }: ProjectManag
                   <span className="font-medium text-sm text-foreground flex-1">{project.name}</span>
                   {project.controllable && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                      {CONTROLLABLES.find(c => c.type === project.controllable)?.emoji} {project.controllable}
+                      {CONTROLLABLE_LIST.find(c => c.type === project.controllable)?.emoji} {project.controllable}
                     </span>
                   )}
                 </div>
