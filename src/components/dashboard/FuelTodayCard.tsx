@@ -1,10 +1,13 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { UtensilsCrossed, Clock, ArrowRight, Sparkles } from "lucide-react";
+import { UtensilsCrossed, Clock, ArrowRight, Sparkles, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMealTracking, type MealSlotConfig } from "@/hooks/useMealTracking";
 import { useMealPreferences } from "@/hooks/useMealPreferences";
 import { MealPlanBuilder } from "@/components/nutrition/MealPlanBuilder";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format, startOfWeek, endOfWeek } from "date-fns";
 
 interface FuelTodayCardProps {
   userId: string | null;
