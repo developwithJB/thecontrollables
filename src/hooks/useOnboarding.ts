@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { getFeatureFlag } from "@/lib/featureFlags";
 
 export type FirstActionType = "quest" | "operator" | "rep";
-export type OnboardingStep = "build_assessment" | "archetype_result" | "journey_selection" | "completed";
+export type OnboardingStep = "welcome_integrations" | "build_assessment" | "archetype_result" | "journey_selection" | "completed";
 
 export interface UserOnboarding {
   user_id: string;
@@ -66,7 +66,7 @@ export const useOnboarding = (userId: string | null) => {
       await supabase.from("user_onboarding" as any).insert({
         user_id: userId,
         simplified_mode_completed: false,
-        onboarding_step: quickStartEnabled ? "build_assessment" : null,
+        onboarding_step: quickStartEnabled ? "welcome_integrations" : null,
         build_assessment_completed: false,
       } as any);
       queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });

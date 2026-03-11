@@ -3,6 +3,9 @@ import { AnimatePresence } from "framer-motion";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
 import { useReset } from "@/hooks/useReset";
 import { useOnboardingAnalytics } from "@/hooks/useOnboardingAnalytics";
+import { OnboardingWelcome } from "./OnboardingWelcome";
+import { OnboardingCalendarConnect } from "./OnboardingCalendarConnect";
+import { OnboardingWearableConnect } from "./OnboardingWearableConnect";
 import { OnboardingAssessment } from "./OnboardingAssessment";
 import { OnboardingArchetypeResult } from "./OnboardingArchetypeResult";
 import { OnboardingJourneySelection } from "./OnboardingJourneySelection";
@@ -20,7 +23,7 @@ import type { BuildScore } from "@/lib/build";
 import type { OnboardingStep } from "@/hooks/useOnboarding";
 
 // Internal step type that includes transitional states
-type InternalOnboardingStep = OnboardingStep | "orientation" | "starting" | "skip_confirmation" | "recovery" | "meet_guides";
+type InternalOnboardingStep = OnboardingStep | "connect_calendar" | "connect_wearable" | "orientation" | "starting" | "skip_confirmation" | "recovery" | "meet_guides";
 
 interface OnboardingFlowProps {
   userId: string;
@@ -55,7 +58,7 @@ export function OnboardingFlow({
   userId, 
   onComplete, 
   onUpdateOnboarding,
-  initialStep = "build_assessment",
+  initialStep = "welcome_integrations",
   isPaid = false,
   createQuest,
 }: OnboardingFlowProps) {
@@ -317,6 +320,47 @@ export function OnboardingFlow({
   return (
     <div className="min-h-screen bg-background">
       <AnimatePresence mode="wait">
+        {currentStep === "welcome_integrations" && (
+          <OnboardingWelcome
+            key="welcome"
+            onContinue={() => setCurrentStep("connect_calendar")}
+            onSkip={() => {
+              trackStepChange("welcome_integrations", "build_assessment");
+              setCurrentStep("build_assessment");
+            }}
+          />
+        )}
+
+        {currentStep === "connect_calendar" && (
+          <OnboardingCalendarConnect
+            key="connect-calendar"
+            onConnected={() => {
+              trackStepChange("connect_calendar", "connect_wearable");
+              setCurrentStep("connect_wearable");
+            }}
+            onSkip={() => {
+              trackStepChange("connect_calendar", "connect_wearable");
+              setCurrentStep("connect_wearable");
+            }}
+          />
+        )}
+
+        {currentStep === "connect_wearable" && (
+          <OnboardingWearableConnect
+            key="connect-wearable"
+            onConnected={() => {
+              trackStepChange("connect_wearable", "build_assessment");
+              onUpdateOnboarding({ step: "build_assessment" });
+              setCurrentStep("build_assessment");
+            }}
+            onSkip={() => {
+              trackStepChange("connect_wearable", "build_assessment");
+              onUpdateOnboarding({ step: "build_assessment" });
+              setCurrentStep("build_assessment");
+            }}
+          />
+        )}
+
         {currentStep === "build_assessment" && (
           <OnboardingAssessment
             key="assessment"
