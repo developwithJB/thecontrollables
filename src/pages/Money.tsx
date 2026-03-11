@@ -19,6 +19,11 @@ export default function Money() {
   const [showImporter, setShowImporter] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
+  // Calendar load for spending risk signal
+  const moneyWeekRange = useMemo(() => getWeekRange(new Date()), []);
+  const { data: moneyPlannerItems = [] } = usePlannerItems(moneyWeekRange.start, moneyWeekRange.end, user.id);
+  const weekPlannerCount = moneyPlannerItems.length;
+
   const { accounts, createAccount, deleteAccount } = useFinancialAccounts(user.id);
   const { transactions, addTransaction, isLoading: txnLoading } = useTransactions(user.id);
   const { buckets, createBucket, deleteBucket } = useBudgetBuckets(user.id);
