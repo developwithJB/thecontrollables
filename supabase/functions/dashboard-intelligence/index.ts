@@ -344,7 +344,7 @@ Average stress (7d): ${avgStress}/5
 Proof action completion rate (7d): ${proofCompletionRate}%
 ${snapshotContext}
 Upcoming planned items: ${upcomingPlanner || "none"}
-${mealCoverageContext}${whoopContext}
+${mealCoverageContext}${whoopContext}${calendarShapeContext}
 `;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
