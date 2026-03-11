@@ -315,6 +315,17 @@ const Planner = () => {
         </div>
       )}
 
+      {/* Fuel Check overlay */}
+      {showFuelCheck && (
+        <div className="px-4 py-3 border-b border-border bg-card/50">
+          <MealPlanCard
+            userId={user.id}
+            isPaid={isPaid}
+            onUpgrade={() => initiateCheckout("plus_monthly", { source: "planner_fuel_check" })}
+          />
+        </div>
+      )}
+
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden" style={{ height: "calc(100vh - 200px)" }}>
         {!isMobile && (
