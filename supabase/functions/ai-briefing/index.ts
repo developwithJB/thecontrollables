@@ -80,8 +80,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Gather context: active session, recent reflections, build scores, controllable levels
-    const [sessionRes, reflectionsRes, buildRes, actionsRes] = await Promise.all([
+    // Gather context: active session, recent reflections, build scores, controllable levels, planner stats
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const [sessionRes, reflectionsRes, buildRes, actionsRes, yesterdayHealthRes, yesterdayPlannerRes, todayPlannerRes] = await Promise.all([
       serviceClient.from('reset_sessions').select('current_day, journey_id, start_date')
         .eq('user_id', userId).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       serviceClient.from('daily_resets').select('day_number, reflection, completed_at')
@@ -90,6 +91,12 @@ Deno.serve(async (req) => {
         .eq('user_id', userId).maybeSingle(),
       serviceClient.from('completed_actions').select('controllable, xp_awarded')
         .eq('user_id', userId).not('controllable', 'is', null),
+      serviceClient.from('health_sync_data').select('recovery_score, sleep_minutes, hrv_ms')
+        .eq('user_id', userId).eq('sync_date', yesterday).maybeSingle(),
+      serviceClient.from('planner_items').select('id, status')
+        .eq('user_id', userId).eq('scheduled_date', yesterday),
+      serviceClient.from('planner_items').select('id')
+        .eq('user_id', userId).eq('scheduled_date', today),
     ]);
 
     const currentDay = sessionRes.data?.current_day || 1;
