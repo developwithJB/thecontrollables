@@ -11,7 +11,9 @@ interface MealLogEntryProps {
   emoji: string;
   existingAnalysis?: MealAnalysis | null;
   existingDescription?: string | null;
+  plannedMealName?: string | null;
   onSubmit: (data: { description?: string; imageFile?: File; mealType: string }) => Promise<MealAnalysis>;
+  onConfirmAsEaten?: (mealType: string) => void;
   isAnalyzing: boolean;
 }
 
@@ -21,7 +23,9 @@ export function MealLogEntry({
   emoji,
   existingAnalysis,
   existingDescription,
+  plannedMealName,
   onSubmit,
+  onConfirmAsEaten,
   isAnalyzing,
 }: MealLogEntryProps) {
   const [mode, setMode] = useState<"idle" | "text" | "photo">("idle");
@@ -90,6 +94,18 @@ export function MealLogEntry({
             </p>
           )}
         </div>
+      )}
+
+      {/* Confirm planned meal shortcut */}
+      {!isLogged && mode === "idle" && !isAnalyzing && plannedMealName && onConfirmAsEaten && (
+        <Button
+          variant="secondary"
+          size="sm"
+          className="w-full text-xs h-8 gap-1.5 mb-1"
+          onClick={() => onConfirmAsEaten(mealType)}
+        >
+          <Check className="w-3 h-3" /> Confirm "{plannedMealName}" as eaten
+        </Button>
       )}
 
       {/* Input mode selection */}

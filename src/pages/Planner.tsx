@@ -9,6 +9,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
 
 import {
   usePlannerItems,
@@ -44,6 +46,8 @@ const Planner = () => {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const callbackHandled = useRef(false);
+  const { isPaid, initiateCheckout } = useEntitlements(user.id);
+  const [showFuelCheck, setShowFuelCheck] = useState(false);
 
   // Handle Google Calendar OAuth callback
   useEffect(() => {
@@ -266,8 +270,11 @@ const Planner = () => {
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant={showPvA ? "default" : "ghost"} size="icon" className="h-8 w-8" onClick={() => setShowPvA((v) => !v)} title="Plan vs Actual">
+            <Button variant={showPvA ? "default" : "ghost"} size="icon" className="h-8 w-8" onClick={() => { setShowPvA((v) => !v); setShowFuelCheck(false); }} title="Plan vs Actual">
               <BarChart3 className="h-4 w-4" />
+            </Button>
+            <Button variant={showFuelCheck ? "default" : "ghost"} size="icon" className="h-8 w-8" onClick={() => { setShowFuelCheck((v) => !v); setShowPvA(false); }} title="Fuel Check">
+              <UtensilsCrossed className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRoutineManagerOpen(true)}>
               <RotateCcw className="h-4 w-4" />
@@ -304,6 +311,17 @@ const Planner = () => {
       {showPvA && (
         <div className="px-4 py-3 border-b border-border bg-card/50">
           <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} syntheses={pvaSyntheses} />
+        </div>
+      )}
+
+      {/* Fuel Check overlay */}
+      {showFuelCheck && (
+        <div className="px-4 py-3 border-b border-border bg-card/50">
+          <MealPlanCard
+            userId={user.id}
+            isPaid={isPaid}
+            onUpgrade={() => initiateCheckout("plus", { source: "planner_fuel_check" })}
+          />
         </div>
       )}
 

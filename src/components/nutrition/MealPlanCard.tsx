@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Calendar, Loader2, Lock, UtensilsCrossed, X, Minus, Plus, Settings2, Share2 } from "lucide-react";
 import { MealShareCard } from "./MealShareCard";
+import { MealPlanBuilder } from "./MealPlanBuilder";
 import { getControllableTheme } from "@/lib/controllableTheme";
 import { ControllableLevelBadge } from "@/components/dashboard/ControllableLevelBadge";
 import { MealWeekComparison } from "./MealWeekComparison";
@@ -32,6 +33,7 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
   const [view, setView] = useState<"today" | "week">("today");
   const [showConfig, setShowConfig] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showBuilder, setShowBuilder] = useState(false);
 
   // Meal config state — initialized from saved preferences
   const [enabledMeals, setEnabledMeals] = useState<Record<string, boolean>>({
@@ -509,20 +511,11 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
               variant="secondary"
               size="sm"
               className="w-full text-xs"
-              onClick={() => setShowConfig(true)}
+              onClick={() => setShowBuilder(true)}
               disabled={generatePlan.isPending}
             >
-              {generatePlan.isPending ? (
-                <>
-                  <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                  Satellite is planning...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  Generate Today's Meal Plan
-                </>
-              )}
+              <Sparkles className="w-3 h-3 mr-1" />
+              Generate Today's Meal Plan
             </Button>
           </div>
         )}
@@ -540,6 +533,29 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
           totalCalories={plannedTotals.calories}
         />
       )}
+
+      {/* Collaborative Meal Plan Builder */}
+      <MealPlanBuilder
+        open={showBuilder}
+        onClose={() => setShowBuilder(false)}
+        userId={userId}
+        slotConfig={getSlotConfig()}
+        onConfirm={(meals) => {
+          updatePlanMeals.mutate({
+            planId: todayPlan?.id || "new",
+            meals,
+          });
+        }}
+        isGenerating={generatePlan.isPending}
+        onGenerate={async (config: any) => {
+          return new Promise((resolve, reject) => {
+            generatePlan.mutate(config, {
+              onSuccess: (data) => resolve(data),
+              onError: (err) => reject(err),
+            });
+          });
+        }}
+      />
     </>
   );
 }

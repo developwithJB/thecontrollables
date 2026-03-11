@@ -14,7 +14,7 @@ import { WellnessGoalsCard } from "@/components/dashboard/WellnessGoalsCard";
 import { WearableSummaryCard } from "@/components/wellness/WearableSummaryCard";
 import { WearableTrendsCard } from "@/components/wellness/WearableTrendsCard";
 import { DailyOSCard } from "@/components/dashboard/DailyOSCard";
-import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
+
 import { WellnessStreakHistory } from "@/components/experience/WellnessStreakHistory";
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 import { useReset } from "@/hooks/useReset";
@@ -126,14 +126,6 @@ export default function Wellness() {
         />
       )}
 
-      {/* Meal Planning */}
-      {!entitlementsLoading && (
-        <MealPlanCard
-          userId={user.id}
-          isPaid={isPaid}
-          onUpgrade={() => startCheckout("meal_plan")}
-        />
-      )}
 
       {/* Wellness Streak History */}
       {wellnessLogs.length > 0 && (

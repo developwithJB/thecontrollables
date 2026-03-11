@@ -20,6 +20,7 @@ interface MealSwiperProps {
   onAccept: (meal: SwipeMeal) => void;
   onReject: (meal: SwipeMeal) => void;
   onSaveToLibrary: (meal: SwipeMeal) => void;
+  onRegenerate?: (meal: SwipeMeal) => void;
   currentMealType?: string;
 }
 
@@ -30,6 +31,7 @@ export const MealSwiper = ({
   onAccept,
   onReject,
   onSaveToLibrary,
+  onRegenerate,
   currentMealType = "meal",
 }: MealSwiperProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -129,8 +131,13 @@ export const MealSwiper = ({
           }
           className="absolute inset-0 cursor-grab active:cursor-grabbing"
         >
-          <div className="w-full h-full rounded-2xl border border-border bg-card p-6 flex flex-col justify-between shadow-[var(--shadow-card)]">
-            {/* Accept/Reject overlays */}
+          <div className="w-full h-full rounded-2xl border border-border bg-card flex flex-col justify-between shadow-[var(--shadow-card)] overflow-hidden">
+            {/* Recipe image placeholder */}
+            <div className="h-24 bg-muted/40 flex items-center justify-center border-b border-border/30">
+              <span className="text-4xl">{currentMeal.emoji}</span>
+            </div>
+
+            <div className="p-5 flex flex-col justify-between flex-1">
             <motion.div
               style={{ opacity: acceptOpacity }}
               className="absolute top-4 right-4 px-3 py-1 rounded-full bg-perspective/20 text-perspective text-sm font-bold border-2 border-perspective rotate-12"
@@ -152,11 +159,10 @@ export const MealSwiper = ({
 
             {/* Content */}
             <div>
-              <span className="text-3xl">{currentMeal.emoji}</span>
-              <h3 className="font-display text-lg font-semibold text-foreground mt-3 mb-1">
+              <h3 className="font-display text-lg font-semibold text-foreground mb-1">
                 {currentMeal.name}
               </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
                 {currentMeal.description}
               </p>
             </div>
@@ -185,6 +191,7 @@ export const MealSwiper = ({
                   </span>
                 ))}
               </div>
+            </div>
             </div>
           </div>
         </motion.div>
