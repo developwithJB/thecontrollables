@@ -68,6 +68,7 @@ export interface CreatePlannerItemInput {
   description?: string | null;
   snapshot_action_ref?: Record<string, any> | null;
   promise_id?: string | null;
+  project_id?: string | null;
 }
 
 export interface UpdatePlannerItemInput {
@@ -81,6 +82,7 @@ export interface UpdatePlannerItemInput {
   energy_level?: EnergyLevel | null;
   description?: string | null;
   sort_order?: number;
+  project_id?: string | null;
 }
 
 // Helper to get current week range
