@@ -51,6 +51,16 @@ export default function Growth() {
   const { currentBuild } = useBuildAssessment();
   const { rings, completedCount } = useDailyRings(user.id);
   const { isConnected: wearableConnected, latest: healthLatest, trend: healthTrend } = useHealthData(user.id);
+
+  // Calendar intelligence for today
+  const growthWeekRange = useMemo(() => getWeekRange(new Date()), []);
+  const { data: growthPlannerItems = [] } = usePlannerItems(growthWeekRange.start, growthWeekRange.end, user.id);
+  const growthCalendarIntel = useMemo(() => {
+    const todayStr = new Date().toLocaleDateString("sv-SE");
+    const todayItems = growthPlannerItems.filter((i: any) => i.scheduled_date === todayStr);
+    return analyzeCalendar(todayItems);
+  }, [growthPlannerItems]);
+
   const intelligence = useDashboardIntelligence(user.id, completedCount, rings);
   const {
     activeSession,
