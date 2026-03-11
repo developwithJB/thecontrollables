@@ -9,6 +9,8 @@ interface DailyBriefingCardProps {
   isTrialing?: boolean;
   hasActiveSnapshot: boolean;
   onUpgrade?: () => void;
+  healthRecovery?: number | null;
+  plannerCount?: number | null;
 }
 
 const CONTROLLABLE_META: Record<string, { emoji: string; name: string }> = {
