@@ -9,6 +9,7 @@ interface PlannerWeekGridProps {
   onSelect: (date: Date) => void;
   itemsByDate: Record<string, PlannerItem[]>;
   activityByDate?: Record<string, { id: string; isConfirmed: boolean }[]>;
+  mealCountsByDate?: Record<string, number>;
 }
 
 const miniStatusIcon = {
