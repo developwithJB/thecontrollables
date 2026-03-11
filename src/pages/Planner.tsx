@@ -9,6 +9,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
 
 import {
   usePlannerItems,
