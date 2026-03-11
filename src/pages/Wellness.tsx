@@ -14,7 +14,7 @@ import { WellnessGoalsCard } from "@/components/dashboard/WellnessGoalsCard";
 import { WearableSummaryCard } from "@/components/wellness/WearableSummaryCard";
 import { WearableTrendsCard } from "@/components/wellness/WearableTrendsCard";
 import { DailyOSCard } from "@/components/dashboard/DailyOSCard";
-
+import { WellnessFuelSummary } from "@/components/nutrition/WellnessFuelSummary";
 import { WellnessStreakHistory } from "@/components/experience/WellnessStreakHistory";
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 import { useReset } from "@/hooks/useReset";
@@ -125,6 +125,10 @@ export default function Wellness() {
           onUpgrade={() => startCheckout("daily_os")}
         />
       )}
+
+
+      {/* Fuel Summary (read-only — planning lives in Planner) */}
+      <WellnessFuelSummary userId={user.id} />
 
 
       {/* Wellness Streak History */}

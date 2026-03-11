@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Calendar, Loader2, Lock, UtensilsCrossed, X, Minus, Plus, Settings2, Share2 } from "lucide-react";
+import { Sparkles, Calendar, Loader2, Lock, UtensilsCrossed, X, Minus, Plus, Settings2, Share2, BookOpen } from "lucide-react";
 import { MealShareCard } from "./MealShareCard";
 import { MealPlanBuilder } from "./MealPlanBuilder";
+import { RecipeLibrary } from "./RecipeLibrary";
 import { getControllableTheme } from "@/lib/controllableTheme";
 import { ControllableLevelBadge } from "@/components/dashboard/ControllableLevelBadge";
 import { MealWeekComparison } from "./MealWeekComparison";
@@ -34,6 +35,7 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
   const [showConfig, setShowConfig] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showBuilder, setShowBuilder] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
 
   // Meal config state — initialized from saved preferences
   const [enabledMeals, setEnabledMeals] = useState<Record<string, boolean>>({
@@ -493,6 +495,15 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
                 variant="ghost"
                 size="sm"
                 className="text-[11px] h-7 text-muted-foreground"
+                onClick={() => setShowLibrary(true)}
+              >
+                <BookOpen className="w-3 h-3 mr-1" />
+                Recipes
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-[11px] h-7 text-muted-foreground"
                 onClick={handleGenerate}
                 disabled={generatePlan.isPending}
               >
@@ -556,6 +567,9 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
           });
         }}
       />
+
+      {/* Recipe Library */}
+      <RecipeLibrary open={showLibrary} onOpenChange={setShowLibrary} userId={userId} />
     </>
   );
 }

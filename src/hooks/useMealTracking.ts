@@ -344,3 +344,126 @@ export function useMealTracking(userId: string | null) {
     addMealToPlanner,
   };
 }
+
+// ── Saved Recipes hooks ──
+
+export function useSavedRecipes(userId: string | null) {
+  return useQuery({
+    queryKey: ["saved-recipes", userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data, error } = await supabase
+        .from("saved_recipes" as any)
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useSaveRecipe(userId: string | null) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (recipe: {
+      name: string;
+      description?: string;
+      emoji?: string;
+      meal_type: string;
+      est_calories?: number;
+      est_protein?: number;
+      est_carbs?: number;
+      est_fat?: number;
+      prep_minutes?: number;
+      tags?: string[];
+      ingredients?: any[];
+      instructions?: any[];
+      source?: string;
+    }) => {
+      if (!userId) throw new Error("Not authenticated");
+      const { error } = await supabase.from("saved_recipes" as any).insert({
+        user_id: userId,
+        ...recipe,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["saved-recipes", userId] });
+      toast({ title: "🛰️ Recipe saved", description: "Added to your library." });
+    },
+  });
+}
+
+export function useDeleteRecipe(userId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (recipeId: string) => {
+      if (!userId) throw new Error("Not authenticated");
+      const { error } = await supabase
+        .from("saved_recipes" as any)
+        .delete()
+        .eq("id", recipeId)
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["saved-recipes", userId] });
+    },
+  });
+}
+
+export function useAddRecipeToDay(userId: string | null) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ recipe, date }: { recipe: any; date: string }) => {
+      if (!userId) throw new Error("Not authenticated");
+
+      // Get existing plan for that date
+      const { data: existing } = await supabase
+        .from("meal_plans")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("plan_date", date)
+        .maybeSingle();
+
+      const newMeal = {
+        meal_type: recipe.meal_type || "dinner",
+        name: recipe.name,
+        description: recipe.description || "",
+        est_calories: recipe.est_calories || 0,
+        est_protein: recipe.est_protein || 0,
+        est_carbs: recipe.est_carbs || 0,
+        est_fat: recipe.est_fat || 0,
+      };
+
+      if (existing) {
+        const meals = [...((existing.meals as any[]) || []), newMeal];
+        const { error } = await supabase
+          .from("meal_plans")
+          .update({ meals: meals as any })
+          .eq("id", existing.id)
+          .eq("user_id", userId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("meal_plans").insert({
+          user_id: userId,
+          plan_date: date,
+          meals: [newMeal] as any,
+          generated_by: "library",
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meal-plan", userId] });
+      queryClient.invalidateQueries({ queryKey: ["meal-week-plans", userId] });
+      toast({ title: "🛰️ Added to plan", description: "Recipe added to your day." });
+    },
+  });
+}
+

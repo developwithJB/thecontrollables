@@ -4,7 +4,7 @@ import { Sparkles, Loader2, X, ArrowLeft, Check, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { MealSwiper, type SwipeMeal } from "./MealSwiper";
-import { useMealTracking, type MealSlotConfig } from "@/hooks/useMealTracking";
+import { useMealTracking, useSaveRecipe, type MealSlotConfig } from "@/hooks/useMealTracking";
 import { useMealPreferences } from "@/hooks/useMealPreferences";
 
 type BuilderPhase =
@@ -63,6 +63,7 @@ export function MealPlanBuilder({
   const [chatMessages, setChatMessages] = useState<{ from: "satellite" | "user"; text: string }[]>([]);
 
   const { preferences } = useMealPreferences(userId);
+  const saveRecipe = useSaveRecipe(userId);
 
   // Get active slots based on config
   const activeSlots = MEAL_TYPE_ORDER.filter((slot) => {
@@ -179,6 +180,16 @@ export function MealPlanBuilder({
   };
 
   const handleSaveToLibrary = (meal: SwipeMeal) => {
+    saveRecipe.mutate({
+      name: meal.name,
+      description: meal.description,
+      emoji: meal.emoji,
+      meal_type: meal.mealType,
+      est_calories: meal.calories,
+      prep_minutes: meal.prepMinutes,
+      tags: meal.tags,
+      source: "swiper",
+    });
     addChat("satellite", `Saved ${meal.name} to your library! Let me find another option...`);
     generateForSlot(swapSlot || currentSlot);
   };
