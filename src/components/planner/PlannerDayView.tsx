@@ -77,6 +77,24 @@ export const PlannerDayView = ({
 
   const todayLabel = isToday(date) ? "Today" : format(date, "EEEE, MMM d");
 
+  // Meal count for this day
+  const dateKey = format(date, "yyyy-MM-dd");
+  const { data: mealCount = 0 } = useQuery({
+    queryKey: ["meal-plan-count", userId, dateKey],
+    queryFn: async () => {
+      if (!userId) return 0;
+      const { data } = await supabase
+        .from("meal_plans")
+        .select("meals")
+        .eq("user_id", userId)
+        .eq("plan_date", dateKey)
+        .maybeSingle();
+      return data ? ((data.meals as any[])?.length || 0) : 0;
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+
   return (
     <div className="flex-1 px-4 py-3">
       <h2 className="text-base font-semibold text-foreground mb-3">{todayLabel}</h2>
