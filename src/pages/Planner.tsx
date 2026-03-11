@@ -106,7 +106,7 @@ const Planner = () => {
     usePlannerMutations();
   const { routines, createRoutine, deleteRoutine } = usePlannerRoutines(user.id);
   const { connections, startGoogleCalSync, triggerSync, pushToGoogleCal } = usePlannerConnections(user.id);
-  const { trend: healthTrend } = useHealthData(user.id);
+  const { trend: healthTrend, isConnected: wearableConnected } = useHealthData(user.id);
 
   const googleConnection = connections.find((c) => c.provider === "google_calendar");
 
@@ -300,7 +300,7 @@ const Planner = () => {
       {/* Plan vs Actual overlay */}
       {showPvA && (
         <div className="px-4 py-3 border-b border-border bg-card/50">
-          <PlanVsActualView days={pvaData} view="week" />
+          <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} />
         </div>
       )}
 

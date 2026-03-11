@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
-import { format, addDays, startOfWeek, isToday, isBefore, startOfDay } from "date-fns";
+import { format, addDays, startOfWeek, isToday, isBefore, startOfDay, isAfter } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Check, Circle, Minus, Calendar, ChevronLeft, ChevronRight, Heart, Moon, Activity, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
 import type { HealthMetrics } from "@/hooks/useHealthData";
 
 type PvAStatus = "done" | "partial" | "missed" | "planned";
@@ -27,6 +29,7 @@ interface PlanVsActualViewProps {
   days: PvADay[];
   onPushToCalendar?: () => void;
   view?: "day" | "week";
+  isWearableConnected?: boolean;
 }
 
 const statusConfig: Record<PvAStatus, { icon: React.ReactNode; className: string; label: string }> = {
@@ -42,8 +45,8 @@ const statusConfig: Record<PvAStatus, { icon: React.ReactNode; className: string
   },
   missed: {
     icon: <Circle className="w-3.5 h-3.5" />,
-    className: "bg-destructive/15 text-destructive border-destructive/30",
-    label: "Missed",
+    className: "bg-muted text-muted-foreground border-border",
+    label: "Incomplete",
   },
   planned: {
     icon: <Circle className="w-3.5 h-3.5" />,
@@ -52,27 +55,33 @@ const statusConfig: Record<PvAStatus, { icon: React.ReactNode; className: string
   },
 };
 
+function formatSleep(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  return `${h}h ${m}m`;
+}
+
 function generateObservation(items: PvAItem[], health: HealthMetrics | null | undefined): string | null {
   if (!health) return null;
   const recovery = health.recovery;
   const taskCount = items.length;
   const doneCount = items.filter(i => i.status === "done").length;
-  const missedCount = items.filter(i => i.status === "missed").length;
+  const incompleteCount = items.filter(i => i.status === "missed").length;
 
   if (recovery !== null && recovery < 33 && taskCount >= 3) {
-    return `Low recovery (${recovery}%) — ${taskCount} tasks scheduled. Consider whether output matched effort.`;
+    return `Low recovery (${Math.round(recovery)}%) — ${taskCount} tasks scheduled. Consider whether output matched effort.`;
   }
   if (recovery !== null && recovery >= 67 && doneCount === taskCount && taskCount > 0) {
-    return `Strong recovery (${recovery}%) and ${doneCount}/${taskCount} tasks completed. Great alignment.`;
+    return `Strong recovery (${Math.round(recovery)}%) and ${doneCount}/${taskCount} tasks completed. Great alignment.`;
   }
-  if (recovery !== null && recovery >= 67 && missedCount > 0) {
-    return `Recovery was high (${recovery}%) but ${missedCount} tasks missed. Energy wasn't the bottleneck.`;
+  if (recovery !== null && recovery >= 67 && incompleteCount > 0) {
+    return `Recovery was high (${Math.round(recovery)}%) but ${incompleteCount} tasks incomplete. Energy wasn't the bottleneck.`;
   }
   if (health.sleepMinutes !== null && health.sleepMinutes < 360 && taskCount > 0) {
-    return `Short sleep (${Math.round(health.sleepMinutes / 60)}h) — ${doneCount}/${taskCount} completed. Sleep affects follow-through.`;
+    return `Short sleep (${formatSleep(health.sleepMinutes)}) — ${doneCount}/${taskCount} completed. Sleep affects follow-through.`;
   }
   if (recovery !== null && taskCount > 0) {
-    return `Recovery: ${recovery}% · ${doneCount}/${taskCount} tasks completed.`;
+    return `Recovery: ${Math.round(recovery)}% · ${doneCount}/${taskCount} tasks completed.`;
   }
   return null;
 }
@@ -81,9 +90,11 @@ export const PlanVsActualView = ({
   days,
   onPushToCalendar,
   view: initialView = "day",
+  isWearableConnected = false,
 }: PlanVsActualViewProps) => {
   const [view, setView] = useState(initialView);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [showAllCalEvents, setShowAllCalEvents] = useState(false);
 
   const today = useMemo(() => startOfDay(new Date()), []);
 
@@ -113,16 +124,22 @@ export const PlanVsActualView = ({
 
   const displayDays = view === "day" ? [todayData] : weekDays;
 
+  // Filter items based on calendar toggle
+  const filterItems = (items: PvAItem[]): PvAItem[] => {
+    if (showAllCalEvents) return items;
+    return items.filter(item => item.type !== "external_event");
+  };
+
   // Summary stats for week view
   const weekStats = useMemo(() => {
-    const allItems = weekDays.flatMap((d) => d.items);
+    const allItems = weekDays.flatMap((d) => filterItems(d.items));
+    const done = allItems.filter((i) => i.status === "done").length;
     return {
       total: allItems.length,
-      done: allItems.filter((i) => i.status === "done").length,
-      missed: allItems.filter((i) => i.status === "missed").length,
-      planned: allItems.filter((i) => i.status === "planned").length,
+      done,
+      remaining: allItems.length - done,
     };
-  }, [weekDays]);
+  }, [weekDays, showAllCalEvents]);
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -165,16 +182,30 @@ export const PlanVsActualView = ({
         </div>
       </div>
 
+      {/* Calendar filter toggle */}
+      <div className="flex items-center justify-between mb-3">
+        <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+          <Switch
+            checked={showAllCalEvents}
+            onCheckedChange={setShowAllCalEvents}
+            className="scale-75 origin-left"
+          />
+          Show all calendar events
+        </label>
+      </div>
+
       {/* Week navigation */}
       {view === "week" && (
         <div className="flex items-center justify-between mb-3">
           <button onClick={() => setWeekOffset((o) => o - 1)} className="p-1 text-muted-foreground hover:text-foreground">
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <div className="flex gap-3 text-xs text-muted-foreground">
-            <span className="text-perspective">{weekStats.done} done</span>
-            <span className="text-destructive">{weekStats.missed} missed</span>
-            <span>{weekStats.planned} planned</span>
+          <div className="text-xs text-muted-foreground">
+            {weekStats.total === weekStats.done ? (
+              <span className="text-perspective">All done</span>
+            ) : (
+              <span>{weekStats.done} completed · {weekStats.remaining} remaining</span>
+            )}
           </div>
           <button onClick={() => setWeekOffset((o) => o + 1)} className="p-1 text-muted-foreground hover:text-foreground">
             <ChevronRight className="w-4 h-4" />
@@ -191,8 +222,10 @@ export const PlanVsActualView = ({
           exit={{ opacity: 0, x: -10 }}
           className="space-y-3"
         >
-          {displayDays.map(({ date, items, health }) => {
+          {displayDays.map(({ date, items: rawItems, health }) => {
             const isPast = isBefore(date, today) && !isToday(date);
+            const isFuture = isAfter(date, today) && !isToday(date);
+            const items = filterItems(rawItems);
             const observation = generateObservation(items, health);
             return (
               <div key={format(date, "yyyy-MM-dd")}>
@@ -243,33 +276,45 @@ export const PlanVsActualView = ({
                           <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border bg-muted/30 text-[11px]">
                             <Heart className="w-3 h-3 text-wellness" />
                             <span className="text-foreground font-medium">Recovery</span>
-                            <span className="ml-auto font-mono text-muted-foreground">{health.recovery}%</span>
+                            <span className="ml-auto font-mono text-muted-foreground">{Math.round(health.recovery)}%</span>
                           </div>
                         )}
                         {health.sleepMinutes !== null && (
                           <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border bg-muted/30 text-[11px]">
                             <Moon className="w-3 h-3 text-accent" />
                             <span className="text-foreground font-medium">Sleep</span>
-                            <span className="ml-auto font-mono text-muted-foreground">{Math.round(health.sleepMinutes / 60)}h {health.sleepMinutes % 60}m</span>
+                            <span className="ml-auto font-mono text-muted-foreground">{formatSleep(health.sleepMinutes)}</span>
                           </div>
                         )}
                         {health.hrv !== null && (
                           <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border bg-muted/30 text-[11px]">
                             <Brain className="w-3 h-3 text-awareness" />
                             <span className="text-foreground font-medium">HRV</span>
-                            <span className="ml-auto font-mono text-muted-foreground">{health.hrv}ms</span>
+                            <span className="ml-auto font-mono text-muted-foreground">{Math.round(health.hrv)}ms</span>
                           </div>
                         )}
                         {health.strain !== null && (
                           <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border bg-muted/30 text-[11px]">
                             <Activity className="w-3 h-3 text-habit" />
                             <span className="text-foreground font-medium">Strain</span>
-                            <span className="ml-auto font-mono text-muted-foreground">{health.strain}</span>
+                            <span className="ml-auto font-mono text-muted-foreground">{health.strain.toFixed(1)}</span>
                           </div>
                         )}
                       </div>
+                    ) : isFuture ? (
+                      /* Future day: leave blank */
+                      null
+                    ) : !isWearableConnected ? (
+                      <p className="text-xs text-muted-foreground/60 py-1">
+                        Connect WHOOP, Oura, or Fitbit to see your body data here.{" "}
+                        <Link to="/integrations" className="underline text-muted-foreground hover:text-foreground">
+                          Set up
+                        </Link>
+                      </p>
                     ) : (
-                      <p className="text-xs text-muted-foreground/60 py-1">No wearable data</p>
+                      <p className="text-xs text-muted-foreground/60 py-1">
+                        Wearable data will appear here once synced
+                      </p>
                     )}
                   </div>
                 </div>
