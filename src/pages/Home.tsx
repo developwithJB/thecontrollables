@@ -580,7 +580,7 @@ export default function Home() {
       <CompactRingsRow userId={user.id} />
 
       {/* 6. Forecast */}
-      <ForecastCard data={intelligenceData} />
+      <ForecastCard data={intelligenceData} compact />
 
       {/* 7. Ask Dashboard — conversational entry point near bottom */}
       <AskDashboardBar />
