@@ -14,7 +14,7 @@ import { WellnessGoalsCard } from "@/components/dashboard/WellnessGoalsCard";
 import { WearableSummaryCard } from "@/components/wellness/WearableSummaryCard";
 import { WearableTrendsCard } from "@/components/wellness/WearableTrendsCard";
 import { DailyOSCard } from "@/components/dashboard/DailyOSCard";
-import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
+
 import { WellnessStreakHistory } from "@/components/experience/WellnessStreakHistory";
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 import { useReset } from "@/hooks/useReset";
