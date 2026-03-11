@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ShoppingCart, TrendingDown, CheckCircle2 } from "lucide-react";
+import { ShoppingCart, TrendingDown, CheckCircle2, Calendar } from "lucide-react";
 
 interface GroceryRhythmCardProps {
   userId: string | null;
+  plannerCount?: number;
 }
 
-export function GroceryRhythmCard({ userId }: GroceryRhythmCardProps) {
+export function GroceryRhythmCard({ userId, plannerCount }: GroceryRhythmCardProps) {
   // Count meals planned this week
   const { data: weekMealCount = 0 } = useQuery({
     queryKey: ["meal-week-count", userId],
@@ -34,6 +35,7 @@ export function GroceryRhythmCard({ userId }: GroceryRhythmCardProps) {
 
   const hasPlannedMeals = weekMealCount > 0;
   const takeoutRisk = weekMealCount < 5;
+  const heavyScheduleRisk = plannerCount !== undefined && plannerCount > 6 && weekMealCount < 3;
 
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-2">
@@ -47,7 +49,17 @@ export function GroceryRhythmCard({ userId }: GroceryRhythmCardProps) {
         <span className="font-medium text-foreground">{weekMealCount}</span>
       </div>
 
-      {takeoutRisk ? (
+      {/* Calendar-aware spending risk */}
+      {heavyScheduleRisk && (
+        <div className="flex items-start gap-2 rounded-lg bg-orange-500/5 border border-orange-500/10 px-3 py-2">
+          <Calendar className="w-3.5 h-3.5 text-orange-500 mt-0.5 shrink-0" />
+          <p className="text-[11px] text-muted-foreground">
+            Heavy schedule + few meals planned — convenience spending risk is higher this week.
+          </p>
+        </div>
+      )}
+
+      {takeoutRisk && !heavyScheduleRisk ? (
         <div className="flex items-start gap-2 rounded-lg bg-destructive/5 border border-destructive/10 px-3 py-2">
           <TrendingDown className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
           <p className="text-[11px] text-muted-foreground">
@@ -56,14 +68,14 @@ export function GroceryRhythmCard({ userId }: GroceryRhythmCardProps) {
               : "Few meals planned — unplanned days tend to increase takeout spending."}
           </p>
         </div>
-      ) : (
+      ) : !heavyScheduleRisk ? (
         <div className="flex items-start gap-2 rounded-lg bg-primary/5 border border-primary/10 px-3 py-2">
           <CheckCircle2 className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
           <p className="text-[11px] text-muted-foreground">
             {weekMealCount} meals planned — meal planning reduces random spending and supports healthier choices.
           </p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
