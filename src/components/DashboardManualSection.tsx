@@ -35,25 +35,37 @@ interface HierarchyItem {
   description: string;
 }
 
-// Hierarchy explanation: Mission → Snapshot → Daily Check-In
+// Hierarchy explanation: Season → Project → Calendar → Task → Actuals
 const HIERARCHY_ITEMS: HierarchyItem[] = [
   {
-    title: "Mission",
-    subtitle: "Direction",
-    icon: Target,
-    description: "Your Mission is the direction you're pointing your life right now. It doesn't change daily.",
+    title: "Season",
+    subtitle: "Life Arc",
+    icon: Orbit,
+    description: "Your life chapter — the big picture arc you're living in right now.",
   },
   {
-    title: "Snapshot",
-    subtitle: "This Week",
-    icon: Camera,
-    description: "A Snapshot is your focus for the next 7 days. One theme. No perfection.",
+    title: "Project",
+    subtitle: "Building",
+    icon: FolderKanban,
+    description: "What you're building within this season. Intention containers.",
   },
   {
-    title: "Daily Check-In",
-    subtitle: "Today",
-    icon: CheckCircle,
-    description: "This is about today only. One honest check-in. Then you're done.",
+    title: "Calendar Block",
+    subtitle: "When",
+    icon: Calendar,
+    description: "When you're doing it. Blocks of time allocated to projects.",
+  },
+  {
+    title: "Task",
+    subtitle: "What",
+    icon: ListChecks,
+    description: "What specifically happens in each block. The action.",
+  },
+  {
+    title: "Actuals",
+    subtitle: "Body + Data",
+    icon: Activity,
+    description: "What your body and behavior recorded. The truth layer.",
   },
 ];
 
