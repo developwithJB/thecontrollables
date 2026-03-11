@@ -72,6 +72,7 @@ export function TodayReadinessBar({ health, plannerCount, wearableConnected, cal
   }
 
   const dayType = getDayType(health?.recovery ?? null, plannerCount);
+  const interpretation = wearableConnected ? getReadinessInterpretation(health?.recovery ?? null, health?.sleepMinutes ?? null, plannerCount, trend) : null;
 
   return (
     <motion.div
