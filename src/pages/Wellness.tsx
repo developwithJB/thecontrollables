@@ -23,7 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Wellness() {
-  usePageViewTracking("Wellness");
+  usePageViewTracking("Body");
   const user = useLifeOSUser();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
