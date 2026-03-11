@@ -209,6 +209,7 @@ const Planner = () => {
             actualTime: item.completed_at ? format(new Date(item.completed_at), "HH:mm") : undefined,
             status,
             type: item.item_type as "task" | "time_block" | "routine_instance" | "external_event",
+            project_id: item.project_id ?? null,
           };
         }),
         health: healthForDay,
