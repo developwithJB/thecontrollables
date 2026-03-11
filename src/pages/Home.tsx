@@ -196,7 +196,22 @@ export default function Home() {
 
   // Auto-sync wearable data on dashboard load (throttled to every 4 hours)
   useAutoWearableSync(user.id, wearableProvider, wearableConnected);
-  
+
+  // Check if Google Calendar is connected for first-dashboard banner
+  const { data: calendarConnected = false } = useQuery({
+    queryKey: ["planner-connection-active", user.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("planner_connections")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .limit(1);
+      return (data?.length ?? 0) > 0;
+    },
+    staleTime: 60_000,
+  });
+
   const pvaData = useMemo(() => {
     const todayDate = new Date();
     todayDate.setHours(0, 0, 0, 0);
