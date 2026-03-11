@@ -1,8 +1,8 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { format } from "date-fns";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { MealSwiper, type SwipeMeal } from "./MealSwiper";
+import { MealSwiper, type SwipeMeal, type MealSwiperHandle } from "./MealSwiper";
 import { type MealPlanMeal } from "@/hooks/useMealTracking";
 import { Check, ChevronRight, Loader2, X } from "lucide-react";
 import {
@@ -40,6 +40,7 @@ export function WeekPlanReviewSheet({
   const [keptMeals, setKeptMeals] = useState<Record<number, MealPlanMeal[]>>({});
   const [dayComplete, setDayComplete] = useState<Record<number, boolean>>({});
   const [pendingAssign, setPendingAssign] = useState<MealPlanMeal | null>(null);
+  const swiperRef = useRef<MealSwiperHandle>(null);
 
   const currentDay = generatedDays[currentDayIndex];
   const allDaysReviewed = currentDayIndex >= generatedDays.length || Object.keys(dayComplete).length === generatedDays.length;
@@ -75,7 +76,10 @@ export function WeekPlanReviewSheet({
     setPendingAssign(original);
   }, [currentDay]);
 
-  const handleReject = useCallback((_meal: SwipeMeal) => {}, []);
+  const handleReject = useCallback((_meal: SwipeMeal) => {
+    // No dialog for reject, advance immediately
+    setTimeout(() => swiperRef.current?.advance(), 200);
+  }, []);
 
   const handleSaveToLibrary = useCallback((meal: SwipeMeal) => {
     const originalIndex = parseInt(meal.id.split("-")[1]);
@@ -88,12 +92,19 @@ export function WeekPlanReviewSheet({
     const assigned: MealPlanMeal = { ...pendingAssign, meal_type: mealType };
     setKeptMeals((prev) => {
       const existing = prev[dayIndex] || [];
-      // Replace if same meal_type already occupied, otherwise append
       const filtered = existing.filter((m) => m.meal_type !== mealType);
       return { ...prev, [dayIndex]: [...filtered, assigned] };
     });
     setPendingAssign(null);
+    // Advance the swiper now that the slot is picked
+    setTimeout(() => swiperRef.current?.advance(), 100);
   }, [pendingAssign]);
+
+  const handleSlotCancel = useCallback(() => {
+    setPendingAssign(null);
+    // Advance past the skipped meal
+    setTimeout(() => swiperRef.current?.advance(), 100);
+  }, []);
 
   const handleDayDone = useCallback(() => {
     setDayComplete((prev) => ({ ...prev, [currentDayIndex]: true }));
@@ -156,10 +167,12 @@ export function WeekPlanReviewSheet({
 
               <div className="flex-1 overflow-auto">
                 <MealSwiper
+                  ref={swiperRef}
                   key={currentDayIndex}
                   meals={swipeMeals}
                   onAccept={handleAccept}
                   onReject={handleReject}
+                  deferAdvance
                   onSaveToLibrary={handleSaveToLibrary}
                   currentMealType={format(new Date(currentDay.date + "T12:00:00"), "EEEE")}
                 />
@@ -232,7 +245,7 @@ export function WeekPlanReviewSheet({
       </Sheet>
 
       {/* Slot Picker Dialog */}
-      <AlertDialog open={!!pendingAssign} onOpenChange={(v) => !v && setPendingAssign(null)}>
+      <AlertDialog open={!!pendingAssign} onOpenChange={(v) => { if (!v) handleSlotCancel(); }}>
         <AlertDialogContent className="max-w-sm max-h-[70vh] overflow-auto">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-sm">
@@ -273,7 +286,7 @@ export function WeekPlanReviewSheet({
             })}
           </div>
 
-          <AlertDialogCancel className="mt-3 w-full text-xs gap-1">
+          <AlertDialogCancel className="mt-3 w-full text-xs gap-1" onClick={handleSlotCancel}>
             <X className="w-3 h-3" /> Skip This Meal
           </AlertDialogCancel>
         </AlertDialogContent>

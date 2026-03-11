@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useImperativeHandle, forwardRef } from "react";
 import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Check, X, Bookmark, Clock, Flame, UtensilsCrossed } from "lucide-react";
@@ -15,6 +15,10 @@ export interface SwipeMeal {
   emoji: string;
 }
 
+export interface MealSwiperHandle {
+  advance: () => void;
+}
+
 interface MealSwiperProps {
   meals: SwipeMeal[];
   onAccept: (meal: SwipeMeal) => void;
@@ -22,18 +26,21 @@ interface MealSwiperProps {
   onSaveToLibrary: (meal: SwipeMeal) => void;
   onRegenerate?: (meal: SwipeMeal) => void;
   currentMealType?: string;
+  /** When true, accept/save won't auto-advance; parent must call ref.advance() */
+  deferAdvance?: boolean;
 }
 
 const SWIPE_THRESHOLD = 100;
 
-export const MealSwiper = ({
+export const MealSwiper = forwardRef<MealSwiperHandle, MealSwiperProps>(({
   meals,
   onAccept,
   onReject,
   onSaveToLibrary,
   onRegenerate,
   currentMealType = "meal",
-}: MealSwiperProps) => {
+  deferAdvance = false,
+}, ref) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitDirection, setExitDirection] = useState<"left" | "right" | "up" | null>(null);
   
@@ -53,6 +60,16 @@ export const MealSwiper = ({
     y.set(0);
   }, [x, y]);
 
+  useImperativeHandle(ref, () => ({
+    advance: handleNext,
+  }), [handleNext]);
+
+  const scheduleAdvance = useCallback(() => {
+    if (!deferAdvance) {
+      setTimeout(handleNext, 200);
+    }
+  }, [deferAdvance, handleNext]);
+
   const handleDragEnd = useCallback(
     (_: any, info: PanInfo) => {
       if (!currentMeal) return;
@@ -60,22 +77,22 @@ export const MealSwiper = ({
       if (info.offset.x > SWIPE_THRESHOLD) {
         setExitDirection("right");
         onAccept(currentMeal);
-        setTimeout(handleNext, 200);
+        scheduleAdvance();
       } else if (info.offset.x < -SWIPE_THRESHOLD) {
         setExitDirection("left");
         onReject(currentMeal);
-        setTimeout(handleNext, 200);
+        scheduleAdvance();
       } else if (info.offset.y < -SWIPE_THRESHOLD) {
         setExitDirection("up");
         onSaveToLibrary(currentMeal);
-        setTimeout(handleNext, 200);
+        scheduleAdvance();
       } else {
         // Snap back
         x.set(0);
         y.set(0);
       }
     },
-    [currentMeal, onAccept, onReject, onSaveToLibrary, handleNext, x, y]
+    [currentMeal, onAccept, onReject, onSaveToLibrary, scheduleAdvance, x, y]
   );
 
   if (!currentMeal || currentIndex >= meals.length) {
@@ -206,7 +223,7 @@ export const MealSwiper = ({
           onClick={() => {
             setExitDirection("left");
             onReject(currentMeal);
-            setTimeout(handleNext, 200);
+            scheduleAdvance();
           }}
         >
           <X className="w-5 h-5" />
@@ -218,7 +235,7 @@ export const MealSwiper = ({
           onClick={() => {
             setExitDirection("up");
             onSaveToLibrary(currentMeal);
-            setTimeout(handleNext, 200);
+            scheduleAdvance();
           }}
         >
           <Bookmark className="w-4 h-4" />
@@ -230,7 +247,7 @@ export const MealSwiper = ({
           onClick={() => {
             setExitDirection("right");
             onAccept(currentMeal);
-            setTimeout(handleNext, 200);
+            scheduleAdvance();
           }}
         >
           <Check className="w-5 h-5" />
@@ -243,4 +260,4 @@ export const MealSwiper = ({
       </p>
     </div>
   );
-};
+});
