@@ -96,6 +96,18 @@ export function MealLogEntry({
         </div>
       )}
 
+      {/* Confirm planned meal shortcut */}
+      {!isLogged && mode === "idle" && !isAnalyzing && plannedMealName && onConfirmAsEaten && (
+        <Button
+          variant="secondary"
+          size="sm"
+          className="w-full text-xs h-8 gap-1.5 mb-1"
+          onClick={() => onConfirmAsEaten(mealType)}
+        >
+          <Check className="w-3 h-3" /> Confirm "{plannedMealName}" as eaten
+        </Button>
+      )}
+
       {/* Input mode selection */}
       {!isLogged && mode === "idle" && !isAnalyzing && (
         <div className="flex gap-2">
