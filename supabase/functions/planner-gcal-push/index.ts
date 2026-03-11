@@ -142,24 +142,24 @@ serve(async (req) => {
           // Timed event
           eventBody.start = {
             dateTime: `${item.scheduled_date}T${item.start_time}`,
-            timeZone: "UTC",
+            timeZone: userTimezone,
           };
           eventBody.end = {
             dateTime: `${item.scheduled_date}T${item.end_time}`,
-            timeZone: "UTC",
+            timeZone: userTimezone,
           };
         } else if (item.start_time) {
           // Start time only — default 1 hour
           eventBody.start = {
             dateTime: `${item.scheduled_date}T${item.start_time}`,
-            timeZone: "UTC",
+            timeZone: userTimezone,
           };
           // Parse start_time and add 1 hour
           const [h, m, s] = item.start_time.split(":").map(Number);
           const endH = String(Math.min(h + 1, 23)).padStart(2, "0");
           eventBody.end = {
             dateTime: `${item.scheduled_date}T${endH}:${String(m).padStart(2, "0")}:${String(s || 0).padStart(2, "0")}`,
-            timeZone: "UTC",
+            timeZone: userTimezone,
           };
         } else {
           // All-day event
