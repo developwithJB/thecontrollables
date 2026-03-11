@@ -89,12 +89,19 @@ export function WeekPlanReviewSheet({
     const assigned: MealPlanMeal = { ...pendingAssign, meal_type: mealType };
     setKeptMeals((prev) => {
       const existing = prev[dayIndex] || [];
-      // Replace if same meal_type already occupied, otherwise append
       const filtered = existing.filter((m) => m.meal_type !== mealType);
       return { ...prev, [dayIndex]: [...filtered, assigned] };
     });
     setPendingAssign(null);
+    // Advance the swiper now that the slot is picked
+    setTimeout(() => swiperRef.current?.advance(), 100);
   }, [pendingAssign]);
+
+  const handleSlotCancel = useCallback(() => {
+    setPendingAssign(null);
+    // Advance past the skipped meal
+    setTimeout(() => swiperRef.current?.advance(), 100);
+  }, []);
 
   const handleDayDone = useCallback(() => {
     setDayComplete((prev) => ({ ...prev, [currentDayIndex]: true }));
