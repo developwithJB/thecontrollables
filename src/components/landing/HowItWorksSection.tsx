@@ -1,27 +1,27 @@
 import { motion } from "framer-motion";
-import { Calendar, Brain, Camera, Layers, DollarSign, Plug } from "lucide-react";
+import { Calendar, Brain, Camera, Layers, DollarSign, Plug, UtensilsCrossed } from "lucide-react";
 
 const steps = [
-  {
-    icon: Calendar,
-    title: "Plan It",
-    description: "Your calendar holds the plan. Sync Google Calendar or build from scratch — tasks, meals, routines, all in one view.",
-    color: "text-accent",
-    bgColor: "bg-accent/10",
-  },
-  {
-    icon: DollarSign,
-    title: "Know Your Money",
-    description: "Bills due, budget status, savings progress — all in one place. Import transactions or track manually.",
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
   {
     icon: Plug,
     title: "Connect Your Tools",
     description: "Link Google Calendar, WHOOP, Oura, Fitbit, and more. Your tools push data in — the Dashboard surfaces what matters.",
     color: "text-perspective",
     bgColor: "bg-perspective/10",
+  },
+  {
+    icon: Calendar,
+    title: "Plan It",
+    description: "Your calendar holds the plan. Sync Google Calendar or build from scratch — tasks, meals, routines, all in one view. Meal planning included.",
+    color: "text-accent",
+    bgColor: "bg-accent/10",
+  },
+  {
+    icon: Brain,
+    title: "Get Guided",
+    description: "AI Guides notice what you actually do and help you focus on what matters. Human-centric, not robotic.",
+    color: "text-habit",
+    bgColor: "bg-habit/10",
   },
   {
     icon: Camera,
@@ -31,11 +31,11 @@ const steps = [
     bgColor: "bg-wellness/10",
   },
   {
-    icon: Brain,
-    title: "Get Guided",
-    description: "AI Guides notice what you actually do and help you focus on what matters. Human-centric, not robotic.",
-    color: "text-habit",
-    bgColor: "bg-habit/10",
+    icon: DollarSign,
+    title: "Know Your Money",
+    description: "Bills due, budget status, savings progress — all in one place. Import transactions or track manually.",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
   },
   {
     icon: Layers,
