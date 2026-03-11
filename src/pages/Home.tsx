@@ -544,6 +544,11 @@ export default function Home() {
       {/* Compact 5 Rings */}
       <CompactRingsRow userId={user.id} />
 
+      {/* Plan vs Actual */}
+      {pvaData.some(d => d.items.length > 0 || (d.health && d.health.recovery !== null)) && (
+        <PlanVsActualView days={pvaData} view="week" />
+      )}
+
       {/* Forecast + Recommendations */}
       <ForecastCard data={intelligenceData} />
       <AIRecommendedActions data={intelligenceData} />
