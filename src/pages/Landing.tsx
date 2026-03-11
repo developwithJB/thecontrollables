@@ -93,7 +93,7 @@ export default function Landing() {
               <br />
               Your wearable tracks the reality.
               <br />
-              <span className="text-accent">The Dashboard surfaces the gap.</span>
+              <span className="text-accent">Today surfaces the gap.</span>
             </h1>
 
             {/* Plan → Learn ← Live visual */}
