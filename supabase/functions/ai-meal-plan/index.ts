@@ -26,7 +26,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    const { date, preferences, calorie_target, exclude_meals, snack_count, macro_targets, dietary_style, dietary_restrictions, exclude_names } = await req.json();
+    const { date, preferences, calorie_target, exclude_meals, snack_count, macro_targets, dietary_style, dietary_restrictions, exclude_names, context_tags, body_context } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -64,11 +64,22 @@ serve(async (req) => {
       .map((m) => `    { "meal_type": "${m}", "name": string, "description": string (brief, 1 line), "est_calories": number, "est_protein": number, "est_carbs": number, "est_fat": number }`)
       .join(",\n");
 
+    // Build body/calendar context line
+    const contextLines: string[] = [];
+    if (Array.isArray(context_tags) && context_tags.length > 0) {
+      contextLines.push(`Body/calendar context tags: ${context_tags.join(", ")}. Prioritize meals matching these tags.`);
+    }
+    if (body_context) {
+      contextLines.push(`Body context: ${body_context}`);
+    }
+    const contextInfo = contextLines.length > 0 ? contextLines.join("\n") : "";
+
     const systemPrompt = `You are 🛰️ Satellite, the Wellness Controllable. Generate a simple, practical meal plan.
 ${targetInfo} ${macroInfo} ${prefInfo}
 ${styleInfo}
 ${restrictionsInfo}
 ${excludeNamesInfo}
+${contextInfo}
 Generate ONLY these meals: ${requestedMeals.join(", ")}.
 Return a JSON object:
 {

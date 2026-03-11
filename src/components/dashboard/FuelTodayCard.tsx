@@ -9,12 +9,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfWeek, endOfWeek } from "date-fns";
 
+import type { FuelIntelligence } from "@/lib/fuelIntelligence";
+
 interface FuelTodayCardProps {
   userId: string | null;
   isPaid: boolean;
+  fuelIntel?: FuelIntelligence | null;
 }
 
-export function FuelTodayCard({ userId, isPaid }: FuelTodayCardProps) {
+export function FuelTodayCard({ userId, isPaid, fuelIntel }: FuelTodayCardProps) {
   const navigate = useNavigate();
   const { todayPlan, planLoading, generatePlan, updatePlanMeals } = useMealTracking(userId);
   const { preferences } = useMealPreferences(userId);
@@ -127,6 +130,16 @@ export function FuelTodayCard({ userId, isPaid }: FuelTodayCardProps) {
             Full plan <ArrowRight className="w-2.5 h-2.5" />
           </button>
         </div>
+
+        {/* Fuel intelligence context line */}
+        {fuelIntel?.dinnerAdvice && (
+          <div className="flex items-start gap-1.5 bg-muted/40 rounded-lg px-2.5 py-1.5">
+            <span className="text-xs shrink-0 mt-px">
+              {fuelIntel.mealFit === "recovery_friendly" ? "🔋" : fuelIntel.mealFit === "high_protein" ? "💪" : fuelIntel.mealFit === "quick_easy" ? "⚡" : fuelIntel.mealFit === "prep_friendly" ? "🍳" : "✨"}
+            </span>
+            <p className="text-[10px] text-muted-foreground">{fuelIntel.dinnerAdvice}</p>
+          </div>
+        )}
 
         {/* Tonight's meal */}
         {dinner ? (

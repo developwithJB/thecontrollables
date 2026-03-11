@@ -43,6 +43,8 @@ interface MealPlanBuilderProps {
   onConfirm: (meals: any[]) => void;
   isGenerating: boolean;
   onGenerate: (config: any) => Promise<any>;
+  contextTags?: string[];
+  contextLabel?: string | null;
 }
 
 export function MealPlanBuilder({
@@ -53,6 +55,8 @@ export function MealPlanBuilder({
   onConfirm,
   isGenerating,
   onGenerate,
+  contextTags,
+  contextLabel,
 }: MealPlanBuilderProps) {
   const [phase, setPhase] = useState<BuilderPhase>("preferences");
   const [mood, setMood] = useState("");
@@ -112,6 +116,7 @@ export function MealPlanBuilder({
           fatTarget: preferences?.fatTarget || undefined,
         },
         exclude_names: rejectedNames.length > 0 ? rejectedNames : undefined,
+        context_tags: contextTags?.length ? contextTags : undefined,
       });
 
       const meals = result?.meals || result || [];
@@ -239,6 +244,13 @@ export function MealPlanBuilder({
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          {/* Context chip when body/calendar intelligence is active */}
+          {contextLabel && phase === "preferences" && chatMessages.length === 0 && (
+            <div className="flex items-center gap-1.5 bg-muted/60 rounded-full px-3 py-1 w-fit mx-auto">
+              <span className="text-[11px] text-muted-foreground">{contextLabel}</span>
+            </div>
+          )}
+
           {/* Chat Messages */}
           <AnimatePresence mode="popLayout">
             {chatMessages.map((msg, i) => (

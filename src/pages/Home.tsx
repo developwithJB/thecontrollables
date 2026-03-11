@@ -37,6 +37,8 @@ import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 import { useDailySynthesis } from "@/hooks/useDailySynthesis";
 import { analyzeCalendar } from "@/lib/calendarIntelligence";
+import { getFuelIntelligence } from "@/lib/fuelIntelligence";
+import { useMealTracking } from "@/hooks/useMealTracking";
 
 // Dashboard modules
 import { SnapshotSelector } from "@/components/dashboard/SnapshotSelector";
@@ -262,6 +264,19 @@ export default function Home() {
   const todayStr = new Date().toLocaleDateString("sv-SE");
   const todayPlannerItems = useMemo(() => weekPlannerItems.filter((i: any) => i.scheduled_date === todayStr), [weekPlannerItems, todayStr]);
   const todayCalendarIntel = useMemo(() => analyzeCalendar(todayPlannerItems), [todayPlannerItems]);
+
+  // Fuel intelligence
+  const todayFuelIntel = useMemo(() => {
+    return getFuelIntelligence({
+      recovery: healthLatest?.recovery,
+      sleepMinutes: healthLatest?.sleepMinutes,
+      strain: healthLatest?.strain,
+      calendarDayType: todayCalendarIntel?.dayType,
+      meetingCount: todayCalendarIntel?.meetingCount ?? 0,
+      hasMeals: false, // will be determined by FuelTodayCard itself
+      mealCount: 0,
+    });
+  }, [healthLatest, todayCalendarIntel]);
 
   const [showSeasonComplete, setShowSeasonComplete] = useState(false);
   const [showSeasonSetup, setShowSeasonSetup] = useState(false);
@@ -586,7 +601,7 @@ export default function Home() {
       </div>
 
       {/* 4b. Fuel Today — compact meal surface */}
-      <FuelTodayCard userId={user.id} isPaid={isPaid || isTrialing} />
+      <FuelTodayCard userId={user.id} isPaid={isPaid || isTrialing} fuelIntel={todayFuelIntel} />
 
       {/* 5. Compact 5 Rings */}
       <CompactRingsRow userId={user.id} />

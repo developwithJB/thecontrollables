@@ -12,6 +12,7 @@ import { TransactionImporter } from "@/components/money/TransactionImporter";
 import { AccountManager } from "@/components/money/AccountManager";
 import { FinancialControllables } from "@/components/money/FinancialControllables";
 import { GroceryRhythmCard } from "@/components/money/GroceryRhythmCard";
+import { useHealthData } from "@/hooks/useHealthData";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export default function Money() {
@@ -23,6 +24,8 @@ export default function Money() {
   const moneyWeekRange = useMemo(() => getWeekRange(new Date()), []);
   const { data: moneyPlannerItems = [] } = usePlannerItems(moneyWeekRange.start, moneyWeekRange.end, user.id);
   const weekPlannerCount = moneyPlannerItems.length;
+  const { latest: healthLatest } = useHealthData(user.id);
+  const recoveryLow = healthLatest?.recovery != null && healthLatest.recovery < 40;
 
   const { accounts, createAccount, deleteAccount } = useFinancialAccounts(user.id);
   const { transactions, addTransaction, isLoading: txnLoading } = useTransactions(user.id);
@@ -52,7 +55,7 @@ export default function Money() {
       />
 
       {/* 1b. Grocery Rhythm — food → spending insight */}
-      <GroceryRhythmCard userId={user.id} plannerCount={weekPlannerCount} />
+      <GroceryRhythmCard userId={user.id} plannerCount={weekPlannerCount} recoveryLow={recoveryLow} />
 
       {/* 2. Monthly Overview */}
       <MoneyOverview accounts={accounts} bills={bills} subscriptions={subscriptions} goals={goals} />
