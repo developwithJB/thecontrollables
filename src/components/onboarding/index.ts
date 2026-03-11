@@ -1,4 +1,7 @@
 export { OnboardingFlow } from "./OnboardingFlow";
+export { OnboardingWelcome } from "./OnboardingWelcome";
+export { OnboardingCalendarConnect } from "./OnboardingCalendarConnect";
+export { OnboardingWearableConnect } from "./OnboardingWearableConnect";
 export { OnboardingAssessment } from "./OnboardingAssessment";
 export { OnboardingArchetypeResult } from "./OnboardingArchetypeResult";
 export { OnboardingJourneySelection } from "./OnboardingJourneySelection";

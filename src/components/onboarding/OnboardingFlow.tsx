@@ -320,6 +320,47 @@ export function OnboardingFlow({
   return (
     <div className="min-h-screen bg-background">
       <AnimatePresence mode="wait">
+        {currentStep === "welcome_integrations" && (
+          <OnboardingWelcome
+            key="welcome"
+            onContinue={() => setCurrentStep("connect_calendar")}
+            onSkip={() => {
+              trackStepChange("welcome_integrations", "build_assessment");
+              setCurrentStep("build_assessment");
+            }}
+          />
+        )}
+
+        {currentStep === "connect_calendar" && (
+          <OnboardingCalendarConnect
+            key="connect-calendar"
+            onConnected={() => {
+              trackStepChange("connect_calendar", "connect_wearable");
+              setCurrentStep("connect_wearable");
+            }}
+            onSkip={() => {
+              trackStepChange("connect_calendar", "connect_wearable");
+              setCurrentStep("connect_wearable");
+            }}
+          />
+        )}
+
+        {currentStep === "connect_wearable" && (
+          <OnboardingWearableConnect
+            key="connect-wearable"
+            onConnected={() => {
+              trackStepChange("connect_wearable", "build_assessment");
+              onUpdateOnboarding({ step: "build_assessment" });
+              setCurrentStep("build_assessment");
+            }}
+            onSkip={() => {
+              trackStepChange("connect_wearable", "build_assessment");
+              onUpdateOnboarding({ step: "build_assessment" });
+              setCurrentStep("build_assessment");
+            }}
+          />
+        )}
+
         {currentStep === "build_assessment" && (
           <OnboardingAssessment
             key="assessment"
