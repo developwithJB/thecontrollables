@@ -76,7 +76,10 @@ export function WeekPlanReviewSheet({
     setPendingAssign(original);
   }, [currentDay]);
 
-  const handleReject = useCallback((_meal: SwipeMeal) => {}, []);
+  const handleReject = useCallback((_meal: SwipeMeal) => {
+    // No dialog for reject, advance immediately
+    setTimeout(() => swiperRef.current?.advance(), 200);
+  }, []);
 
   const handleSaveToLibrary = useCallback((meal: SwipeMeal) => {
     const originalIndex = parseInt(meal.id.split("-")[1]);
