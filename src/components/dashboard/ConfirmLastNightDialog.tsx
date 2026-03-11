@@ -240,6 +240,32 @@ export function ConfirmLastNightDialog({ open, onOpenChange, userId }: ConfirmLa
                   </p>
                 </div>
 
+                {/* Fresh Sync Button */}
+                {!wearableSynced && (
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={handleFreshSync}
+                    disabled={syncing}
+                  >
+                    {syncing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Syncing latest data…
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4" />
+                        Sync Fresh Data
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {wearableSynced && (
+                  <p className="text-xs text-center text-primary font-medium">✓ Fresh data synced</p>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                   {wearableLatest.sleepMinutes != null && (
                     <div className="bg-muted/50 rounded-xl p-3 text-center">
@@ -281,9 +307,9 @@ export function ConfirmLastNightDialog({ open, onOpenChange, userId }: ConfirmLa
                   )}
                 </div>
 
-                {wearableLatest.sleepMinutes == null && wearableLatest.activeMinutes == null && (
+                {wearableLatest.sleepMinutes == null && wearableLatest.activeMinutes == null && !syncing && (
                   <p className="text-xs text-muted-foreground text-center">
-                    No recent data synced. You can still rate manually below.
+                    No recent data synced. Tap sync above or rate manually below.
                   </p>
                 )}
 
