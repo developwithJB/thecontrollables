@@ -34,6 +34,8 @@ import { PlannerRoutineManager } from "@/components/planner/PlannerRoutineManage
 import { PlannerCalendarConnect } from "@/components/planner/PlannerCalendarConnect";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 import { PlannerBodyContext } from "@/components/planner/PlannerBodyContext";
+import { PlannerDayLoadSummary } from "@/components/planner/PlannerDayLoadSummary";
+import { analyzeCalendar } from "@/lib/calendarIntelligence";
 import { useHealthData } from "@/hooks/useHealthData";
 import { useDailySynthesis } from "@/hooks/useDailySynthesis";
 import { useProjects } from "@/hooks/useProjects";
