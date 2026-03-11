@@ -261,8 +261,8 @@ export function WearableSummaryCard({ userId, isPaid, onUpgrade }: WearableSumma
             </div>
           </div>
 
-          {/* Additional vitals row */}
-          {(latest.restingHR != null || latest.steps != null) && (
+          {/* Additional vitals row — hide steps for WHOOP (doesn't provide them) */}
+          {(latest.restingHR != null || (latest.steps != null && provider !== "whoop")) && (
             <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/50">
               {latest.restingHR != null && (
                 <div className="text-center flex-1">
@@ -270,7 +270,7 @@ export function WearableSummaryCard({ userId, isPaid, onUpgrade }: WearableSumma
                   <p className="text-[10px] text-muted-foreground">Resting HR</p>
                 </div>
               )}
-              {latest.steps != null && (
+              {latest.steps != null && provider !== "whoop" && (
                 <div className="text-center flex-1">
                   <p className="text-xs font-medium text-foreground">{latest.steps.toLocaleString()}</p>
                   <p className="text-[10px] text-muted-foreground">Steps</p>

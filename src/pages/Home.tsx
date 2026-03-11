@@ -33,6 +33,7 @@ import { useSeason } from "@/hooks/useSeason";
 import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
 import { useDailyRings } from "@/hooks/useDailyRings";
 import { useHealthData } from "@/hooks/useHealthData";
+import { useAutoWearableSync } from "@/hooks/useAutoWearableSync";
 import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 
