@@ -25,9 +25,26 @@ interface DayData {
 
 export function MealWeekComparison({ userId, slotConfig }: MealWeekComparisonProps) {
   const today = useMemo(() => startOfDay(new Date()), []);
-  const { generateWeekPlan } = useMealTracking(userId);
+  const { generateWeekPlan, saveWeekPlan } = useMealTracking(userId);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
+  const [reviewData, setReviewData] = useState<{ date: string; meals: MealPlanMeal[] }[] | null>(null);
+
+  const handleGenerate = useCallback(() => {
+    generateWeekPlan.mutate(slotConfig, {
+      onSuccess: (data) => {
+        setReviewData(data);
+      },
+    });
+  }, [generateWeekPlan, slotConfig]);
+
+  const handleConfirmWeek = useCallback((days: { date: string; meals: MealPlanMeal[] }[]) => {
+    saveWeekPlan.mutate(days, {
+      onSuccess: () => {
+        setReviewData(null);
+      },
+    });
+  }, [saveWeekPlan]);
 
   // Fetch week plans (today + 6 future days for generation, past 6 + today for comparison)
   const { data: weekData } = useQuery({
