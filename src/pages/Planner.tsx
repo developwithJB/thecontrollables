@@ -115,6 +115,26 @@ const Planner = () => {
   const { activeSeason } = useSeason(user.id);
   const { activeProjects } = useProjects(user.id, activeSeason?.id);
 
+  // Fetch weekly meal counts for the week grid
+  const { data: weekMealCounts = {} } = useQuery({
+    queryKey: ["week-meal-counts", user.id, format(weekRange.start, "yyyy-MM-dd")],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("meal_plans")
+        .select("plan_date, meals")
+        .eq("user_id", user.id)
+        .gte("plan_date", format(weekRange.start, "yyyy-MM-dd"))
+        .lte("plan_date", format(weekRange.end, "yyyy-MM-dd"));
+      const counts: Record<string, number> = {};
+      for (const row of data || []) {
+        counts[row.plan_date] = (row.meals as any[])?.length || 0;
+      }
+      return counts;
+    },
+    enabled: !!user.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const googleConnection = connections.find((c) => c.provider === "google_calendar");
   const isCalendarConnected = !!googleConnection;
 
