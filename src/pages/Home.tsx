@@ -499,7 +499,6 @@ export default function Home() {
         }}
       />
 
-  const { createProject } = useProjects(user.id, activeSeason?.id);
 
       {/* Main Quest - only show when no active quest */}
       {dashboardLoading ? <MainQuestSkeleton /> : !activeQuest && (
