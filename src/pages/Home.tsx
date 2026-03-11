@@ -219,6 +219,8 @@ export default function Home() {
     });
   }, [weekRange.days, weekPlannerItems, healthTrend]);
 
+  const pvaSyntheses = useDailySynthesis(pvaData);
+
   const [showSeasonComplete, setShowSeasonComplete] = useState(false);
   useEffect(() => {
     if (shouldShowSeasonComplete) { setShowSeasonComplete(true); completeSeason(); }
