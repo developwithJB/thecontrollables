@@ -11,6 +11,9 @@ interface Season {
   completed_at: string | null;
   status: string;
   created_at: string;
+  theme_text: string | null;
+  ends_at: string | null;
+  controllable_focus: string | null;
 }
 
 interface SeasonSnapshot {
