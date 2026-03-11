@@ -86,6 +86,7 @@ export function ConfirmLastNightDialog({ open, onOpenChange, userId }: ConfirmLa
     setNotes("");
     setSubmitting(false);
     setWearableSynced(false);
+    setSyncing(false);
   }, []);
 
   const handleRate = useCallback((rating: number) => {
