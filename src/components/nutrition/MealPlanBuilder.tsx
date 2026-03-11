@@ -63,6 +63,7 @@ export function MealPlanBuilder({
   const [chatMessages, setChatMessages] = useState<{ from: "satellite" | "user"; text: string }[]>([]);
 
   const { preferences } = useMealPreferences(userId);
+  const saveRecipe = useSaveRecipe(userId);
 
   // Get active slots based on config
   const activeSlots = MEAL_TYPE_ORDER.filter((slot) => {
