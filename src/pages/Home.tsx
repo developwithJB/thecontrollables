@@ -632,8 +632,8 @@ export default function Home() {
         </motion.div>
       )}
 
-      {/* 7. Ask Dashboard — conversational entry point near bottom */}
-      <AskDashboardBar />
+      {/* 10. Forecast — Tier 3/4: predictive, not daily-critical */}
+      <ForecastCard data={intelligenceData} compact />
 
       {/* --- Dialogs (modal overlays, no visual footprint) --- */}
       <ConfirmLastNightDialog
