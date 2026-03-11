@@ -33,6 +33,7 @@ import { PlannerRoutineManager } from "@/components/planner/PlannerRoutineManage
 import { PlannerCalendarConnect } from "@/components/planner/PlannerCalendarConnect";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 import { PlannerWellnessBanner } from "@/components/planner/PlannerWellnessBanner";
+import { useHealthData } from "@/hooks/useHealthData";
 
 const Planner = () => {
   const user = useLifeOSUser();
