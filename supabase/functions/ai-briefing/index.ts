@@ -140,6 +140,20 @@ Deno.serve(async (req) => {
     );
     contextParts.push(`Controllable Levels (Overall Build Lv.${overallLevel}):\n${levelLines.join('\n')}`);
 
+    // Plan vs Actual context
+    if (yesterdayHealthRes.data) {
+      const yh = yesterdayHealthRes.data;
+      contextParts.push(`Yesterday's recovery: ${yh.recovery_score ?? 'unknown'}%${yh.sleep_minutes ? `, sleep: ${Math.round(yh.sleep_minutes / 60)}h` : ''}`);
+    }
+    if (yesterdayPlannerRes.data && yesterdayPlannerRes.data.length > 0) {
+      const total = yesterdayPlannerRes.data.length;
+      const completed = yesterdayPlannerRes.data.filter((i: any) => i.status === 'done').length;
+      contextParts.push(`Yesterday's planner: ${completed}/${total} items completed (${Math.round((completed/total)*100)}% completion rate)`);
+    }
+    if (todayPlannerRes.data) {
+      contextParts.push(`Today's scheduled load: ${todayPlannerRes.data.length} items in planner`);
+    }
+
     // Fetch WHOOP biometric data
     const [whoopRecoveryRes, whoopSleepRes, whoopCycleRes] = await Promise.all([
       serviceClient.from('whoop_recoveries').select('recovery_score, hrv_rmssd_milli, resting_heart_rate, recorded_at')
