@@ -1,73 +1,164 @@
 
+# AI Insight Engine + Enhanced Action Center + README & Landing Page Update
 
-# Phase 2: Cross-System Daily Briefing Engine
+## Overview
 
-## Current State
-- `DailyBriefingCard` displays 3 free-form AI text lines — no structure, no day type label, no clear separation of interpretation/focus/watchout
-- `ai-briefing` edge function already gathers: recovery, planner items, calendar shape, meal plan, WHOOP, build data, controllable levels — rich context but unstructured output
-- `TodayReadinessBar` shows day type + interpretation line (body + calendar) — good but separate from the briefing
-- No growth rings context sent to briefing
-- No money pressure context sent to briefing
-- Briefing cached in `daily_briefings` table (content is a string)
+Three interconnected deliverables:
+1. **AI Insight Engine** -- a new edge function and admin panel that generates weekly data-driven recommendations
+2. **Enhanced Action Center** -- upgrade the existing placeholder-heavy Action Center with working controls
+3. **README + Landing Page** -- align both with the 7-day free trial, adaptive dashboard, and Data Command Center updates
 
-## What to Build
+---
 
-### 1. Upgrade `ai-briefing` Edge Function — Structured Output
-**File**: `supabase/functions/ai-briefing/index.ts`
+## Part 1: AI Insight Engine
 
-Add two new data fetches:
-- **Rings**: query `daily_ring_completions` for today to get completed ring count (0-5)
-- **Money**: query `bills_subscriptions` for bills due within 3 days + any budget overspend from `budget_buckets`
+### New Edge Function: `admin-insights`
 
-Update the system prompt to produce **structured JSON** instead of 3 free-form lines:
-```json
-{
-  "day_type": "Heavy Day",
-  "interpretation": "Recovery is low and your afternoon is packed with meetings.",
-  "focus": "Protect energy before noon and complete your main proof action early.",
-  "watchout": "No dinner planned — pick something simple now to avoid decision fatigue tonight."
-}
+**File: `supabase/functions/admin-insights/index.ts`**
+
+This function:
+1. Verifies the caller is an admin (same pattern as `admin-analytics`)
+2. Queries aggregated metrics from the last 7 days using the service role client:
+   - `app_events` grouped by `event_name` and day-of-week
+   - `completed_actions` grouped by `controllable`
+   - `daily_resets` count per user (for retention correlation)
+   - `reset_sessions` completion rates
+   - `user_entitlements` conversion data
+   - `user_onboarding` activation delays
+3. Sends the aggregated data (no PII) to Lovable AI (`google/gemini-3-flash-preview`) with a structured prompt requesting:
+   - 3 behavioral insights
+   - 2 retention risks
+   - 2 growth opportunities
+   - 1 experiment recommendation
+4. Uses tool calling to extract structured JSON output (array of insight objects with `type`, `title`, `detail`, `confidence`)
+5. Returns the insights directly (no caching table needed initially -- can add later)
+
+**Prompt structure:**
+```
+You are a product analytics advisor for a personal growth app called The Controllables.
+Given the following 7-day metrics, generate actionable insights.
+
+[structured data blob]
+
+Return insights as structured tool output.
 ```
 
-Day type labels to use: Recovery Day, Focus Day, Heavy Day, Reset Day, Fragmented Day, Momentum Day, Protected Day, Catch-Up Day.
+**Rate limit handling:** Catch 429/402 from Lovable AI and surface to admin.
 
-Add prompt rules for cross-system synthesis:
-- If rings completed > 3: acknowledge momentum
-- If 0 rings completed and it's afternoon: nudge one small action
-- If bills due soon + heavy day: note spending pressure
-- If meal plan exists + strong recovery: acknowledge alignment
+**Config:** Add `[functions.admin-insights]` with `verify_jwt = false` to `supabase/config.toml`.
 
-Cache the full JSON string in `daily_briefings.content`.
+### New Admin Component: AI Insights Panel
 
-### 2. Redesign `DailyBriefingCard` — Structured Display
-**File**: `src/components/dashboard/DailyBriefingCard.tsx`
+**File: `src/components/admin/AIInsightsPanel.tsx`**
 
-Parse the briefing content as JSON (with fallback to old text format for cached briefings).
+- A card with "Weekly Intelligence" header and a "Generate Insights" button
+- On click, calls the `admin-insights` edge function
+- Displays results in categorized sections:
+  - Behavioral Insights (brain icon, blue accent)
+  - Retention Risks (alert icon, amber accent)
+  - Growth Opportunities (trending-up icon, green accent)
+  - Experiment Recommendation (flask icon, purple accent)
+- Each insight shows: title, detail paragraph, confidence badge (high/medium/low)
+- Loading state with skeleton cards
+- Error state with retry button
+- "Last generated" timestamp display
 
-New UI structure:
-- **Day type badge** at top (colored chip: "Focus Day", "Heavy Day", etc.)
-- **Main interpretation** — primary text line
-- **Recommended focus** — slightly smaller, with a subtle icon
-- **Watchout/support note** — muted text with caution styling
+### Integration into Admin.tsx
 
-Keep the refresh button, context grounding line, and free/paid gating.
+- Add a new tab "Insights" with a Sparkles icon between Revenue and Health tabs
+- The tab renders `<AIInsightsPanel />`
 
-### 3. Enhance Home.tsx — Pass Rings + Money Context
-**File**: `src/pages/Home.tsx`
+---
 
-Pass `ringsCompleted` count to the briefing card's context grounding line. The actual data goes server-side (edge function fetches it), but the grounding line should show "Based on 42% recovery + 3 meetings + 2/5 rings".
+## Part 2: Enhanced Action Center
 
-## Files to Modify
-| File | Change |
-|---|---|
-| `supabase/functions/ai-briefing/index.ts` | Add rings + money queries, structured JSON output prompt, cross-system synthesis rules |
-| `src/components/dashboard/DailyBriefingCard.tsx` | Parse structured JSON, new UI with day type badge + interpretation + focus + watchout |
-| `src/pages/Home.tsx` | Pass rings completed count to DailyBriefingCard context line |
+**File: `src/components/admin/ActionCenter.tsx` (rewrite)**
 
-## What Does NOT Change
-- No database migrations — `daily_briefings.content` already stores string (JSON string works)
-- `TodayReadinessBar` stays as-is — it provides the instant client-side read; briefing provides the AI synthesis
-- All existing context gathering in `ai-briefing` preserved
-- Caching logic preserved
-- Entitlement gating preserved
+Replace the three "Coming soon" cards with working functionality:
 
+### A. Send Nudge Campaign
+- Select segment: All Free Users, Slipping Users, At Risk Users, Dormant Users
+- Confirmation dialog before sending
+- Calls the existing `send-daily-nudge` edge function for each selected user
+- Shows progress and results
+
+### B. Grant Trial Extension
+- Search for a specific user by email
+- Set extension duration (7 days, 14 days, 30 days)
+- Calls `admin-users?action=grant_access` with an `expires_at` parameter
+- Confirmation toast on success
+
+### C. Export with More Segments
+- Add segment filters: By Risk Tier (healthy/slipping/at_risk/dormant), By Signup Cohort (last 7d/30d/90d)
+- Risk tier data fetched from `admin-analytics?resource=retention_radar`
+- CSV includes: email, signup date, last active, risk tier, paid status, source
+
+### D. Quick Stats Bar
+- Show counts above the action cards: Total Users, Free, Paid, At Risk
+- Derived from the `users` prop already passed in
+
+---
+
+## Part 3: Landing Page Updates
+
+**File: `src/pages/Landing.tsx`**
+
+Update the hero copy to reflect the free trial:
+- Change hero tagline to emphasize "Try the full experience free for 7 days"
+- Update secondary CTA from "Start free" to "Start your free 7-Day Snapshot"
+- Add a brief mention below the CTA: "Full access. No credit card. See what changes in a week."
+
+**File: `src/components/landing/FeatureGrid.tsx`**
+
+- Update the Free/Premium labeling:
+  - "The Controllables Guides" -- change from "Premium" badge to "Free during trial"
+  - "Experience History" -- add "Free during trial" badge
+  - Add a new feature card: "7-Day Free Trial" with description: "Get full access to every feature during your first Snapshot. No credit card required. Upgrade only if it helps."
+
+**File: `src/components/landing/HowItWorksSection.tsx`**
+
+- No structural changes, but update Step 3 description to mention: "Your first Snapshot is fully unlocked -- all features, all guides."
+
+---
+
+## Part 4: README Update
+
+**File: `README.md`**
+
+Update to v1.5.0 reflecting all recent changes:
+
+1. **Version bump**: `v1.4.1` to `v1.5.0`
+2. **New section: "Admin Command Center"** after Technical Reference:
+   - Document the 10-tab structure (Overview, Funnel, Behavior, Retention, Revenue, Health, Nudges, Users, Actions, Claw)
+   - Mention the `admin-analytics` and `admin-insights` edge functions
+   - Document the AI Insight Engine capability
+3. **Update "Free vs. Premium" table**:
+   - Add "7-Day Free Trial" row explaining full access during first Snapshot
+   - Update AI Guide from "---" to "5 msgs/day during trial"
+   - Update Experience History from "---" to "During trial"
+4. **Update Backend Functions table**:
+   - Add `admin-analytics` -- Admin data aggregation and executive metrics
+   - Add `admin-insights` -- AI-powered weekly behavioral insights for admins
+5. **Update Key Data Tables**:
+   - Add `user_build_current` -- Current Build scores (snapshot for dashboard)
+   - Add `ai_usage_logs` -- Daily AI message tracking
+6. **Version in `src/lib/version.ts`**: Update to `"1.5.0"`
+
+---
+
+## Technical Summary
+
+| File | Change | Type |
+|------|--------|------|
+| `supabase/functions/admin-insights/index.ts` | New AI insight generation edge function | Create |
+| `supabase/config.toml` | Add `[functions.admin-insights]` entry | Edit |
+| `src/components/admin/AIInsightsPanel.tsx` | New insights panel component | Create |
+| `src/components/admin/ActionCenter.tsx` | Upgrade with working nudge, trial extension, enhanced export | Edit |
+| `src/pages/Admin.tsx` | Add Insights tab | Edit |
+| `src/pages/Landing.tsx` | Update hero copy for free trial messaging | Edit |
+| `src/components/landing/FeatureGrid.tsx` | Add trial badges, new feature card | Edit |
+| `src/components/landing/HowItWorksSection.tsx` | Update Step 3 copy | Edit |
+| `README.md` | v1.5.0 with Command Center docs, trial info, new functions | Edit |
+| `src/lib/version.ts` | Bump to 1.5.0 | Edit |
+
+No database migrations needed. The AI Insight Engine uses Lovable AI (LOVABLE_API_KEY already configured) and returns insights on-demand without persistent storage.

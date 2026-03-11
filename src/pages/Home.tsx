@@ -540,6 +540,7 @@ export default function Home() {
           onUpgrade={() => startCheckout(undefined, "daily_briefing")}
           healthRecovery={healthLatest?.recovery}
           plannerCount={todayPlannerItems.length}
+          ringsCompleted={completedCount}
         />
       )}
 

@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
 
     // Gather context: active session, recent reflections, build scores, controllable levels, planner stats
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-    const [sessionRes, reflectionsRes, buildRes, actionsRes, yesterdayHealthRes, yesterdayPlannerRes, todayPlannerRes, todayMealPlanRes] = await Promise.all([
+    const [sessionRes, reflectionsRes, buildRes, actionsRes, yesterdayHealthRes, yesterdayPlannerRes, todayPlannerRes, todayMealPlanRes, todayRingsRes, billsRes] = await Promise.all([
       serviceClient.from('reset_sessions').select('current_day, journey_id, start_date')
         .eq('user_id', userId).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       serviceClient.from('daily_resets').select('day_number, reflection, completed_at')
@@ -99,6 +99,12 @@ Deno.serve(async (req) => {
         .eq('user_id', userId).eq('scheduled_date', today),
       serviceClient.from('meal_plans').select('meals')
         .eq('user_id', userId).eq('plan_date', today).maybeSingle(),
+      // Rings for today
+      serviceClient.from('daily_rings').select('notice_completed, choose_completed, prove_completed, charge_completed, align_completed')
+        .eq('user_id', userId).eq('ring_date', today).maybeSingle(),
+      // Bills due within 3 days (recurring bills — due_date is day-of-month for monthly)
+      serviceClient.from('recurring_bills').select('name, amount, due_date, frequency')
+        .eq('user_id', userId).eq('is_active', true),
     ]);
 
     const currentDay = sessionRes.data?.current_day || 1;
@@ -152,11 +158,13 @@ Deno.serve(async (req) => {
       const completed = yesterdayPlannerRes.data.filter((i: any) => i.status === 'done').length;
       contextParts.push(`Yesterday's planner: ${completed}/${total} items completed (${Math.round((completed/total)*100)}% completion rate)`);
     }
+
+    // Calendar shape analysis
+    let calDayType = 'moderate';
     if (todayPlannerRes.data) {
       const todayItems = todayPlannerRes.data as any[];
       contextParts.push(`Today's scheduled load: ${todayItems.length} items in planner`);
 
-      // Calendar shape analysis
       const timedItems = todayItems.filter((i: any) => i.start_time && i.end_time);
       if (timedItems.length > 0) {
         const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return (h || 0) * 60 + (m || 0); };
@@ -164,28 +172,23 @@ Deno.serve(async (req) => {
         const meetingMinutes = meetings.reduce((s: number, e: any) => s + (e.end - e.start), 0);
         const meetingHours = Math.round(meetingMinutes / 60 * 10) / 10;
 
-        // Focus blocks (gaps >= 45 min)
         let longestFocus = 0;
         for (let i = 0; i < meetings.length - 1; i++) {
           const gap = meetings[i + 1].start - meetings[i].end;
           if (gap > longestFocus) longestFocus = gap;
         }
-        // Before first / after last
         if (meetings.length > 0) {
-          const beforeFirst = meetings[0].start - 480; // from 8am
-          const afterLast = 1080 - meetings[meetings.length - 1].end; // until 6pm
+          const beforeFirst = meetings[0].start - 480;
+          const afterLast = 1080 - meetings[meetings.length - 1].end;
           if (beforeFirst > longestFocus) longestFocus = beforeFirst;
           if (afterLast > longestFocus) longestFocus = afterLast;
         }
 
-        // Context switches
         let contextSwitches = 0;
         for (let i = 0; i < meetings.length - 1; i++) {
           if (meetings[i + 1].start - meetings[i].end < 15) contextSwitches++;
         }
 
-        // Day type
-        let calDayType = 'moderate';
         if (contextSwitches >= 4) calDayType = 'fragmented';
         else if (meetingMinutes >= 240) calDayType = 'heavy';
         else if (meetings.length <= 1 && longestFocus >= 120) calDayType = 'focus';
@@ -204,6 +207,40 @@ Deno.serve(async (req) => {
       contextParts.push(`Today's meal plan: ${mealNames}.${dinnerMeal ? ` Dinner: ${dinnerMeal.name}.` : ''}`);
     } else {
       contextParts.push('No meals planned today — food decisions remain open.');
+    }
+
+    // Rings context
+    const ringsData = todayRingsRes.data;
+    let ringsCompleted = 0;
+    if (ringsData) {
+      const ringKeys = ['notice_completed', 'choose_completed', 'prove_completed', 'charge_completed', 'align_completed'] as const;
+      ringsCompleted = ringKeys.filter(k => ringsData[k]).length;
+      contextParts.push(`Today's rings completed: ${ringsCompleted}/5`);
+    } else {
+      contextParts.push(`Today's rings completed: 0/5 (not started)`);
+    }
+
+    // Money pressure context
+    const bills = billsRes.data || [];
+    if (bills.length > 0) {
+      const todayDate = new Date();
+      const currentDayOfMonth = todayDate.getDate();
+      const daysInMonth = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).getDate();
+
+      const billsDueSoon = bills.filter((b: any) => {
+        const freq = b.frequency || 'monthly';
+        if (freq === 'weekly' || freq === 'biweekly') return true; // always upcoming
+        const diff = b.due_date >= currentDayOfMonth
+          ? b.due_date - currentDayOfMonth
+          : daysInMonth - currentDayOfMonth + b.due_date;
+        return diff <= 3;
+      });
+
+      if (billsDueSoon.length > 0) {
+        const totalDue = billsDueSoon.reduce((s: number, b: any) => s + Number(b.amount), 0);
+        const names = billsDueSoon.slice(0, 3).map((b: any) => b.name).join(', ');
+        contextParts.push(`Money pressure: ${billsDueSoon.length} bill(s) due within 3 days ($${totalDue.toFixed(0)} total): ${names}`);
+      }
     }
 
     // Fetch WHOOP biometric data
@@ -230,6 +267,10 @@ Deno.serve(async (req) => {
       contextParts.push(`WHOOP Biometrics: ${whoopParts.join(', ')}`);
     }
 
+    // Current hour for afternoon nudge logic
+    const currentHour = new Date().getHours();
+    contextParts.push(`Current time: ${currentHour}:00`);
+
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'AI not configured' }), {
@@ -237,24 +278,43 @@ Deno.serve(async (req) => {
       });
     }
 
-    const systemPrompt = `You are ${controllableInfo.emoji} ${controllableInfo.name} from The Controllables — a daily briefing operator.
+    const systemPrompt = `You are a cross-system daily briefing engine for The Controllables Life OS.
 
-Generate a personalized morning micro-briefing in EXACTLY 3 lines:
-1. **Readiness read** — Open with a one-sentence read on today's readiness. Reference yesterday's recovery score, yesterday's task completion rate, and today's scheduled load if available. E.g. "Your recovery is strong today. You have 4 items scheduled. Here's where to focus first."
-2. **Today's controllable focus** — One sentence connecting today's controllable (${controllableInfo.name}) to their current situation
-3. **One actionable suggestion** — A concrete, small thing they can do today
+Generate a structured daily briefing as a JSON object with exactly these fields:
+{
+  "day_type": "<one of: Recovery Day, Focus Day, Heavy Day, Reset Day, Fragmented Day, Momentum Day, Protected Day, Catch-Up Day>",
+  "interpretation": "<one sentence: what kind of day this is and why — synthesize body, calendar, and context>",
+  "focus": "<one sentence: the smartest recommended action or priority>",
+  "watchout": "<one sentence: key risk, support note, or thing to protect>"
+}
+
+DAY TYPE SELECTION RULES:
+- Recovery Day: low recovery or poor sleep — protect energy
+- Focus Day: light calendar + strong readiness — ideal for deep work
+- Heavy Day: packed schedule, many meetings — manage energy carefully
+- Reset Day: it's Day 1 of their snapshot or they're restarting
+- Fragmented Day: many context switches, scattered schedule
+- Momentum Day: rings > 3 completed, strong engagement
+- Protected Day: moderate load but recovery is low — be selective
+- Catch-Up Day: behind on rings/tasks, need to rebuild rhythm
+
+CROSS-SYSTEM SYNTHESIS RULES:
+- If rings completed > 3: acknowledge momentum in interpretation
+- If 0 rings completed and current time >= 14: nudge one small action in focus
+- If bills due soon + heavy calendar: note spending pressure in watchout
+- If meal plan exists + strong recovery: acknowledge alignment in interpretation
+- If no meals planned + low recovery: suggest easy food in watchout
+- If strain is high: suggest protein-focused meals in watchout
+- If recovery is low and meals are planned: acknowledge good preparation
 
 RULES:
-- Total max 60 words across all 3 lines
-- Be specific to THEIR data, not generic advice
-- Match the voice of ${controllableInfo.name}: ${controllableInfo.key === 'habit' ? 'direct, action-focused' : controllableInfo.key === 'awareness' ? 'observational, calm' : controllableInfo.key === 'perspective' ? 'wise, reframing' : controllableInfo.key === 'wellness' ? 'systems-focused' : 'design-focused'}
-- If WHOOP data is present, weave biometric signals into your observation and suggestion. Reference recovery, sleep quality, or strain when relevant.
-- If planner data is present, reference yesterday's completion and today's load.
-- If meal plan data is present, weave food context into your readiness read. Low recovery + unplanned meals = suggest quick simple options. Busy day + planned meals = acknowledge preparation. No meals planned = note food decisions are open.
-- If recovery is low and meals are planned, acknowledge the preparation. If strain is high, suggest protein-focused meals.
-- If calendar shape data is provided, reference schedule pressure and focus availability in your readiness read. E.g. "Heavy calendar today — protect your one focus window before noon." or "Focus day — ideal conditions for deep work."
-- No motivational fluff. Be real.
-- Format as 3 separate lines`;
+- Each field must be ONE sentence, max 25 words
+- Be specific to THEIR data — reference actual numbers
+- No motivational fluff. Be real, practical, useful.
+- The interpretation should feel like an operating system reading the day
+- The focus should be the single smartest next move
+- The watchout should prevent the most likely failure mode today
+- Return ONLY the JSON object, no markdown, no wrapping`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -263,13 +323,13 @@ RULES:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-lite',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: contextParts.join('\n\n') },
         ],
-        max_tokens: 150,
-        temperature: 0.7,
+        max_tokens: 300,
+        temperature: 0.6,
       }),
     });
 
@@ -290,18 +350,21 @@ RULES:
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || '';
+    let rawContent = data.choices?.[0]?.message?.content || '';
 
-    // Cache the briefing
+    // Strip markdown code fences if present
+    rawContent = rawContent.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+
+    // Cache the briefing (store as JSON string)
     await serviceClient.from('daily_briefings').insert({
       user_id: userId,
       briefing_date: today,
-      content,
+      content: rawContent,
       controllable: controllableInfo.key,
     });
 
     return new Response(JSON.stringify({
-      content,
+      content: rawContent,
       controllable: controllableInfo.key,
       cached: false,
     }), {
