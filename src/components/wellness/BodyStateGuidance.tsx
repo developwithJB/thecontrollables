@@ -40,11 +40,11 @@ export function BodyStateGuidance({ userId, latest }: BodyStateGuidanceProps) {
     queryFn: async () => {
       const { data } = await supabase
         .from("wellness_logs")
-        .select("sleep_score, movement_score, nutrition_score")
+        .select("sleep_rating, movement_rating, nutrition_rating")
         .eq("user_id", userId)
         .eq("log_date", today)
         .maybeSingle();
-      return data as { sleep_score: number; movement_score: number; nutrition_score: number } | null;
+      return data as { sleep_rating: number | null; movement_rating: number | null; nutrition_rating: number | null } | null;
     },
     enabled: !!userId,
     staleTime: 60_000,
