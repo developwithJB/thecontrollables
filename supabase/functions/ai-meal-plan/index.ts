@@ -37,6 +37,9 @@ serve(async (req) => {
     const restrictionsInfo = Array.isArray(dietary_restrictions) && dietary_restrictions.length > 0
       ? `STRICT dietary restrictions (never include these): ${dietary_restrictions.join(", ")}.`
       : "";
+    const excludeNamesInfo = Array.isArray(exclude_names) && exclude_names.length > 0
+      ? `Do NOT suggest any of these meals (already rejected by the user): ${exclude_names.join(", ")}. Suggest something completely different.`
+      : "";
 
     // Build macro instructions
     const macroLines: string[] = [];
