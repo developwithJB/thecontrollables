@@ -24,6 +24,8 @@ export default function Money() {
   const moneyWeekRange = useMemo(() => getWeekRange(new Date()), []);
   const { data: moneyPlannerItems = [] } = usePlannerItems(moneyWeekRange.start, moneyWeekRange.end, user.id);
   const weekPlannerCount = moneyPlannerItems.length;
+  const { latest: healthLatest } = useHealthData(user.id);
+  const recoveryLow = healthLatest?.recovery != null && healthLatest.recovery < 40;
 
   const { accounts, createAccount, deleteAccount } = useFinancialAccounts(user.id);
   const { transactions, addTransaction, isLoading: txnLoading } = useTransactions(user.id);
