@@ -36,6 +36,7 @@ import { useHealthData } from "@/hooks/useHealthData";
 import { useAutoWearableSync } from "@/hooks/useAutoWearableSync";
 import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
+import { FirstDashboardBanner } from "@/components/dashboard/FirstDashboardBanner";
 import { useDailySynthesis } from "@/hooks/useDailySynthesis";
 
 // Dashboard modules
@@ -195,7 +196,22 @@ export default function Home() {
 
   // Auto-sync wearable data on dashboard load (throttled to every 4 hours)
   useAutoWearableSync(user.id, wearableProvider, wearableConnected);
-  
+
+  // Check if Google Calendar is connected for first-dashboard banner
+  const { data: calendarConnected = false } = useQuery({
+    queryKey: ["planner-connection-active", user.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("planner_connections")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .limit(1);
+      return (data?.length ?? 0) > 0;
+    },
+    staleTime: 60_000,
+  });
+
   const pvaData = useMemo(() => {
     const todayDate = new Date();
     todayDate.setHours(0, 0, 0, 0);
@@ -552,6 +568,11 @@ export default function Home() {
       <CompactRingsRow userId={user.id} />
 
       {/* Plan vs Actual */}
+      <FirstDashboardBanner
+        calendarConnected={calendarConnected}
+        wearableConnected={wearableConnected}
+        visitCount={dashboardVisitCount}
+      />
       {pvaData.some(d => d.items.length > 0 || (d.health && d.health.recovery !== null)) && (
         <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} syntheses={pvaSyntheses} />
       )}
