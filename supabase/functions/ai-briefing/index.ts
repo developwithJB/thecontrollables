@@ -156,6 +156,16 @@ Deno.serve(async (req) => {
       contextParts.push(`Today's scheduled load: ${todayPlannerRes.data.length} items in planner`);
     }
 
+    // Meal plan context
+    const todayMeals = (todayMealPlanRes.data?.meals as any[]) || [];
+    if (todayMeals.length > 0) {
+      const mealNames = todayMeals.map((m: any) => `${m.meal_type}: ${m.name}`).join(', ');
+      const dinnerMeal = todayMeals.find((m: any) => m.meal_type === 'dinner');
+      contextParts.push(`Today's meal plan: ${mealNames}.${dinnerMeal ? ` Dinner: ${dinnerMeal.name}.` : ''}`);
+    } else {
+      contextParts.push('No meals planned today — food decisions remain open.');
+    }
+
     // Fetch WHOOP biometric data
     const [whoopRecoveryRes, whoopSleepRes, whoopCycleRes] = await Promise.all([
       serviceClient.from('whoop_recoveries').select('recovery_score, hrv_rmssd_milli, resting_heart_rate, recorded_at')
