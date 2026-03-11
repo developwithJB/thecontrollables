@@ -192,14 +192,8 @@ export const MealSwiper = ({
                 ))}
               </div>
             </div>
+            </div>
           </div>
-        </motion.div>
-      </div>
-
-      {/* Quick action buttons */}
-      <div className="flex items-center gap-4 mt-4">
-        <Button
-          variant="outline"
           size="icon"
           className="rounded-full w-12 h-12 border-destructive/30 text-destructive hover:bg-destructive/10"
           onClick={() => {
