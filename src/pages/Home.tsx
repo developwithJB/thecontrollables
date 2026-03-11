@@ -659,6 +659,20 @@ export default function Home() {
         />
       )}
 
+      {/* Season Setup Flow */}
+      <SeasonSetup
+        open={showSeasonSetup}
+        onClose={() => setShowSeasonSetup(false)}
+        userId={user.id}
+        onStartSeason={async (params) => {
+          const id = await startSeason(params);
+          return id;
+        }}
+        onCreateProject={async (params) => {
+          await createProject.mutateAsync(params);
+        }}
+      />
+
       {/* Mission Edit Modal */}
       <Dialog open={showMissionEdit} onOpenChange={setShowMissionEdit}>
         <DialogContent className="max-w-sm">
