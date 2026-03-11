@@ -212,6 +212,7 @@ export default function Home() {
 
   const { rings, completedCount } = useDailyRings(user.id);
   const { data: intelligenceData } = useDashboardIntelligence(user.id, completedCount, rings);
+  const { review: weeklyReview, isAvailable: weeklyReviewAvailable } = useWeeklyReview(user.id, isPaid);
 
   // Plan vs Actual data for dashboard
   const weekRange = useMemo(() => getWeekRange(new Date()), []);
