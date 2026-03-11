@@ -52,7 +52,7 @@ export function BodyStateGuidance({ userId, latest }: BodyStateGuidanceProps) {
 
   if (!wellnessLog) return null;
 
-  const selfEnergy = Math.round(((wellnessLog.sleep_score || 3) + (wellnessLog.movement_score || 3) + (wellnessLog.nutrition_score || 3)) / 3);
+  const selfEnergy = Math.round(((wellnessLog.sleep_rating ?? 3) + (wellnessLog.movement_rating ?? 3) + (wellnessLog.nutrition_rating ?? 3)) / 3);
   const { message, type } = compare(selfEnergy, latest.recovery);
 
   const borderColor = type === "aligned" ? "border-green-500/30" : type === "mismatch_high" || type === "mismatch_low" ? "border-yellow-500/30" : "border-border/40";

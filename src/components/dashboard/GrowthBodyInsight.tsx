@@ -62,7 +62,7 @@ export function GrowthBodyInsight({ userId, latest, trend }: GrowthBodyInsightPr
   });
 
   const selfEnergy = wellnessLog
-    ? Math.round(((wellnessLog.sleep_score || 3) + (wellnessLog.movement_score || 3) + (wellnessLog.nutrition_score || 3)) / 3)
+    ? Math.round(((wellnessLog.sleep_rating ?? 3) + (wellnessLog.movement_rating ?? 3) + (wellnessLog.nutrition_rating ?? 3)) / 3)
     : null;
 
   const insight = deriveInsight(latest, trend, selfEnergy);
