@@ -188,7 +188,7 @@ export default function Home() {
     shouldShowSeasonComplete,
   } = useSeason(user.id);
 
-  const { createProject } = useProjects(user.id, activeSeason?.id);
+  const { createProject, activeProjects } = useProjects(user.id, activeSeason?.id);
 
   const { rings, completedCount } = useDailyRings(user.id);
   const { data: intelligenceData } = useDashboardIntelligence(user.id, completedCount, rings);
@@ -232,7 +232,7 @@ export default function Home() {
           if (item.status === "done") status = "done";
           else if (item.status === "skipped") status = "partial";
           else if (isPast && !isTodayDate) status = "missed";
-          return { id: item.id, title: item.title, status, type: item.item_type };
+          return { id: item.id, title: item.title, status, type: item.item_type, project_id: item.project_id ?? null };
         }),
         health: healthForDay,
       };
@@ -586,7 +586,7 @@ export default function Home() {
         visitCount={dashboardVisitCount}
       />
       {pvaData.some(d => d.items.length > 0 || (d.health && d.health.recovery !== null)) && (
-        <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} syntheses={pvaSyntheses} />
+        <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} syntheses={pvaSyntheses} projects={activeProjects} />
       )}
 
       {/* Forecast + Recommendations */}

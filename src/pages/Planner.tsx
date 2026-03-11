@@ -37,6 +37,8 @@ import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
 import { PlannerWellnessBanner } from "@/components/planner/PlannerWellnessBanner";
 import { useHealthData } from "@/hooks/useHealthData";
 import { useDailySynthesis } from "@/hooks/useDailySynthesis";
+import { useProjects } from "@/hooks/useProjects";
+import { useSeason } from "@/hooks/useSeason";
 
 const Planner = () => {
   const user = useLifeOSUser();
@@ -112,6 +114,8 @@ const Planner = () => {
   const { routines, createRoutine, deleteRoutine } = usePlannerRoutines(user.id);
   const { connections, startGoogleCalSync, triggerSync, pushToGoogleCal } = usePlannerConnections(user.id);
   const { trend: healthTrend, isConnected: wearableConnected } = useHealthData(user.id);
+  const { activeSeason } = useSeason(user.id);
+  const { activeProjects } = useProjects(user.id, activeSeason?.id);
 
   const googleConnection = connections.find((c) => c.provider === "google_calendar");
 
@@ -205,6 +209,7 @@ const Planner = () => {
             actualTime: item.completed_at ? format(new Date(item.completed_at), "HH:mm") : undefined,
             status,
             type: item.item_type as "task" | "time_block" | "routine_instance" | "external_event",
+            project_id: item.project_id ?? null,
           };
         }),
         health: healthForDay,
@@ -310,7 +315,7 @@ const Planner = () => {
       {/* Plan vs Actual overlay */}
       {showPvA && (
         <div className="px-4 py-3 border-b border-border bg-card/50">
-          <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} syntheses={pvaSyntheses} />
+          <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} syntheses={pvaSyntheses} projects={activeProjects} />
         </div>
       )}
 
