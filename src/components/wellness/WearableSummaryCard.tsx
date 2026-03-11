@@ -240,9 +240,11 @@ export function WearableSummaryCard({ userId, isPaid, onUpgrade }: WearableSumma
             {/* Recovery */}
             <div className={`rounded-lg p-3 text-center ${getRecoveryBg(recoveryScore)}`}>
               <Heart className={`h-4 w-4 mx-auto mb-1 ${getRecoveryColor(recoveryScore)}`} />
-              <p className={`text-xl font-bold ${getRecoveryColor(recoveryScore)}`}>
-                {recoveryScore != null ? `${Math.round(recoveryScore)}%` : "--"}
-              </p>
+              <MetricValue
+                value={recoveryScore != null ? `${Math.round(recoveryScore)}%` : null}
+                syncing={syncing}
+                className={getRecoveryColor(recoveryScore)}
+              />
               <p className="text-[10px] text-muted-foreground mt-0.5">Recovery</p>
               {latest.hrv != null && (
                 <p className="text-[10px] text-muted-foreground">HRV {Math.round(latest.hrv)}ms</p>
