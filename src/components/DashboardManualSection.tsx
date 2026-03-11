@@ -13,9 +13,10 @@ import {
   Shield,
   Download,
   Share,
-  Target,
-  Camera,
-  CheckCircle,
+  Orbit,
+  FolderKanban,
+  Calendar,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isStandalone, isIOS, hasDeferredPrompt, triggerInstallPrompt } from "@/lib/pwa";
