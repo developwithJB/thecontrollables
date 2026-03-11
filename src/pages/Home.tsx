@@ -36,6 +36,7 @@ import { useHealthData } from "@/hooks/useHealthData";
 import { useAutoWearableSync } from "@/hooks/useAutoWearableSync";
 import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
 import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
+import { FirstDashboardBanner } from "@/components/dashboard/FirstDashboardBanner";
 import { useDailySynthesis } from "@/hooks/useDailySynthesis";
 
 // Dashboard modules
