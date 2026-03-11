@@ -612,6 +612,25 @@ export default function Home() {
       {/* 6. Forecast */}
       <ForecastCard data={intelligenceData} compact />
 
+      {/* 6b. Weekly Review Teaser — Thu–Sun for paid users */}
+      {weeklyReviewAvailable && weeklyReview && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border bg-card/80 shadow-sm p-3 flex items-center gap-3 cursor-pointer hover:bg-card transition-colors"
+          onClick={() => navigate("/growth")}
+        >
+          <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+            <Calendar className="w-4 h-4 text-accent" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-foreground">Weekly Review Ready</p>
+            <p className="text-[11px] text-muted-foreground truncate">{weeklyReview.headline}</p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+        </motion.div>
+      )}
+
       {/* 7. Ask Dashboard — conversational entry point near bottom */}
       <AskDashboardBar />
 
