@@ -27,6 +27,8 @@ export function GreetingBanner({
   streakDays = 0, 
   visitCount,
   isPaid = false,
+  seasonName,
+  onSeasonClick,
   missionTitle,
   onMissionClick,
   snapshotFocus,
