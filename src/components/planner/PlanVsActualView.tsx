@@ -321,12 +321,26 @@ export const PlanVsActualView = ({
                   </div>
                 </div>
 
-                {/* AI Observation */}
-                {observation && (
-                  <div className="mt-1.5 px-2.5 py-1.5 rounded-lg bg-accent/5 border border-accent/10 text-[11px] text-muted-foreground italic">
-                    {observation}
-                  </div>
-                )}
+                {/* AI Synthesis or fallback observation */}
+                {(() => {
+                  const dateKey = format(date, "yyyy-MM-dd");
+                  const synthesisText = syntheses[dateKey];
+                  if (synthesisText) {
+                    return (
+                      <div className="mt-1.5 pl-3 border-l-2 border-accent/40 py-1">
+                        <p className="text-[11px] text-muted-foreground italic">{synthesisText}</p>
+                      </div>
+                    );
+                  }
+                  if (observation) {
+                    return (
+                      <div className="mt-1.5 px-2.5 py-1.5 rounded-lg bg-accent/5 border border-accent/10 text-[11px] text-muted-foreground italic">
+                        {observation}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             );
           })}
