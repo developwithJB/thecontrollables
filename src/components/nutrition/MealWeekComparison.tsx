@@ -186,7 +186,7 @@ export function MealWeekComparison({ userId, slotConfig }: MealWeekComparisonPro
         variant="secondary"
         size="sm"
         className="w-full text-xs"
-        onClick={() => generateWeekPlan.mutate(slotConfig)}
+        onClick={handleGenerate}
         disabled={generateWeekPlan.isPending}
       >
         {generateWeekPlan.isPending ? (
