@@ -265,6 +265,19 @@ export default function Home() {
   const todayPlannerItems = useMemo(() => weekPlannerItems.filter((i: any) => i.scheduled_date === todayStr), [weekPlannerItems, todayStr]);
   const todayCalendarIntel = useMemo(() => analyzeCalendar(todayPlannerItems), [todayPlannerItems]);
 
+  // Fuel intelligence
+  const todayFuelIntel = useMemo(() => {
+    return getFuelIntelligence({
+      recovery: healthLatest?.recovery,
+      sleepMinutes: healthLatest?.sleep ? healthLatest.sleep * 60 : null,
+      strain: healthLatest?.strain,
+      calendarDayType: todayCalendarIntel?.dayType,
+      meetingCount: todayCalendarIntel?.meetingCount ?? 0,
+      hasMeals: false, // will be determined by FuelTodayCard itself
+      mealCount: 0,
+    });
+  }, [healthLatest, todayCalendarIntel]);
+
   const [showSeasonComplete, setShowSeasonComplete] = useState(false);
   const [showSeasonSetup, setShowSeasonSetup] = useState(false);
   useEffect(() => {
