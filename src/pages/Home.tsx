@@ -499,7 +499,14 @@ export default function Home() {
       />
 
       {/* 2. Daily Briefing Card — single morning AI brief */}
-      <DailyBriefingCard userId={user.id} />
+      {!entitlementsLoading && (
+        <DailyBriefingCard
+          isPaid={isPaid}
+          isTrialing={isTrialing}
+          hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
+          onUpgrade={() => startCheckout(undefined, "daily_briefing")}
+        />
+      )}
 
       {/* 3. Today's Actions */}
       {(resetLoading || dashboardLoading) ? <ResetProgressSkeleton /> : (
