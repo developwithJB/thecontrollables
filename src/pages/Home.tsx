@@ -239,9 +239,17 @@ export default function Home() {
   const pvaSyntheses = useDailySynthesis(pvaData);
 
   const [showSeasonComplete, setShowSeasonComplete] = useState(false);
+  const [showSeasonSetup, setShowSeasonSetup] = useState(false);
   useEffect(() => {
     if (shouldShowSeasonComplete) { setShowSeasonComplete(true); completeSeason(); }
   }, [shouldShowSeasonComplete, completeSeason]);
+
+  // Show season setup when no active season and user is onboarded
+  useEffect(() => {
+    if (!needsOnboarding && !onboardingLoading && !isLoadingSeason && !activeSeason && !resetLoading && !showSeasonComplete) {
+      setShowSeasonSetup(true);
+    }
+  }, [needsOnboarding, onboardingLoading, isLoadingSeason, activeSeason, resetLoading, showSeasonComplete]);
 
   // Profile for nudge status
   const { data: userProfile, refetch: refetchProfile } = useQuery({
