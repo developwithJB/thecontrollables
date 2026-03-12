@@ -133,7 +133,7 @@ export default function Landing() {
             </div>
 
             <p className="text-muted-foreground text-sm md:text-base lg:text-lg leading-relaxed text-balance max-w-xs md:max-w-lg mx-auto mb-4">
-              Your tools push data in. Today notices what matters. Minimal data entry, maximum insight — built on 5 things you can actually control.
+              Your tools push data in. The Dashboard notices what matters. Minimal data entry, maximum insight — built on 5 things you can actually control.
             </p>
           </motion.div>
 
