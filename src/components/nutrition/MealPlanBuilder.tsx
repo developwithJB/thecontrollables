@@ -1,38 +1,22 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Loader2, X, ArrowLeft, Check, RefreshCw } from "lucide-react";
+import { Sparkles, Loader2, X, Calendar, Flame, Clock, Check, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { MealSwiper, type SwipeMeal } from "./MealSwiper";
-import { useMealTracking, useSaveRecipe, type MealSlotConfig } from "@/hooks/useMealTracking";
 import { useMealPreferences } from "@/hooks/useMealPreferences";
+import { useSaveRecipe } from "@/hooks/useMealTracking";
+import type { MealSlotConfig } from "@/hooks/useMealTracking";
 
-type BuilderPhase =
-  | "preferences"
-  | "generating"
-  | "swiping"
-  | "review";
-
-type MealTypeSlot = "breakfast" | "lunch" | "dinner" | "snack";
-
-const MOOD_CHIPS = [
-  { label: "Light & fresh", emoji: "🥗" },
-  { label: "High protein", emoji: "💪" },
-  { label: "Comfort food", emoji: "🍲" },
-  { label: "Surprise me", emoji: "🎲" },
-];
-
-const MEAL_TYPE_ORDER: MealTypeSlot[] = ["breakfast", "lunch", "dinner", "snack"];
-const MEAL_TYPE_LABELS: Record<MealTypeSlot, string> = {
-  breakfast: "Breakfast",
-  lunch: "Lunch",
-  dinner: "Dinner",
-  snack: "Snack",
-};
-
-interface AcceptedMeal {
-  slot: MealTypeSlot;
-  meal: SwipeMeal;
+interface RecipeCard {
+  id: string;
+  name: string;
+  description: string;
+  calories?: number;
+  prepMinutes?: number;
+  mealType: string;
+  tags: string[];
+  emoji: string;
+  assignedDay?: string;
 }
 
 interface MealPlanBuilderProps {
@@ -47,6 +31,25 @@ interface MealPlanBuilderProps {
   contextLabel?: string | null;
 }
 
+const MOOD_CHIPS = [
+  { label: "Light & fresh", emoji: "🥗" },
+  { label: "High protein", emoji: "💪" },
+  { label: "Comfort food", emoji: "🍲" },
+  { label: "Surprise me", emoji: "🎲" },
+];
+
+function getNext7Days() {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    return {
+      date: d.toLocaleDateString("sv-SE"),
+      label: i === 0 ? "Today" : i === 1 ? "Tomorrow" : d.toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" }),
+      short: i === 0 ? "Today" : d.toLocaleDateString("en", { weekday: "short" }),
+    };
+  });
+}
+
 export function MealPlanBuilder({
   open,
   onClose,
@@ -58,35 +61,19 @@ export function MealPlanBuilder({
   contextTags,
   contextLabel,
 }: MealPlanBuilderProps) {
-  const [phase, setPhase] = useState<BuilderPhase>("preferences");
-  const [mood, setMood] = useState("");
-  const [acceptedMeals, setAcceptedMeals] = useState<AcceptedMeal[]>([]);
-  const [currentSlotIndex, setCurrentSlotIndex] = useState(0);
-  const [currentSuggestions, setCurrentSuggestions] = useState<SwipeMeal[]>([]);
-  const [swapSlot, setSwapSlot] = useState<MealTypeSlot | null>(null);
-  const [chatMessages, setChatMessages] = useState<{ from: "satellite" | "user"; text: string }[]>([]);
-  const [rejectedNames, setRejectedNames] = useState<string[]>([]);
+  const [recipes, setRecipes] = useState<RecipeCard[]>([]);
+  const [phase, setPhase] = useState<"mood" | "loading" | "browse">("mood");
+  const [dayPickerFor, setDayPickerFor] = useState<string | null>(null);
 
   const { preferences } = useMealPreferences(userId);
   const saveRecipe = useSaveRecipe(userId);
 
-  // Get active slots based on config
-  const activeSlots = MEAL_TYPE_ORDER.filter((slot) => {
-    if (slot === "snack") return (slotConfig.snackCount ?? 1) > 0;
-    return !(slotConfig.excludeMeals ?? []).includes(slot);
-  });
-
-  const currentSlot = swapSlot || activeSlots[currentSlotIndex];
+  const days = getNext7Days();
 
   const resetBuilder = useCallback(() => {
-    setPhase("preferences");
-    setMood("");
-    setAcceptedMeals([]);
-    setCurrentSlotIndex(0);
-    setCurrentSuggestions([]);
-    setSwapSlot(null);
-    setChatMessages([]);
-    setRejectedNames([]);
+    setPhase("mood");
+    setRecipes([]);
+    setDayPickerFor(null);
   }, []);
 
   const handleClose = () => {
@@ -94,19 +81,12 @@ export function MealPlanBuilder({
     onClose();
   };
 
-  const addChat = (from: "satellite" | "user", text: string) => {
-    setChatMessages((prev) => [...prev, { from, text }]);
-  };
-
-  const generateForSlot = async (slot: MealTypeSlot, moodPref?: string) => {
-    setPhase("generating");
-    addChat("satellite", `Let me find some ${MEAL_TYPE_LABELS[slot].toLowerCase()} ideas for you${moodPref ? ` — ${moodPref.toLowerCase()} vibes` : ""}...`);
-
+  const handleGenerate = async (mood: string) => {
+    setPhase("loading");
     try {
       const result = await onGenerate({
         ...slotConfig,
-        mood: moodPref || mood,
-        single_meal_type: slot,
+        mood,
         dietary_style: preferences?.dietaryStyle || undefined,
         dietary_restrictions: preferences?.dietaryRestrictions?.length ? preferences.dietaryRestrictions : undefined,
         calorie_target: preferences?.calorieTarget || undefined,
@@ -115,285 +95,283 @@ export function MealPlanBuilder({
           carbsTarget: preferences?.carbsTarget || undefined,
           fatTarget: preferences?.fatTarget || undefined,
         },
-        exclude_names: rejectedNames.length > 0 ? rejectedNames : undefined,
         context_tags: contextTags?.length ? contextTags : undefined,
       });
 
       const meals = result?.meals || result || [];
-      const suggestions: SwipeMeal[] = (Array.isArray(meals) ? meals : [meals]).map((m: any, i: number) => ({
-        id: `${slot}-${i}-${Date.now()}`,
+      const list: RecipeCard[] = (Array.isArray(meals) ? meals : [meals]).map((m: any, i: number) => ({
+        id: `recipe-${i}-${Date.now()}`,
         name: m.name || m.meal_name || "Meal",
         description: m.description || m.instructions || "",
         calories: m.est_calories || m.calories,
         prepMinutes: m.prep_minutes || m.prepMinutes,
-        mealType: slot,
+        mealType: m.meal_type || "meal",
         tags: m.tags || [],
-        emoji: slot === "breakfast" ? "🌅" : slot === "lunch" ? "☀️" : slot === "dinner" ? "🌙" : "🍎",
+        emoji: m.meal_type === "breakfast" ? "🌅" : m.meal_type === "lunch" ? "☀️" : m.meal_type === "dinner" ? "🌙" : "🍎",
       }));
 
-      if (suggestions.length === 0) {
-        suggestions.push({
-          id: `${slot}-fallback-${Date.now()}`,
-          name: `${MEAL_TYPE_LABELS[slot]} suggestion`,
-          description: "A balanced meal tailored to your preferences.",
-          calories: 500,
-          mealType: slot,
-          tags: [],
-          emoji: slot === "breakfast" ? "🌅" : slot === "lunch" ? "☀️" : slot === "dinner" ? "🌙" : "🍎",
-        });
-      }
-
-      setCurrentSuggestions(suggestions);
-      addChat("satellite", `Here's a ${MEAL_TYPE_LABELS[slot].toLowerCase()} idea — swipe right to keep it, left to skip.`);
-      setPhase("swiping");
+      setRecipes(list.length > 0 ? list : [{
+        id: `fallback-${Date.now()}`,
+        name: "Balanced Meal",
+        description: "A well-rounded meal tailored to your preferences.",
+        calories: 500,
+        mealType: "meal",
+        tags: [],
+        emoji: "🍽️",
+      }]);
+      setPhase("browse");
     } catch {
-      addChat("satellite", "Hmm, I hit a snag. Let me try again...");
-      setPhase("preferences");
+      setPhase("mood");
     }
   };
 
-  const handleMoodSelect = async (selectedMood: string) => {
-    setMood(selectedMood);
-    addChat("user", selectedMood);
-    await generateForSlot(activeSlots[0], selectedMood);
+  const handleAssignDay = (recipeId: string, date: string) => {
+    setRecipes((prev) =>
+      prev.map((r) => (r.id === recipeId ? { ...r, assignedDay: date } : r))
+    );
+    setDayPickerFor(null);
   };
 
-  const handleAccept = (meal: SwipeMeal) => {
-    const slot = swapSlot || currentSlot;
-    if (swapSlot) {
-      // Replacing an existing meal
-      setAcceptedMeals((prev) => prev.map((m) => (m.slot === swapSlot ? { slot: swapSlot, meal } : m)));
-      setSwapSlot(null);
-      addChat("satellite", `Swapped! ${meal.name} is locked in. ✓`);
-      setPhase("review");
-    } else {
-      setAcceptedMeals((prev) => [...prev, { slot, meal }]);
-      addChat("satellite", `${meal.name} — locked in! ✓`);
-
-      const nextIndex = currentSlotIndex + 1;
-      if (nextIndex < activeSlots.length) {
-        setCurrentSlotIndex(nextIndex);
-        setRejectedNames([]);
-        generateForSlot(activeSlots[nextIndex]);
-      } else {
-        addChat("satellite", "Your meal plan is ready! Review and confirm below.");
-        setPhase("review");
-      }
-    }
+  const handleUnassign = (recipeId: string) => {
+    setRecipes((prev) =>
+      prev.map((r) => (r.id === recipeId ? { ...r, assignedDay: undefined } : r))
+    );
   };
 
-  const handleReject = (meal: SwipeMeal) => {
-    addChat("satellite", "No worries, let me find something else...");
-    setRejectedNames((prev) => [...prev, meal.name]);
-    // Generate another suggestion for the same slot
-    generateForSlot(swapSlot || currentSlot);
-  };
-
-  const handleSaveToLibrary = (meal: SwipeMeal) => {
+  const handleSaveToLibrary = (recipe: RecipeCard) => {
     saveRecipe.mutate({
-      name: meal.name,
-      description: meal.description,
-      emoji: meal.emoji,
-      meal_type: meal.mealType,
-      est_calories: meal.calories,
-      prep_minutes: meal.prepMinutes,
-      tags: meal.tags,
-      source: "swiper",
+      name: recipe.name,
+      description: recipe.description,
+      emoji: recipe.emoji,
+      meal_type: recipe.mealType,
+      est_calories: recipe.calories,
+      prep_minutes: recipe.prepMinutes,
+      tags: recipe.tags,
+      source: "builder",
     });
-    addChat("satellite", `Saved ${meal.name} to your library! Let me find another option...`);
-    generateForSlot(swapSlot || currentSlot);
   };
 
-  const handleRemoveMeal = (index: number) => {
-    setAcceptedMeals((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSwapMeal = (slot: MealTypeSlot) => {
-    setSwapSlot(slot);
-    generateForSlot(slot);
-  };
+  const assignedRecipes = recipes.filter((r) => r.assignedDay);
 
   const handleConfirm = () => {
-    const meals = acceptedMeals.map((am) => ({
-      meal_type: am.slot,
-      name: am.meal.name,
-      description: am.meal.description,
-      est_calories: am.meal.calories || 0,
+    const meals = assignedRecipes.map((r) => ({
+      meal_type: r.mealType,
+      name: r.name,
+      description: r.description,
+      est_calories: r.calories || 0,
       est_protein: 0,
       est_carbs: 0,
       est_fat: 0,
-      tags: am.meal.tags,
+      tags: r.tags,
+      plan_date: r.assignedDay,
     }));
     onConfirm(meals);
     handleClose();
   };
 
+  const dayPickerRecipe = recipes.find((r) => r.id === dayPickerFor);
+
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && handleClose()}>
-      <SheetContent side="bottom" className="h-[92vh] rounded-t-2xl flex flex-col p-0">
-        <SheetHeader className="px-4 pt-4 pb-2 border-b border-border/40">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🛰️</span>
-              <SheetTitle className="text-base font-display">Fuel Check</SheetTitle>
+    <>
+      <Sheet open={open} onOpenChange={(o) => !o && handleClose()}>
+        <SheetContent side="bottom" className="h-[92vh] rounded-t-2xl flex flex-col p-0">
+          <SheetHeader className="px-4 pt-4 pb-2 border-b border-border/40 shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🛰️</span>
+                <SheetTitle className="text-base font-display">Fuel Check</SheetTitle>
+              </div>
+              <div className="flex items-center gap-2">
+                {phase === "browse" && assignedRecipes.length > 0 && (
+                  <Button size="sm" className="h-7 text-xs gap-1" onClick={handleConfirm}>
+                    <Check className="w-3 h-3" />
+                    Save {assignedRecipes.length}
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleClose}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </SheetHeader>
+          </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-          {/* Context chip when body/calendar intelligence is active */}
-          {contextLabel && phase === "preferences" && chatMessages.length === 0 && (
-            <div className="flex items-center gap-1.5 bg-muted/60 rounded-full px-3 py-1 w-fit mx-auto">
-              <span className="text-[11px] text-muted-foreground">{contextLabel}</span>
-            </div>
-          )}
-
-          {/* Chat Messages */}
-          <AnimatePresence mode="popLayout">
-            {chatMessages.map((msg, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex ${msg.from === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm ${
-                    msg.from === "satellite"
-                      ? "bg-muted text-foreground rounded-bl-sm"
-                      : "bg-primary text-primary-foreground rounded-br-sm"
-                  }`}
-                >
-                  {msg.from === "satellite" && <span className="mr-1">🛰️</span>}
-                  {msg.text}
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            {/* Phase: Mood selection */}
+            {phase === "mood" && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                {contextLabel && (
+                  <div className="flex items-center gap-1.5 bg-muted/60 rounded-full px-3 py-1 w-fit mx-auto">
+                    <span className="text-[11px] text-muted-foreground">{contextLabel}</span>
+                  </div>
+                )}
+                <div className="bg-muted px-3 py-2 rounded-2xl rounded-bl-sm text-sm max-w-[85%]">
+                  <span className="mr-1">🛰️</span>
+                  What sounds good? I'll generate a batch of recipes you can browse and assign to your week.
+                </div>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {MOOD_CHIPS.map((chip) => (
+                    <button
+                      key={chip.label}
+                      onClick={() => handleGenerate(chip.label)}
+                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-border/60 bg-card text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                    >
+                      <span>{chip.emoji}</span>
+                      {chip.label}
+                    </button>
+                  ))}
                 </div>
               </motion.div>
-            ))}
-          </AnimatePresence>
+            )}
 
-          {/* Phase: Preferences */}
-          {phase === "preferences" && chatMessages.length === 0 && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-              <div className="bg-muted px-3 py-2 rounded-2xl rounded-bl-sm text-sm max-w-[85%]">
-                <span className="mr-1">🛰️</span>
-                What sounds good today? I'll build your plan one meal at a time.
-              </div>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {MOOD_CHIPS.map((chip) => (
-                  <button
-                    key={chip.label}
-                    onClick={() => handleMoodSelect(chip.label)}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-border/60 bg-card text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+            {/* Phase: Loading */}
+            {phase === "loading" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center py-16 gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Generating recipes...</p>
+              </motion.div>
+            )}
+
+            {/* Phase: Browse recipe cards */}
+            {phase === "browse" && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                {/* Regenerate button */}
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    {recipes.length} recipes — tap a day to assign
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7 gap-1 text-muted-foreground"
+                    onClick={() => setPhase("mood")}
                   >
-                    <span>{chip.emoji}</span>
-                    {chip.label}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Phase: Generating */}
-          {phase === "generating" && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center py-8 gap-3"
-            >
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">
-                Finding {MEAL_TYPE_LABELS[currentSlot]?.toLowerCase() || "meal"} ideas...
-              </p>
-            </motion.div>
-          )}
-
-          {/* Phase: Swiping */}
-          {phase === "swiping" && currentSuggestions.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <div className="text-center mb-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {MEAL_TYPE_LABELS[swapSlot || currentSlot]}
-                </span>
-              </div>
-              <MealSwiper
-                meals={currentSuggestions}
-                onAccept={handleAccept}
-                onReject={handleReject}
-                onSaveToLibrary={handleSaveToLibrary}
-                currentMealType={MEAL_TYPE_LABELS[swapSlot || currentSlot]?.toLowerCase()}
-              />
-            </motion.div>
-          )}
-
-          {/* Phase: Review */}
-          {phase === "review" && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Your Meal Plan
-              </p>
-              {acceptedMeals.map((am, i) => (
-                <div
-                  key={`${am.slot}-${i}`}
-                  className="flex items-center justify-between rounded-xl border border-border/60 bg-card p-3"
-                >
-                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                    <span className="text-lg">{am.meal.emoji}</span>
-                    <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground capitalize">{am.slot}</p>
-                      <p className="text-sm font-medium text-foreground truncate">{am.meal.name}</p>
-                      {am.meal.calories && (
-                        <p className="text-xs text-muted-foreground">{am.meal.calories} cal</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                      onClick={() => handleSwapMeal(am.slot)}
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleRemoveMeal(i)}
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-
-              {acceptedMeals.length > 0 && (
-                <div className="flex flex-col gap-2 pt-2">
-                  <Button onClick={handleConfirm} className="w-full gap-2">
-                    <Check className="w-4 h-4" />
-                    Confirm Plan
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={handleClose}>
-                    Cancel
+                    <Sparkles className="w-3 h-3" />
+                    New batch
                   </Button>
                 </div>
-              )}
 
-              {acceptedMeals.length === 0 && (
-                <div className="text-center py-6">
-                  <p className="text-sm text-muted-foreground">No meals added yet.</p>
-                  <Button variant="outline" size="sm" className="mt-2" onClick={resetBuilder}>
-                    Start over
-                  </Button>
+                {/* Recipe card list */}
+                <div className="space-y-3">
+                  <AnimatePresence>
+                    {recipes.map((recipe, idx) => (
+                      <motion.div
+                        key={recipe.id}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="rounded-2xl border border-border/60 bg-card overflow-hidden"
+                      >
+                        {/* Card header with emoji */}
+                        <div className="flex items-start gap-3 p-3">
+                          <div className="w-12 h-12 rounded-xl bg-muted/40 flex items-center justify-center shrink-0">
+                            <span className="text-2xl">{recipe.emoji}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-semibold text-foreground leading-tight">
+                              {recipe.name}
+                            </h4>
+                            <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                              {recipe.description}
+                            </p>
+                            <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
+                              {recipe.calories && (
+                                <span className="flex items-center gap-0.5">
+                                  <Flame className="w-3 h-3" /> {recipe.calories} cal
+                                </span>
+                              )}
+                              {recipe.prepMinutes && (
+                                <span className="flex items-center gap-0.5">
+                                  <Clock className="w-3 h-3" /> {recipe.prepMinutes} min
+                                </span>
+                              )}
+                              <span className="capitalize">{recipe.mealType}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Tags */}
+                        {recipe.tags.length > 0 && (
+                          <div className="px-3 pb-2 flex flex-wrap gap-1">
+                            {recipe.tags.slice(0, 4).map((tag) => (
+                              <span key={tag} className="px-2 py-0.5 rounded-full bg-muted text-[10px] text-muted-foreground">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="px-3 pb-3 flex items-center gap-2">
+                          {recipe.assignedDay ? (
+                            <div className="flex items-center gap-2 flex-1">
+                              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary">
+                                <Calendar className="w-3 h-3" />
+                                {days.find((d) => d.date === recipe.assignedDay)?.label || recipe.assignedDay}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 text-[10px] text-muted-foreground"
+                                onClick={() => handleUnassign(recipe.id)}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="h-7 text-xs gap-1.5 flex-1"
+                              onClick={() => setDayPickerFor(recipe.id)}
+                            >
+                              <Calendar className="w-3 h-3" />
+                              Assign to day
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-accent shrink-0"
+                            onClick={() => handleSaveToLibrary(recipe)}
+                            title="Save to library"
+                          >
+                            <Bookmark className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
-              )}
-            </motion.div>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
+              </motion.div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Day Picker Sheet */}
+      <Sheet open={!!dayPickerFor} onOpenChange={(o) => !o && setDayPickerFor(null)}>
+        <SheetContent side="bottom" className="h-auto rounded-t-2xl">
+          <SheetHeader className="pb-3">
+            <SheetTitle className="text-sm font-display">
+              {dayPickerRecipe ? `Assign "${dayPickerRecipe.name}"` : "Pick a day"}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="grid grid-cols-2 gap-2 pb-4">
+            {days.map((day) => (
+              <Button
+                key={day.date}
+                variant="outline"
+                size="sm"
+                className="text-xs justify-start gap-2"
+                onClick={() => dayPickerFor && handleAssignDay(dayPickerFor, day.date)}
+              >
+                <Calendar className="w-3 h-3" />
+                {day.label}
+              </Button>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
