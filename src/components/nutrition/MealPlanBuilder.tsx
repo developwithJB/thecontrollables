@@ -1,6 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Loader2, X, Calendar, Flame, Clock, Check, Bookmark } from "lucide-react";
+import { Sparkles, Loader2, X, Calendar, Flame, Clock, Check, Bookmark, Send, Mic, MicOff } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useMealPreferences } from "@/hooks/useMealPreferences";
