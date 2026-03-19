@@ -65,6 +65,9 @@ export function MealPlanBuilder({
   const [recipes, setRecipes] = useState<RecipeCard[]>([]);
   const [phase, setPhase] = useState<"mood" | "loading" | "browse">("mood");
   const [dayPickerFor, setDayPickerFor] = useState<string | null>(null);
+  const [freeText, setFreeText] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   const { preferences } = useMealPreferences(userId);
   const saveRecipe = useSaveRecipe(userId);
