@@ -238,7 +238,7 @@ export function MealPlanBuilder({
           <div className="flex-1 overflow-y-auto px-4 py-4">
             {/* Phase: Mood selection */}
             {phase === "mood" && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 flex flex-col h-full">
                 {contextLabel && (
                   <div className="flex items-center gap-1.5 bg-muted/60 rounded-full px-3 py-1 w-fit mx-auto">
                     <span className="text-[11px] text-muted-foreground">{contextLabel}</span>
@@ -246,7 +246,7 @@ export function MealPlanBuilder({
                 )}
                 <div className="bg-muted px-3 py-2 rounded-2xl rounded-bl-sm text-sm max-w-[85%]">
                   <span className="mr-1">🛰️</span>
-                  What sounds good? I'll generate a batch of recipes you can browse and assign to your week.
+                  What sounds good? Type what you're craving, use your voice, or pick a vibe below.
                 </div>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {MOOD_CHIPS.map((chip) => (
@@ -260,6 +260,38 @@ export function MealPlanBuilder({
                     </button>
                   ))}
                 </div>
+
+                {/* Free text + voice input */}
+                <div className="flex-1" />
+                <form
+                  className="flex items-center gap-2 bg-muted/50 rounded-2xl border border-border/40 px-3 py-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (freeText.trim()) handleGenerate(freeText.trim());
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={toggleListening}
+                    className={`shrink-0 p-2 rounded-full transition-colors ${isListening ? "bg-destructive/20 text-destructive" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+                    title={isListening ? "Stop listening" : "Speak"}
+                  >
+                    {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  </button>
+                  <Input
+                    value={freeText}
+                    onChange={(e) => setFreeText(e.target.value)}
+                    placeholder="E.g. something quick with chicken..."
+                    className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 h-8 text-sm px-0"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!freeText.trim()}
+                    className="shrink-0 p-2 rounded-full text-primary disabled:text-muted-foreground/40 hover:bg-primary/10 transition-colors"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </form>
               </motion.div>
             )}
 
