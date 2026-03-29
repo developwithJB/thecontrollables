@@ -41,6 +41,8 @@ import { analyzeCalendar } from "@/lib/calendarIntelligence";
 import { getFuelIntelligence } from "@/lib/fuelIntelligence";
 import { useMealTracking } from "@/hooks/useMealTracking";
 import { useWeeklyReview } from "@/hooks/useWeeklyReview";
+import { useWeeklyTracker } from "@/hooks/useWeeklyTracker";
+import { WeeklyPulseScreen } from "@/components/dashboard/WeeklyPulseScreen";
 
 // Dashboard modules
 import { SnapshotSelector } from "@/components/dashboard/SnapshotSelector";
@@ -78,6 +80,7 @@ export default function Home() {
   const [showConfirmLastNight, setShowConfirmLastNight] = useState(false);
   const [showValidatePlan, setShowValidatePlan] = useState(false);
   const [validatePlanCompleted, setValidatePlanCompleted] = useState(false);
+  const [pulseDismissed, setPulseDismissed] = useState(false);
 
   // Check if plan was already validated today
   useEffect(() => {
@@ -214,6 +217,19 @@ export default function Home() {
   const { rings, completedCount } = useDailyRings(user.id);
   const { data: intelligenceData } = useDashboardIntelligence(user.id, completedCount, rings);
   const { review: weeklyReview, isAvailable: weeklyReviewAvailable } = useWeeklyReview(user.id, isPaid);
+  const { data: weeklyTrackerData, previousWeek: prevWeekScores, isLoading: weeklyTrackerLoading } = useWeeklyTracker(user.id);
+
+  // Check if pulse was already seen this session
+  useEffect(() => {
+    const key = `pulse_seen_${user.id}_${new Date().toLocaleDateString("sv-SE")}`;
+    try { if (sessionStorage.getItem(key) === "1") setPulseDismissed(true); } catch {}
+  }, [user.id]);
+
+  const dismissPulse = useCallback(() => {
+    setPulseDismissed(true);
+    const key = `pulse_seen_${user.id}_${new Date().toLocaleDateString("sv-SE")}`;
+    try { sessionStorage.setItem(key, "1"); } catch {}
+  }, [user.id]);
 
   // Plan vs Actual data for dashboard
   const weekRange = useMemo(() => getWeekRange(new Date()), []);
@@ -476,6 +492,17 @@ export default function Home() {
         createQuest={createQuest}
         onComplete={() => queryClient.invalidateQueries({ queryKey: ["user-onboarding"] })}
         onUpdateOnboarding={async (data) => { await updateOnboardingProgress(data); }}
+      />
+    );
+  }
+
+  // Weekly Pulse Screen — full-screen takeover on app open
+  if (!pulseDismissed && !weeklyTrackerLoading && weeklyTrackerData) {
+    return (
+      <WeeklyPulseScreen
+        data={weeklyTrackerData}
+        previousWeek={prevWeekScores}
+        onDismiss={dismissPulse}
       />
     );
   }
