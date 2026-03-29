@@ -3269,6 +3269,63 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_tracking: {
+        Row: {
+          created_at: string
+          days_active: number | null
+          id: string
+          money_score: number | null
+          nutrition_score: number | null
+          overall_score: number | null
+          planner_score: number | null
+          recap_data: Json | null
+          recap_generated: boolean | null
+          rings_score: number | null
+          total_xp_earned: number | null
+          updated_at: string
+          user_id: string
+          wearable_score: number | null
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          days_active?: number | null
+          id?: string
+          money_score?: number | null
+          nutrition_score?: number | null
+          overall_score?: number | null
+          planner_score?: number | null
+          recap_data?: Json | null
+          recap_generated?: boolean | null
+          rings_score?: number | null
+          total_xp_earned?: number | null
+          updated_at?: string
+          user_id: string
+          wearable_score?: number | null
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          days_active?: number | null
+          id?: string
+          money_score?: number | null
+          nutrition_score?: number | null
+          overall_score?: number | null
+          planner_score?: number | null
+          recap_data?: Json | null
+          recap_generated?: boolean | null
+          rings_score?: number | null
+          total_xp_earned?: number | null
+          updated_at?: string
+          user_id?: string
+          wearable_score?: number | null
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       wellness_goals: {
         Row: {
           created_at: string
