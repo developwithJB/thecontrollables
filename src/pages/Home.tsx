@@ -496,6 +496,17 @@ export default function Home() {
     );
   }
 
+  // Weekly Pulse Screen — full-screen takeover on app open
+  if (!pulseDismissed && !weeklyTrackerLoading && weeklyTrackerData) {
+    return (
+      <WeeklyPulseScreen
+        data={weeklyTrackerData}
+        previousWeek={prevWeekScores}
+        onDismiss={dismissPulse}
+      />
+    );
+  }
+
   // Welcome Back
   if (showWelcomeBack) {
     return <WelcomeBackScreen onContinue={dismissWelcomeBack} onViewHistory={dismissWelcomeBack} />;
