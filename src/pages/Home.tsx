@@ -41,6 +41,8 @@ import { analyzeCalendar } from "@/lib/calendarIntelligence";
 import { getFuelIntelligence } from "@/lib/fuelIntelligence";
 import { useMealTracking } from "@/hooks/useMealTracking";
 import { useWeeklyReview } from "@/hooks/useWeeklyReview";
+import { useWeeklyTracker } from "@/hooks/useWeeklyTracker";
+import { WeeklyPulseScreen } from "@/components/dashboard/WeeklyPulseScreen";
 
 // Dashboard modules
 import { SnapshotSelector } from "@/components/dashboard/SnapshotSelector";
