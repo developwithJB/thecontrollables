@@ -88,7 +88,7 @@ ${mealsExample}
   ],
   "satellite_tip": string (1-sentence wellness insight)
 }
-Keep meals simple, whole-food focused, and easy to prepare. Return valid JSON only.`;
+Be creative and varied — never default to the same recipes. Use diverse cuisines, ingredients, and cooking styles each time. Keep meals simple, whole-food focused, and easy to prepare. Return valid JSON only.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

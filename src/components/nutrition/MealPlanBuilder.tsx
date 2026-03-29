@@ -68,6 +68,7 @@ export function MealPlanBuilder({
   const [freeText, setFreeText] = useState("");
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const seenNamesRef = useRef<Set<string>>(new Set());
 
   const { preferences } = useMealPreferences(userId);
   const saveRecipe = useSaveRecipe(userId);
@@ -80,6 +81,7 @@ export function MealPlanBuilder({
     setDayPickerFor(null);
     setFreeText("");
     stopListening();
+    seenNamesRef.current.clear();
   }, []);
 
   const toggleListening = useCallback(() => {
@@ -136,6 +138,7 @@ export function MealPlanBuilder({
           fatTarget: preferences?.fatTarget || undefined,
         },
         context_tags: contextTags?.length ? contextTags : undefined,
+        exclude_names: seenNamesRef.current.size > 0 ? Array.from(seenNamesRef.current) : undefined,
       });
 
       const meals = result?.meals || result || [];
@@ -149,6 +152,9 @@ export function MealPlanBuilder({
         tags: m.tags || [],
         emoji: m.meal_type === "breakfast" ? "🌅" : m.meal_type === "lunch" ? "☀️" : m.meal_type === "dinner" ? "🌙" : "🍎",
       }));
+
+      // Track all generated names so future batches never repeat
+      list.forEach((r) => seenNamesRef.current.add(r.name.toLowerCase()));
 
       setRecipes(list.length > 0 ? list : [{
         id: `fallback-${Date.now()}`,
