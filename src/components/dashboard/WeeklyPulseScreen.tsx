@@ -242,7 +242,7 @@ export function WeeklyPulseScreen({ data, previousWeek, onDismiss }: WeeklyPulse
       </div>
 
       {/* Fixed bottom CTA */}
-      <div className="fixed bottom-0 inset-x-0 p-6 bg-gradient-to-t from-background via-background to-transparent pt-12">
+      <div className="fixed bottom-20 inset-x-0 px-6 pb-2 bg-gradient-to-t from-background via-background to-transparent pt-8 z-50">
         <Button onClick={onDismiss} className="w-full h-14 text-lg font-semibold" size="lg">
           Let's go <ChevronRight className="w-5 h-5 ml-1" />
         </Button>
