@@ -44,8 +44,7 @@ import { useWeeklyTracker } from "@/hooks/useWeeklyTracker";
 import { WeeklyPulseScreen } from "@/components/dashboard/WeeklyPulseScreen";
 
 // Dashboard modules
-import { SnapshotSelector } from "@/components/dashboard/SnapshotSelector";
-import { StartSnapshotDialog } from "@/components/dashboard/StartSnapshotDialog";
+import { DailyReadingCard } from "@/components/dashboard/DailyReadingCard";
 import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
 import { TodayActions } from "@/components/dashboard/TodayActions";
 import { DailyBriefingCard } from "@/components/dashboard/DailyBriefingCard";
