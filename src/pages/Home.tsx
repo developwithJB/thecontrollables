@@ -401,14 +401,7 @@ export default function Home() {
     }
   }, [searchParams, setSearchParams, toast, queryClient]);
 
-  // Focus/Day7 params
-  useEffect(() => {
-    if (searchParams.get("openFocus") === "1" && activeSession) {
-      setShowJourneySwitcher(true);
-      const next = new URLSearchParams(searchParams); next.delete("openFocus"); setSearchParams(next, { replace: true });
-    }
-  }, [searchParams, setSearchParams, activeSession]);
-
+  // Day7 reading param
   useEffect(() => {
     if (searchParams.get("day7reading") !== "done") return;
     const next = new URLSearchParams(searchParams); next.delete("day7reading"); setSearchParams(next, { replace: true });
