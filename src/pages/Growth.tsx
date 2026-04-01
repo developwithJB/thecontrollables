@@ -35,7 +35,7 @@ import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule"
 import { CircleCard } from "@/components/dashboard/CircleCard";
 import { SeasonBanner } from "@/components/dashboard/SeasonBanner";
 import { MainQuestModule } from "@/components/dashboard/MainQuestModule";
-import { SnapshotReviewCard } from "@/components/dashboard/SnapshotReviewCard";
+
 import { ControllablePoweredBy } from "@/components/layout/ControllablePoweredBy";
 import { GameRulesSection } from "@/components/GameRulesSection";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
