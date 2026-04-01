@@ -552,7 +552,7 @@ export default function Home() {
         <DailyBriefingCard
           isPaid={isPaid}
           isTrialing={isTrialing}
-          hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
+        hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
           onUpgrade={() => startCheckout(undefined, "daily_briefing")}
           healthRecovery={healthLatest?.recovery}
           plannerCount={todayPlannerItems.length}
