@@ -572,8 +572,8 @@ export default function Home() {
           todayXpEarned={xpLogs.filter((log) => new Date(log.created_at).toLocaleDateString("sv-SE") === new Date().toLocaleDateString("sv-SE")).reduce((sum, log) => sum + log.amount, 0)}
           buildLastUpdatedAt={currentBuild?.updated_at ?? null}
           journeyId={activeSession?.journey_id ?? undefined}
-          journeyTitle={activeSession?.journey_id ? getJourneyById(activeSession.journey_id)?.title : undefined}
-          onChangeJourney={() => setShowJourneySwitcher(true)}
+           journeyTitle={undefined}
+           onChangeJourney={() => {}}
           missionTitle={activeQuest?.title}
           onOpenTimeLog={() => setShowConfirmLastNight(true)}
           onOpenPromises={() => setShowValidatePlan(true)}
