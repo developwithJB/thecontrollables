@@ -658,55 +658,8 @@ export default function Home() {
         onComplete={() => setValidatePlanCompleted(true)}
       />
 
-      {/* Snapshot Selector Dialog */}
-      {activeSession && !isCompleted && (
-        <SnapshotSelector
-          currentSnapshotId={activeSession.journey_id}
-          sessionId={activeSession.id}
-          currentDay={currentDay}
-          userId={user.id}
-          isPaid={isPaid}
-          hasUsedFreeTrial={freeTrialUsed}
-          onUpgrade={() => startCheckout(undefined, "snapshot_selector")}
-          onSnapshotChanged={() => {
-            queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
-            queryClient.invalidateQueries({ queryKey: ["reset-session"], exact: false });
-            setShowJourneySwitcher(false);
-          }}
-          isOpen={showJourneySwitcher}
-          onOpenChange={setShowJourneySwitcher}
-        />
-      )}
-
-      {!activeSession && canStartSnapshot && (
-        <StartSnapshotDialog
-          isOpen={showJourneySwitcher}
-          onOpenChange={setShowJourneySwitcher}
-          onSelectSnapshot={async (snapshotId, asSeason) => {
-            if (asSeason) {
-              const seasonId = await startSeason();
-              if (seasonId) {
-                acceptCovenant({ isPaid, journeyId: snapshotId });
-                setTimeout(async () => {
-                  const { data: newSession } = await supabase.from("reset_sessions").select("id").eq("user_id", user.id).eq("status", "active").order("created_at", { ascending: false }).limit(1).maybeSingle();
-                  if (newSession) await linkSnapshotToSeason(newSession.id, seasonId);
-                }, 2000);
-              }
-            } else {
-              acceptCovenant({ isPaid, journeyId: snapshotId });
-              if (activeSeason) {
-                setTimeout(async () => {
-                  const { data: newSession } = await supabase.from("reset_sessions").select("id").eq("user_id", user.id).eq("status", "active").order("created_at", { ascending: false }).limit(1).maybeSingle();
-                  if (newSession) await linkSnapshotToSeason(newSession.id, activeSeason.id);
-                }, 2000);
-              }
-            }
-            setShowJourneySwitcher(false);
-          }}
-          isStarting={isAcceptingCovenant}
-          isPaid={isPaid}
-        />
-      )}
+      {/* Daily Reading Card */}
+      <DailyReadingCard userId={user.id} />
 
       {/* Season Complete Overlay */}
       {showSeasonComplete && seasonProgress && activeSeason && (
