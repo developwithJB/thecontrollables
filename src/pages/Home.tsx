@@ -541,7 +541,7 @@ export default function Home() {
       {!entitlementsLoading && (
         <DailyBriefingCard
           isPaid={isPaid}
-          isTrialing={isTrialing}
+          isTrialing={false}
         hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
           onUpgrade={() => startCheckout(undefined, "daily_briefing")}
           healthRecovery={healthLatest?.recovery}
