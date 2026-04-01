@@ -22,11 +22,9 @@ import { useOnboarding } from "@/hooks/useOnboarding";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { usePageViewTracking, useAnalytics } from "@/hooks/useAnalytics";
 import { useActionTracking } from "@/hooks/useActionTracking";
-import { canStartNewSnapshot, hasUsedFreeTrial, isInActiveTrial } from "@/lib/entitlements";
 import { getDefaultCheckoutPlan, onboardingQuickStartEnabled, shouldUseInlinePaywall } from "@/lib/featureFlags";
 import { useDashboardVisitCount } from "@/hooks/useDashboardVisitCount";
 import { supabase } from "@/integrations/supabase/client";
-import { getJourneyById } from "@/lib/guidedJourneys";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { useSeason } from "@/hooks/useSeason";
@@ -45,8 +43,7 @@ import { useWeeklyTracker } from "@/hooks/useWeeklyTracker";
 import { WeeklyPulseScreen } from "@/components/dashboard/WeeklyPulseScreen";
 
 // Dashboard modules
-import { SnapshotSelector } from "@/components/dashboard/SnapshotSelector";
-import { StartSnapshotDialog } from "@/components/dashboard/StartSnapshotDialog";
+import { DailyReadingCard } from "@/components/dashboard/DailyReadingCard";
 import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
 import { TodayActions } from "@/components/dashboard/TodayActions";
 import { DailyBriefingCard } from "@/components/dashboard/DailyBriefingCard";
@@ -74,7 +71,6 @@ export default function Home() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const [showJourneySwitcher, setShowJourneySwitcher] = useState(false);
   const [showMissionEdit, setShowMissionEdit] = useState(false);
   const [editingMissionTitle, setEditingMissionTitle] = useState("");
   const [showConfirmLastNight, setShowConfirmLastNight] = useState(false);
@@ -359,15 +355,6 @@ export default function Home() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const hasEndedTrial = useMemo(() => {
-    if (isPaid) return false;
-    return allSessions.some((s) => s.status === "completed" || s.status === "expired" || s.status === "paused");
-  }, [allSessions, isPaid]);
-
-  const freeTrialUsed = useMemo(() => hasUsedFreeTrial(isPaid, allSessions.length), [isPaid, allSessions.length]);
-  const canStartSnapshot = useMemo(() => canStartNewSnapshot(isPaid, allSessions.length), [isPaid, allSessions.length]);
-  const isTrialing = useMemo(() => isInActiveTrial(isPaid, !!activeSession, isCompleted, isExpired, allSessions.length), [isPaid, activeSession, isCompleted, isExpired, allSessions.length]);
-
   const defaultCheckoutPlan = getDefaultCheckoutPlan();
   const useInlinePaywall = shouldUseInlinePaywall();
 
@@ -414,14 +401,7 @@ export default function Home() {
     }
   }, [searchParams, setSearchParams, toast, queryClient]);
 
-  // Focus/Day7 params
-  useEffect(() => {
-    if (searchParams.get("openFocus") === "1" && activeSession) {
-      setShowJourneySwitcher(true);
-      const next = new URLSearchParams(searchParams); next.delete("openFocus"); setSearchParams(next, { replace: true });
-    }
-  }, [searchParams, setSearchParams, activeSession]);
-
+  // Day7 reading param
   useEffect(() => {
     if (searchParams.get("day7reading") !== "done") return;
     const next = new URLSearchParams(searchParams); next.delete("day7reading"); setSearchParams(next, { replace: true });
@@ -513,12 +493,11 @@ export default function Home() {
   }
 
   if (showFollowUp) {
-    const currentJourney = activeSession?.journey_id ? getJourneyById(activeSession.journey_id) : null;
     return (
       <WelcomeBackFollowUp
-        currentSnapshotTitle={currentJourney?.title}
+        currentSnapshotTitle={undefined}
         onKeepCurrent={dismissFollowUp}
-        onChooseNew={() => { dismissFollowUp(); canStartSnapshot ? setShowJourneySwitcher(true) : startCheckout(undefined, "welcome_back_follow_up"); }}
+        onChooseNew={() => { dismissFollowUp(); }}
         isPaid={isPaid}
         nudgeEnabled={nudgeEnabled}
         onEnableDailyAlignment={handleEnableDailyAlignment}
@@ -539,17 +518,12 @@ export default function Home() {
         totalXp={totalXp}
         streakDays={consecutiveStreak}
         visitCount={dashboardVisitCount}
-        isPaid={isPaid || isTrialing}
+        isPaid={isPaid}
         seasonName={activeSeason?.name}
         onSeasonClick={() => setShowSeasonSetup(true)}
         missionTitle={!activeSeason ? activeQuest?.title : undefined}
         onMissionClick={() => {
           if (activeQuest) { setEditingMissionTitle(activeQuest.title); setShowMissionEdit(true); }
-        }}
-        snapshotFocus={activeSession?.journey_id ? getJourneyById(activeSession.journey_id)?.title : undefined}
-        snapshotEmoji={activeSession?.journey_id ? getJourneyById(activeSession.journey_id)?.emoji : undefined}
-        onSnapshotClick={() => {
-          canStartSnapshot || !!activeSession ? setShowJourneySwitcher(true) : startCheckout(undefined, "greeting_banner_snapshot");
         }}
       />
 
@@ -567,8 +541,8 @@ export default function Home() {
       {!entitlementsLoading && (
         <DailyBriefingCard
           isPaid={isPaid}
-          isTrialing={isTrialing}
-          hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
+          isTrialing={false}
+        hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
           onUpgrade={() => startCheckout(undefined, "daily_briefing")}
           healthRecovery={healthLatest?.recovery}
           plannerCount={todayPlannerItems.length}
@@ -589,7 +563,7 @@ export default function Home() {
           onStartReset={() => acceptCovenant({ isPaid })}
           isStartingReset={isAcceptingCovenant}
           isPaid={isPaid}
-          hasUsedFreeReset={freeTrialUsed}
+          hasUsedFreeReset={false}
           onUpgrade={() => startCheckout(undefined, "today_actions")}
           hasActiveQuest={!!activeQuest}
           todayTimeLogged={!!todayTimeLog}
@@ -598,8 +572,8 @@ export default function Home() {
           todayXpEarned={xpLogs.filter((log) => new Date(log.created_at).toLocaleDateString("sv-SE") === new Date().toLocaleDateString("sv-SE")).reduce((sum, log) => sum + log.amount, 0)}
           buildLastUpdatedAt={currentBuild?.updated_at ?? null}
           journeyId={activeSession?.journey_id ?? undefined}
-          journeyTitle={activeSession?.journey_id ? getJourneyById(activeSession.journey_id)?.title : undefined}
-          onChangeJourney={() => setShowJourneySwitcher(true)}
+           journeyTitle={undefined}
+           onChangeJourney={() => {}}
           missionTitle={activeQuest?.title}
           onOpenTimeLog={() => setShowConfirmLastNight(true)}
           onOpenPromises={() => setShowValidatePlan(true)}
@@ -615,7 +589,7 @@ export default function Home() {
       {/* ═══ TIER 2 — What should I eat? What should I protect? ═══ */}
 
       {/* 6. Fuel Today — Tier 2: What should I eat? */}
-      <FuelTodayCard userId={user.id} isPaid={isPaid || isTrialing} fuelIntel={todayFuelIntel} />
+      <FuelTodayCard userId={user.id} isPaid={isPaid} fuelIntel={todayFuelIntel} />
 
       {/* 7. Plan vs Actual — Tier 1/2: schedule reality + protection */}
       <div id="pva">
@@ -684,55 +658,8 @@ export default function Home() {
         onComplete={() => setValidatePlanCompleted(true)}
       />
 
-      {/* Snapshot Selector Dialog */}
-      {activeSession && !isCompleted && (
-        <SnapshotSelector
-          currentSnapshotId={activeSession.journey_id}
-          sessionId={activeSession.id}
-          currentDay={currentDay}
-          userId={user.id}
-          isPaid={isPaid}
-          hasUsedFreeTrial={freeTrialUsed}
-          onUpgrade={() => startCheckout(undefined, "snapshot_selector")}
-          onSnapshotChanged={() => {
-            queryClient.invalidateQueries({ queryKey: ["user-onboarding"] });
-            queryClient.invalidateQueries({ queryKey: ["reset-session"], exact: false });
-            setShowJourneySwitcher(false);
-          }}
-          isOpen={showJourneySwitcher}
-          onOpenChange={setShowJourneySwitcher}
-        />
-      )}
-
-      {!activeSession && canStartSnapshot && (
-        <StartSnapshotDialog
-          isOpen={showJourneySwitcher}
-          onOpenChange={setShowJourneySwitcher}
-          onSelectSnapshot={async (snapshotId, asSeason) => {
-            if (asSeason) {
-              const seasonId = await startSeason();
-              if (seasonId) {
-                acceptCovenant({ isPaid, journeyId: snapshotId });
-                setTimeout(async () => {
-                  const { data: newSession } = await supabase.from("reset_sessions").select("id").eq("user_id", user.id).eq("status", "active").order("created_at", { ascending: false }).limit(1).maybeSingle();
-                  if (newSession) await linkSnapshotToSeason(newSession.id, seasonId);
-                }, 2000);
-              }
-            } else {
-              acceptCovenant({ isPaid, journeyId: snapshotId });
-              if (activeSeason) {
-                setTimeout(async () => {
-                  const { data: newSession } = await supabase.from("reset_sessions").select("id").eq("user_id", user.id).eq("status", "active").order("created_at", { ascending: false }).limit(1).maybeSingle();
-                  if (newSession) await linkSnapshotToSeason(newSession.id, activeSeason.id);
-                }, 2000);
-              }
-            }
-            setShowJourneySwitcher(false);
-          }}
-          isStarting={isAcceptingCovenant}
-          isPaid={isPaid}
-        />
-      )}
+      {/* Daily Reading Card */}
+      <DailyReadingCard userId={user.id} />
 
       {/* Season Complete Overlay */}
       {showSeasonComplete && seasonProgress && activeSeason && (
