@@ -355,9 +355,6 @@ export default function Home() {
     staleTime: 5 * 60 * 1000,
   });
 
-
-  const defaultCheckoutPlan = getDefaultCheckoutPlan();
-
   const defaultCheckoutPlan = getDefaultCheckoutPlan();
   const useInlinePaywall = shouldUseInlinePaywall();
 
