@@ -26,7 +26,6 @@ import { getDefaultCheckoutPlan, onboardingQuickStartEnabled, shouldUseInlinePay
 import { useDashboardVisitCount } from "@/hooks/useDashboardVisitCount";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { useSeason } from "@/hooks/useSeason";
 import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
