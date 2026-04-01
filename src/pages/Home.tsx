@@ -589,7 +589,7 @@ export default function Home() {
       {/* ═══ TIER 2 — What should I eat? What should I protect? ═══ */}
 
       {/* 6. Fuel Today — Tier 2: What should I eat? */}
-      <FuelTodayCard userId={user.id} isPaid={isPaid || isTrialing} fuelIntel={todayFuelIntel} />
+      <FuelTodayCard userId={user.id} isPaid={isPaid} fuelIntel={todayFuelIntel} />
 
       {/* 7. Plan vs Actual — Tier 1/2: schedule reality + protection */}
       <div id="pva">
