@@ -528,17 +528,12 @@ export default function Home() {
         totalXp={totalXp}
         streakDays={consecutiveStreak}
         visitCount={dashboardVisitCount}
-        isPaid={isPaid || isTrialing}
+        isPaid={isPaid}
         seasonName={activeSeason?.name}
         onSeasonClick={() => setShowSeasonSetup(true)}
         missionTitle={!activeSeason ? activeQuest?.title : undefined}
         onMissionClick={() => {
           if (activeQuest) { setEditingMissionTitle(activeQuest.title); setShowMissionEdit(true); }
-        }}
-        snapshotFocus={activeSession?.journey_id ? getJourneyById(activeSession.journey_id)?.title : undefined}
-        snapshotEmoji={activeSession?.journey_id ? getJourneyById(activeSession.journey_id)?.emoji : undefined}
-        onSnapshotClick={() => {
-          canStartSnapshot || !!activeSession ? setShowJourneySwitcher(true) : startCheckout(undefined, "greeting_banner_snapshot");
         }}
       />
 
