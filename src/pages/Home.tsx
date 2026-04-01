@@ -71,7 +71,6 @@ export default function Home() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const [showJourneySwitcher, setShowJourneySwitcher] = useState(false);
   const [showMissionEdit, setShowMissionEdit] = useState(false);
   const [editingMissionTitle, setEditingMissionTitle] = useState("");
   const [showConfirmLastNight, setShowConfirmLastNight] = useState(false);
