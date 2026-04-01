@@ -117,11 +117,6 @@ export default function Growth() {
   const [showProof, setShowProof] = useState(false);
   const hasActiveSession = !!activeSession && !isCompleted && !isExpired;
   const todayAlreadyCompleted = completedDays.some((d) => d.day_number === currentDay);
-  const hasEndedTrial = useMemo(() => {
-    if (isPaid) return false;
-    return allSessions.some((s) => s.status === "completed" || s.status === "expired" || s.status === "paused");
-  }, [allSessions, isPaid]);
-  const canStartSnapshot = useMemo(() => canStartNewSnapshot(isPaid, allSessions.length), [isPaid, allSessions.length]);
 
   // Circle invites
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
