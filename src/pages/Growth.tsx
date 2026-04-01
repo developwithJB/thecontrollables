@@ -100,7 +100,6 @@ export default function Growth() {
 
   const {
     activeSeason,
-    seasonSnapshots,
     seasonProgress,
     closeSeason,
   } = useSeason(user.id);
