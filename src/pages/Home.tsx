@@ -503,12 +503,11 @@ export default function Home() {
   }
 
   if (showFollowUp) {
-    const currentJourney = activeSession?.journey_id ? getJourneyById(activeSession.journey_id) : null;
     return (
       <WelcomeBackFollowUp
-        currentSnapshotTitle={currentJourney?.title}
+        currentSnapshotTitle={undefined}
         onKeepCurrent={dismissFollowUp}
-        onChooseNew={() => { dismissFollowUp(); canStartSnapshot ? setShowJourneySwitcher(true) : startCheckout(undefined, "welcome_back_follow_up"); }}
+        onChooseNew={() => { dismissFollowUp(); }}
         isPaid={isPaid}
         nudgeEnabled={nudgeEnabled}
         onEnableDailyAlignment={handleEnableDailyAlignment}
