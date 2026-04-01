@@ -563,7 +563,7 @@ export default function Home() {
           onStartReset={() => acceptCovenant({ isPaid })}
           isStartingReset={isAcceptingCovenant}
           isPaid={isPaid}
-          hasUsedFreeReset={freeTrialUsed}
+          hasUsedFreeReset={false}
           onUpgrade={() => startCheckout(undefined, "today_actions")}
           hasActiveQuest={!!activeQuest}
           todayTimeLogged={!!todayTimeLog}
