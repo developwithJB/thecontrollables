@@ -355,14 +355,8 @@ export default function Home() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const hasEndedTrial = useMemo(() => {
-    if (isPaid) return false;
-    return allSessions.some((s) => s.status === "completed" || s.status === "expired" || s.status === "paused");
-  }, [allSessions, isPaid]);
 
-  const freeTrialUsed = useMemo(() => hasUsedFreeTrial(isPaid, allSessions.length), [isPaid, allSessions.length]);
-  const canStartSnapshot = useMemo(() => canStartNewSnapshot(isPaid, allSessions.length), [isPaid, allSessions.length]);
-  const isTrialing = useMemo(() => isInActiveTrial(isPaid, !!activeSession, isCompleted, isExpired, allSessions.length), [isPaid, activeSession, isCompleted, isExpired, allSessions.length]);
+  const defaultCheckoutPlan = getDefaultCheckoutPlan();
 
   const defaultCheckoutPlan = getDefaultCheckoutPlan();
   const useInlinePaywall = shouldUseInlinePaywall();
