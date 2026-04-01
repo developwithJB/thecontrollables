@@ -158,7 +158,7 @@ export default function Growth() {
 
       {/* Season Banner */}
       {activeSeason && seasonProgress && (
-        <SeasonBanner seasonName={activeSeason.name} snapshots={seasonSnapshots} progress={seasonProgress} onCloseSeason={closeSeason} />
+        <SeasonBanner seasonName={activeSeason.name} snapshots={[]} progress={seasonProgress} onCloseSeason={closeSeason} />
       )}
 
       {/* Main Quest — fallback for users without seasons */}
@@ -172,17 +172,6 @@ export default function Growth() {
           isUpdating={isUpdatingQuest}
           isCompleting={isCompletingQuest}
           disabled={!isAuthReady}
-        />
-      )}
-
-      {/* Snapshot Review — moved from Today */}
-      {(((hasEndedTrial && !isPaid) || (!activeSession && allSessions.some(s => s.status === "completed" || s.status === "expired" || s.status === "paused"))) ||
-        (activeSession && (isCompleted || isExpired))) && (
-        <SnapshotReviewCard
-          userId={user.id}
-          isPaid={isPaid}
-          onStartNewSnapshot={canStartSnapshot ? () => navigate("/home?openFocus=1") : undefined}
-          onUpgrade={() => startCheckout("snapshot_review_card")}
         />
       )}
 
