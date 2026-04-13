@@ -1,66 +1,27 @@
-import { useEffect, useCallback, useMemo, useState, useRef } from "react";
-import { format } from "date-fns";
+import { useEffect, useCallback, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Target, Calendar, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useReset } from "@/hooks/useReset";
-import { useDashboardSummary } from "@/hooks/useDashboardSummary";
-import { useBuildAssessment } from "@/hooks/useBuildAssessment";
-import { useWelcomeBack } from "@/hooks/useWelcomeBack";
-import { WelcomeBackScreen, WelcomeBackFollowUp } from "@/components/welcome-back";
-import { useBadges } from "@/hooks/useBadges";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { usePageViewTracking, useAnalytics } from "@/hooks/useAnalytics";
-import { useActionTracking } from "@/hooks/useActionTracking";
-import { getDefaultCheckoutPlan, onboardingQuickStartEnabled, shouldUseInlinePaywall } from "@/lib/featureFlags";
-import { useDashboardVisitCount } from "@/hooks/useDashboardVisitCount";
+import { onboardingQuickStartEnabled } from "@/lib/featureFlags";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
-import { useSeason } from "@/hooks/useSeason";
-import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
-import { useDailyRings } from "@/hooks/useDailyRings";
 import { useHealthData } from "@/hooks/useHealthData";
 import { useAutoWearableSync } from "@/hooks/useAutoWearableSync";
 import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
-import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
-import { useDailySynthesis } from "@/hooks/useDailySynthesis";
 import { analyzeCalendar } from "@/lib/calendarIntelligence";
-import { getFuelIntelligence } from "@/lib/fuelIntelligence";
-import { useMealTracking } from "@/hooks/useMealTracking";
-import { useWeeklyReview } from "@/hooks/useWeeklyReview";
 import { useWeeklyTracker } from "@/hooks/useWeeklyTracker";
 import { WeeklyPulseScreen } from "@/components/dashboard/WeeklyPulseScreen";
 
-// Dashboard modules
-import { DailyReadingCard } from "@/components/dashboard/DailyReadingCard";
+// Calm dashboard modules
 import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
-import { TodayActions } from "@/components/dashboard/TodayActions";
-import { DailyBriefingCard } from "@/components/dashboard/DailyBriefingCard";
-import { AskDashboardBar } from "@/components/dashboard/AskDashboardBar";
-import { ForecastCard } from "@/components/dashboard/ForecastCard";
-import { SeasonComplete } from "@/components/SeasonComplete";
-import { CompactRingsRow } from "@/components/dashboard/CompactRingsRow";
-import { TodayReadinessBar } from "@/components/dashboard/TodayReadinessBar";
-import { FuelTodayCard } from "@/components/dashboard/FuelTodayCard";
-import {
-  ResetProgressSkeleton,
-} from "@/components/dashboard/DashboardSkeletons";
+import { TodaySignalCard } from "@/components/dashboard/TodaySignalCard";
+import { DailyReadingCard } from "@/components/dashboard/DailyReadingCard";
 import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
-import { ConfirmLastNightDialog } from "@/components/dashboard/ConfirmLastNightDialog";
-import { ValidatePlanDialog } from "@/components/dashboard/ValidatePlanDialog";
-import { SeasonSetup } from "@/components/dashboard/SeasonSetup";
-import { useProjects } from "@/hooks/useProjects";
 
 export default function Home() {
   usePageViewTracking("Today");
@@ -71,171 +32,24 @@ export default function Home() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const [showMissionEdit, setShowMissionEdit] = useState(false);
-  const [editingMissionTitle, setEditingMissionTitle] = useState("");
-  const [showConfirmLastNight, setShowConfirmLastNight] = useState(false);
-  const [showValidatePlan, setShowValidatePlan] = useState(false);
-  const [validatePlanCompleted, setValidatePlanCompleted] = useState(false);
   const [pulseDismissed, setPulseDismissed] = useState(false);
 
-  // Check if plan was already validated today
-  useEffect(() => {
-    const key = `validate_plan_${user.id}_${new Date().toLocaleDateString("sv-SE")}`;
-    try { setValidatePlanCompleted(localStorage.getItem(key) === "1"); } catch {}
-  }, [user.id]);
-
-  const dashboardVisitCount = useDashboardVisitCount();
+  const { activeSession, isLoading: resetLoading } = useReset(user.id);
 
   const {
-    trackQuestAction,
-    trackResetAction,
-    trackTimeLog,
-    trackPromiseAction,
-    trackGuideInteraction,
-  } = useActionTracking();
-
-  // Reset data
-  const {
-    activeSession,
-    currentDay,
-    isCompleted,
-    isExpired,
-    isLoading: resetLoading,
-    completedDays,
-    acceptCovenant,
-    isAcceptingCovenant,
-  } = useReset(user.id);
-
-  // Day 7 celebration
-  const day7CelebrationSeenKey = useMemo(() => {
-    if (!activeSession?.id) return null;
-    return `day7_celebration_seen_${user.id}_${activeSession.id}`;
-  }, [user.id, activeSession?.id]);
-
-  const triggerDay7Celebration = useCallback(() => {
-    if (day7CelebrationSeenKey) {
-      let alreadySeen = false;
-      try { alreadySeen = localStorage.getItem(day7CelebrationSeenKey) === "1"; } catch {}
-      if (!alreadySeen) try { alreadySeen = sessionStorage.getItem(day7CelebrationSeenKey) === "1"; } catch {}
-      if (alreadySeen) return;
-      try { localStorage.setItem(day7CelebrationSeenKey, "1"); } catch { try { sessionStorage.setItem(day7CelebrationSeenKey, "1"); } catch {} }
-    }
-    navigate("/reset?day7complete=true", { replace: true });
-  }, [day7CelebrationSeenKey, navigate]);
-
-  // Dashboard summary
-  const {
-    isLoading: dashboardLoading,
-    isAuthReady,
-    activeQuest,
-    createQuest,
-    isCreatingQuest,
-    updateQuest,
-    isUpdatingQuest,
-    completeQuest,
-    isCompletingQuest,
-    totalXp,
-    xpLogs,
-    integrityScore,
-    integrityLogs,
-    pendingPromises,
-    todayPromiseMade,
-    consecutiveStreak,
-    createPromise,
-    resolvePromise,
-    todayTimeLog,
-    logTime,
-    isLoggingTime,
-  } = useDashboardSummary(user.id);
-
-  const { currentBuild, buildLoading } = useBuildAssessment();
-
-  const {
-    earnedBadges,
-    awardBadge,
-    checkReturnedBadge,
-    checkProtectedTimeBadge,
-    checkAskedGuidanceBadge,
-    hasBadge,
-  } = useBadges(user.id);
-
-  const {
-    isSimplifiedMode,
     isLoading: onboardingLoading,
-    completeOnboarding,
-    ensureOnboardingRecord,
     needsOnboarding,
     currentOnboardingStep,
     updateOnboardingProgress,
   } = useOnboarding(user.id);
 
-  const { isPaid, isLoading: entitlementsLoading, initiateCheckout, isCheckingOut } = useEntitlements(user.id);
-
-  const {
-    activeSeason,
-    isLoadingSeason,
-    seasonSnapshots,
-    seasonProgress,
-    startSeason,
-    linkSnapshotToSeason,
-    completeSeason,
-    closeSeason,
-    shouldShowSeasonComplete,
-  } = useSeason(user.id);
-
-  const { createProject, activeProjects } = useProjects(user.id, activeSeason?.id);
-
-  // Fetch season-range health data for season close screen
-  const { data: seasonHealthData = [] } = useQuery({
-    queryKey: ["season-health-data", activeSeason?.id, activeSeason?.started_at],
-    queryFn: async () => {
-      if (!activeSeason?.started_at || !user.id) return [];
-      const startDate = activeSeason.started_at.split("T")[0];
-      const endDate = (activeSeason.completed_at || new Date().toISOString()).split("T")[0];
-      const { data, error } = await supabase
-        .from("health_sync_data")
-        .select("sync_date, recovery_score, hrv_ms, strain_score")
-        .eq("user_id", user.id)
-        .gte("sync_date", startDate)
-        .lte("sync_date", endDate);
-      if (error) throw error;
-      return (data || []).map((r: any) => ({
-        sync_date: r.sync_date,
-        recovery_score: r.recovery_score,
-        hrv_ms: r.hrv_ms,
-        strain_score: r.strain_score,
-      }));
-    },
-    enabled: !!activeSeason?.id && !!user.id,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { rings, completedCount } = useDailyRings(user.id);
-  const { data: intelligenceData } = useDashboardIntelligence(user.id, completedCount, rings);
-  const { review: weeklyReview, isAvailable: weeklyReviewAvailable } = useWeeklyReview(user.id, isPaid);
+  const { isPaid, isLoading: entitlementsLoading } = useEntitlements(user.id);
   const { data: weeklyTrackerData, previousWeek: prevWeekScores, isLoading: weeklyTrackerLoading } = useWeeklyTracker(user.id);
 
-  // Check if pulse was already seen this session
-  useEffect(() => {
-    const key = `pulse_seen_${user.id}_${new Date().toLocaleDateString("sv-SE")}`;
-    try { if (sessionStorage.getItem(key) === "1") setPulseDismissed(true); } catch {}
-  }, [user.id]);
-
-  const dismissPulse = useCallback(() => {
-    setPulseDismissed(true);
-    const key = `pulse_seen_${user.id}_${new Date().toLocaleDateString("sv-SE")}`;
-    try { sessionStorage.setItem(key, "1"); } catch {}
-  }, [user.id]);
-
-  // Plan vs Actual data for dashboard
-  const weekRange = useMemo(() => getWeekRange(new Date()), []);
-  const { data: weekPlannerItems = [] } = usePlannerItems(weekRange.start, weekRange.end, user.id);
+  // Health & calendar signals
   const { trend: healthTrend, isConnected: wearableConnected, provider: wearableProvider, latest: healthLatest } = useHealthData(user.id);
-
-  // Auto-sync wearable data on dashboard load (throttled to every 4 hours)
   useAutoWearableSync(user.id, wearableProvider, wearableConnected);
 
-  // Check if Google Calendar is connected
   const { data: calendarConnected = false } = useQuery({
     queryKey: ["planner-connection-active", user.id],
     queryFn: async () => {
@@ -250,205 +64,55 @@ export default function Home() {
     staleTime: 60_000,
   });
 
-  const pvaData = useMemo(() => {
-    const todayDate = new Date();
-    todayDate.setHours(0, 0, 0, 0);
-    return weekRange.days.map((date: Date) => {
-      const key = format(date, "yyyy-MM-dd");
-      const dayItems = weekPlannerItems.filter((i: any) => i.scheduled_date === key);
-      const isPast = date < todayDate;
-      const isTodayDate = format(date, "yyyy-MM-dd") === format(todayDate, "yyyy-MM-dd");
-      const healthForDay = healthTrend.find(h => h.date === key) ?? null;
-      return {
-        date,
-        items: dayItems.map((item: any) => {
-          let status: "done" | "partial" | "missed" | "planned" = "planned";
-          if (item.status === "done") status = "done";
-          else if (item.status === "skipped") status = "partial";
-          else if (isPast && !isTodayDate) status = "missed";
-          return { id: item.id, title: item.title, status, type: item.item_type, project_id: item.project_id ?? null };
-        }),
-        health: healthForDay,
-      };
-    });
-  }, [weekRange.days, weekPlannerItems, healthTrend]);
-
-  const pvaSyntheses = useDailySynthesis(pvaData, activeProjects);
-
-  // Calendar intelligence for today
   const todayStr = new Date().toLocaleDateString("sv-SE");
+  const weekRange = useMemo(() => getWeekRange(new Date()), []);
+  const { data: weekPlannerItems = [] } = usePlannerItems(weekRange.start, weekRange.end, user.id);
   const todayPlannerItems = useMemo(() => weekPlannerItems.filter((i: any) => i.scheduled_date === todayStr), [weekPlannerItems, todayStr]);
   const todayCalendarIntel = useMemo(() => analyzeCalendar(todayPlannerItems), [todayPlannerItems]);
 
-  // Fuel intelligence
-  const todayFuelIntel = useMemo(() => {
-    return getFuelIntelligence({
-      recovery: healthLatest?.recovery,
-      sleepMinutes: healthLatest?.sleepMinutes,
-      strain: healthLatest?.strain,
-      calendarDayType: todayCalendarIntel?.dayType,
-      meetingCount: todayCalendarIntel?.meetingCount ?? 0,
-      hasMeals: false, // will be determined by FuelTodayCard itself
-      mealCount: 0,
-    });
-  }, [healthLatest, todayCalendarIntel]);
-
-  const [showSeasonComplete, setShowSeasonComplete] = useState(false);
-  const [showSeasonSetup, setShowSeasonSetup] = useState(false);
+  // Pulse dismiss
   useEffect(() => {
-    if (shouldShowSeasonComplete) { setShowSeasonComplete(true); completeSeason(); }
-  }, [shouldShowSeasonComplete, completeSeason]);
+    const key = `pulse_seen_${user.id}_${new Date().toLocaleDateString("sv-SE")}`;
+    try { if (sessionStorage.getItem(key) === "1") setPulseDismissed(true); } catch {}
+  }, [user.id]);
 
-  // Show season setup when no active season and user is onboarded
-  useEffect(() => {
-    if (!needsOnboarding && !onboardingLoading && !isLoadingSeason && !activeSeason && !resetLoading && !showSeasonComplete) {
-      setShowSeasonSetup(true);
-    }
-  }, [needsOnboarding, onboardingLoading, isLoadingSeason, activeSeason, resetLoading, showSeasonComplete]);
+  const dismissPulse = useCallback(() => {
+    setPulseDismissed(true);
+    const key = `pulse_seen_${user.id}_${new Date().toLocaleDateString("sv-SE")}`;
+    try { sessionStorage.setItem(key, "1"); } catch {}
+  }, [user.id]);
 
-  // Profile for nudge status
-  const { data: userProfile, refetch: refetchProfile } = useQuery({
-    queryKey: ["profile-nudge-status", user.id],
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("email_nudge_enabled, nudge_frequency").eq("id", user.id).maybeSingle();
-      return data;
-    },
-    enabled: !!user.id,
-    staleTime: 5 * 60 * 1000,
-  });
-  const nudgeEnabled = userProfile?.email_nudge_enabled ?? false;
-
-  const handleEnableDailyAlignment = useCallback(async () => {
-    const { error } = await supabase.from("profiles").update({ email_nudge_enabled: true, nudge_frequency: "daily" }).eq("id", user.id);
-    if (!error) {
-      toast({ title: "Daily Alignment enabled", description: "Your first email arrives tomorrow morning." });
-      trackEvent("feature_activation", "daily_alignment_enabled");
-      refetchProfile();
-    }
-  }, [user.id, toast, trackEvent, refetchProfile]);
-
-  const todayActionsCompleted = useMemo(() => !!todayTimeLog, [todayTimeLog]);
-
-  const {
-    showWelcomeBack,
-    showFollowUp,
-    showReturnBanner,
-    dismissWelcomeBack,
-    dismissFollowUp,
-    markFirstActionCompleted,
-  } = useWelcomeBack({
-    userId: user.id,
-    hasActiveSession: !!activeSession,
-    activeSessionCreatedAt: activeSession?.created_at || null,
-    todayActionsCompleted,
-  });
-
-  // All sessions
-  const { data: allSessions = [] } = useQuery({
-    queryKey: ["all-reset-sessions", user.id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("reset_sessions").select("*").eq("user_id", user.id).order("start_date", { ascending: false });
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user.id,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const defaultCheckoutPlan = getDefaultCheckoutPlan();
-  const useInlinePaywall = shouldUseInlinePaywall();
-
-  const startCheckout = useCallback(
-    (plan?: Parameters<typeof initiateCheckout>[0], source = "home") => {
-      void initiateCheckout(plan ?? defaultCheckoutPlan, { source });
-    },
-    [initiateCheckout, defaultCheckoutPlan],
-  );
-
-  // Initializers
-  useEffect(() => { ensureOnboardingRecord(); checkReturnedBadge(); }, [user.id, ensureOnboardingRecord, checkReturnedBadge]);
-
-  // Retention tracking
-  useEffect(() => {
-    if (dashboardLoading) return;
-    const lastVisitKey = `last_dashboard_visit_${user.id}`;
-    const todayStr = new Date().toLocaleDateString("sv-SE");
-    try {
-      const lastVisit = localStorage.getItem(lastVisitKey);
-      if (lastVisit !== todayStr) {
-        const daysSince = lastVisit ? Math.floor((Date.now() - new Date(lastVisit).getTime()) / 86400000) : null;
-        trackEvent("retention", "daily_return", { days_since_last_visit: daysSince, current_snapshot_day: activeSession ? currentDay : null, has_active_session: !!activeSession });
-        localStorage.setItem(lastVisitKey, todayStr);
-      }
-    } catch {}
-  }, [user.id, dashboardLoading, trackEvent, activeSession, currentDay]);
-
-  // Handle wearable OAuth callback params (fallback if user lands here)
+  // Handle wearable OAuth callback params
   useEffect(() => {
     const connected = searchParams.get("wearable_connected");
     const wError = searchParams.get("wearable_error");
     if (connected) {
-      toast({ title: `${connected.charAt(0).toUpperCase() + connected.slice(1)} connected!`, description: "Your wearable data will sync shortly." });
+      toast({ title: `${connected.charAt(0).toUpperCase() + connected.slice(1)} connected!`, description: "Your data will sync shortly." });
       queryClient.invalidateQueries({ queryKey: ["wearable-connections"] });
       const next = new URLSearchParams(searchParams);
       next.delete("wearable_connected");
       setSearchParams(next, { replace: true });
     } else if (wError) {
-      toast({ title: "Connection failed", description: `Wearable connection error: ${wError.replace(/_/g, " ")}`, variant: "destructive" });
+      toast({ title: "Connection failed", description: wError.replace(/_/g, " "), variant: "destructive" });
       const next = new URLSearchParams(searchParams);
       next.delete("wearable_error");
       setSearchParams(next, { replace: true });
     }
   }, [searchParams, setSearchParams, toast, queryClient]);
 
-  // Day7 reading param
+  // Retention tracking
   useEffect(() => {
-    if (searchParams.get("day7reading") !== "done") return;
-    const next = new URLSearchParams(searchParams); next.delete("day7reading"); setSearchParams(next, { replace: true });
-    if (currentDay === 7) triggerDay7Celebration();
-  }, [searchParams, currentDay, setSearchParams, triggerDay7Celebration]);
-
-  // Quest handlers
-  const handleCreateQuest = useCallback((data: { title: string; durationDays: number }) => {
-    createQuest(data);
-    trackQuestAction("create", data.title, data.durationDays);
-    if (!hasBadge("chose_quest")) awardBadge({ badgeKey: "chose_quest", triggerContext: { quest_title: data.title } });
-    if (isSimplifiedMode) completeOnboarding("quest");
-  }, [createQuest, hasBadge, awardBadge, isSimplifiedMode, completeOnboarding, trackQuestAction]);
-
-  const handleUpdateQuest = useCallback((data: { questId: string; title: string }) => {
-    updateQuest(data);
-    trackQuestAction("update", data.title);
-    if (!hasBadge("respecd")) awardBadge({ badgeKey: "respecd", triggerContext: { action: "quest_updated" } });
-  }, [updateQuest, hasBadge, awardBadge, trackQuestAction]);
-
-  const handleResolvePromise = useCallback((data: { promiseId: string; kept: boolean }) => {
-    resolvePromise(data);
-    trackPromiseAction(data.kept ? "kept" : "broken");
-    if (data.kept && !hasBadge("kept_promise")) awardBadge({ badgeKey: "kept_promise", triggerContext: { promise_id: data.promiseId } });
-  }, [resolvePromise, hasBadge, awardBadge, trackPromiseAction]);
-
-  const handleLogTime = useCallback(async (data: { invested: number; wasted: number; notes?: string }) => {
-    const result = await logTime(data);
-    trackTimeLog(data.invested, data.wasted);
-    checkProtectedTimeBadge();
-    markFirstActionCompleted();
-    return result;
-  }, [logTime, checkProtectedTimeBadge, trackTimeLog, markFirstActionCompleted]);
-
-  const handleXpEarned = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["xp-logs", user.id] });
-    checkAskedGuidanceBadge();
-    if (isSimplifiedMode) completeOnboarding("rep");
-    markFirstActionCompleted();
-  }, [queryClient, user.id, checkAskedGuidanceBadge, isSimplifiedMode, completeOnboarding, markFirstActionCompleted]);
-
-  const handleOperatorInteraction = useCallback(() => {
-    handleXpEarned();
-    trackGuideInteraction("message");
-    if (isSimplifiedMode) completeOnboarding("operator");
-    markFirstActionCompleted();
-  }, [handleXpEarned, isSimplifiedMode, completeOnboarding, trackGuideInteraction, markFirstActionCompleted]);
+    const lastVisitKey = `last_dashboard_visit_${user.id}`;
+    const todayStr = new Date().toLocaleDateString("sv-SE");
+    try {
+      const lastVisit = localStorage.getItem(lastVisitKey);
+      if (lastVisit !== todayStr) {
+        const daysSince = lastVisit ? Math.floor((Date.now() - new Date(lastVisit).getTime()) / 86400000) : null;
+        trackEvent("retention", "daily_return", { days_since_last_visit: daysSince });
+        localStorage.setItem(lastVisitKey, todayStr);
+      }
+    } catch {}
+  }, [user.id, trackEvent]);
 
   const quickStartEnabled = onboardingQuickStartEnabled();
 
@@ -458,7 +122,7 @@ export default function Home() {
       return (
         <OnboardingQuickStartFlow
           isPaid={isPaid}
-          createQuest={createQuest}
+          createQuest={() => {}}
           onComplete={() => queryClient.invalidateQueries({ queryKey: ["user-onboarding"] })}
           onUpdateOnboarding={async (data) => { await updateOnboardingProgress(data); }}
         />
@@ -469,14 +133,14 @@ export default function Home() {
         userId={user.id}
         initialStep={currentOnboardingStep}
         isPaid={isPaid}
-        createQuest={createQuest}
+        createQuest={() => {}}
         onComplete={() => queryClient.invalidateQueries({ queryKey: ["user-onboarding"] })}
         onUpdateOnboarding={async (data) => { await updateOnboardingProgress(data); }}
       />
     );
   }
 
-  // Weekly Pulse Screen — full-screen takeover on app open
+  // Weekly Pulse Screen
   if (!pulseDismissed && !weeklyTrackerLoading && weeklyTrackerData) {
     return (
       <WeeklyPulseScreen
@@ -487,48 +151,13 @@ export default function Home() {
     );
   }
 
-  // Welcome Back
-  if (showWelcomeBack) {
-    return <WelcomeBackScreen onContinue={dismissWelcomeBack} onViewHistory={dismissWelcomeBack} />;
-  }
-
-  if (showFollowUp) {
-    return (
-      <WelcomeBackFollowUp
-        currentSnapshotTitle={undefined}
-        onKeepCurrent={dismissFollowUp}
-        onChooseNew={() => { dismissFollowUp(); }}
-        isPaid={isPaid}
-        nudgeEnabled={nudgeEnabled}
-        onEnableDailyAlignment={handleEnableDailyAlignment}
-      />
-    );
-  }
-
-  const todayAlreadyCompleted = completedDays.some((d) => d.day_number === currentDay);
-  const hasPvaData = pvaData.some(d => d.items.length > 0) || pvaData.some(d => d.health && d.health.recovery !== null);
-
   return (
-    <div className="space-y-4">
-      {/* ═══ TIER 1 — What kind of day? How am I doing? What matters most? ═══ */}
+    <div className="max-w-lg mx-auto space-y-5 pb-24">
+      {/* 1. Calm greeting */}
+      <GreetingBanner userId={user.id} />
 
-      {/* 1. Greeting — orientation */}
-      <GreetingBanner
-        userId={user.id}
-        totalXp={totalXp}
-        streakDays={consecutiveStreak}
-        visitCount={dashboardVisitCount}
-        isPaid={isPaid}
-        seasonName={activeSeason?.name}
-        onSeasonClick={() => setShowSeasonSetup(true)}
-        missionTitle={!activeSeason ? activeQuest?.title : undefined}
-        onMissionClick={() => {
-          if (activeQuest) { setEditingMissionTitle(activeQuest.title); setShowMissionEdit(true); }
-        }}
-      />
-
-      {/* 2. Readiness Bar — Tier 1: How am I doing? */}
-      <TodayReadinessBar
+      {/* 2. Today's signal — one calm sentence based on body + calendar */}
+      <TodaySignalCard
         health={healthLatest}
         plannerCount={todayPlannerItems.length}
         wearableConnected={wearableConnected}
@@ -537,199 +166,12 @@ export default function Home() {
         calendarIntel={todayCalendarIntel}
       />
 
-      {/* 3. Daily Briefing — Tier 1: What kind of day? What matters most? */}
-      {!entitlementsLoading && (
-        <DailyBriefingCard
-          isPaid={isPaid}
-          isTrialing={false}
-        hasActiveSnapshot={!!activeSession && !isCompleted && !isExpired}
-          onUpgrade={() => startCheckout(undefined, "daily_briefing")}
-          healthRecovery={healthLatest?.recovery}
-          plannerCount={todayPlannerItems.length}
-          ringsCompleted={completedCount}
-        />
-      )}
-
-      {/* 4. Today's Actions — Tier 1: What matters most (actionable) */}
-      {(resetLoading || dashboardLoading) ? <ResetProgressSkeleton /> : (
-        <TodayActions
-          userId={user.id}
-          hasActiveSession={!!activeSession}
-          isResetCompleted={isCompleted}
-          isResetExpired={isExpired}
-          currentDay={currentDay}
-          todayResetCompleted={todayAlreadyCompleted}
-          completedDaysCount={completedDays.length}
-          onStartReset={() => acceptCovenant({ isPaid })}
-          isStartingReset={isAcceptingCovenant}
-          isPaid={isPaid}
-          hasUsedFreeReset={false}
-          onUpgrade={() => startCheckout(undefined, "today_actions")}
-          hasActiveQuest={!!activeQuest}
-          todayTimeLogged={!!todayTimeLog}
-          pendingPromisesCount={pendingPromises.length}
-          todayPromiseMade={todayPromiseMade}
-          todayXpEarned={xpLogs.filter((log) => new Date(log.created_at).toLocaleDateString("sv-SE") === new Date().toLocaleDateString("sv-SE")).reduce((sum, log) => sum + log.amount, 0)}
-          buildLastUpdatedAt={currentBuild?.updated_at ?? null}
-          journeyId={activeSession?.journey_id ?? undefined}
-           journeyTitle={undefined}
-           onChangeJourney={() => {}}
-          missionTitle={activeQuest?.title}
-          onOpenTimeLog={() => setShowConfirmLastNight(true)}
-          onOpenPromises={() => setShowValidatePlan(true)}
-          validatePlanCompleted={validatePlanCompleted}
-          onOpenBuild={() => navigate("/growth")}
-          onDay7AllComplete={triggerDay7Celebration}
-        />
-      )}
-
-      {/* 5. Compact Rings — Tier 1: How am I doing? (visual progress) */}
-      <CompactRingsRow userId={user.id} />
-
-      {/* ═══ TIER 2 — What should I eat? What should I protect? ═══ */}
-
-      {/* 6. Fuel Today — Tier 2: What should I eat? */}
-      <FuelTodayCard userId={user.id} isPaid={isPaid} fuelIntel={todayFuelIntel} />
-
-      {/* 7. Plan vs Actual — Tier 1/2: schedule reality + protection */}
-      <div id="pva">
-        <div className="mb-2">
-          <h2 className="text-sm font-semibold text-foreground">Plan vs. Actual</h2>
-          <p className="text-[10px] text-muted-foreground">What was planned · What your body says · What it means</p>
-        </div>
-        {hasPvaData ? (
-          <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} syntheses={pvaSyntheses} projects={activeProjects} />
-        ) : (
-          <div className="rounded-xl border border-border/50 bg-card/30 p-4 text-center space-y-2">
-            <p className="text-sm text-muted-foreground">
-              {!calendarConnected && !wearableConnected
-                ? "Connect your calendar and wearable to see Plan vs. Actual."
-                : !calendarConnected
-                ? "Connect your calendar to see the full picture."
-                : "Connect your wearable to complete the view."}
-            </p>
-            <Button variant="outline" size="sm" onClick={() => navigate(calendarConnected ? "/wellness" : "/planner")}>
-              {calendarConnected ? "Connect Wearable →" : "Connect Calendar →"}
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* ═══ TIER 3 — Did I get a win? What should I adjust? ═══ */}
-
-      {/* 8. Ask Dashboard — utility, always available */}
-      <AskDashboardBar />
-
-      {/* ═══ TIER 4 — Weekly / optional / secondary ═══ */}
-
-      {/* 9. Weekly Review Teaser — Thu–Sun for paid users */}
-      {weeklyReviewAvailable && weeklyReview && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-xl border bg-card/80 shadow-sm p-3 flex items-center gap-3 cursor-pointer hover:bg-card transition-colors"
-          onClick={() => navigate("/growth")}
-        >
-          <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
-            <Calendar className="w-4 h-4 text-accent" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-foreground">Weekly Review Ready</p>
-            <p className="text-[11px] text-muted-foreground truncate">{weeklyReview.headline}</p>
-          </div>
-          <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
-        </motion.div>
-      )}
-
-      {/* 10. Forecast — Tier 3/4: predictive, not daily-critical */}
-      <ForecastCard data={intelligenceData} compact />
-
-      {/* --- Dialogs (modal overlays, no visual footprint) --- */}
-      <ConfirmLastNightDialog
-        open={showConfirmLastNight}
-        onOpenChange={setShowConfirmLastNight}
-        userId={user.id}
-      />
-
-      <ValidatePlanDialog
-        open={showValidatePlan}
-        onOpenChange={setShowValidatePlan}
-        userId={user.id}
-        onComplete={() => setValidatePlanCompleted(true)}
-      />
-
-      {/* Daily Reading Card */}
+      {/* 3. Daily reading — the one clear daily direction */}
       <DailyReadingCard userId={user.id} />
 
-      {/* Season Complete Overlay */}
-      {showSeasonComplete && seasonProgress && activeSeason && (
-        <SeasonComplete
-          season={{
-            id: activeSeason.id,
-            name: activeSeason.name,
-            started_at: activeSeason.started_at,
-            completed_at: activeSeason.completed_at,
-            created_at: activeSeason.created_at,
-          }}
-          projects={(activeProjects || []).map((p: any) => ({
-            id: p.id,
-            name: p.name,
-            emoji: p.emoji,
-            momentum_score: p.momentum_score,
-            status: p.status,
-            controllable: p.controllable,
-          }))}
-          seasonSnapshots={seasonSnapshots}
-          progress={seasonProgress}
-          healthData={seasonHealthData}
-          onStartNewSeason={async () => {
-            setShowSeasonComplete(false);
-            setShowSeasonSetup(true);
-          }}
-          onDismiss={() => setShowSeasonComplete(false)}
-        />
-      )}
-
-      {/* Season Setup Flow */}
-      <SeasonSetup
-        open={showSeasonSetup}
-        onClose={() => setShowSeasonSetup(false)}
-        userId={user.id}
-        onStartSeason={async (params) => {
-          const id = await startSeason(params);
-          return id;
-        }}
-        onCreateProject={async (params) => {
-          await createProject.mutateAsync(params);
-        }}
-      />
-
-      {/* Mission Edit Modal */}
-      <Dialog open={showMissionEdit} onOpenChange={setShowMissionEdit}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
-              <Target className="w-5 h-5 text-primary" />
-              Set Your Direction
-            </DialogTitle>
-            <p className="text-xs text-muted-foreground mt-1">This can evolve. You're just choosing where to point right now.</p>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div>
-              <p className="text-[11px] text-muted-foreground mb-2">Direction, not a task.</p>
-              <Input value={editingMissionTitle} onChange={(e) => setEditingMissionTitle(e.target.value)} placeholder="e.g., Reclaim Energy, Build Discipline" className="text-base" />
-            </div>
-            <Button className="w-full" onClick={() => { if (activeQuest && editingMissionTitle.trim()) { handleUpdateQuest({ questId: activeQuest.id, title: editingMissionTitle.trim() }); setShowMissionEdit(false); } }} disabled={!editingMissionTitle.trim() || isUpdatingQuest}>
-              {isUpdatingQuest ? "Updating..." : "Update Direction"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* 8. Footer */}
-      <footer className="py-6 text-center space-y-1">
-        {dashboardVisitCount > 5 && <p className="text-xs text-muted-foreground/60">Quiet momentum. One check-in at a time.</p>}
-        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} AGB Coaching</p>
+      {/* Footer */}
+      <footer className="pt-8 pb-4 text-center">
+        <p className="text-xs text-muted-foreground/50">© {new Date().getFullYear()} AGB Coaching</p>
       </footer>
     </div>
   );
