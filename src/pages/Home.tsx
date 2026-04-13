@@ -122,7 +122,7 @@ export default function Home() {
       return (
         <OnboardingQuickStartFlow
           isPaid={isPaid}
-          createQuest={() => {}}
+          createQuest={async () => {}}
           onComplete={() => queryClient.invalidateQueries({ queryKey: ["user-onboarding"] })}
           onUpdateOnboarding={async (data) => { await updateOnboardingProgress(data); }}
         />
@@ -133,7 +133,7 @@ export default function Home() {
         userId={user.id}
         initialStep={currentOnboardingStep}
         isPaid={isPaid}
-        createQuest={() => {}}
+        createQuest={async () => {}}
         onComplete={() => queryClient.invalidateQueries({ queryKey: ["user-onboarding"] })}
         onUpdateOnboarding={async (data) => { await updateOnboardingProgress(data); }}
       />
