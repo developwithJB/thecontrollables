@@ -1,13 +1,11 @@
-import { Sun, CalendarDays, Activity, Sprout, Wallet } from "lucide-react";
+import { Sun, CalendarDays, Activity } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const navItems = [
   { path: "/home", label: "Today", icon: Sun },
   { path: "/planner", label: "Plan", icon: CalendarDays },
-  { path: "/wellness", label: "Body", icon: Activity },
-  { path: "/growth", label: "Growth", icon: Sprout },
-  { path: "/wealth", label: "Money", icon: Wallet },
+  { path: "/wellness", label: "Energy", icon: Activity },
 ];
 
 export const BottomNav = () => {
@@ -24,9 +22,7 @@ export const BottomNav = () => {
     >
       <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
         {navItems.map((item) => {
-          const isActive =
-            location.pathname === item.path ||
-            (item.path === "/wealth" && location.pathname === "/money");
+          const isActive = location.pathname === item.path;
           return (
             <button
               key={item.path}
@@ -68,9 +64,7 @@ export const DesktopNavRail = () => {
   return (
     <nav className="hidden md:flex flex-col w-16 lg:w-48 border-r border-border/50 bg-card/50 py-4 gap-1 shrink-0">
       {navItems.map((item) => {
-        const isActive =
-          location.pathname === item.path ||
-          (item.path === "/wealth" && location.pathname === "/money");
+        const isActive = location.pathname === item.path;
         return (
           <button
             key={item.path}
