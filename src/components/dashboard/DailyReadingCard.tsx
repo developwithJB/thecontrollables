@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { BookOpen, Sparkles, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { READING_LIBRARY, type Controllable } from "@/lib/readingLibrary";
 import { useBuildAssessment } from "@/hooks/useBuildAssessment";
@@ -10,16 +9,16 @@ interface DailyReadingCardProps {
   userId: string;
 }
 
-const CONTROLLABLE_META: Record<Controllable, { emoji: string; label: string }> = {
-  awareness: { emoji: "👁️", label: "Awareness" },
-  perspective: { emoji: "🐢", label: "Perspective" },
-  habit: { emoji: "🔗", label: "Habit" },
-  wellness: { emoji: "🛰️", label: "Wellness" },
-  environment: { emoji: "🚀", label: "Environment" },
+const CONTROLLABLE_LABELS: Record<Controllable, string> = {
+  awareness: "Awareness",
+  perspective: "Perspective",
+  habit: "Habit",
+  wellness: "Wellness",
+  environment: "Environment",
 };
 
 function getWeakestControllable(build: { awareness: number; perspective: number; habit: number; wellness: number; environment: number } | null): Controllable {
-  if (!build) return "awareness"; // default
+  if (!build) return "awareness";
   const scores: [Controllable, number][] = [
     ["awareness", build.awareness],
     ["perspective", build.perspective],
@@ -32,32 +31,23 @@ function getWeakestControllable(build: { awareness: number; perspective: number;
 }
 
 function getTodayReading(controllable: Controllable) {
-  const dayOfWeek = new Date().getDay(); // 0=Sun, 6=Sat
-  // Map day of week to day pattern (1-7, Sun=7)
+  const dayOfWeek = new Date().getDay();
   const dayPattern = dayOfWeek === 0 ? 7 : dayOfWeek;
-  
-  // Get readings for this controllable that match today's day pattern
   const matching = READING_LIBRARY.filter(
     (r) => r.controllable === controllable && r.dayPatterns.includes(dayPattern)
   );
-  
-  // Rotate based on week number of year
   const now = new Date();
   const startOfYear = new Date(now.getFullYear(), 0, 1);
   const weekNumber = Math.floor((now.getTime() - startOfYear.getTime()) / (7 * 24 * 60 * 60 * 1000));
-  
   if (matching.length === 0) {
-    // Fallback: any reading for this controllable
     const fallback = READING_LIBRARY.filter((r) => r.controllable === controllable);
     return fallback[weekNumber % fallback.length] || READING_LIBRARY[0];
   }
-  
   return matching[weekNumber % matching.length];
 }
 
 export function DailyReadingCard({ userId }: DailyReadingCardProps) {
   const { currentBuild } = useBuildAssessment();
-  const [expanded, setExpanded] = useState(false);
   const [completed, setCompleted] = useState(() => {
     try {
       const key = `reading_done_${userId}_${new Date().toLocaleDateString("sv-SE")}`;
@@ -67,7 +57,6 @@ export function DailyReadingCard({ userId }: DailyReadingCardProps) {
 
   const weakest = useMemo(() => getWeakestControllable(currentBuild), [currentBuild]);
   const reading = useMemo(() => getTodayReading(weakest), [weakest]);
-  const meta = CONTROLLABLE_META[weakest];
 
   const markComplete = () => {
     setCompleted(true);
@@ -79,13 +68,19 @@ export function DailyReadingCard({ userId }: DailyReadingCardProps) {
 
   if (completed) {
     return (
-      <Card className="border-border/50 bg-card/60">
-        <CardContent className="p-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            ✅ Today's reading complete — <span className="font-medium text-foreground">{meta.label}</span>
-          </p>
-        </CardContent>
-      </Card>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="rounded-xl border border-border/30 bg-card/40 px-5 py-4 flex items-center gap-3"
+      >
+        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+          <Check className="w-4 h-4 text-primary" />
+        </div>
+        <div>
+          <p className="text-sm text-foreground">Today's reading complete</p>
+          <p className="text-xs text-muted-foreground">{CONTROLLABLE_LABELS[weakest]} · {reading.framingLine}</p>
+        </div>
+      </motion.div>
     );
   }
 
@@ -93,95 +88,71 @@ export function DailyReadingCard({ userId }: DailyReadingCardProps) {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.15 }}
+      transition={{ delay: 0.2 }}
+      className="rounded-xl border border-border/30 bg-card/60 overflow-hidden"
     >
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-card overflow-hidden">
-        <CardContent className="p-0">
-          {/* Header */}
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="w-full flex items-center gap-3 p-4 text-left"
-          >
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-lg shrink-0">
-              {reading.emoji}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <BookOpen className="w-3.5 h-3.5 text-primary" />
-                <p className="text-xs font-semibold text-primary">Today's Reading</p>
-                <span className="text-[10px] text-muted-foreground">· {meta.label}</span>
-              </div>
-              <p className="text-sm font-medium text-foreground truncate">
-                {reading.framingLine}
-              </p>
-            </div>
-            {expanded ? (
-              <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-            )}
-          </button>
+      {/* Header */}
+      <div className="px-5 pt-5 pb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <BookOpen className="w-4 h-4 text-primary" />
+          <p className="text-xs font-medium text-muted-foreground">
+            Today's Reading · {CONTROLLABLE_LABELS[weakest]}
+          </p>
+        </div>
+        <p className="text-base font-medium text-foreground leading-snug">
+          {reading.framingLine}
+        </p>
+      </div>
 
-          {/* Expanded reading */}
-          <AnimatePresence>
-            {expanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="px-4 pb-4 space-y-4">
-                  {/* Reading text */}
-                  <div className="rounded-lg bg-muted/50 p-4 space-y-2">
-                    <p className="text-xs text-muted-foreground font-medium">
-                      {reading.source} — {reading.chapter}
-                    </p>
-                    <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
-                      {reading.text}
-                    </p>
-                  </div>
+      {/* Reading content — always visible */}
+      <div className="px-5 pb-5 space-y-4">
+        {/* Source text */}
+        <div className="rounded-lg bg-muted/30 p-4">
+          <p className="text-[11px] text-muted-foreground font-medium mb-2">
+            {reading.source} — {reading.chapter}
+          </p>
+          <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line">
+            {reading.text}
+          </p>
+        </div>
 
-                  {/* Control & Surrender */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-lg bg-primary/5 p-3">
-                      <p className="text-[10px] font-semibold text-primary uppercase tracking-wide mb-1">Control</p>
-                      <p className="text-xs text-foreground">{reading.controlLine}</p>
-                    </div>
-                    <div className="rounded-lg bg-muted/50 p-3">
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Surrender</p>
-                      <p className="text-xs text-foreground">{reading.surrenderLine}</p>
-                    </div>
-                  </div>
+        {/* Control & Surrender — calm layout */}
+        <div className="space-y-2">
+          <div className="rounded-lg bg-primary/5 p-3">
+            <p className="text-[10px] font-medium text-primary uppercase tracking-wider mb-1">What you can control</p>
+            <p className="text-xs text-foreground leading-relaxed">{reading.controlLine}</p>
+          </div>
+          <div className="rounded-lg bg-muted/30 p-3">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">What to release</p>
+            <p className="text-xs text-foreground leading-relaxed">{reading.surrenderLine}</p>
+          </div>
+        </div>
 
-                  {/* Today's action */}
-                  <div className="rounded-lg border border-border/50 p-3">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Sparkles className="w-3.5 h-3.5 text-primary" />
-                      <p className="text-[10px] font-semibold text-primary uppercase tracking-wide">Today's Action</p>
-                    </div>
-                    <p className="text-sm text-foreground">{reading.questAction}</p>
-                  </div>
+        {/* Today's direction */}
+        <div className="rounded-lg border border-border/30 p-3">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
+            <p className="text-[10px] font-medium text-primary uppercase tracking-wider">Today's Direction</p>
+          </div>
+          <p className="text-sm text-foreground leading-relaxed">{reading.questAction}</p>
+        </div>
 
-                  {/* Reflection */}
-                  <p className="text-xs text-muted-foreground italic text-center">
-                    "{reading.reflection}"
-                  </p>
+        {/* Reflection */}
+        <p className="text-xs text-muted-foreground/80 italic text-center leading-relaxed">
+          "{reading.reflection}"
+        </p>
 
-                  {/* Complete button */}
-                  <Button
-                    onClick={markComplete}
-                    className="w-full"
-                    size="sm"
-                  >
-                    ✓ I've read today's lesson
-                  </Button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </CardContent>
-      </Card>
+        {/* Complete */}
+        <Button
+          onClick={markComplete}
+          variant="outline"
+          className="w-full"
+          size="sm"
+        >
+          <Check className="w-3.5 h-3.5 mr-1.5" />
+          Mark as read
+        </Button>
+      </div>
     </motion.div>
   );
 }
