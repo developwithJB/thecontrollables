@@ -73,8 +73,8 @@ const AppContent = () => {
           <Route element={<LifeOSLayout />}>
             <Route path="/home" element={<Home />} />
             <Route path="/wellness" element={<Wellness />} />
-            <Route path="/growth" element={<Growth />} />
             <Route path="/planner" element={<Planner />} />
+            <Route path="/growth" element={<Growth />} />
             <Route path="/wealth" element={<Money />} />
           </Route>
 
