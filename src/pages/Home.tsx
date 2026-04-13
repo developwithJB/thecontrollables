@@ -1,6 +1,5 @@
 import { useEffect, useCallback, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useReset } from "@/hooks/useReset";
 import { useOnboarding } from "@/hooks/useOnboarding";
@@ -17,9 +16,10 @@ import { analyzeCalendar } from "@/lib/calendarIntelligence";
 import { useWeeklyTracker } from "@/hooks/useWeeklyTracker";
 import { WeeklyPulseScreen } from "@/components/dashboard/WeeklyPulseScreen";
 
-// Calm dashboard modules
-import { GreetingBanner } from "@/components/dashboard/GreetingBanner";
-import { TodaySignalCard } from "@/components/dashboard/TodaySignalCard";
+import { TodayHeader } from "@/components/dashboard/TodayHeader";
+import { PrimaryGuidanceCard } from "@/components/dashboard/PrimaryGuidanceCard";
+import { ProtectEnergyCard } from "@/components/dashboard/ProtectEnergyCard";
+import { NextMoveCard } from "@/components/dashboard/NextMoveCard";
 import { DailyReadingCard } from "@/components/dashboard/DailyReadingCard";
 import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 
@@ -152,25 +152,41 @@ export default function Home() {
   }
 
   return (
-    <div className="max-w-lg mx-auto space-y-5 pb-24">
-      {/* 1. Calm greeting */}
-      <GreetingBanner userId={user.id} />
-
-      {/* 2. Today's signal — one calm sentence based on body + calendar */}
-      <TodaySignalCard
+    <div className="max-w-lg mx-auto space-y-4 pb-24">
+      {/* 1. Today Header — date, greeting, day type, summary */}
+      <TodayHeader
+        userId={user.id}
         health={healthLatest}
-        plannerCount={todayPlannerItems.length}
+        calendarIntel={todayCalendarIntel}
         wearableConnected={wearableConnected}
         calendarConnected={calendarConnected}
-        trend={healthTrend}
-        calendarIntel={todayCalendarIntel}
       />
 
-      {/* 3. Daily reading — the one clear daily direction */}
+      {/* 2. What matters most today */}
+      <PrimaryGuidanceCard
+        health={healthLatest}
+        calendarIntel={todayCalendarIntel}
+        wearableConnected={wearableConnected}
+      />
+
+      {/* 3. Protect your energy */}
+      <ProtectEnergyCard
+        health={healthLatest}
+        calendarIntel={todayCalendarIntel}
+        wearableConnected={wearableConnected}
+      />
+
+      {/* 4. Next best move */}
+      <NextMoveCard
+        health={healthLatest}
+        calendarIntel={todayCalendarIntel}
+        wearableConnected={wearableConnected}
+      />
+
+      {/* 5. Daily reading — secondary insight */}
       <DailyReadingCard userId={user.id} />
 
-      {/* Footer */}
-      <footer className="pt-8 pb-4 text-center">
+      <footer className="pt-6 pb-4 text-center">
         <p className="text-xs text-muted-foreground/50">© {new Date().getFullYear()} AGB Coaching</p>
       </footer>
     </div>
