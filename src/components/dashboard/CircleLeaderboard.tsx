@@ -20,7 +20,7 @@ export function CircleLeaderboard({ entries, currentUserId }: CircleLeaderboardP
     <div className="mt-4 pt-4 border-t border-border">
       <div className="flex items-center gap-1.5 mb-2.5">
         <span className="text-sm">🏆</span>
-        <h4 className="text-xs font-medium text-foreground">Streak Leaderboard</h4>
+        <h4 className="text-xs font-medium text-foreground">Show-Up Rhythm</h4>
       </div>
 
       <div className="space-y-1.5">

@@ -44,11 +44,11 @@ interface DailyOSCardProps {
 }
 
 const SOURCE_COLORS: Record<string, string> = {
-  Snapshot: "bg-primary/10 text-primary",
+  Region: "bg-primary/10 text-primary",
   Planner: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
   Promise: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
   Wellness: "bg-green-500/10 text-green-600 dark:text-green-400",
-  Build: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
+  "Life Perspective": "bg-purple-500/10 text-purple-600 dark:text-purple-400",
   Guide: "bg-muted text-muted-foreground",
 };
 
@@ -60,7 +60,7 @@ const ENERGY_COLORS: Record<string, string> = {
 
 const QUICK_ACTION_CONFIG = [
   { key: "/planner", label: "Plan", icon: CalendarDays },
-  { key: "/reset", label: "Snapshot", icon: BookOpen },
+  { key: "/reset", label: "Region", icon: BookOpen },
   { key: "wellness", label: "Body", icon: Activity },
   { key: "meals", label: "Meals", icon: Utensils },
   { key: "promise", label: "Promises", icon: ShieldCheck },
@@ -267,10 +267,10 @@ export function DailyOSCard({
           <h3 className="text-sm font-semibold text-foreground">Daily OS</h3>
         </div>
         <p className="text-sm text-muted-foreground mb-3">
-          Start your first Snapshot to activate your Daily Operating System — it pulls from your goals, promises, and plan to tell you exactly what matters today.
+          Enter your first chapter quest to activate your Daily Operating System — it pulls from your goals, promises, and plan to tell you exactly what matters today.
         </p>
         <Button size="sm" variant="outline" onClick={() => navigate("/reset")}>
-          <BookOpen className="w-3.5 h-3.5 mr-1.5" /> Start a Snapshot
+          <BookOpen className="w-3.5 h-3.5 mr-1.5" /> Enter a Region
         </Button>
       </motion.div>
     );

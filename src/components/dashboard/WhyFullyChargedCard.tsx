@@ -16,7 +16,7 @@ export const WhyFullyChargedCard = ({ data }: WhyFullyChargedCardProps) => {
       className="rounded-xl border border-accent/20 bg-accent/5 p-4"
     >
       <h3 className="text-[10px] font-semibold uppercase tracking-wider text-accent/80 mb-2">
-        Why You Were Fully Charged
+        Why You Got Fully Charged
       </h3>
       <div className="space-y-1.5">
         {data.why_fully_charged.map((reason, i) => (

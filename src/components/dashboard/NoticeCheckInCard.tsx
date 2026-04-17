@@ -70,7 +70,7 @@ export const NoticeCheckInCard = ({ userId, onComplete }: NoticeCheckInCardProps
 
     setResult(interpretation);
     setTimeout(() => {
-      onComplete(`Circuit Check: ${mood} mood, energy ${energy}/5, stress ${stress}/5 — ${interpretation.text}`);
+      onComplete(`Awareness move: ${mood} mood, energy ${energy}/5, stress ${stress}/5 — ${interpretation.text}`);
     }, 2000);
   };
 
@@ -91,7 +91,7 @@ export const NoticeCheckInCard = ({ userId, onComplete }: NoticeCheckInCardProps
         <div className={cn("rounded-lg border p-4 text-center", VARIANT_STYLES[result.variant])}>
           <Icon className="w-6 h-6 mx-auto mb-2" />
           <p className="text-sm font-medium">{result.text}</p>
-          <p className="text-xs mt-2 opacity-70">Circuit scanned. Ring complete.</p>
+          <p className="text-xs mt-2 opacity-70">Awareness move logged.</p>
         </div>
         {whoopMismatch && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground bg-muted/50 border border-border">
@@ -107,7 +107,7 @@ export const NoticeCheckInCard = ({ userId, onComplete }: NoticeCheckInCardProps
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Scan className="w-3.5 h-3.5" />
-        <span>Scan your internal system</span>
+        <span>Run your awareness scan</span>
       </div>
 
       {/* Mood selector */}
@@ -179,7 +179,7 @@ export const NoticeCheckInCard = ({ userId, onComplete }: NoticeCheckInCardProps
       />
 
       <Button onClick={handleSubmit} disabled={saving || !mood} className="w-full" size="sm">
-        {saving ? "Scanning..." : "Run Circuit Check"}
+        {saving ? "Scanning..." : "Complete Awareness Move"}
       </Button>
     </div>
   );

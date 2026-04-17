@@ -96,7 +96,7 @@ export function ProjectManager({ open, onClose, userId, seasonId }: ProjectManag
 
                 <Progress value={project.momentum_score} className="h-1.5" />
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-muted-foreground">Momentum {project.momentum_score}%</span>
+                  <span className="text-[10px] text-muted-foreground">Charge Rhythm {project.momentum_score}%</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded ${project.status === "active" ? "bg-primary/10 text-primary" : project.status === "paused" ? "bg-muted text-muted-foreground" : "bg-accent/10 text-accent-foreground"}`}>
                     {project.status}
                   </span>

@@ -7,6 +7,7 @@ const theme = getControllableTheme("environment");
 import { Target, AlertTriangle, Pencil, Check, X, ChevronDown, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,10 @@ import {
 } from "@/components/ui/collapsible";
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { HierarchyExplainer } from "@/components/dashboard/HierarchyExplainer";
+import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
+import { useGameSignals } from "@/hooks/useGameSignals";
+import { getControllableRosterProfile } from "@/lib/controllableRoster";
+import type { SupportMode } from "@/lib/signalInterpreter";
 
 interface MainQuest {
   id: string;
@@ -42,19 +47,31 @@ interface MainQuestModuleProps {
   disabled?: boolean;
 }
 
+function formatSupportMode(mode: SupportMode): string {
+  switch (mode) {
+    case "recover":
+      return "Recover";
+    case "protect":
+      return "Protect";
+    case "stretch":
+      return "Stretch";
+    default:
+      return "Normal";
+  }
+}
+
 export function MainQuestModule({ 
   activeQuest, 
   onCreateQuest, 
   onUpdateQuest,
-  onCompleteQuest,
   isCreating,
   isUpdating = false,
-  isCompleting = false,
   disabled = false,
 }: MainQuestModuleProps) {
+  const user = useLifeOSUser();
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState("");
-  // Hard-code a long internal duration (Mission = Direction, no visible end date)
+  // Keep the existing long-lived quest model, but present it as a calm daily anchor.
   const duration = 365;
   
   // Edit mode state
@@ -62,6 +79,20 @@ export function MainQuestModule({
   const [editTitle, setEditTitle] = useState("");
 
   const { trackButtonClick, trackModalAction } = useActionTracking();
+  const { signals } = useGameSignals({ userId: user.id });
+  const questControllable = signals
+    ? signals.supportMode === "stretch"
+      ? signals.likelyControllableOpportunity
+      : signals.likelyControllableAtRisk
+    : null;
+  const questProfile = questControllable ? getControllableRosterProfile(questControllable) : null;
+  const questExamples = [
+    signals?.suggestedMainQuest,
+    "Protect your focus",
+    "Recover your energy",
+    "Finish the important thing",
+    "Keep your footing",
+  ].filter((example): example is string => Boolean(example));
 
   const handleSubmit = () => {
     if (!title.trim()) return;
@@ -101,15 +132,6 @@ export function MainQuestModule({
     }
   };
 
-  // Calculate days remaining
-  const daysRemaining = activeQuest?.ends_at 
-    ? Math.max(0, Math.ceil((new Date(activeQuest.ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-    : null;
-
-  const progressPercent = activeQuest && daysRemaining !== null
-    ? Math.min(100, ((activeQuest.duration_days - daysRemaining) / activeQuest.duration_days) * 100)
-    : 0;
-
   if (!activeQuest) {
     return (
       <motion.div
@@ -122,9 +144,11 @@ export function MainQuestModule({
             <AlertTriangle className="w-5 h-5 text-muted-foreground" />
           </div>
           <div>
-            <h3 className="font-display font-semibold text-foreground">No Active Direction</h3>
+            <h3 className="font-display font-semibold text-foreground">No Main Quest Yet</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              Start a Season to set your life direction. Or set a quick mission below.
+              {signals
+                ? signals.suggestedMainQuest
+                : "Choose the one quest you want the day to quietly serve."}
             </p>
           </div>
         </div>
@@ -133,16 +157,33 @@ export function MainQuestModule({
           <DialogTrigger asChild>
             <Button className="w-full" disabled={disabled}>
               <Target className="w-4 h-4 mr-2" />
-              {disabled ? "Loading..." : "Set Your Mission"}
+              {disabled ? "Loading..." : "Set Main Quest"}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle className="font-display">Set Your Direction</DialogTitle>
+              <DialogTitle className="font-display">Set Main Quest</DialogTitle>
               <p className="text-xs text-muted-foreground mt-1">
-                Your Mission is the big-picture goal. It doesn't change daily.
+                Give the day one clear direction instead of five competing priorities.
               </p>
             </DialogHeader>
+
+            {signals && (
+              <div className="rounded-xl border border-primary/15 bg-primary/5 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="secondary" className="text-[11px]">
+                    {formatSupportMode(signals.supportMode)} Mode
+                  </Badge>
+                  <span className="text-[11px] text-muted-foreground">Recommended quest</span>
+                </div>
+                <p className="text-sm text-foreground/90">{signals.suggestedMainQuest}</p>
+                {questProfile ? (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {questProfile.roleLabel} energy is shaping the read right now.
+                  </p>
+                ) : null}
+              </div>
+            )}
             
             {/* Hierarchy Visual */}
             <div className="py-2 border-b border-border">
@@ -152,16 +193,16 @@ export function MainQuestModule({
             <div className="space-y-4 pt-2">
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">
-                  What area of life are you investing in?
+                  What should dominate the day?
                 </label>
                 <Input
-                  placeholder="Type your direction..."
+                  placeholder="Name the quest..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="text-base"
                 />
                 <div className="flex flex-wrap gap-2 mt-3">
-                  {["Build discipline", "Reclaim energy", "Strengthen relationships", "Find clarity", "Improve health"].map((example) => (
+                  {questExamples.map((example) => (
                     <button
                       key={example}
                       type="button"
@@ -178,27 +219,27 @@ export function MainQuestModule({
               <Collapsible>
                 <CollapsibleTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
                   <HelpCircle className="w-3.5 h-3.5" />
-                  <span>Why set a Mission?</span>
+                  <span>Why set a main quest?</span>
                   <ChevronDown className="w-3 h-3 ml-auto" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pt-3">
                   <div className="text-xs text-muted-foreground space-y-2 p-3 rounded-lg bg-muted/50">
                     <p>
-                      Your Mission is where you're pointing your life right now. 
-                      It's not a task to complete — it's a direction to live under.
+                      Your main quest keeps the day from splintering.
+                      It is the thing your other moves should quietly support.
                     </p>
                     <ul className="space-y-1.5 pl-3">
                       <li className="flex items-start gap-2">
                         <span className="text-primary">•</span>
-                        <span><strong>Snapshots serve your Mission</strong> — weekly focus themes</span>
+                        <span><strong>One quest is enough</strong> — the goal is clarity, not intensity</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-primary">•</span>
-                        <span><strong>Daily check-ins serve your Snapshot</strong> — just today</span>
+                        <span><strong>Support moves stay secondary</strong> — they help the quest instead of competing with it</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-primary">•</span>
-                        <span><strong>Missions evolve</strong> — you're not locked in forever</span>
+                        <span><strong>You can repair and reset</strong> — quests are meant to guide, not shame</span>
                       </li>
                     </ul>
                   </div>
@@ -210,7 +251,7 @@ export function MainQuestModule({
                 className="w-full" 
                 disabled={!title.trim() || isCreating || disabled}
               >
-                {isCreating ? "Setting..." : "Set Direction"}
+                {isCreating ? "Setting..." : "Set Main Quest"}
               </Button>
             </div>
           </DialogContent>
@@ -232,12 +273,12 @@ export function MainQuestModule({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Main Mission</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Main Quest</p>
               <span className={`text-xs font-medium ${theme.textClass}`}>{theme.emoji} {theme.label}</span>
               <ControllableLevelBadge controllable="environment" />
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">
-              Direction, not a task.
+              {signals ? `${formatSupportMode(signals.supportMode)} mode` : "One clear direction for the day."}
             </p>
             
             {isEditing ? (
@@ -296,7 +337,9 @@ export function MainQuestModule({
 
       {/* Bottom action row */}
       <div className="flex items-center justify-between text-sm mt-3">
-        <p className="text-xs text-muted-foreground italic">{theme.tip}</p>
+        <p className="text-xs text-muted-foreground italic">
+          {signals ? signals.suggestedMainQuest : theme.tip}
+        </p>
         {onUpdateQuest && (
           <Button
             variant="ghost"

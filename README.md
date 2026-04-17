@@ -1,279 +1,211 @@
-# The Dashboard — v2.3.0
+# The Dashboard
 
-**Your Life OS. Planner. Money. Wellness. Growth.**
+The Dashboard is an open-source React + TypeScript app for people who want a calmer, more reflective way to run their days.
 
-By [AGB Coaching](https://agbcoaching.com)
+Instead of treating life like a productivity contest, it turns real signals, like your calendar load, recovery, sleep, and simple check-ins, into a grounded daily read:
 
----
+- what kind of day this is
+- what matters most
+- what to protect
+- one main quest
+- one support move
 
-## Table of Contents
+The product is built around the 5 Controllables as your starter team:
 
-1. [What Is The Dashboard?](#what-is-the-dashboard)
-2. [Product Philosophy](#product-philosophy)
-3. [Getting Started](#getting-started)
-4. [App Navigation](#app-navigation)
-5. [Core Modules](#core-modules)
-6. [The 3-Layer System](#the-3-layer-system)
-7. [Daily Rings](#daily-rings)
-8. [Integrations](#integrations)
-9. [AI Features](#ai-features)
-10. [Pricing & Plans](#pricing--plans)
+- Awareness: scout
+- Perspective: translator
+- Habit: builder
+- Wellness: charger
+- Environment: protector
 
----
+## What This App Can Help With
 
-## What Is The Dashboard?
+The Dashboard is designed to help users:
 
-The Dashboard is a mobile-first Progressive Web App (PWA) that brings your entire life into one calm interface. It's not a habit tracker or a todo app — it's a **Life Operating System** that connects your calendar, finances, wellness, and personal growth.
+- understand their current state without spiraling or over-planning
+- pick the next right move instead of juggling ten priorities
+- notice when the day calls for recovery, protection, or stretch
+- build personal momentum through reflection, repair, and re-entry
+- connect planning, wellness, money, and life context in one place
 
-Built around **The Controllables** philosophy (from the book), everything centers on what you can actually control:
+This repo is useful if you want to build:
 
-| Emoji | Controllable | Focus |
-|-------|-------------|-------|
-| 🦉 | **Awareness** | Noticing patterns, triggers, and emotional states |
-| 🐢 | **Perspective** | How you frame situations and talk to yourself |
-| 🦈 | **Habit** | The routines and micro-behaviors you repeat |
-| 🛰️ | **Wellness** | Sleep, movement, and nutrition |
-| 🚀 | **Environment** | The spaces, people, and inputs around you |
+- a personal life dashboard
+- a coaching product
+- a wellness or readiness app
+- a reflective planner
+- a calmer alternative to streak-heavy habit apps
 
----
+## Core Product Ideas
 
-## Product Philosophy
+The current app centers around a few ideas:
 
-### Daily Decision-Making Hierarchy
+- Life perspective: onboarding uses age and season-of-life context to frame the experience
+- Starter team: the 5 Controllables act like a roster the user can lean on
+- Daily moves: daily actions are framed as moves rather than chores
+- Charge: progress is built around being undercharged, stable, strong, charged, or fully charged
+- Evolution: progress supports repair and recovery, not just perfect consistency
+- Regions and chapter quests: users move through meaningful periods without changing the underlying snapshot data model
 
-The Dashboard is governed by a 4-tier daily hierarchy that shapes every page, AI prompt, and feature decision. The core principle:
+## Tech Stack
 
-> Help the user understand the day they are in, make better decisions inside it, and leave with one clear next move.
+- React 18
+- TypeScript
+- Vite
+- Tailwind CSS
+- Radix UI + shadcn/ui patterns
+- TanStack Query
+- Supabase Auth, Postgres, and Edge Functions
+- Optional PostHog + Sentry telemetry
 
-**TIER 1 — MUST ANSWER** (Highest priority)
-1. What kind of day is this?
-2. How am I doing?
-3. What matters most?
+## Repository Structure
 
-**TIER 2 — STRONG SUPPORT**
-4. What should I eat?
-5. What should I protect?
-6. What should I simplify?
+High-signal areas if you are exploring the codebase for the first time:
 
-**TIER 3 — CLOSE THE LOOP**
-7. Did I get a win?
-8. What should I adjust tomorrow?
-
-**TIER 4 — NOT DAILY REQUIRED**
-9. Deep reflection, weekly patterns, broader impact storytelling
-
-**Product Rule:** If a feature does not support Tier 1, 2, or 3, it should not dominate the daily experience.
-
-### Core Principles
-
-- **Data, Not Failure** — Missed days are never highlighted. Every Snapshot is recorded as proof you started.
-- **Today Only** — No catching up. Yesterday is data. Tomorrow doesn't exist yet.
-- **Clarity Over Volume** — One strong recommendation beats many weak ones.
-- **Direction, Not Tasks** — Your Mission is a heading, not a checklist.
-- **Human-Centric Language** — The Dashboard notices patterns, not "adaptive intelligence."
-- **Small, imperfect action beats grand plans** — Self-trust is rebuilt through kept promises.
-
----
+- `src/pages` - top-level routes like home, planner, wellness, money, auth, and onboarding entry points
+- `src/components/dashboard` - the home dashboard surfaces, guidance cards, progression UI, and daily-state modules
+- `src/components/onboarding` - onboarding flow steps and account handoff behavior
+- `src/hooks` - data access and domain hooks for signals, progress, planner, health, and onboarding state
+- `src/lib` - app logic, adapters, interpretation rules, and shared product-language helpers
+- `supabase/migrations` - schema history
+- `supabase/functions` - edge functions for AI, integrations, sync, and server-side workflows
 
 ## Getting Started
 
-### Installing the App
+### 1. Fork and clone
 
-The Dashboard is a PWA — install it directly from your browser:
-
-1. **iOS Safari** — Tap the Share button → "Add to Home Screen"
-2. **Android Chrome** — Tap the ⋮ menu → "Add to Home Screen" (or accept the install prompt)
-3. **Desktop Chrome/Edge** — Click the install icon in the address bar
-
-### Daily Usage
-
-Following the hierarchy:
-
-1. **Morning (Tier 1)** — Open the app, review your Daily Briefing (what kind of day), check the Readiness Bar (how am I doing), scan Today Actions (what matters most)
-2. **Throughout the day (Tier 2)** — Check Fuel Today for meal guidance, complete planned items, protect focus time
-3. **Evening (Tier 3)** — Close your daily rings, log a win, adjust plans for tomorrow
-
----
-
-## App Navigation
-
-The bottom navigation bar has five tabs:
-
-| Tab | Icon | What It Does |
-|-----|------|-------------|
-| **Home** | 🏠 | Command center — daily briefing, today's actions, rings, plan vs actual, fuel guidance |
-| **Wellness** | ❤️ | Body operating panel — sleep/movement/nutrition, wearable data, meal tracking |
-| **Growth** | 🌱 | Self-leadership panel — experience history, Build Assessment, certificates, weekly review |
-| **Planner** | 📅 | Life execution panel — daily/weekly views, tasks, events, routines, Google Calendar sync |
-| **Wealth** | 💰 | Financial rhythm panel — accounts, transactions, budgets, bills, savings goals |
-
----
-
-## Core Modules
-
-### 🏠 Home (Command Center)
-
-Organized by the daily hierarchy:
-
-**Tier 1 — Must Answer:**
-- **Readiness Bar** — Cross-system signal: body recovery + calendar load at a glance
-- **Daily Briefing** — AI-generated day type and one clear focus
-- **Today Actions** — Your prioritized task list; primary action highlighted
-- **Compact Rings** — Visual progress of your 5 daily rings
-
-**Tier 2 — Strong Support:**
-- **Fuel Today** — Meal guidance based on body state and schedule
-- **Plan vs Actual** — Weekly comparison of planned vs completed, with body data overlay
-
-**Tier 3/4 — Close the Loop & Optional:**
-- **Ask Dashboard** — Natural language questions about your data
-- **Weekly Review Teaser** — Appears Thu–Sun with a cross-system pattern summary
-- **Forecast** — AI predictions based on trends (secondary, not daily-critical)
-
-### 📅 Planner
-
-Your daily command center for tasks, events, and routines.
-
-- **Daily & weekly views** with drag-to-reorder
-- **Time blocks** with start/end times
-- **Routines** that auto-populate daily
-- **Google Calendar sync** — bidirectional read/write
-- **Energy-level tagging** and project assignment
-- **Plan vs Actual View** — what you planned vs what actually happened
-
-### 💰 Money Hub (Wealth)
-
-Financial awareness without the shame.
-
-- **Accounts** — checking, savings, credit, cash, investments
-- **Transactions** — manual entry or CSV import
-- **Budget buckets** — monthly targets with spend tracking
-- **Bills & subscriptions** — due dates and payment tracking
-- **Savings goals** — targets with progress tracking
-- **Financial Controllables** — actionable insights like "3 bills due this week"
-
-### ❤️ Wellness
-
-The body operating panel:
-
-- **Brain & Body Tracker** — Rate sleep, movement, and nutrition (1-5 scales)
-- **Wearable Dashboard** — Recovery, HRV, sleep, strain from connected devices
-- **Meal Tracker** — Log meals with optional photos and AI analysis
-- **Meal Plans** — AI-generated daily meal plans based on preferences
-- **Recipe Library** and **Grocery Lists**
-- **Wellness Streaks** — Optional tracking, never punishing
-
-### 🌱 Growth
-
-The self-leadership panel — home for deeper reflection (Tier 3-4 content lives here, not on Today):
-
-- **Weekly Review** — AI-powered cross-system pattern detection (body, calendar, meals, money, growth)
-- **Experience History** — Full timeline of completed Snapshots
-- **Build Assessment** — 20-question assessment producing one of 13 archetypes
-- **Certificates** — Downloadable proof of completion
-- **Season History** — Past Seasons with AI reflections
-- **Insights** — AI-generated behavioral patterns
-
-### 📸 Snapshots
-
-7-day themed focus periods — the weekly pulse of personal growth.
-
-- **36 Snapshots** across 6 buckets
-- **Goal-based browsing** and custom Snapshots
-- **Daily reading** with reflection prompt, integrity rep, and quest action
-- **AI Guide** — Controllable-specific AI chat per Snapshot day
-
----
-
-## The 3-Layer System
-
-```
-Season (Life-scale arc)
-  └─ Project (Month-scale container)
-       └─ Snapshot (Weekly pulse)
-            └─ Daily Check-In (Today's actions)
+```bash
+git clone https://github.com/YOUR_USERNAME/thecontrollables.git
+cd thecontrollables
 ```
 
-- **Seasons** — The largest container (e.g., "New City, New Start")
-- **Projects** — Month-scale containers with momentum scores
-- **Snapshots** — 7-day themed focus periods
+### 2. Install dependencies
 
----
+This repo includes both `package-lock.json` and Bun locks. `npm` is the safest default:
 
-## Daily Rings
+```bash
+npm install
+```
 
-Each day has 5 rings to close:
+### 3. Add environment variables
 
-| Ring | Action | What It Tracks |
-|------|--------|---------------|
-| **Notice** 🦉 | Log mood, energy, stress | Emotional awareness |
-| **Align** 🐢 | Respond to a perspective prompt | Mindset alignment |
-| **Choose** 🦈 | Complete your primary daily action | Intentional behavior |
-| **Prove** 🚀 | Submit proof of action | Accountability |
-| **Charge** 🛰️ | Log a recharge activity | Recovery & self-care |
+Create a local env file such as `.env.local` or update your local `.env` with the public client variables the app expects:
 
----
+```bash
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_or_publishable_key
+VITE_SUPABASE_PROJECT_ID=your_supabase_project_id
 
-## Integrations
+# Optional telemetry
+VITE_POSTHOG_KEY=
+VITE_POSTHOG_HOST=
+VITE_SENTRY_DSN=
+VITE_SENTRY_TRACES_SAMPLE_RATE=
+VITE_ENABLE_SUPABASE_ANALYTICS=false
+```
 
-### Google Calendar
-Bidirectional sync — import events, push time blocks. OAuth-based setup via Integrations tab.
+Notes:
 
-### Gmail
-Read-only inbox summary for Daily Briefing context.
+- `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are required for the app to boot
+- some integrations and edge functions will also require provider secrets configured in Supabase, not in the Vite env file
+- avoid committing your real local env values
 
-### Wearable Devices (WHOOP, Oura, Fitbit)
-Recovery, sleep, HRV, strain, and activity data. Auto-syncs every 4 hours. 7-day free trial after connecting.
+### 4. Run the app
 
-### Email Nudges (Daily Alignment)
-Personalized morning email with scripture, reflection, and micro-action. Requires paid plan.
+```bash
+npm run dev
+```
 
----
+### 5. Optional: run Supabase locally
 
-## AI Features
+If you want a fully local backend workflow, install the Supabase CLI and run:
 
-All AI features are built-in — no API key required from users.
+```bash
+supabase start
+supabase db reset
+supabase functions serve
+```
 
-### AI Guides (Chat)
-5 distinct voices (one per Controllable), context-aware, grounded in the book.
+You can also point the frontend at a hosted Supabase project if that is simpler for your fork.
 
-### Dashboard Intelligence
-- **Daily Briefing** — AI day-type classification and one clear focus
-- **Forecast** — Snapshot, month, and year trajectory projections
-- **Recommended Actions** — 1-2 contextual next moves (clarity over volume)
-- **Ask Dashboard** — Natural language questions about your data
-- **Weekly Review** — Cross-system pattern detection (Thu–Sun)
+## How To Fork And Customize
 
-### Operator Console
-Advanced mode: command input, proactive AI suggestions, mode toggle.
+You do not need to rewrite the backend to make this your own. Most product changes can happen cleanly in the frontend through copy, adapters, and interpretation rules.
 
----
+### Customize the product language
 
-## Pricing & Plans
+Start here if you want to re-theme the experience without changing the data model:
 
-| | Free | Plus ($79.99/yr) | Pro ($119.99/yr) |
-|---|---|---|---|
-| Planner | ✅ | ✅ | ✅ |
-| Money Hub | ✅ | ✅ | ✅ |
-| Build Assessment | ✅ | ✅ | ✅ |
-| Snapshots | 1 trial | All 36 + Custom | All 36 + Custom |
-| AI Guides | 5 msgs/day | 15 msgs/day | 25 msgs/day |
-| Wearable Data | 7-day trial | ✅ | ✅ |
-| Weekly Review | — | ✅ | ✅ |
-| Certificates | — | ✅ | ✅ |
-| Daily Alignment Emails | — | ✅ | ✅ |
+- `src/components/dashboard/*`
+- `src/components/onboarding/*`
+- `src/pages/Home.tsx`
+- `src/pages/QuickStart.tsx`
 
-**7-Day Free Trial** — Full access during your first Snapshot. No credit card required.
+### Customize life perspective and season logic
 
----
+If you want a different framing for age, life week, or season-of-life logic:
 
-## Offline Support
+- `src/lib/lifePerspective.ts`
 
-- Service worker caches static assets
-- Offline fallback page when disconnected
-- Data syncs when connection restores
-- PWA installable on all platforms
+### Customize the starter team
 
----
+If you want different roles, descriptions, or presentation for the 5 Controllables:
 
-© AGB Coaching
+- `src/lib/controllableRoster.ts`
+- `src/components/dashboard/ControllableHub.tsx`
+- `src/components/dashboard/ControllableLevelsCard.tsx`
+- `src/components/dashboard/ControllableLevelBadge.tsx`
+
+### Customize daily interpretation rules
+
+If you want the app to react differently to recovery, workload, stress, or energy:
+
+- `src/lib/signalInterpreter.ts`
+- `src/hooks/useGameSignals.ts`
+
+This is one of the best extension points in the whole app because it changes the feel of the product without forcing schema rewrites.
+
+### Customize progression and chapter framing
+
+If you want different region, chapter quest, or progression language while keeping existing snapshot records:
+
+- `src/components/dashboard/SnapshotSelector.tsx`
+- `src/components/dashboard/StartSnapshotDialog.tsx`
+- `src/components/dashboard/SnapshotHistory.tsx`
+- `src/components/dashboard/SnapshotReviewCard.tsx`
+- `src/components/dashboard/WeeklyPulseScreen.tsx`
+
+### Customize backend workflows
+
+If you want to extend the product beyond copy and UI:
+
+- add or adjust tables through `supabase/migrations/*`
+- edit edge functions in `supabase/functions/*`
+- keep adapter layers where possible so the product can evolve without constantly renaming stored data
+
+## Suggested Fork Directions
+
+Some strong directions this codebase already supports well:
+
+- a founder or executive dashboard
+- a wellness-first daily check-in app
+- a coaching product with guided reflection
+- a planner that reacts to energy and recovery instead of fixed schedules
+- a life admin app that combines planning, money, and reflective review
+
+## Contributing
+
+Issues and pull requests are welcome. If you open a PR, it helps to be explicit about whether you are changing:
+
+- product language
+- dashboard behavior
+- onboarding logic
+- interpretation rules
+- Supabase schema
+- provider integrations
+
+That keeps review easier because this app blends UX, product semantics, and backend workflows closely.
+
+## Practical Note
+
+If you are making this repo public for outside reuse, add a `LICENSE` file at the repository root. A public GitHub repo without a license is visible, but it is not clearly reusable.

@@ -168,9 +168,14 @@ export default function Auth() {
     switch (mode) {
       case "forgot": return "Enter your email and we'll send you a reset link";
       case "reset": return "Enter your new password below";
-      case "signup": return quickStartDraft?.mission
-        ? `Finish setup to keep your mission: ${quickStartDraft.mission}`
-        : "Start building momentum today";
+      case "signup":
+        if (quickStartDraft?.snapshotName) {
+          return `Finish setup to keep your starting region: ${quickStartDraft.snapshotName}`;
+        }
+        if (quickStartDraft?.lifeSeasonLabel) {
+          return `Finish setup to keep your ${quickStartDraft.lifeSeasonLabel.toLowerCase()} reflection`;
+        }
+        return "Start building momentum today";
       default: return "Sign in to access your dashboard";
     }
   };

@@ -38,6 +38,7 @@ export const DailyRecapCard = ({ userId, rings, completedCount, rowId, existingR
           type: "daily_recap",
           context: {
             completed_rings: ringsSummary,
+            completed_moves: ringsSummary,
             responses,
             completed_count: completedCount,
           },
@@ -46,7 +47,10 @@ export const DailyRecapCard = ({ userId, rings, completedCount, rowId, existingR
 
       if (error) throw error;
 
-      const recapText = data?.insight || data?.recap || `You completed ${completedCount}/5 rings today. ${completedCount >= 4 ? "Strong day of control." : "Keep building momentum."}`;
+      const recapText =
+        data?.insight ||
+        data?.recap ||
+        `You completed ${completedCount}/5 moves today. ${completedCount >= 4 ? "Strong day of follow-through." : "Keep building from the next move."}`;
       setRecap(recapText);
 
       // Save to DB
@@ -57,7 +61,15 @@ export const DailyRecapCard = ({ userId, rings, completedCount, rowId, existingR
     } catch (err) {
       console.error("Failed to generate recap:", err);
       // Fallback to a simple local recap
-      setRecap(`You completed ${completedCount}/5 rings today. ${completedCount === 5 ? "Fully Charged. ⚡" : completedCount >= 4 ? "Almost there — strong effort." : "Solid start. Every ring matters."}`);
+      setRecap(
+        `You completed ${completedCount}/5 moves today. ${
+          completedCount === 5
+            ? "Fully Charged. ⚡"
+            : completedCount >= 4
+              ? "Almost there — strong effort."
+              : "Solid start. Every move matters."
+        }`,
+      );
     } finally {
       setLoading(false);
     }
@@ -82,7 +94,7 @@ export const DailyRecapCard = ({ userId, rings, completedCount, rowId, existingR
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-accent" />
-          <h3 className="text-sm font-semibold text-foreground">Today's Recap</h3>
+          <h3 className="text-sm font-semibold text-foreground">Today's Moves</h3>
         </div>
         {recap && (
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={generateRecap} disabled={loading}>

@@ -280,7 +280,7 @@ export function BrainBodyTracker({ userId, onLogWellness, onQuickLog, streak = 0
                       [3, 7, 14, 30].includes(streak) && "animate-pulse"
                     )}
                   >
-                    🔥 {streak}
+                    🔥 {streak}-day rhythm
                   </motion.span>
                 )}
               </div>

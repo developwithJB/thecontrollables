@@ -93,7 +93,7 @@ export function BuildAssessmentModal({
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" data-testid="build-assessment-modal">
         <DialogHeader>
           <DialogTitle className="font-display">
-            {showResults ? "Your Build" : "Scan Your Build"}
+            {showResults ? "Your Life Perspective" : "Scan Your Life Perspective"}
           </DialogTitle>
           {!showResults && (
             <p className="text-sm text-muted-foreground mt-1">
@@ -164,7 +164,7 @@ export function BuildAssessmentModal({
               </div>
 
               <p className="text-xs text-center text-muted-foreground">
-                Any build is viable. Don't fight your natural kit.
+                Any life perspective is workable. Start with what is true today.
               </p>
 
                 <Button onClick={handleClose} className="w-full" data-testid="build-assessment-done-button">
@@ -296,7 +296,7 @@ export function BuildAssessmentModal({
               </div>
 
               <p className="text-xs text-center text-muted-foreground">
-                No shame. Just a snapshot. You can rescan anytime.
+                No shame. Just a clear read. You can rescan anytime.
               </p>
             </motion.div>
           )}

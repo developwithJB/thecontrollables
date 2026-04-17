@@ -288,12 +288,12 @@ export default function Billing() {
                   free={true}
                 />
                 <FeatureRow 
-                  label="Build Assessment" 
+                  label="Life Perspective Scan"
                   included={true} 
                   free={true}
                 />
                 <FeatureRow 
-                  label="XP & Leveling System" 
+                  label="Evolution & Charge System"
                   included={true} 
                   free={true}
                 />
@@ -319,7 +319,7 @@ export default function Billing() {
                   premium={true}
                 />
                 <FeatureRow 
-                  label="Unlimited Snapshots" 
+                  label="Unlimited Chapter Quests"
                   included={isPaid} 
                   premium={true}
                 />

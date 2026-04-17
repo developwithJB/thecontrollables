@@ -33,8 +33,8 @@ export function BuildCard({ build }: BuildCardProps) {
 
   const handleShare = async () => {
     const shareData = {
-      title: "My Controllables Build",
-      text: `My Build: ${archetypeInfo.label}\n\n🦉 Awareness: ${getStatValue("awareness").toFixed(1)}\n🐢 Perspective: ${getStatValue("perspective").toFixed(1)}\n🦈 Habit: ${getStatValue("habit").toFixed(1)}\n🛰️ Wellness: ${getStatValue("wellness").toFixed(1)}\n🚀 Environment: ${getStatValue("environment").toFixed(1)}\n\nOverall: ${Number(build.overall).toFixed(1)}/4\n\n#TheDashboard`,
+      title: "My Starter Team Read",
+      text: `My Life Perspective: ${archetypeInfo.label}\n\n🦉 Awareness: ${getStatValue("awareness").toFixed(1)}\n🐢 Perspective: ${getStatValue("perspective").toFixed(1)}\n🦈 Habit: ${getStatValue("habit").toFixed(1)}\n🛰️ Wellness: ${getStatValue("wellness").toFixed(1)}\n🚀 Environment: ${getStatValue("environment").toFixed(1)}\n\nStarter Team Read: ${Number(build.overall).toFixed(1)}/4\n\n#TheDashboard`,
       url: window.location.origin,
     };
 
@@ -55,7 +55,7 @@ export function BuildCard({ build }: BuildCardProps) {
     navigator.clipboard.writeText(text);
     toast({
       title: "Copied to clipboard",
-      description: "Share your build anywhere!",
+        description: "Share your life perspective anywhere!",
     });
   };
 
@@ -70,12 +70,12 @@ export function BuildCard({ build }: BuildCardProps) {
       });
 
       const link = document.createElement("a");
-      link.download = "my-controllables-build.png";
+      link.download = "my-starter-team-read.png";
       link.href = canvas.toDataURL("image/png");
       link.click();
 
       toast({
-        title: "Build card saved",
+        title: "Life perspective card saved",
         description: "Image downloaded successfully!",
       });
     } catch (error) {
@@ -104,7 +104,7 @@ export function BuildCard({ build }: BuildCardProps) {
         {/* Header */}
         <div className="relative text-center mb-6">
           <h2 className="font-display text-xl font-bold text-foreground mb-1">
-            My Build
+            My Starter Team
           </h2>
           <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${themeColors.bg} border ${themeColors.border}`}>
             <span className="text-base">{archetypeInfo.emoji}</span>
@@ -153,7 +153,7 @@ export function BuildCard({ build }: BuildCardProps) {
 
         {/* Overall Score */}
         <div className="relative flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10">
-          <span className="text-sm font-medium text-muted-foreground">Overall Build</span>
+          <span className="text-sm font-medium text-muted-foreground">Starter Team Read</span>
           <div className="flex items-baseline gap-1">
             <span className="text-2xl font-display font-bold text-primary">
               {Number(build.overall).toFixed(1)}

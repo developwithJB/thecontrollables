@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, X } from "lucide-react";
-import type { RingDefinition, RingKey } from "@/hooks/useDailyRings";
+import type { DailyMoveDefinition, DailyMoveKey } from "@/hooks/useDailyRings";
 import { cn } from "@/lib/utils";
 import { NoticeCheckInCard } from "./NoticeCheckInCard";
 import { ReframeStudioCard } from "./ReframeStudioCard";
@@ -12,7 +12,7 @@ import { RechargeEngineCard } from "./RechargeEngineCard";
 import { EnvironmentResetCard } from "./EnvironmentResetCard";
 
 interface RingActionCardProps {
-  definition: RingDefinition;
+  definition: DailyMoveDefinition;
   onComplete: (response?: string) => void;
   onDismiss: () => void;
   userId?: string;
@@ -28,7 +28,7 @@ const BORDER_COLORS: Record<string, string> = {
 };
 
 function getEmbeddedTool(
-  key: RingKey,
+  key: DailyMoveKey,
   userId: string | undefined,
   onComplete: (response: string) => void,
   lowEnergy?: boolean
@@ -74,6 +74,7 @@ export const RingActionCard = (props: RingActionCardProps) => {
           <span className="text-lg">{definition.emoji}</span>
           <div>
             <h3 className="text-sm font-semibold text-foreground">{definition.name}</h3>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{definition.roleLabel}</p>
             <p className="text-[11px] text-muted-foreground">{definition.meaning}</p>
           </div>
         </div>
@@ -103,7 +104,7 @@ export const RingActionCard = (props: RingActionCardProps) => {
               ) : (
                 <Check className="w-4 h-4" />
               )}
-              {completing ? "Completing..." : `Complete ${definition.name}`}
+              {completing ? "Completing..." : definition.completionLabel}
             </Button>
           </motion.div>
         </>

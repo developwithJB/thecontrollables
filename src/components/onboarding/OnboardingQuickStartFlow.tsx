@@ -22,8 +22,14 @@ export function OnboardingQuickStartFlow({
   createQuest,
 }: OnboardingQuickStartFlowProps) {
   const draft = useMemo(() => getOnboardingQuickStartDraft(), []);
-  const [step, setStep] = useState<"mission" | "snapshot" | "orientation" | "starting" | "recovery">("mission");
-  const [mission, setMission] = useState(draft?.mission ?? "");
+  const getInitialStep = () => {
+    if (draft?.snapshotId && draft?.birthday) return "orientation";
+    if (draft?.snapshotId) return "snapshot";
+    return "mission";
+  };
+
+  const [step, setStep] = useState<"mission" | "snapshot" | "orientation" | "starting" | "recovery">(getInitialStep);
+  const [mission, setMission] = useState(draft?.mission ?? draft?.seasonNeedLabel ?? "");
   const [snapshotId, setSnapshotId] = useState<string | null>(draft?.snapshotId ?? null);
   const [isRetrying, setIsRetrying] = useState(false);
   const { acceptCovenant } = useReset();

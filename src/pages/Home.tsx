@@ -14,9 +14,11 @@ import { useAutoWearableSync } from "@/hooks/useAutoWearableSync";
 import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
 import { analyzeCalendar } from "@/lib/calendarIntelligence";
 import { useWeeklyTracker } from "@/hooks/useWeeklyTracker";
+import { useGameSignals } from "@/hooks/useGameSignals";
 import { WeeklyPulseScreen } from "@/components/dashboard/WeeklyPulseScreen";
 
 import { TodayHeader } from "@/components/dashboard/TodayHeader";
+import { BossBattleBanner } from "@/components/dashboard/BossBattleBanner";
 import { PrimaryGuidanceCard } from "@/components/dashboard/PrimaryGuidanceCard";
 import { ProtectEnergyCard } from "@/components/dashboard/ProtectEnergyCard";
 import { NextMoveCard } from "@/components/dashboard/NextMoveCard";
@@ -69,6 +71,25 @@ export default function Home() {
   const { data: weekPlannerItems = [] } = usePlannerItems(weekRange.start, weekRange.end, user.id);
   const todayPlannerItems = useMemo(() => weekPlannerItems.filter((i: any) => i.scheduled_date === todayStr), [weekPlannerItems, todayStr]);
   const todayCalendarIntel = useMemo(() => analyzeCalendar(todayPlannerItems), [todayPlannerItems]);
+  const { signals } = useGameSignals({
+    userId: user.id,
+    wearable: {
+      connected: wearableConnected,
+      recovery: healthLatest.recovery,
+      sleepMinutes: healthLatest.sleepMinutes,
+      strain: healthLatest.strain,
+    },
+    calendar: {
+      connected: calendarConnected,
+      plannerCount: todayPlannerItems.length,
+      meetingCount: todayCalendarIntel?.meetingCount ?? 0,
+      meetingMinutes: todayCalendarIntel?.meetingMinutes ?? 0,
+      longestFocusBlock: todayCalendarIntel?.longestFocusBlock ?? 0,
+      contextSwitches: todayCalendarIntel?.contextSwitches ?? 0,
+      dayType: todayCalendarIntel?.dayType ?? null,
+      overloadedPeriod: todayCalendarIntel?.overloadedPeriod ?? null,
+    },
+  });
 
   // Pulse dismiss
   useEffect(() => {
@@ -162,11 +183,17 @@ export default function Home() {
         calendarConnected={calendarConnected}
       />
 
+      <BossBattleBanner signals={signals} />
+
       {/* 2. What matters most today */}
       <PrimaryGuidanceCard
+        signals={signals}
         health={healthLatest}
         calendarIntel={todayCalendarIntel}
         wearableConnected={wearableConnected}
+        userId={user.id}
+        plannerCount={todayPlannerItems.length}
+        calendarConnected={calendarConnected}
       />
 
       {/* 3. Protect your energy */}
@@ -178,6 +205,7 @@ export default function Home() {
 
       {/* 4. Next best move */}
       <NextMoveCard
+        signals={signals}
         health={healthLatest}
         calendarIntel={todayCalendarIntel}
         wearableConnected={wearableConnected}

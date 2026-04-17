@@ -98,10 +98,10 @@ export function CircleCard({
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-3">
               <Users className="w-4 h-4 text-muted-foreground" />
-              <h3 className="text-sm font-medium text-foreground">Run This Snapshot Together</h3>
+              <h3 className="text-sm font-medium text-foreground">Run This Chapter Quest Together</h3>
             </div>
             <p className="text-xs text-muted-foreground mb-4">
-              Invite 2–5 people to run the same 7-day Snapshot. See who showed up each day.
+              Invite 2–5 people to move through the same 7-day chapter quest. See who showed up each day.
             </p>
             <div className="flex gap-2">
               <Button
@@ -150,7 +150,7 @@ export function CircleCard({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-medium text-foreground">Snapshot Circle</h3>
+            <h3 className="text-sm font-medium text-foreground">Chapter Quest Circle</h3>
           </div>
           {myCircle.invite_code && circleMembers.length < myCircle.max_members && (
             <button
@@ -228,7 +228,7 @@ export function CircleCard({
               <AlertDialogHeader>
                 <AlertDialogTitle>Leave this Circle?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  You'll lose your progress in this circle. Your solo Snapshot continues.
+                  You'll lose your progress in this circle. Your solo chapter quest continues.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
