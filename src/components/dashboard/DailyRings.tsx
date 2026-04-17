@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useDailyRings, RING_DEFINITIONS, type RingKey } from "@/hooks/useDailyRings";
+import { Share2 } from "lucide-react";
+import {
+  useDailyMoves,
+  DAILY_MOVE_DEFINITIONS,
+  type DailyMoveKey,
+} from "@/hooks/useDailyRings";
 import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
 import { RingActionCard } from "./RingActionCard";
-import { cn } from "@/lib/utils";
 import { DailyRecapCard } from "./DailyRecapCard";
 import { AIInsightCard } from "./AIInsightCard";
 import { AISignalsRow } from "./AISignalsRow";
@@ -12,18 +16,18 @@ import { MemoryComparisonRow } from "./MemoryComparisonRow";
 import { SmartCenterState } from "./SmartCenterState";
 import { RingShareCard } from "./RingShareCard";
 import { supabase } from "@/integrations/supabase/client";
-import { Share2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface DailyRingsProps {
   userId?: string;
 }
 
-const RING_CONFIGS = [
-  { key: "notice" as RingKey, radius: 100, stroke: 8 },
-  { key: "choose" as RingKey, radius: 84, stroke: 8 },
-  { key: "prove" as RingKey, radius: 68, stroke: 8 },
-  { key: "charge" as RingKey, radius: 52, stroke: 8 },
-  { key: "align" as RingKey, radius: 36, stroke: 8 },
+const MOVE_CONFIGS = [
+  { key: "notice" as DailyMoveKey, radius: 100, stroke: 8 },
+  { key: "choose" as DailyMoveKey, radius: 84, stroke: 8 },
+  { key: "prove" as DailyMoveKey, radius: 68, stroke: 8 },
+  { key: "align" as DailyMoveKey, radius: 52, stroke: 8 },
+  { key: "charge" as DailyMoveKey, radius: 36, stroke: 8 },
 ];
 
 const COLOR_MAP: Record<string, string> = {
@@ -43,9 +47,21 @@ const BG_COLOR_MAP: Record<string, string> = {
 };
 
 function RingSVG({
-  radius, strokeWidth, progress, color, bgColor, onClick, isActive,
+  radius,
+  strokeWidth,
+  progress,
+  color,
+  bgColor,
+  onClick,
+  isActive,
 }: {
-  radius: number; strokeWidth: number; progress: number; color: string; bgColor: string; onClick: () => void; isActive: boolean;
+  radius: number;
+  strokeWidth: number;
+  progress: number;
+  color: string;
+  bgColor: string;
+  onClick: () => void;
+  isActive: boolean;
 }) {
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - progress);
@@ -54,8 +70,13 @@ function RingSVG({
     <g onClick={onClick} className="cursor-pointer">
       <circle cx="110" cy="110" r={radius} fill="none" stroke={bgColor} strokeWidth={strokeWidth} />
       <motion.circle
-        cx="110" cy="110" r={radius} fill="none" stroke={color}
-        strokeWidth={strokeWidth} strokeLinecap="round"
+        cx="110"
+        cy="110"
+        r={radius}
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
         strokeDasharray={circumference}
         initial={{ strokeDashoffset: circumference }}
         animate={{ strokeDashoffset: offset }}
@@ -68,16 +89,26 @@ function RingSVG({
 }
 
 export const DailyRings = ({ userId }: DailyRingsProps) => {
-  const { rings, completedCount, statusLabel, completeRing, isCompleted, loading, definitions, rowId } = useDailyRings(userId);
+  const {
+    rings,
+    completedCount,
+    statusLabel,
+    completeMove,
+    isMoveCompleted,
+    loading,
+    moveDefinitions,
+    rowId,
+  } = useDailyMoves(userId);
   const intelligence = useDashboardIntelligence(userId, completedCount, rings);
-  const [activeRing, setActiveRing] = useState<RingKey | null>(null);
+  const [activeMove, setActiveMove] = useState<DailyMoveKey | null>(null);
   const [lowEnergy, setLowEnergy] = useState(false);
-  const [shareRing, setShareRing] = useState<RingKey | "fully_charged" | null>(null);
+  const [shareMove, setShareMove] = useState<DailyMoveKey | "fully_charged" | null>(null);
 
-  // Check if today's notice entry has low energy
   useEffect(() => {
     if (!userId) return;
+
     const todayStr = new Date().toLocaleDateString("sv-SE");
+
     const check = async () => {
       const { data } = await supabase
         .from("notice_entries" as any)
@@ -87,8 +118,10 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+
       if (data && (data as any).energy_level <= 2) setLowEnergy(true);
     };
+
     check();
   }, [userId, rings.notice_completed]);
 
@@ -100,13 +133,13 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
     );
   }
 
-  const handleRingClick = (key: RingKey) => {
-    setActiveRing((prev) => (prev === key ? null : key));
+  const handleMoveClick = (key: DailyMoveKey) => {
+    setActiveMove((prev) => (prev === key ? null : key));
   };
 
-  const handleComplete = async (key: RingKey, response?: string) => {
-    await completeRing(key, response);
-    setActiveRing(null);
+  const handleComplete = async (key: DailyMoveKey, response?: string) => {
+    await completeMove(key, response);
+    setActiveMove(null);
   };
 
   const isFullyCharged = completedCount === 5;
@@ -114,14 +147,13 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
 
   return (
     <div className="flex flex-col items-center gap-6">
-      {/* Status banner */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-1">
         <p className="text-xs text-muted-foreground tracking-wide uppercase">
-          {isFullyCharged ? "Fully Charged ⚡" : "Fill your rings for today."}
+          {isFullyCharged ? "Fully Charged ⚡" : "Choose your moves"}
         </p>
+        {!isFullyCharged && <p className="text-[11px] text-muted-foreground/80">{statusLabel}</p>}
       </motion.div>
 
-      {/* SVG Rings */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -129,23 +161,25 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
         className="relative"
       >
         <svg width="220" height="220" viewBox="0 0 220 220" className="md:w-[260px] md:h-[260px]">
-          {RING_CONFIGS.map(({ key, radius, stroke }) => {
-            const def = RING_DEFINITIONS.find((d) => d.key === key)!;
-            const completed = isCompleted(key);
+          {MOVE_CONFIGS.map(({ key, radius, stroke }) => {
+            const definition = DAILY_MOVE_DEFINITIONS.find((move) => move.key === key)!;
+            const completed = isMoveCompleted(key);
+
             return (
               <RingSVG
-                key={key} radius={radius} strokeWidth={stroke}
+                key={key}
+                radius={radius}
+                strokeWidth={stroke}
                 progress={completed ? 1 : 0}
-                color={COLOR_MAP[def.controllable]}
-                bgColor={BG_COLOR_MAP[def.controllable]}
-                onClick={() => handleRingClick(key)}
-                isActive={activeRing === key}
+                color={COLOR_MAP[definition.controllable]}
+                bgColor={BG_COLOR_MAP[definition.controllable]}
+                onClick={() => handleMoveClick(key)}
+                isActive={activeMove === key}
               />
             );
           })}
         </svg>
 
-        {/* Smart Center State */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <SmartCenterState
             completedCount={completedCount}
@@ -155,42 +189,45 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
         </div>
       </motion.div>
 
-      {/* AI Signals Row — shown when 3+ rings completed */}
       {showIntelligence && (
         <div className="w-full max-w-sm">
           <AISignalsRow signals={intelligence.data?.signals} isLoading={intelligence.isLoading} />
         </div>
       )}
 
-      {/* Ring labels */}
-      <div className="flex gap-3 flex-wrap justify-center">
-        {definitions.map((def) => {
-          const completed = isCompleted(def.key);
+      <div className="flex gap-2.5 flex-wrap justify-center max-w-sm">
+        {moveDefinitions.map((definition) => {
+          const completed = isMoveCompleted(definition.key);
+
           return (
             <button
-              key={def.key}
-              onClick={() => handleRingClick(def.key)}
+              key={definition.key}
+              onClick={() => handleMoveClick(definition.key)}
               className={cn(
-                "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
+                "flex items-center gap-2 rounded-full border px-3 py-1.5 text-left transition-all",
                 completed
-                  ? "bg-accent/10 text-accent line-through opacity-70"
-                  : activeRing === def.key
-                  ? "bg-muted ring-1 ring-border text-foreground"
-                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                  ? "border-accent/20 bg-accent/10 text-accent opacity-80"
+                  : activeMove === definition.key
+                    ? "border-border bg-muted text-foreground"
+                    : "border-border/50 bg-muted/40 text-muted-foreground hover:bg-muted",
               )}
             >
-              <span>{def.emoji}</span>
-              <span>{def.name}</span>
+              <span className="text-sm">{definition.emoji}</span>
+              <span className="flex flex-col leading-none">
+                <span className="text-[11px] font-medium">{definition.shortName} Move</span>
+                <span className="text-[9px] uppercase tracking-[0.16em] opacity-70">
+                  {definition.roleLabel}
+                </span>
+              </span>
             </button>
           );
         })}
       </div>
 
-      {/* Active ring card */}
       <AnimatePresence mode="wait">
-        {activeRing && !isCompleted(activeRing) && (
+        {activeMove && !isMoveCompleted(activeMove) && (
           <motion.div
-            key={activeRing}
+            key={activeMove}
             initial={{ opacity: 0, y: 20, height: 0 }}
             animate={{ opacity: 1, y: 0, height: "auto" }}
             exit={{ opacity: 0, y: -10, height: 0 }}
@@ -198,9 +235,9 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
             className="w-full max-w-sm overflow-hidden"
           >
             <RingActionCard
-              definition={definitions.find((d) => d.key === activeRing)!}
-              onComplete={(response) => handleComplete(activeRing, response)}
-              onDismiss={() => setActiveRing(null)}
+              definition={moveDefinitions.find((definition) => definition.key === activeMove)!}
+              onComplete={(response) => handleComplete(activeMove, response)}
+              onDismiss={() => setActiveMove(null)}
               userId={userId}
               lowEnergy={lowEnergy}
             />
@@ -208,7 +245,6 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
         )}
       </AnimatePresence>
 
-      {/* AI Insight Card replaces DailyRecapCard when intelligence is available */}
       <div className="w-full max-w-sm space-y-3">
         {showIntelligence ? (
           <AIInsightCard
@@ -225,26 +261,26 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
           />
         )}
 
-        {/* Why Fully Charged */}
         {isFullyCharged && <WhyFullyChargedCard data={intelligence.data} />}
-
-        {/* Memory Comparisons */}
         {showIntelligence && <MemoryComparisonRow data={intelligence.data} />}
       </div>
 
-      {/* Motivational footer */}
       {completedCount > 0 && completedCount < 5 && (
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-muted-foreground text-center">
-          {5 - completedCount} ring{5 - completedCount > 1 ? "s" : ""} to go. Small actions, big shifts.
+          {5 - completedCount} move{5 - completedCount > 1 ? "s" : ""} to go. Re-entry counts.
         </motion.p>
       )}
 
       {isFullyCharged && (
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-2 space-y-2">
-          <p className="text-sm font-semibold text-accent">🔥 All 5 rings filled. You're Fully Charged today.</p>
-          <p className="text-xs text-muted-foreground">Your daily reps power the whole system.</p>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center py-2 space-y-2"
+        >
+          <p className="text-sm font-semibold text-accent">🔥 All 5 moves complete. You're Fully Charged today.</p>
+          <p className="text-xs text-muted-foreground">Your team showed up across awareness, perspective, habit, environment, and wellness.</p>
           <button
-            onClick={() => setShareRing("fully_charged")}
+            onClick={() => setShareMove("fully_charged")}
             className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
           >
             <Share2 className="w-3 h-3" />
@@ -253,12 +289,11 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
         </motion.div>
       )}
 
-      {/* Share card overlay */}
       <AnimatePresence>
-        {shareRing && (
-          <RingShareCard ringKey={shareRing} onClose={() => setShareRing(null)} />
-        )}
+        {shareMove && <RingShareCard ringKey={shareMove} onClose={() => setShareMove(null)} />}
       </AnimatePresence>
     </div>
   );
 };
+
+export const DailyMoves = DailyRings;

@@ -24,7 +24,7 @@ export const usePlannerActivity = (
     queryFn: async (): Promise<ActivityItem[]> => {
       const items: ActivityItem[] = [];
 
-      // 1. Daily rings
+      // 1. Daily moves
       const { data: rings } = await supabase
         .from("daily_rings")
         .select("*")
@@ -35,16 +35,16 @@ export const usePlannerActivity = (
         for (const ring of rings) {
           const dateKey = ring.ring_date;
           const ringNames = [
-            { key: "notice", label: "Circuit Check", field: "notice_completed", response: "notice_response" },
-            { key: "choose", label: "Reframe Studio", field: "choose_completed", response: "choose_response" },
-            { key: "prove", label: "Proof Action", field: "prove_completed", response: "prove_response" },
-            { key: "charge", label: "Recharge", field: "charge_completed", response: "charge_response" },
-            { key: "align", label: "Environment Reset", field: "align_completed", response: "align_response" },
+            { key: "notice", label: "Awareness Move", field: "notice_completed", response: "notice_response" },
+            { key: "choose", label: "Perspective Move", field: "choose_completed", response: "choose_response" },
+            { key: "prove", label: "Habit Move", field: "prove_completed", response: "prove_response" },
+            { key: "align", label: "Environment Move", field: "align_completed", response: "align_response" },
+            { key: "charge", label: "Wellness Move", field: "charge_completed", response: "charge_response" },
           ] as const;
 
           for (const r of ringNames) {
             const completed = (ring as any)[r.field] as boolean;
-            if (!completed) continue; // Only show completed rings
+            if (!completed) continue;
             const response = (ring as any)[r.response] as string | null;
             items.push({
               id: `ring-${ring.id}-${r.key}`,
@@ -116,7 +116,7 @@ export const usePlannerActivity = (
         }
       }
 
-      // 4. Notice entries (Circuit Checks)
+      // 4. Notice entries (Awareness check-ins)
       const { data: notices } = await supabase
         .from("notice_entries" as any)
         .select("*")
@@ -127,7 +127,7 @@ export const usePlannerActivity = (
         for (const n of notices as any[]) {
           items.push({
             id: `notice-${n.id}`,
-            title: "🦉 Circuit Check",
+            title: "🦉 Awareness Check-in",
             subtitle: `${n.mood} · Energy ${n.energy_level}/5 · Stress ${n.stress_level}/5`,
             detail: n.interpretation || null,
             source: "notice",

@@ -22,6 +22,13 @@ export const SmartCenterState = ({ completedCount, isFullyCharged, rotations }: 
 
   // Non-fully-charged: simple static display
   if (!isFullyCharged) {
+    const label =
+      completedCount === 0
+        ? "Choose a move"
+        : completedCount <= 2
+          ? "Moves in motion"
+          : "Team coming online";
+
     return (
       <div className="flex flex-col items-center justify-center pointer-events-none">
         <motion.span
@@ -33,7 +40,7 @@ export const SmartCenterState = ({ completedCount, isFullyCharged, rotations }: 
           {completedCount}/5
         </motion.span>
         <span className="text-[10px] text-muted-foreground font-medium mt-0.5">
-          {completedCount === 0 ? "Just Getting Started" : completedCount <= 2 ? "Building Momentum" : "Locked In"}
+          {label}
         </span>
       </div>
     );

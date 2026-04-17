@@ -221,28 +221,28 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
     return `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
   };
 
-  // Share Snapshot summary
+  // Share chapter quest summary
   const handleShareSnapshot = async () => {
-    const journeyText = snapshot ? `Journey: ${snapshot.name}` : "";
+    const journeyText = snapshot ? `Region: ${snapshot.name}` : "";
     const promiseText = promiseStats && promiseStats.made > 0 
       ? `🛡️ ${Math.round((promiseStats.kept / promiseStats.made) * 100)}% promises kept\n`
       : "";
     
     const shareText = 
-      `🏆 7-Day Snapshot Complete\n` +
+      `🏆 7-Day Chapter Quest Complete\n` +
       `${formatDateRange()}\n\n` +
       (journeyText ? `${snapshot?.emoji || "📅"} ${journeyText}\n\n` : "") +
       `✅ ${completedDays.length}/7 days checked in\n` +
-      `⚡ ${sessionXp} XP earned\n` +
+      `⚡ ${sessionXp} Evolution XP earned\n` +
       promiseText +
-      `\nBuilding proof, one week at a time.\n` +
+      `\nBuilding proof, one chapter at a time.\n` +
       `thedashboard.agbcoaching.com\n\n` +
       `#TheDashboard`;
     
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "My 7-Day Snapshot Complete",
+          title: "My 7-Day Chapter Quest Complete",
           text: shareText,
         });
         toast.success("Shared!");
@@ -258,7 +258,7 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
     }
   };
 
-  // Build narrative slides for Snapshot Review
+  // Build narrative slides for chapter quest review
   const slides = [
     // Slide 1: Celebration moment with journey context
     {
@@ -274,9 +274,9 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
             {isCompleted ? "🏆" : "📋"}
           </motion.div>
           <h3 className="text-xl font-bold text-foreground mb-2">
-            {isCompleted 
-              ? "You Completed a 7-Day Snapshot" 
-              : `Your ${completedDays.length}/7 Day Snapshot`}
+            {isCompleted
+              ? "You Completed a 7-Day Chapter Quest"
+              : `Your ${completedDays.length}/7 Day Chapter Quest`}
           </h3>
           <p className="text-muted-foreground text-sm">
             {formatDateRange()}
@@ -293,7 +293,7 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
                 <span>{snapshot.name}</span>
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Focus: {snapshot.focus.charAt(0).toUpperCase() + snapshot.focus.slice(1)}
+                Region focus: {snapshot.focus.charAt(0).toUpperCase() + snapshot.focus.slice(1)}
               </p>
             </div>
           )}
@@ -312,7 +312,7 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
       content: (
         <div className="py-4">
           <p className="text-sm text-muted-foreground text-center mb-4">
-            <span className="text-xl mr-1">{guide.emoji}</span> Here's what you built this week...
+            <span className="text-xl mr-1">{guide.emoji}</span> Here's what you built through this chapter...
           </p>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-primary/10 rounded-xl p-4 text-center">
@@ -321,7 +321,7 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
             </div>
             <div className="bg-primary/10 rounded-xl p-4 text-center">
               <p className="text-3xl font-bold text-primary">{sessionXp}</p>
-              <p className="text-xs text-muted-foreground">XP Earned</p>
+              <p className="text-xs text-muted-foreground">Evolution XP</p>
             </div>
             {promiseStats && promiseStats.made > 0 && (
               <div className="col-span-2 bg-emerald-500/10 rounded-xl p-4 text-center">
@@ -329,14 +329,14 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
                   {promiseStats.kept}/{promiseStats.made} Promises Kept
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {Math.round((promiseStats.kept / promiseStats.made) * 100)}% integrity this week
+                  {Math.round((promiseStats.kept / promiseStats.made) * 100)}% integrity through this chapter
                 </p>
               </div>
             )}
           </div>
           {snapshot && (
             <p className="text-xs text-muted-foreground text-center mt-4 italic">
-              Your {snapshot.focus} focus helped guide your week.
+              Your {snapshot.focus} focus helped guide this chapter.
             </p>
           )}
         </div>
@@ -360,7 +360,7 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
           {/* Show user's own words if available */}
           {userReflections.length > 0 && (
             <div className="bg-muted/50 rounded-lg p-3 mb-4 text-left">
-              <p className="text-xs text-muted-foreground mb-1">Your reflection this week:</p>
+              <p className="text-xs text-muted-foreground mb-1">Your reflection from this chapter:</p>
               <p className="text-sm text-foreground italic">"{userReflections[0]}"</p>
             </div>
           )}
@@ -430,13 +430,13 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-primary" />
-              <span className="font-semibold text-foreground">Your Snapshot</span>
+              <span className="font-semibold text-foreground">Chapter Quest Review</span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleShareSnapshot}
                 className="text-muted-foreground hover:text-primary transition-colors p-1"
-                title="Share your Snapshot"
+                title="Share your Chapter Quest"
               >
                 <Share2 className="w-4 h-4" />
               </button>
@@ -448,7 +448,7 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
               </button>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mb-2">A clear record of how you showed up this week.</p>
+          <p className="text-xs text-muted-foreground mb-2">A clear record of how you moved through this chapter.</p>
         </div>
 
         <AnimatePresence mode="wait">
@@ -579,7 +579,7 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
                   >
                     <span className="flex items-center gap-2">
                       <Eye className="w-4 h-4" />
-                      View Snapshot Details
+                      View Chapter Details
                     </span>
                     <ChevronRight className="w-4 h-4" />
                   </Button>
@@ -592,7 +592,7 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
                   >
                     <span className="flex items-center gap-2">
                       <Repeat className="w-4 h-4" />
-                      Start Next Snapshot
+                      Enter Next Region
                     </span>
                     <ChevronRight className="w-4 h-4" />
                   </Button>

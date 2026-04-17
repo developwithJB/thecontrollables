@@ -64,7 +64,7 @@ export const RechargeEngineCard = ({ userId, onComplete, lowEnergy }: RechargeEn
     if (error) { console.error(error); setSaving(false); return; }
 
     const types = Array.from(selected).join(", ");
-    onComplete(`Recharged: ${types}`);
+    onComplete(`Wellness move: ${types}`);
   };
 
   const allLogged = [...todayLogs, ...Array.from(selected)];
@@ -97,7 +97,7 @@ export const RechargeEngineCard = ({ userId, onComplete, lowEnergy }: RechargeEn
 
       {lowEnergy && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-2.5">
-          <p className="text-xs text-yellow-400">⚡ Low energy detected in your Circuit Check. Your body and mind need fuel.</p>
+          <p className="text-xs text-yellow-400">⚡ Low energy detected in your Awareness Move. Your body and mind need fuel.</p>
         </motion.div>
       )}
 

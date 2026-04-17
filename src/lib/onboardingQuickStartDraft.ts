@@ -1,7 +1,20 @@
+import type { Controllable } from "./snapshots";
+import type { LifeSeasonKey } from "./lifePerspective";
+
 export interface OnboardingQuickStartDraft {
-  mission: string;
+  currentStep?: string | null;
+  mission?: string;
+  birthday?: string | null;
+  ageLabel?: string | null;
+  weeksLived?: number | null;
+  lifePercentage?: number | null;
+  lifeSeasonKey?: LifeSeasonKey | null;
+  lifeSeasonLabel?: string | null;
+  seasonNeed?: Controllable | null;
+  seasonNeedLabel?: string | null;
   snapshotId: string | null;
   snapshotName: string | null;
+  regionLabel?: string | null;
   updatedAt: string;
 }
 
@@ -23,17 +36,57 @@ export const getOnboardingQuickStartDraft = (): OnboardingQuickStartDraft | null
   try {
     const raw = storage.getItem(DRAFT_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as OnboardingQuickStartDraft;
+    const parsed = JSON.parse(raw) as Partial<OnboardingQuickStartDraft>;
+    return {
+      mission: parsed.mission ?? "",
+      currentStep: parsed.currentStep ?? null,
+      birthday: parsed.birthday ?? null,
+      ageLabel: parsed.ageLabel ?? null,
+      weeksLived: parsed.weeksLived ?? null,
+      lifePercentage: parsed.lifePercentage ?? null,
+      lifeSeasonKey: parsed.lifeSeasonKey ?? null,
+      lifeSeasonLabel: parsed.lifeSeasonLabel ?? null,
+      seasonNeed: parsed.seasonNeed ?? null,
+      seasonNeedLabel: parsed.seasonNeedLabel ?? null,
+      snapshotId: parsed.snapshotId ?? null,
+      snapshotName: parsed.snapshotName ?? null,
+      regionLabel: parsed.regionLabel ?? null,
+      updatedAt: parsed.updatedAt ?? new Date(0).toISOString(),
+    };
   } catch {
     return null;
   }
 };
 
 export const saveOnboardingQuickStartDraft = (
-  draft: Omit<OnboardingQuickStartDraft, "updatedAt">,
+  draft: Partial<Omit<OnboardingQuickStartDraft, "updatedAt">>,
 ): OnboardingQuickStartDraft => {
+  const existing = getOnboardingQuickStartDraft();
+  const pick = <K extends keyof Omit<OnboardingQuickStartDraft, "updatedAt">>(
+    key: K,
+    fallback: OnboardingQuickStartDraft[K],
+  ): OnboardingQuickStartDraft[K] => {
+    if (Object.prototype.hasOwnProperty.call(draft, key)) {
+      return (draft[key] ?? fallback) as OnboardingQuickStartDraft[K];
+    }
+
+    return (existing?.[key] ?? fallback) as OnboardingQuickStartDraft[K];
+  };
+
   const payload: OnboardingQuickStartDraft = {
-    ...draft,
+    mission: pick("mission", ""),
+    currentStep: pick("currentStep", null),
+    birthday: pick("birthday", null),
+    ageLabel: pick("ageLabel", null),
+    weeksLived: pick("weeksLived", null),
+    lifePercentage: pick("lifePercentage", null),
+    lifeSeasonKey: pick("lifeSeasonKey", null),
+    lifeSeasonLabel: pick("lifeSeasonLabel", null),
+    seasonNeed: pick("seasonNeed", null),
+    seasonNeedLabel: pick("seasonNeedLabel", null),
+    snapshotId: pick("snapshotId", null),
+    snapshotName: pick("snapshotName", null),
+    regionLabel: pick("regionLabel", null),
     updatedAt: new Date().toISOString(),
   };
 

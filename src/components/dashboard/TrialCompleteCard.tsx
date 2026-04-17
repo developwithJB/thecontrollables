@@ -46,7 +46,7 @@ export function TrialCompleteCard({
             <Trophy className="w-6 h-6 text-primary" />
           </motion.div>
           <h3 className="font-display text-lg font-bold text-foreground">
-            Your 7-Day Snapshot is complete.
+            Your 7-Day Chapter Quest is complete.
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
             Here's what you built.
@@ -63,7 +63,7 @@ export function TrialCompleteCard({
           <div className="text-center p-3 rounded-xl bg-card/50">
             <Zap className="w-4 h-4 mx-auto mb-1 text-accent" />
             <p className="font-display font-bold text-lg text-foreground">{totalXp}</p>
-            <p className="text-[10px] text-muted-foreground">XP Earned</p>
+            <p className="text-[10px] text-muted-foreground">Evolution XP</p>
           </div>
           <div className="text-center p-3 rounded-xl bg-card/50">
             <Trophy className="w-4 h-4 mx-auto mb-1 text-amber-500" />

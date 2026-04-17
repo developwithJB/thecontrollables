@@ -5,7 +5,7 @@ import { AIChat } from "@/components/AIChat";
 
 const CHIPS = [
   { label: "What should I protect today?", prompt: "Based on my body data, calendar load, and recent patterns — what should I protect today? What's most at risk?" },
-  { label: "Explain today", prompt: "Explain my day today — what patterns do you see in my ring completions, and what should I take away from today?" },
+  { label: "Explain today", prompt: "Explain my day today — what patterns do you see in my move completions, and what should I take away from today?" },
   { label: "Forecast tomorrow", prompt: "Based on my recent patterns, what should I expect tomorrow? What's my biggest risk and best opportunity?" },
   { label: "Coach me now", prompt: "Give me a focused coaching session right now. Based on what you know about my patterns, what's the most impactful thing I can do in the next hour?" },
 ];

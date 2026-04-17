@@ -123,7 +123,7 @@ export default function Operator() {
                     <Zap className="w-4 h-4 text-accent flex-shrink-0 opacity-60 group-hover:opacity-100" />
                     <span className="text-sm text-foreground flex-1">{action.label}</span>
                     {action.xp_reward > 0 && (
-                      <span className="text-xs text-muted-foreground">+{action.xp_reward} XP</span>
+                      <span className="text-xs text-muted-foreground">+{action.xp_reward} Evolution XP</span>
                     )}
                   </motion.button>
                 ))}

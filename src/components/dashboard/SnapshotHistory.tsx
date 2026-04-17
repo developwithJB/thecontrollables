@@ -266,12 +266,12 @@ function getHistoricalSnapshotVisual(startDate: Date, index: number): { emoji: s
   
   // Cycle through visual variety based on week
   const visuals = [
-    { emoji: "📝", name: "Week Record" },
-    { emoji: "✨", name: "Progress Week" },
-    { emoji: "🎯", name: "Focus Week" },
-    { emoji: "💪", name: "Commitment Week" },
-    { emoji: "🌟", name: "Growth Week" },
-    { emoji: "🔥", name: "Momentum Week" },
+    { emoji: "📝", name: "Chapter Record" },
+    { emoji: "✨", name: "Progress Chapter" },
+    { emoji: "🎯", name: "Focus Chapter" },
+    { emoji: "💪", name: "Commitment Chapter" },
+    { emoji: "🌟", name: "Growth Chapter" },
+    { emoji: "🔥", name: "Momentum Chapter" },
   ];
   
   return visuals[(weekOfYear + index) % visuals.length];
@@ -302,7 +302,7 @@ function WeekCard({
   // For historical snapshots without journey data, generate unique visuals
   const historicalVisual = !snapshot ? getHistoricalSnapshotVisual(startDate, index) : null;
   const displayEmoji = snapshot?.emoji || historicalVisual?.emoji || "📅";
-  const displayName = snapshot?.name || historicalVisual?.name || "Week Record";
+  const displayName = snapshot?.name || historicalVisual?.name || "Chapter Record";
 
   return (
     <motion.div
@@ -424,7 +424,7 @@ function WeekCard({
               }`}
             >
               <Gift className="w-3 h-3" />
-              Review This Week
+              Review This Chapter
             </button>
           )}
           {record.status === "active" && (
@@ -432,7 +432,7 @@ function WeekCard({
               className="text-xs text-primary/70 cursor-pointer hover:underline"
               onClick={onClick}
             >
-              View details →
+              View chapter →
             </span>
           )}
         </div>
@@ -492,7 +492,7 @@ function MonthView({
       {/* Snapshot count */}
       <div className="flex items-center gap-4 mb-4 text-sm">
         <span className="text-foreground">
-          <span className="font-semibold">{records.length}</span> Snapshot{records.length !== 1 ? "s" : ""}
+          <span className="font-semibold">{records.length}</span> Chapter Quest{records.length !== 1 ? "s" : ""}
         </span>
         <span className="text-muted-foreground">
           <span className="font-medium text-primary">{completed}</span> completed
@@ -531,13 +531,13 @@ function MonthView({
       {monthActivity.totalXp > 0 && (
         <p className="text-xs text-muted-foreground flex items-center gap-1 mb-4">
           <Zap className="w-3 h-3" />
-          +{monthActivity.totalXp} XP earned
+          +{monthActivity.totalXp} Evolution XP earned
         </p>
       )}
 
       {/* Week breakdown */}
       <div className="border-t border-border pt-3 mt-3">
-        <p className="text-xs text-muted-foreground mb-2">Weekly breakdown</p>
+        <p className="text-xs text-muted-foreground mb-2">Journey trail</p>
         <div className="space-y-2">
           {records.slice(0, 4).map((record) => {
             const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
@@ -554,7 +554,7 @@ function MonthView({
               >
                 <span className="text-base">{snapshot?.emoji || "📅"}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{snapshot?.name || "Week Record"}</p>
+                  <p className="text-sm font-medium truncate">{snapshot?.name || "Chapter Record"}</p>
                   <p className="text-xs text-muted-foreground">
                     {format(startDate, "MMM d")}
                     {activity && activity.actions > 0 && ` · ${activity.actions} actions`}
@@ -569,7 +569,7 @@ function MonthView({
           })}
           {records.length > 4 && (
             <p className="text-xs text-muted-foreground text-center pt-1">
-              +{records.length - 4} more weeks
+              +{records.length - 4} more chapters
             </p>
           )}
         </div>
@@ -631,11 +631,11 @@ function YearView({
       <div className="grid grid-cols-2 gap-4 mb-5">
         <div>
           <p className="text-2xl font-bold text-foreground">{records.length}</p>
-          <p className="text-xs text-muted-foreground">Snapshots taken</p>
+          <p className="text-xs text-muted-foreground">Regions entered</p>
         </div>
         <div>
           <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{completed}</p>
-          <p className="text-xs text-muted-foreground">Weeks completed</p>
+          <p className="text-xs text-muted-foreground">Chapter quests completed</p>
         </div>
       </div>
 
@@ -721,7 +721,7 @@ function LockedView({ viewType, requiredCount }: { viewType: string; requiredCou
     <div className="p-6 rounded-xl bg-muted/30 border border-dashed border-muted-foreground/30 text-center">
       <Lock className="w-6 h-6 mx-auto text-muted-foreground/50 mb-2" />
       <p className="text-sm text-muted-foreground">
-        Complete {requiredCount}+ Snapshots to unlock {viewType} view
+        Complete {requiredCount}+ Chapter Quests to unlock {viewType} view
       </p>
     </div>
   );
@@ -796,11 +796,11 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
         <CardContent className="py-8 text-center">
           <Layers className="w-10 h-10 mx-auto text-muted-foreground/50 mb-3" />
           <p className="text-sm text-muted-foreground mb-4">
-            Your history starts here.
+            Your journey map starts here.
           </p>
           {onStartNew && (
             <Button variant="outline" onClick={onStartNew}>
-              Start your first Snapshot
+              Enter your first region
             </Button>
           )}
         </CardContent>
@@ -814,7 +814,7 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-display flex items-center gap-2">
             <Layers className="w-4 h-4" />
-            Your Story
+            Journey Map
           </CardTitle>
           
           {/* Only show tabs if there's enough data */}
@@ -883,7 +883,7 @@ export function SnapshotHistory({ sessions, className, isPaid = false, userId, o
                     className="w-full flex items-center justify-between p-3 rounded-xl border border-border bg-card/50 hover:bg-muted/30 transition-colors"
                   >
                     <span className="text-sm text-muted-foreground">
-                      {sortedWeeks.length - 1} previous {sortedWeeks.length === 2 ? 'week' : 'weeks'}
+                      {sortedWeeks.length - 1} previous {sortedWeeks.length === 2 ? 'chapter' : 'chapters'}
                     </span>
                     <motion.div
                       animate={{ rotate: showOlderWeeks ? 180 : 0 }}

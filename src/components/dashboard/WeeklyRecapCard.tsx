@@ -71,19 +71,19 @@ export const WeeklyRecapCard = ({ userId, isPaid = false }: WeeklyRecapCardProps
 
   const stats = useMemo(() => {
     if (weekData.length === 0) return null;
-    let totalRings = 0;
-    let perfectDays = 0;
+    let totalMoves = 0;
+    let fullyChargedDays = 0;
     weekData.forEach((d) => {
       const count = [d.notice_completed, d.choose_completed, d.prove_completed, d.charge_completed, d.align_completed].filter(Boolean).length;
-      totalRings += count;
-      if (count === 5) perfectDays++;
+      totalMoves += count;
+      if (count === 5) fullyChargedDays++;
     });
     return {
       daysTracked: weekData.length,
-      totalRings,
-      perfectDays,
-      avgRings: (totalRings / weekData.length).toFixed(1),
-      completionRate: Math.round((totalRings / (weekData.length * 5)) * 100),
+      totalMoves,
+      fullyChargedDays,
+      avgMoves: (totalMoves / weekData.length).toFixed(1),
+      completionRate: Math.round((totalMoves / (weekData.length * 5)) * 100),
     };
   }, [weekData]);
 
@@ -91,11 +91,13 @@ export const WeeklyRecapCard = ({ userId, isPaid = false }: WeeklyRecapCardProps
   const localRecap = useMemo(() => {
     if (!stats || stats.daysTracked < 3) return null;
     const lines: string[] = [];
-    lines.push(`This week you tracked ${stats.daysTracked} days, completing ${stats.totalRings} rings total (${stats.avgRings}/day avg).`);
-    if (stats.perfectDays > 0) lines.push(`${stats.perfectDays} perfect day${stats.perfectDays > 1 ? "s" : ""} — all 5 rings filled. 🔥`);
+    lines.push(`This week you tracked ${stats.daysTracked} days, completing ${stats.totalMoves} moves total (${stats.avgMoves}/day avg).`);
+    if (stats.fullyChargedDays > 0) {
+      lines.push(`${stats.fullyChargedDays} fully charged day${stats.fullyChargedDays > 1 ? "s" : ""} — all 5 moves landed. 🔥`);
+    }
     if (stats.completionRate >= 80) lines.push("Strong week. Keep this consistency going.");
-    else if (stats.completionRate >= 50) lines.push("Solid effort. Focus on filling one more ring each day.");
-    else lines.push("Every ring matters. Try starting with Notice and Charge tomorrow.");
+    else if (stats.completionRate >= 50) lines.push("Solid effort. Focus on landing one more move each day.");
+    else lines.push("Every move matters. Try starting with Awareness and Wellness tomorrow.");
     return lines.join(" ");
   }, [stats]);
 
@@ -151,12 +153,12 @@ export const WeeklyRecapCard = ({ userId, isPaid = false }: WeeklyRecapCardProps
           <p className="text-[9px] text-muted-foreground">Completion</p>
         </div>
         <div>
-          <p className="text-lg font-bold text-foreground">{stats.avgRings}</p>
+          <p className="text-lg font-bold text-foreground">{stats.avgMoves}</p>
           <p className="text-[9px] text-muted-foreground">Avg/Day</p>
         </div>
         <div>
-          <p className="text-lg font-bold text-foreground">{stats.perfectDays}</p>
-          <p className="text-[9px] text-muted-foreground">Perfect Days</p>
+          <p className="text-lg font-bold text-foreground">{stats.fullyChargedDays}</p>
+          <p className="text-[9px] text-muted-foreground">Charged Days</p>
         </div>
       </div>
 

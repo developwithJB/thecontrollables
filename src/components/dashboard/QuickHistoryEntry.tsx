@@ -25,12 +25,12 @@ interface QuickHistoryEntryProps {
   userId?: string;
 }
 
-const RINGS = [
-  { key: "notice", label: "Notice", color: "text-blue-400" },
-  { key: "choose", label: "Choose", color: "text-purple-400" },
-  { key: "prove", label: "Prove", color: "text-orange-400" },
-  { key: "charge", label: "Charge", color: "text-green-400" },
-  { key: "align", label: "Align", color: "text-yellow-400" },
+const MOVES = [
+  { key: "notice", label: "Awareness Move", color: "text-blue-400" },
+  { key: "choose", label: "Perspective Move", color: "text-purple-400" },
+  { key: "prove", label: "Habit Move", color: "text-orange-400" },
+  { key: "align", label: "Environment Move", color: "text-yellow-400" },
+  { key: "charge", label: "Wellness Move", color: "text-green-400" },
 ] as const;
 
 export const QuickHistoryEntry = ({ userId }: QuickHistoryEntryProps) => {
@@ -76,7 +76,7 @@ export const QuickHistoryEntry = ({ userId }: QuickHistoryEntryProps) => {
 
       toast({
         title: "Day logged",
-        description: `Rings for ${format(date, "MMM d")} saved.`,
+        description: `Moves for ${format(date, "MMM d")} saved.`,
       });
 
       // Reset form
@@ -144,23 +144,23 @@ export const QuickHistoryEntry = ({ userId }: QuickHistoryEntryProps) => {
             </Popover>
           </div>
 
-          {/* Ring Toggles */}
+          {/* Move Toggles */}
           <div>
             <label className="text-xs text-muted-foreground mb-2 block">
-              Rings Completed
+              Moves Completed
             </label>
             <div className="space-y-2.5">
-              {RINGS.map((ring) => (
+              {MOVES.map((move) => (
                 <div
-                  key={ring.key}
+                  key={move.key}
                   className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30 border border-border/30"
                 >
-                  <span className={cn("text-sm font-medium", ring.color)}>
-                    {ring.label}
+                  <span className={cn("text-sm font-medium", move.color)}>
+                    {move.label}
                   </span>
                   <Switch
-                    checked={rings[ring.key]}
-                    onCheckedChange={() => toggleRing(ring.key)}
+                    checked={rings[move.key]}
+                    onCheckedChange={() => toggleRing(move.key)}
                   />
                 </div>
               ))}

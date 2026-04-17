@@ -1,10 +1,19 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Heart, Moon, Calendar, Activity, Wifi } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Clock3 } from "lucide-react";
+import { getISOWeek } from "date-fns";
 import type { HealthMetrics } from "@/hooks/useHealthData";
 import type { CalendarIntelligence } from "@/lib/calendarIntelligence";
+import { getOnboardingQuickStartDraft } from "@/lib/onboardingQuickStartDraft";
+import {
+  formatAgeInYearsMonthsDays,
+  getAgeInYearsMonthsDays,
+  getSeasonOfLifeMapping,
+  getWeeksLived,
+} from "@/lib/lifePerspective";
 
 interface TodayReadinessBarProps {
+  userId?: string;
   health: HealthMetrics | null;
   plannerCount: number;
   wearableConnected: boolean;
@@ -13,216 +22,96 @@ interface TodayReadinessBarProps {
   calendarIntel?: CalendarIntelligence | null;
 }
 
-function getReadinessInterpretation(
-  recovery: number | null,
-  sleepMin: number | null,
-  plannerCount: number,
-  trend?: HealthMetrics[],
-  calendarIntel?: CalendarIntelligence | null,
-): string | null {
-  if (recovery === null && !calendarIntel) return null;
+export function TodayReadinessBar({
+  health,
+  plannerCount,
+  wearableConnected,
+  calendarConnected,
+  calendarIntel,
+}: TodayReadinessBarProps) {
+  const hasConnectedSignals = wearableConnected || calendarConnected;
+  const hasLiveInputs =
+    hasConnectedSignals ||
+    plannerCount > 0 ||
+    (health?.recovery ?? null) !== null ||
+    (health?.sleepMinutes ?? null) !== null ||
+    !!calendarIntel;
 
-  const isHeavy = calendarIntel && (calendarIntel.dayType === "heavy" || calendarIntel.dayType === "admin_heavy");
-  const isFragmented = calendarIntel?.dayType === "fragmented";
-  const overloadedAfternoon = calendarIntel?.overloadedPeriod === "afternoon";
-  const sleepShort = sleepMin !== null && sleepMin < 360;
-  const strainElevated = trend && trend.slice(0, 3).filter(t => t.strain !== null && t.strain! > 14).length >= 2;
+  const lifeContext = useMemo(() => {
+    const draft = getOnboardingQuickStartDraft();
+    const birthday = draft?.birthday;
+    if (!birthday) return null;
 
-  // Combined body + calendar
-  if (recovery !== null && recovery < 34 && isFragmented) {
-    return "Low recovery + fragmented schedule — protect morning for focus work.";
-  }
-  if (recovery !== null && recovery < 34 && isHeavy) {
-    return "Low recovery + packed day — protect energy early and cut what you can.";
-  }
-  if (recovery !== null && recovery < 34 && sleepShort) {
-    return "Low recovery and short sleep — simplify the day and recharge tonight.";
-  }
-  if (recovery !== null && recovery < 34) {
-    return "Your body is undercharged. Keep the day light and protect downtime.";
-  }
-  if (recovery !== null && recovery >= 67 && calendarIntel?.dayType === "focus") {
-    return "Strong recovery + open calendar — ideal conditions for deep, focused work.";
-  }
-  if (recovery !== null && recovery >= 67 && sleepMin && sleepMin >= 420 && !isHeavy) {
-    return "Strong sleep + open day — ideal for deep, focused work.";
-  }
-  if (recovery !== null && recovery >= 67 && isHeavy) {
-    return "Good recovery for a demanding day. Use the charge wisely.";
-  }
-  if (recovery !== null && recovery >= 67) {
-    return "Strong readiness today. Lean into what matters most.";
-  }
-  if (isFragmented) {
-    return "Fragmented schedule today — batch similar tasks and guard focus windows.";
-  }
-  if (overloadedAfternoon) {
-    return "Afternoon is meeting-heavy — front-load important work this morning.";
-  }
-  if (sleepShort) {
-    return "Moderate recovery, short sleep — front-load important work.";
-  }
-  if (strainElevated) {
-    return "Strain has been elevated — pace yourself and build in recovery.";
-  }
-  if (isHeavy) {
-    return "Heavy schedule today — protect breaks and cut optional tasks.";
-  }
+    const age = getAgeInYearsMonthsDays(birthday);
+    const season = getSeasonOfLifeMapping(birthday);
+    const weeksLived = getWeeksLived(birthday);
 
-  // Calendar-only interpretation when no wearable
-  if (recovery === null && calendarIntel) {
-    switch (calendarIntel.dayType) {
-      case "heavy": return `${calendarIntel.meetingCount} meetings (${Math.round(calendarIntel.meetingMinutes / 60)}h) — heavy day, protect focus windows.`;
-      case "fragmented": return "Fragmented schedule — high context-switching risk. Batch similar tasks.";
-      case "focus": return "Open calendar — good day for deep work and proactive planning.";
-      case "light": return "Light schedule — flexible day for important work.";
-      case "recovery_window": return "Open schedule — use this for recovery or strategic planning.";
-      default: return `${calendarIntel.meetingCount} meetings today — stay intentional with energy.`;
-    }
-  }
+    if (!age || !season || !weeksLived) return null;
 
-  return "Steady day ahead. Stay intentional with energy.";
-}
+    return {
+      weekLabel: `Life Week ${weeksLived.toLocaleString()}`,
+      ageLabel: formatAgeInYearsMonthsDays(age),
+      seasonLabel: season.label,
+      seasonReflection: season.reflection,
+      arcLabel: "Long-arc view open",
+    };
+  }, []);
 
-function formatSleep(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = Math.round(minutes % 60);
-  return `${h}h ${m}m`;
-}
+  const fallbackContext = useMemo(() => {
+    const today = new Date();
+    const calendarWeek = getISOWeek(today);
+    const dateLabel = today.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+    });
 
-const DAY_TYPE_LABELS: Record<string, string> = {
-  heavy: "Heavy",
-  fragmented: "Fragmented",
-  admin_heavy: "Admin-Heavy",
-  moderate: "Moderate",
-  light: "Light",
-  focus: "Focus",
-  recovery_window: "Recovery",
-};
+    return {
+      weekLabel: `Week ${calendarWeek}`,
+      ageLabel: dateLabel,
+      seasonLabel: "Current Chapter",
+      seasonReflection: hasLiveInputs
+        ? "Real-world signals are connected, so the read below can stay grounded in the day you are actually living."
+        : "The read below stays intentionally light until more of your signals are connected.",
+      arcLabel: hasConnectedSignals ? "Live inputs connected" : "Add more signals over time",
+    };
+  }, [hasLiveInputs, hasConnectedSignals]);
 
-function getDayType(recovery: number | null, plannerCount: number, calendarIntel?: CalendarIntelligence | null): string {
-  // Prefer calendar intelligence day type when available
-  if (calendarIntel) {
-    return DAY_TYPE_LABELS[calendarIntel.dayType] || "Moderate";
-  }
-
-  if (recovery === null) {
-    if (plannerCount === 0) return "Open";
-    if (plannerCount <= 3) return "Light";
-    if (plannerCount <= 6) return "Moderate";
-    return "Heavy";
-  }
-  const isHeavy = plannerCount > 5;
-  const isLight = plannerCount <= 2;
-  if (recovery >= 67) return isHeavy ? "Demanding" : isLight ? "Recovery window" : "Strong";
-  if (recovery >= 34) return isHeavy ? "Stretch" : "Moderate";
-  return isHeavy ? "Caution" : "Conserve";
-}
-
-export function TodayReadinessBar({ health, plannerCount, wearableConnected, calendarConnected, trend, calendarIntel }: TodayReadinessBarProps) {
-  const hasAnyData = wearableConnected || calendarConnected;
-
-  if (!hasAnyData) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-lg border border-border/40 bg-muted/30 px-4 py-3 text-center"
-      >
-        <p className="text-xs text-muted-foreground">
-          Connect{" "}
-          <Link to="/planner" className="text-primary hover:underline">Calendar</Link>
-          {" + "}
-          <Link to="/wellness" className="text-primary hover:underline">Wearable</Link>
-          {" "}to unlock your daily read.
-        </p>
-      </motion.div>
-    );
-  }
-
-  const dayType = getDayType(health?.recovery ?? null, plannerCount, calendarIntel);
-  const interpretation = getReadinessInterpretation(
-    wearableConnected ? (health?.recovery ?? null) : null,
-    wearableConnected ? (health?.sleepMinutes ?? null) : null,
-    plannerCount,
-    trend,
-    calendarIntel,
-  );
+  const context = lifeContext ?? fallbackContext;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-lg border border-border/40 bg-card/60 px-3 py-2.5 space-y-1.5"
+      className="rounded-2xl border border-border/40 bg-card/70 px-4 py-4 space-y-3"
     >
-      <div className="flex items-center gap-3 overflow-x-auto scrollbar-none">
-        {/* Recovery */}
-        {wearableConnected && health?.recovery !== null && health?.recovery !== undefined && (
-          <div className="flex items-center gap-1.5 shrink-0">
-            <Heart className="w-3.5 h-3.5 text-wellness" />
-            <span className="text-xs text-muted-foreground">Recovery</span>
-            <span className="text-xs font-mono font-semibold text-foreground">{Math.round(health.recovery)}%</span>
-          </div>
-        )}
-
-        {/* Sleep */}
-        {wearableConnected && health?.sleepMinutes !== null && health?.sleepMinutes !== undefined && (
-          <>
-            <span className="text-border/60 shrink-0">·</span>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Moon className="w-3.5 h-3.5 text-accent/70" />
-              <span className="text-xs text-muted-foreground">Sleep</span>
-              <span className="text-xs font-mono font-semibold text-foreground">{formatSleep(health.sleepMinutes)}</span>
-            </div>
-          </>
-        )}
-
-        {/* Plan load — enhanced with calendar intel */}
-        {calendarConnected && (
-          <>
-            {wearableConnected && <span className="text-border/60 shrink-0">·</span>}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Calendar className="w-3.5 h-3.5 text-primary/70" />
-              <span className="text-xs text-muted-foreground">Plan</span>
-              <span className="text-xs font-mono font-semibold text-foreground">
-                {calendarIntel && calendarIntel.meetingCount > 0
-                  ? `${calendarIntel.meetingCount} mtg${calendarIntel.meetingCount !== 1 ? "s" : ""}`
-                  : `${plannerCount} items`}
-              </span>
-            </div>
-          </>
-        )}
-
-        {/* Day type */}
-        <span className="text-border/60 shrink-0">·</span>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Activity className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-xs font-medium text-foreground">{dayType}</span>
-        </div>
-
-        {/* Connect nudge */}
-        {!wearableConnected && (
-          <>
-            <span className="text-border/60 shrink-0">·</span>
-            <Link to="/wellness" className="flex items-center gap-1 shrink-0 text-[10px] text-primary/70 hover:text-primary transition-colors">
-              <Wifi className="w-3 h-3" /> + Wearable
-            </Link>
-          </>
-        )}
-        {!calendarConnected && (
-          <>
-            <span className="text-border/60 shrink-0">·</span>
-            <Link to="/planner" className="flex items-center gap-1 shrink-0 text-[10px] text-primary/70 hover:text-primary transition-colors">
-              <Calendar className="w-3 h-3" /> + Calendar
-            </Link>
-          </>
-        )}
+      <div className="flex items-center gap-2">
+        <Clock3 className="w-4 h-4 text-primary/60" />
+        <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          Life Context
+        </span>
       </div>
 
-      {/* Interpretation line */}
-      {interpretation && (
-        <p className="text-[11px] text-muted-foreground leading-snug pl-0.5">{interpretation}</p>
-      )}
+      <div className="space-y-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">{context.weekLabel}</span>
+          <span>·</span>
+          <span>{context.ageLabel}</span>
+          <span>·</span>
+          <span>{context.seasonLabel}</span>
+        </div>
+        <p className="text-sm text-foreground leading-relaxed">{context.seasonReflection}</p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full bg-muted/50 px-2.5 py-1 text-[11px] text-muted-foreground">
+          {context.arcLabel}
+        </span>
+        {hasConnectedSignals ? (
+          <span className="rounded-full bg-primary/8 px-2.5 py-1 text-[11px] text-primary/80">
+            Live signals shaping today
+          </span>
+        ) : null}
+      </div>
     </motion.div>
   );
 }
