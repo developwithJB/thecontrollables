@@ -191,7 +191,7 @@ export function useGameSignals({
   }, [wearable, healthData.isConnected, healthData.latest, healthData.trend]);
 
   const derivedCheckIn = useMemo(() => {
-    if (checkIn !== undefined) {
+    if (checkIn !== undefined && checkIn !== null) {
       return {
         ...checkIn,
         recentLowEnergyHighStressCount:
