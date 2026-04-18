@@ -24,7 +24,7 @@ const SNAPSHOT_DATA: Record<string, { name: string; tagline: string; focus: stri
   "one-thing-a-day": { name: "One Thing a Day", tagline: "Simple beats complex", focus: "Habit" },
   "tiny-wins": { name: "Tiny Wins Week", tagline: "Stack small victories", focus: "Habit" },
   "finish-what-you-start": { name: "Finish What You Start", tagline: "Completion over perfection", focus: "Habit" },
-  "build-the-chain": { name: "Build the Chain", tagline: "Don't break the streak", focus: "Habit" },
+  "build-the-chain": { name: "Build the Chain", tagline: "Keep showing up", focus: "Habit" },
   "show-up-anyway": { name: "Show Up Anyway", tagline: "Action despite resistance", focus: "Habit" },
   "consistency-over-intensity": { name: "Consistency Over Intensity", tagline: "Slow is fast", focus: "Perspective" },
   "replace-the-trigger": { name: "Replace the Trigger", tagline: "Swap the urge, keep the routine", focus: "Habit" },
@@ -176,9 +176,21 @@ interface UserContext {
   sessionId: string | null;
 }
 
+type DriftLevel = "low" | "moderate" | "high";
+
+interface DriftAlignmentEmailPayload {
+  alignmentScore: number;
+  driftScore: number;
+  driftLevel: DriftLevel;
+  primaryDriftDrivers: string[];
+  returnBonusApplied: boolean;
+}
+
 interface NudgeRequest {
   testMode?: boolean;
 }
+
+const HONEST_MOODS = new Set(["anxious", "frustrated", "overwhelmed", "flat"]);
 
 // Permission-giving lines — rotate, never stack
 const PERMISSION_LINES = [
@@ -435,30 +447,471 @@ async function getRecentReflection(supabase: SupabaseClient, userId: string): Pr
   return parts.length > 0 ? parts.join(" ") : null;
 }
 
-// Get consecutive streak count
-async function getStreakCount(supabase: SupabaseClient, userId: string): Promise<number> {
-  const { data } = await supabase
-    .from("daily_checkins")
-    .select("check_in_date")
-    .eq("user_id", userId)
-    .order("check_in_date", { ascending: false })
-    .limit(30);
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
 
-  if (!data || data.length === 0) return 0;
+function shiftLocalDate(localDate: string, days: number): string {
+  const date = new Date(`${localDate}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split("T")[0];
+}
 
-  let streak = 0;
-  const today = new Date();
-  for (let i = 0; i < data.length; i++) {
-    const expected = new Date(today);
-    expected.setDate(expected.getDate() - i);
-    const expectedStr = expected.toISOString().split("T")[0];
-    if (data[i].check_in_date === expectedStr) {
-      streak++;
+function parseDateOnly(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const normalized = value.length <= 10 ? `${value}T12:00:00` : value;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function daysBetween(dateA: Date, dateB: Date): number {
+  const oneDay = 24 * 60 * 60 * 1000;
+  return Math.floor(Math.abs(dateA.getTime() - dateB.getTime()) / oneDay);
+}
+
+function getDurationMinutes(startTime: string | null, endTime: string | null): number {
+  if (!startTime || !endTime) return 0;
+
+  const [startHour = "0", startMinute = "0"] = startTime.split(":");
+  const [endHour = "0", endMinute = "0"] = endTime.split(":");
+
+  const start = Number(startHour) * 60 + Number(startMinute);
+  const end = Number(endHour) * 60 + Number(endMinute);
+
+  if (Number.isNaN(start) || Number.isNaN(end)) return 0;
+  return Math.max(end - start, 0);
+}
+
+function interpretDriftAlignmentForEmail(input: {
+  daysSinceLastAction: number | null;
+  awarenessCheckInsLast7: number;
+  honestCheckInsLast7: number;
+  dailyCheckInsLast7: number;
+  dailyCheckInToday: boolean;
+  completedMovesLast7: number;
+  completedMovesToday: number;
+  awarenessToday: boolean;
+  keptPromiseRate14: number | null;
+  resolvedPromises14: number;
+  activeQuest: boolean;
+  environmentResets7: number;
+  recovery: number | null;
+  sleepMinutes: number | null;
+  strain: number | null;
+  repeatedLowSleepHighStrainCount: number;
+  meetingCount: number;
+  meetingMinutes: number;
+  protectedFocus: boolean;
+  overloadedCalendar: boolean;
+  lowEnergyToday: boolean;
+  highStressToday: boolean;
+  recentLowEnergyHighStressCount: number;
+}): DriftAlignmentEmailPayload {
+  const drivers: Array<{ label: string; impact: number }> = [];
+  let driftScore = 0;
+  let driftRelief = 0;
+  let alignmentBoost = 0;
+
+  const daysSinceLastAction = input.daysSinceLastAction ?? 0;
+  const lowRecovery = input.recovery != null && input.recovery < 34;
+  const strongRecovery = input.recovery != null && input.recovery >= 67;
+  const shortSleep = input.sleepMinutes != null && input.sleepMinutes < 360;
+  const highStrain =
+    (input.strain != null && input.strain >= 14) ||
+    input.repeatedLowSleepHighStrainCount >= 2;
+  const stressedWindow = input.highStressToday || input.recentLowEnergyHighStressCount >= 2;
+  const lowEnergyWindow = input.lowEnergyToday || input.recentLowEnergyHighStressCount >= 2;
+
+  if (daysSinceLastAction >= 3) {
+    const impact = clamp(18 + (daysSinceLastAction - 3) * 4, 18, 34);
+    drivers.push({
+      label: "Recent actions have gone a bit quiet",
+      impact,
+    });
+    driftScore += impact;
+  }
+
+  if (input.awarenessCheckInsLast7 === 0) {
+    drivers.push({
+      label: "Check-ins with God have been sparse",
+      impact: 18,
+    });
+    driftScore += 18;
+  } else if (input.awarenessCheckInsLast7 <= 1) {
+    drivers.push({
+      label: "Spiritual grounding has been thinner than usual",
+      impact: 10,
+    });
+    driftScore += 10;
+  } else {
+    alignmentBoost += 4;
+  }
+
+  if (input.honestCheckInsLast7 === 0 && input.awarenessCheckInsLast7 > 0) {
+    drivers.push({
+      label: "The inner picture may still need more honesty",
+      impact: 6,
+    });
+    driftScore += 6;
+  } else if (input.honestCheckInsLast7 >= 2) {
+    alignmentBoost += 4;
+  }
+
+  if (input.dailyCheckInsLast7 === 0) {
+    drivers.push({
+      label: "Daily alignment has lost its place",
+      impact: 12,
+    });
+    driftScore += 12;
+  } else if (input.dailyCheckInsLast7 <= 2) {
+    drivers.push({
+      label: "Your daily rhythm looks lighter than this season needs",
+      impact: 7,
+    });
+    driftScore += 7;
+  } else {
+    alignmentBoost += 4;
+  }
+
+  if (input.keptPromiseRate14 != null && input.resolvedPromises14 >= 2) {
+    if (input.keptPromiseRate14 < 40) {
+      drivers.push({
+        label: "Kept promises and main-quest follow-through have slipped",
+        impact: 14,
+      });
+      driftScore += 14;
+    } else if (input.keptPromiseRate14 < 70) {
+      drivers.push({
+        label: "Follow-through looks a bit unsteady right now",
+        impact: 8,
+      });
+      driftScore += 8;
     } else {
-      break;
+      alignmentBoost += 6;
+    }
+  } else if (input.activeQuest && input.completedMovesLast7 <= 2) {
+    drivers.push({
+      label: "The main quest may need a smaller promise to regain traction",
+      impact: 10,
+    });
+    driftScore += 10;
+  }
+
+  if (lowRecovery || shortSleep || highStrain || stressedWindow || lowEnergyWindow) {
+    const impact =
+      (lowRecovery ? 8 : 0) +
+      (shortSleep ? 6 : 0) +
+      (highStrain ? 3 : 0) +
+      (stressedWindow ? 4 : 0) +
+      (lowEnergyWindow ? 4 : 0);
+
+    drivers.push({
+      label: "Recovery and inner load are asking for attention",
+      impact,
+    });
+    driftScore += impact;
+  } else if (strongRecovery || (input.sleepMinutes ?? 0) >= 420) {
+    alignmentBoost += 5;
+  }
+
+  if (input.overloadedCalendar) {
+    const impact = clamp(
+      (input.meetingCount >= 4 ? 8 : 0) +
+        (input.meetingMinutes >= 240 ? 4 : 0) +
+        (input.protectedFocus ? -3 : 3),
+      4,
+      12,
+    );
+
+    drivers.push({
+      label: "The calendar is louder than the protection around it",
+      impact,
+    });
+    driftScore += impact;
+  } else if (input.protectedFocus) {
+    alignmentBoost += 4;
+  }
+
+  if (input.environmentResets7 === 0) {
+    drivers.push({
+      label: "Your environment has been carrying more friction",
+      impact: 7,
+    });
+    driftScore += 7;
+  } else if (input.environmentResets7 >= 2) {
+    alignmentBoost += 4;
+  }
+
+  const returnBonusApplied =
+    daysSinceLastAction >= 2 &&
+    (input.awarenessToday || input.dailyCheckInToday || input.completedMovesToday > 0);
+
+  if (returnBonusApplied) {
+    driftRelief += input.awarenessToday && input.completedMovesToday > 0 ? 18 : 12;
+    alignmentBoost += input.awarenessToday ? 10 : 7;
+  }
+
+  if (input.completedMovesToday >= 2 || input.dailyCheckInToday) {
+    driftRelief += 4;
+    alignmentBoost += 4;
+  }
+
+  driftScore = clamp(driftScore - driftRelief, 0, 100);
+
+  const alignmentScore = clamp(
+    Math.round(72 - driftScore * 0.65 + alignmentBoost),
+    0,
+    100,
+  );
+
+  const driftLevel: DriftLevel =
+    driftScore >= 60 ? "high" : driftScore >= 35 ? "moderate" : "low";
+
+  const primaryDriftDrivers = [...drivers]
+    .sort((a, b) => b.impact - a.impact)
+    .slice(0, 3)
+    .map((driver) => driver.label);
+
+  return {
+    alignmentScore,
+    driftScore,
+    driftLevel,
+    primaryDriftDrivers,
+    returnBonusApplied,
+  };
+}
+
+async function getDriftAlignmentPayload(
+  supabase: SupabaseClient,
+  userId: string,
+  localDate: string,
+): Promise<DriftAlignmentEmailPayload | null> {
+  const sevenDaysAgo = shiftLocalDate(localDate, -6);
+  const fourteenDaysAgo = shiftLocalDate(localDate, -13);
+  const thirtyDaysAgo = shiftLocalDate(localDate, -29);
+
+  const [
+    noticeEntriesRes,
+    dailyCheckinsRes,
+    dailyRingsRes,
+    integrityLogsRes,
+    environmentResetsRes,
+    activeQuestRes,
+    completedActionsRes,
+    healthRowsRes,
+    plannerItemsRes,
+  ] = await Promise.all([
+    supabase
+      .from("notice_entries")
+      .select("entry_date, mood, stress_level, energy_level, note")
+      .eq("user_id", userId)
+      .gte("entry_date", thirtyDaysAgo)
+      .order("entry_date", { ascending: false }),
+    supabase
+      .from("daily_checkins")
+      .select("check_in_date, completed")
+      .eq("user_id", userId)
+      .gte("check_in_date", thirtyDaysAgo)
+      .order("check_in_date", { ascending: false }),
+    supabase
+      .from("daily_rings")
+      .select("ring_date, notice_completed, choose_completed, prove_completed, charge_completed, align_completed")
+      .eq("user_id", userId)
+      .gte("ring_date", thirtyDaysAgo)
+      .order("ring_date", { ascending: false }),
+    supabase
+      .from("integrity_logs")
+      .select("promised_at, kept, kept_at")
+      .eq("user_id", userId)
+      .gte("promised_at", thirtyDaysAgo)
+      .order("promised_at", { ascending: false }),
+    supabase
+      .from("environment_resets")
+      .select("reset_date")
+      .eq("user_id", userId)
+      .gte("reset_date", thirtyDaysAgo)
+      .order("reset_date", { ascending: false }),
+    supabase
+      .from("main_quests")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("completed_actions")
+      .select("completed_at")
+      .eq("user_id", userId)
+      .gte("completed_at", `${thirtyDaysAgo}T00:00:00`)
+      .order("completed_at", { ascending: false }),
+    supabase
+      .from("health_sync_data")
+      .select("sync_date, recovery_score, sleep_minutes, strain_score")
+      .eq("user_id", userId)
+      .gte("sync_date", shiftLocalDate(localDate, -7))
+      .order("sync_date", { ascending: false })
+      .limit(7),
+    supabase
+      .from("planner_items")
+      .select("item_type, start_time, end_time, status")
+      .eq("user_id", userId)
+      .eq("scheduled_date", localDate),
+  ]);
+
+  if (noticeEntriesRes.error) throw noticeEntriesRes.error;
+  if (dailyCheckinsRes.error) throw dailyCheckinsRes.error;
+  if (dailyRingsRes.error) throw dailyRingsRes.error;
+  if (integrityLogsRes.error) throw integrityLogsRes.error;
+  if (environmentResetsRes.error) throw environmentResetsRes.error;
+  if (activeQuestRes.error) throw activeQuestRes.error;
+  if (completedActionsRes.error) throw completedActionsRes.error;
+  if (healthRowsRes.error) throw healthRowsRes.error;
+  if (plannerItemsRes.error) throw plannerItemsRes.error;
+
+  const noticeEntries = noticeEntriesRes.data ?? [];
+  const dailyCheckins = dailyCheckinsRes.data ?? [];
+  const dailyRings = dailyRingsRes.data ?? [];
+  const integrityLogs = integrityLogsRes.data ?? [];
+  const environmentResets = environmentResetsRes.data ?? [];
+  const completedActions = completedActionsRes.data ?? [];
+  const healthRows = healthRowsRes.data ?? [];
+  const plannerItems = plannerItemsRes.data ?? [];
+
+  const hasHistory =
+    noticeEntries.length > 0 ||
+    dailyCheckins.length > 0 ||
+    dailyRings.length > 0 ||
+    integrityLogs.length > 0 ||
+    environmentResets.length > 0 ||
+    completedActions.length > 0;
+
+  if (!hasHistory) return null;
+
+  const awarenessCheckInDays = new Set<string>();
+  const honestCheckInDays = new Set<string>();
+
+  for (const entry of noticeEntries) {
+    if (entry.entry_date >= sevenDaysAgo) {
+      awarenessCheckInDays.add(entry.entry_date);
+      if (
+        HONEST_MOODS.has(entry.mood) ||
+        (entry.stress_level ?? 0) >= 4 ||
+        (entry.energy_level ?? 6) <= 2 ||
+        Boolean(entry.note?.trim())
+      ) {
+        honestCheckInDays.add(entry.entry_date);
+      }
     }
   }
-  return streak;
+
+  const completedDailyCheckInDays = new Set(
+    dailyCheckins
+      .filter((entry) => entry.completed && entry.check_in_date >= sevenDaysAgo)
+      .map((entry) => entry.check_in_date),
+  );
+
+  const ringsLast7 = dailyRings.filter((entry) => entry.ring_date >= sevenDaysAgo);
+  const completedMovesLast7 = ringsLast7.reduce((total, entry) => {
+    return (
+      total +
+      [entry.notice_completed, entry.choose_completed, entry.prove_completed, entry.charge_completed, entry.align_completed]
+        .filter(Boolean).length
+    );
+  }, 0);
+
+  const todayRing = ringsLast7.find((entry) => entry.ring_date === localDate);
+  const completedMovesToday = todayRing
+    ? [todayRing.notice_completed, todayRing.choose_completed, todayRing.prove_completed, todayRing.charge_completed, todayRing.align_completed]
+        .filter(Boolean).length
+    : 0;
+
+  const resolvedPromises14 = integrityLogs.filter(
+    (entry) => entry.promised_at.slice(0, 10) >= fourteenDaysAgo && entry.kept !== null,
+  );
+  const keptPromises14 = resolvedPromises14.filter((entry) => entry.kept === true).length;
+  const keptPromiseRate14 =
+    resolvedPromises14.length > 0 ? Math.round((keptPromises14 / resolvedPromises14.length) * 100) : null;
+
+  const environmentResets7 = new Set(
+    environmentResets
+      .filter((entry) => entry.reset_date >= sevenDaysAgo)
+      .map((entry) => entry.reset_date),
+  ).size;
+
+  const latestDates = [
+    noticeEntries[0]?.entry_date,
+    dailyCheckins.find((entry) => entry.completed)?.check_in_date,
+    completedActions[0]?.completed_at,
+    dailyRings.find((entry) =>
+      entry.notice_completed ||
+      entry.choose_completed ||
+      entry.prove_completed ||
+      entry.charge_completed ||
+      entry.align_completed,
+    )?.ring_date,
+    integrityLogs[0]?.kept_at ?? integrityLogs[0]?.promised_at,
+    environmentResets[0]?.reset_date,
+  ]
+    .map((value) => parseDateOnly(value))
+    .filter((value): value is Date => Boolean(value));
+
+  const lastActionDate =
+    latestDates.length > 0
+      ? new Date(Math.max(...latestDates.map((value) => value.getTime())))
+      : null;
+
+  let meetingCount = 0;
+  let meetingMinutes = 0;
+  let protectedFocus = false;
+
+  for (const item of plannerItems) {
+    const duration = getDurationMinutes(item.start_time, item.end_time);
+    if (item.item_type === "external_event") {
+      meetingCount += 1;
+      meetingMinutes += duration;
+    } else if (duration >= 60 && item.status !== "skipped") {
+      protectedFocus = true;
+    }
+  }
+
+  const latestHealthRow = healthRows[0] ?? null;
+  const repeatedLowSleepHighStrainCount = healthRows
+    .slice(0, 3)
+    .filter((row) => (row.sleep_minutes ?? Infinity) < 360 && (row.strain_score ?? -Infinity) >= 14)
+    .length;
+
+  const todayNoticeEntry = noticeEntries.find((entry) => entry.entry_date === localDate) ?? null;
+
+  return interpretDriftAlignmentForEmail({
+    daysSinceLastAction: lastActionDate ? daysBetween(lastActionDate, new Date(`${localDate}T12:00:00`)) : null,
+    awarenessCheckInsLast7: awarenessCheckInDays.size,
+    honestCheckInsLast7: honestCheckInDays.size,
+    dailyCheckInsLast7: completedDailyCheckInDays.size,
+    dailyCheckInToday: completedDailyCheckInDays.has(localDate),
+    completedMovesLast7,
+    completedMovesToday,
+    awarenessToday: awarenessCheckInDays.has(localDate),
+    keptPromiseRate14,
+    resolvedPromises14: resolvedPromises14.length,
+    activeQuest: Boolean(activeQuestRes.data?.id),
+    environmentResets7,
+    recovery: latestHealthRow?.recovery_score ?? null,
+    sleepMinutes: latestHealthRow?.sleep_minutes ?? null,
+    strain: latestHealthRow?.strain_score ?? null,
+    repeatedLowSleepHighStrainCount,
+    meetingCount,
+    meetingMinutes,
+    protectedFocus,
+    overloadedCalendar: meetingCount >= 4 || meetingMinutes >= 240 || plannerItems.length >= 8,
+    lowEnergyToday: (todayNoticeEntry?.energy_level ?? 6) <= 2,
+    highStressToday: (todayNoticeEntry?.stress_level ?? 0) >= 4,
+    recentLowEnergyHighStressCount: new Set(
+      noticeEntries
+        .filter((entry) => entry.entry_date >= shiftLocalDate(localDate, -3))
+        .filter((entry) => (entry.energy_level ?? 6) <= 2 && (entry.stress_level ?? 0) >= 4)
+        .map((entry) => entry.entry_date),
+    ).size,
+  });
 }
 
 // Generate AI content for Daily Alignment
@@ -467,7 +920,7 @@ async function generateAlignmentContent(
   lowestControllable: string,
   missionTitle: string | null,
   recentReflection: string | null,
-  streakCount: number,
+  driftAlignment: DriftAlignmentEmailPayload | null,
   verseReference: string,
   verseText: string
 ): Promise<{
@@ -487,7 +940,13 @@ async function generateAlignmentContent(
     `Area needing attention: ${lowestControllable}`,
     missionTitle ? `Current mission: ${missionTitle}` : null,
     recentReflection ? `Recent reflection: "${recentReflection.slice(0, 200)}"` : null,
-    `Current streak: ${streakCount} day${streakCount !== 1 ? "s" : ""}`,
+    driftAlignment ? `Alignment score: ${driftAlignment.alignmentScore}/100` : null,
+    driftAlignment ? `Drift score: ${driftAlignment.driftScore}/100` : null,
+    driftAlignment ? `Drift level: ${driftAlignment.driftLevel}` : null,
+    driftAlignment && driftAlignment.primaryDriftDrivers.length > 0
+      ? `Primary drift drivers: ${driftAlignment.primaryDriftDrivers.join("; ")}`
+      : null,
+    driftAlignment?.returnBonusApplied ? "The user has already begun re-aligning after some drift." : null,
   ].filter(Boolean).join("\n");
 
   const prompt = `You are writing a concise, grounded, spiritually mature daily alignment email. Tie this scripture to the user's current growth journey using their recent activity data. Keep tone practical, not preachy. Keep total length under 250 words.
@@ -579,11 +1038,21 @@ Rules:
 // Generate DAILY email content (basic for free users)
 function generateDailyEmailContent(
   context: UserContext,
-  levels: ControllableLevelInfo[]
+  levels: ControllableLevelInfo[],
+  driftAlignment: DriftAlignmentEmailPayload | null = null,
 ): { subject: string; body: string } {
   const greeting = context.displayName ? `Hey ${context.displayName}` : "Hey";
   const dayNum = context.currentDay || 1;
-  
+  const driftLine = driftAlignment
+    ? driftAlignment.returnBonusApplied
+      ? "You are already re-aligning. One honest move today still counts."
+      : driftAlignment.driftLevel === "high"
+        ? "You may have drifted a bit. You are not behind. One grounded move is enough to begin again."
+        : driftAlignment.driftLevel === "moderate"
+          ? "A gentle re-alignment would help today. Keep it honest and small."
+          : "Your alignment looks mostly steady. Keep staying close to what matters most this season."
+    : null;
+
   const subject = `${context.snapshotName}. Day ${dayNum}.`;
   const contextLine = getDayContextLine(dayNum);
   const permissionLine = PERMISSION_LINES[Math.floor(Math.random() * PERMISSION_LINES.length)];
@@ -614,6 +1083,12 @@ function generateDailyEmailContent(
       <p style="font-size: 15px; color: #444; margin: 0 0 20px 0;">
         ${contextLine}
       </p>
+
+      ${driftLine ? `
+        <p style="font-size: 14px; color: #666; margin: 0 0 20px 0; line-height: 1.6;">
+          ${driftLine}
+        </p>
+      ` : ""}
       
       <p style="font-size: 14px; color: #666; margin: 0 0 24px 0;">
         If you want to check in, your next small action is waiting.
@@ -1102,9 +1577,10 @@ Deno.serve(async (req) => {
           const email = userData.user.email;
 
           // Check if user is paid (for Daily Alignment) and fetch levels
-          const [userIsPaid, userLevels] = await Promise.all([
+          const [userIsPaid, userLevels, driftAlignment] = await Promise.all([
             checkIsPaid(supabase, userId),
             getUserControllableLevels(supabase, userId),
+            isWeekly ? Promise.resolve(null) : getDriftAlignmentPayload(supabase, userId, localDate),
           ]);
           
           let subject: string;
@@ -1115,10 +1591,9 @@ Deno.serve(async (req) => {
             console.log(`[NUDGE] Generating Daily Alignment for paid user ${userId}`);
             
             // Gather data for personalization
-            const [lowestControllable, recentReflection, streakCount] = await Promise.all([
+            const [lowestControllable, recentReflection] = await Promise.all([
               getLowestControllable(supabase, userId),
               getRecentReflection(supabase, userId),
-              getStreakCount(supabase, userId),
             ]);
 
             const themeTag = getThemeForControllable(lowestControllable || context.focusArea.toLowerCase());
@@ -1130,7 +1605,7 @@ Deno.serve(async (req) => {
                 lowestControllable || context.focusArea.toLowerCase(),
                 context.missionTitle,
                 recentReflection,
-                streakCount,
+                driftAlignment,
                 scripture.verse_reference,
                 scripture.verse_text
               );
@@ -1145,24 +1620,41 @@ Deno.serve(async (req) => {
                   user_id: userId,
                   scripture_id: scripture.id,
                   nudge_date: localDate,
-                  generated_content: aiContent,
+                  generated_content: {
+                    ...aiContent,
+                    driftAlignment,
+                  },
                 }, { onConflict: "user_id,nudge_date" });
 
                 alignmentCount++;
               } else {
                 // AI failed, fall back to basic premium email with scripture only
-                const fallbackResult = generateDailyAlignmentEmailContent(context, scripture.verse_reference, scripture.verse_text, {
+                const fallbackContent = {
                   contextReflection: `This verse speaks to your ${lowestControllable || "growth"} journey. Let it settle before you act on it.`,
                   reflectionQuestion: "What part of this verse challenges you most right now?",
                   microAction: "Choose one small action today that reflects what this verse is asking of you.",
                   eveningPrompt: "Did I live closer to this verse today than yesterday?",
+                };
+                const fallbackResult = generateDailyAlignmentEmailContent(context, scripture.verse_reference, scripture.verse_text, {
+                  ...fallbackContent,
                 }, userLevels);
                 subject = fallbackResult.subject;
                 body = fallbackResult.body;
+
+                await supabase.from("daily_alignment_logs").upsert({
+                  user_id: userId,
+                  scripture_id: scripture.id,
+                  nudge_date: localDate,
+                  generated_content: {
+                    ...fallbackContent,
+                    driftAlignment,
+                    fallback: true,
+                  },
+                }, { onConflict: "user_id,nudge_date" });
               }
             } else {
               // No scripture found, fall back to basic email
-              const basicResult = generateDailyEmailContent(context, userLevels);
+              const basicResult = generateDailyEmailContent(context, userLevels, driftAlignment);
               subject = basicResult.subject;
               body = basicResult.body;
             }
@@ -1172,7 +1664,7 @@ Deno.serve(async (req) => {
             body = result.body;
           } else {
             // FREE PATH: Basic daily nudge with upgrade CTA
-            const result = generateDailyEmailContent(context, userLevels);
+            const result = generateDailyEmailContent(context, userLevels, driftAlignment);
             subject = result.subject;
             body = result.body;
           }

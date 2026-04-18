@@ -16,7 +16,7 @@ const MOVE_GRADIENTS: Record<string, string> = {
 };
 
 const MOVE_MESSAGES: Record<string, { title: string; subtitle: string; emoji: string }> = {
-  notice: { title: "Awareness Move Complete", subtitle: "My scout helped me see what was real today.", emoji: "🦉" },
+  notice: { title: "Awareness Move Complete", subtitle: "My scout helped me check in with God and see what was real today.", emoji: "🦉" },
   choose: { title: "Perspective Move Complete", subtitle: "My translator helped me zoom out and choose well.", emoji: "🐢" },
   prove: { title: "Habit Move Complete", subtitle: "My builder turned intention into a real rep.", emoji: "🦈" },
   align: { title: "Environment Move Complete", subtitle: "My protector shaped the space around the day.", emoji: "🚀" },

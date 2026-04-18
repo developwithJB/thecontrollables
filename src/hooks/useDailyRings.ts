@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getControllableRosterProfile } from "@/lib/controllableRoster";
+import { AWARENESS_MOVE_MEANING } from "@/lib/awarenessLanguage";
 import type { ControllableType } from "@/components/ControllableCard";
 
 export type RingKey = "notice" | "choose" | "prove" | "charge" | "align";
@@ -36,7 +37,7 @@ export const DAILY_MOVE_DEFINITIONS: DailyMoveDefinition[] = [
     controllable: "awareness",
     emoji: "🦉",
     roleLabel: awarenessProfile.roleLabel,
-    meaning: "Let your scout notice what is real before the day starts running you.",
+    meaning: AWARENESS_MOVE_MEANING,
     prompt: "Open the Awareness Move",
     completionLabel: "Complete Awareness Move",
     color: "awareness",

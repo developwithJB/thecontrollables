@@ -3,6 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import type { BuildScore } from "@/lib/build";
+import {
+  AWARENESS_GUIDE_DESCRIPTION,
+  AWARENESS_GUIDE_QUOTES,
+  AWARENESS_GUIDE_TAGLINE,
+} from "@/lib/awarenessLanguage";
 
 interface OnboardingMeetGuidesProps {
   buildResult: BuildScore | null;
@@ -10,7 +15,7 @@ interface OnboardingMeetGuidesProps {
 }
 
 const GUIDES = [
-  { key: "awareness", emoji: "🦉", name: "Awareness", tagline: "See clearly before you act", description: "Helps you observe your thoughts and reactions without getting swept away.", quotes: ["You cannot change what you cannot see.", "You are not your thoughts. You are the one watching them.", "The pause between trigger and response — that's where freedom lives."] },
+  { key: "awareness", emoji: "🦉", name: "Awareness", tagline: AWARENESS_GUIDE_TAGLINE, description: AWARENESS_GUIDE_DESCRIPTION, quotes: AWARENESS_GUIDE_QUOTES },
   { key: "perspective", emoji: "🐢", name: "Perspective", tagline: "Zoom out. See the bigger picture", description: "Reframes situations so urgency doesn't override wisdom.", quotes: ["Zoom out. How will this matter in a year?", "You've survived 100% of your hardest days so far.", "The story you tell yourself about what happened matters more than what happened."] },
   { key: "habit", emoji: "🦈", name: "Habit", tagline: "Reps beat motivation", description: "Cuts through excuses and points to the next smallest action.", quotes: ["Reps beat motivation. Every time.", "Small promises kept > big promises broken.", "Don't break the chain. The chain is everything."] },
   { key: "wellness", emoji: "🛰️", name: "Wellness", tagline: "Check your systems", description: "Monitors sleep, movement, and fuel — the basics that power everything.", quotes: ["You can't pour from an empty cup. Check your systems.", "Output is limited by input. What's your fuel?", "Sleep isn't optional. It's the foundation everything else sits on."] },

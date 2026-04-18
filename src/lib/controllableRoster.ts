@@ -1,4 +1,5 @@
 import type { ControllableType } from "@/components/ControllableCard";
+import { AWARENESS_ROSTER_DESCRIPTION } from "@/lib/awarenessLanguage";
 
 export type ControllableRole = "scout" | "translator" | "builder" | "charger" | "protector";
 export type ControllableChargeStage = "base" | "charged" | "fully charged";
@@ -27,7 +28,7 @@ const ROSTER_PROFILES: Record<ControllableType, Omit<ControllableRosterProfile, 
   awareness: {
     role: "scout",
     roleLabel: "Scout",
-    shortDescription: "Spots what is real before the day runs away from you.",
+    shortDescription: AWARENESS_ROSTER_DESCRIPTION,
   },
   perspective: {
     role: "translator",

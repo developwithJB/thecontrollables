@@ -8,7 +8,7 @@ export const CORE_PHILOSOPHY = {
 Life will hand you storms you didn't ask for. The only question is: What will you do with what you can actually control?
 
 The five Controllables are:
-1. Awareness 🦉 - The ability to observe your thoughts without becoming them
+1. Awareness 🦉 - The ability to check in with God, tell the truth, and notice what is happening before reacting
 2. Perspective 🐢 - The ability to zoom out and see the bigger picture
 3. Habit 🦈 - The ability to show up and do the rep, regardless of motivation
 4. Wellness 🛰️ - The ability to maintain the systems that keep you functioning
@@ -60,26 +60,26 @@ Every day is Day 1 if you choose it.`,
 
 // ============ CONTROLLABLE-SPECIFIC QUOTES ============
 export const AWARENESS_QUOTES = [
-  "You cannot change what you cannot see. Awareness is the first controllable.",
-  "You are not your thoughts. You are the one watching them.",
-  "Name the weather. Don't become it.",
-  "The thought says 'you are anxious.' But are you? Or is anxiety just... present?",
-  "Notice the gap. Between what happened and what you made it mean.",
-  "Observation without judgment is the highest form of intelligence.",
-  "The 2-second pause: the space where reactivity becomes response.",
-  "What you resist persists. What you observe transforms.",
-  "The mind produces thoughts the way the sky produces clouds. You don't have to grab every one.",
-  "Feelings are data, not directives. Notice them. Don't obey them blindly.",
-  "Before you react, pause. Before you speak, listen. Before you act, observe.",
-  "The story in your head is rarely the story that's happening.",
-  "Awareness doesn't fix the problem. It shows you where the problem actually is.",
-  "You're not stuck. You just haven't seen the door yet.",
-  "The voice in your head is not you. It's just a very talkative roommate.",
-  "What you're aware of, you can work with. What you're not aware of, works you.",
-  "Reactivity is autopilot. Awareness is taking back the controls.",
-  "Notice without judging. Observe without fixing. That's the practice.",
-  "The gap between trigger and response is where you live or die. Widen it.",
-  "Clarity comes from observation, not from thinking harder.",
+  "You cannot heal what you will not bring honestly before God.",
+  "Prayer is where truth becomes speakable again.",
+  "Before the day starts leading you, let God meet you in what is already true.",
+  "Scripture steadies what panic tries to narrate.",
+  "Surrender is not giving up. It is handing reality back to God instead of pretending you can hold it all.",
+  "Gratitude does not deny pain. It keeps pain from becoming the whole story.",
+  "Honest self-examination is not self-attack. It is how light gets in.",
+  "Name what is present before God. Do not become what is present.",
+  "The soul grows quieter when the truth is finally said out loud.",
+  "You do not need a polished prayer. You need an honest one.",
+  "Awareness begins when you stop performing and start telling the truth.",
+  "What you keep hidden stays heavy. What you bring into prayer can be carried differently.",
+  "The first move is not fixing. The first move is checking in with God.",
+  "You are not asked to control everything. You are invited to surrender what is not yours to carry.",
+  "Peace is easier to recognize after you have named what is actually disturbing it.",
+  "Gratitude is one way of remembering that God is still present inside unfinished days.",
+  "Bring the real thing to God, not the cleaned-up version.",
+  "Clarity often comes after confession, not before it.",
+  "Sometimes the most mature move is a quieter day and a truer prayer.",
+  "Awareness is where prayer, honesty, and surrender meet reality.",
 ];
 
 export const PERSPECTIVE_QUOTES = [
@@ -190,29 +190,29 @@ export const ENVIRONMENT_QUOTES = [
 export const EXERCISES = {
   awareness: [
     {
-      name: "The 2-Second Pause",
-      description: "When triggered, count 'one-Mississippi, two-Mississippi' before responding.",
-      when: "Use when you feel reactive, defensive, or about to say something you might regret.",
+      name: "Check-In With God",
+      description: "Pause for one minute and tell God three things: what feels true, what you need help carrying, and one thing you can still receive with gratitude.",
+      when: "Use before the day speeds up or when you feel internally scattered.",
     },
     {
-      name: "Name the Weather",
-      description: "Say out loud: 'Right now, there is [emotion] present.' Not 'I am [emotion].'",
-      when: "Use when emotions feel overwhelming or you're fusing with a feeling.",
+      name: "Name the Weather Before God",
+      description: "Pray it plainly: 'God, anxiety is present' or 'God, anger is loud.' Name what is here without becoming it.",
+      when: "Use when emotions feel overwhelming or you are fusing with a feeling.",
     },
     {
-      name: "The Thought Audit",
-      description: "Write down the thought. Then ask: 'Is this true? What evidence do I have?'",
-      when: "Use when a recurring negative thought keeps surfacing.",
+      name: "Scripture Pause",
+      description: "Read one short verse slowly twice. Ask: what does this reveal about God, and what does it reveal about what I am carrying right now?",
+      when: "Use when your thoughts feel louder than truth.",
     },
     {
-      name: "Body Scan",
-      description: "Close eyes. Scan from head to toe. Where is tension? Don't fix—just notice.",
-      when: "Use when stressed or disconnected from physical sensations.",
+      name: "Honest Surrender",
+      description: "Write two columns: what is mine to respond to, and what I need to surrender. Offer the second column to God in one sentence.",
+      when: "Use when you are gripping outcomes, people, or pressure that is not yours to control.",
     },
     {
-      name: "The Observer Position",
-      description: "Imagine watching yourself from the corner of the room. What do you see?",
-      when: "Use when spiraling or caught in rumination.",
+      name: "Evening Examen",
+      description: "At the end of the day, ask: where did I feel close to God, where did I drift, and what am I grateful for anyway?",
+      when: "Use when you want a gentle, honest review without shame.",
     },
   ],
   perspective: [
@@ -328,11 +328,11 @@ export const EXERCISES = {
 // ============ COMMON SCENARIOS ============
 export const COMMON_SCENARIOS = {
   awareness: [
-    { trigger: "anxiety", response: "Name it: 'There is anxiety present.' Not 'I am anxious.' What's the thought creating the anxiety? Is it true?" },
-    { trigger: "overwhelm", response: "Pause. The feeling is real. But the story about it might not be. What's actually happening right now—not the projection?" },
-    { trigger: "self-criticism", response: "Notice the voice. Is it yours? Or is it a pattern you learned? Name it: 'The critic is active.' Then ask: what's actually true?" },
-    { trigger: "rumination", response: "You're looping. The thought won't solve itself by thinking harder. Can you step back and watch the thought instead of being in it?" },
-    { trigger: "anger", response: "The anger is information. What boundary was crossed? What need wasn't met? Notice it. Don't become it." },
+    { trigger: "anxiety", response: "Bring it into prayer plainly: 'God, anxiety is present.' What is actually true, and what are you predicting? Separate the two before you move." },
+    { trigger: "overwhelm", response: "Pause and tell God the unedited version. What is actually happening right now, and what are you adding on top of it? The two are not the same." },
+    { trigger: "self-criticism", response: "Notice the accusing voice. Is it conviction, fear, or an old pattern? Bring that voice before God and ask what is actually true." },
+    { trigger: "rumination", response: "You're looping. Thinking harder will not create peace. Step into prayer, name what is circling, and ask what needs to be surrendered instead of solved." },
+    { trigger: "anger", response: "The anger is information. Bring it honestly before God. What boundary was crossed, what hurt is underneath it, and what response is yours to carry?" },
   ],
   perspective: [
     { trigger: "failure", response: "Zoom out. In the story of your life, is this a chapter ending or a plot twist? What will you learn from this?" },
@@ -369,12 +369,12 @@ export const RESPONSE_TEMPLATES = {
   awareness: {
     structure: `
 1. MIRROR: Reflect what they said in 1 line (show you heard)
-2. NAME THE WEATHER: What emotion/thought pattern is active right now?
-3. SEPARATE: What's the observation vs. the interpretation?
-4. → ACTION: A pause-and-notice exercise (2-second pause, naming, observation)`,
+2. BRING IT BEFORE GOD: Help them name what feels true in prayer without performing
+3. SEPARATE: What's the truth, what's the fear, and what needs surrender?
+4. → ACTION: A short prayer, scripture pause, gratitude practice, or honest self-examination exercise`,
     examples: [
-      "Notice that. You said 'I always fail.' That's a story, not a fact. What actually happened?",
-      "Pause. The thought is 'I'm not good enough.' But is that you speaking, or is that fear speaking?",
+      "Bring that before God. You said 'I always fail.' That's a story. What actually happened, and what needs to be surrendered?",
+      "Pause. The thought is 'I'm not enough.' Before you obey it, tell God the truth about what fear is saying and what is actually true.",
     ],
   },
   
@@ -448,15 +448,15 @@ export const FORBIDDEN_PHRASES = [
 // ============ VOICE PATTERNS ============
 export const VOICE_PATTERNS = {
   awareness: {
-    sentenceStyle: "Short. Observational. Questions that create space.",
+    sentenceStyle: "Short. Clear. Spiritually grounded. Questions that invite honesty before God.",
     signaturePhrases: [
-      "Notice that.",
-      "What else is there?",
-      "That's the thought. What's the truth?",
-      "Name it.",
+      "Bring that before God.",
+      "What feels true here?",
+      "That's the fear. What's the truth?",
+      "Name it honestly.",
       "Pause.",
     ],
-    tone: "Calm, grounded, like a wise observer pointing at something you already know",
+    tone: "Calm, grounded, and spiritually mature, like someone helping you pray honestly and see clearly without panic",
     neverDo: [
       "Use motivational language",
       "Say 'you've got this' or 'I believe in you'",
