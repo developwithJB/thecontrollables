@@ -15,9 +15,11 @@ import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
 import { analyzeCalendar } from "@/lib/calendarIntelligence";
 import { useWeeklyTracker } from "@/hooks/useWeeklyTracker";
 import { useGameSignals } from "@/hooks/useGameSignals";
+import { useDriftAlignment } from "@/hooks/useDriftAlignment";
 import { WeeklyPulseScreen } from "@/components/dashboard/WeeklyPulseScreen";
 
 import { TodayHeader } from "@/components/dashboard/TodayHeader";
+import { ReturnFromDriftCard } from "@/components/dashboard/ReturnFromDriftCard";
 import { BossBattleBanner } from "@/components/dashboard/BossBattleBanner";
 import { PrimaryGuidanceCard } from "@/components/dashboard/PrimaryGuidanceCard";
 import { ProtectEnergyCard } from "@/components/dashboard/ProtectEnergyCard";
@@ -35,6 +37,7 @@ export default function Home() {
   const { toast } = useToast();
 
   const [pulseDismissed, setPulseDismissed] = useState(false);
+  const [returnFromDriftDismissed, setReturnFromDriftDismissed] = useState(false);
 
   const { activeSession, isLoading: resetLoading } = useReset(user.id);
 
@@ -71,7 +74,12 @@ export default function Home() {
   const { data: weekPlannerItems = [] } = usePlannerItems(weekRange.start, weekRange.end, user.id);
   const todayPlannerItems = useMemo(() => weekPlannerItems.filter((i: any) => i.scheduled_date === todayStr), [weekPlannerItems, todayStr]);
   const todayCalendarIntel = useMemo(() => analyzeCalendar(todayPlannerItems), [todayPlannerItems]);
-  const { signals } = useGameSignals({
+  const {
+    signals,
+    calendar: signalCalendar,
+    wearable: signalWearable,
+    checkIn: signalCheckIn,
+  } = useGameSignals({
     userId: user.id,
     wearable: {
       connected: wearableConnected,
@@ -90,6 +98,18 @@ export default function Home() {
       overloadedPeriod: todayCalendarIntel?.overloadedPeriod ?? null,
     },
   });
+  const { drift } = useDriftAlignment({
+    userId: user.id,
+    enabled: true,
+    signals,
+    calendar: signalCalendar,
+    wearable: signalWearable,
+    checkIn: signalCheckIn,
+  });
+  const returnFromDriftDismissKey = useMemo(
+    () => `return_from_drift_${user.id}_${todayStr}`,
+    [user.id, todayStr],
+  );
 
   // Pulse dismiss
   useEffect(() => {
@@ -102,6 +122,21 @@ export default function Home() {
     const key = `pulse_seen_${user.id}_${new Date().toLocaleDateString("sv-SE")}`;
     try { sessionStorage.setItem(key, "1"); } catch {}
   }, [user.id]);
+
+  useEffect(() => {
+    try {
+      setReturnFromDriftDismissed(localStorage.getItem(returnFromDriftDismissKey) === "1");
+    } catch {
+      setReturnFromDriftDismissed(false);
+    }
+  }, [returnFromDriftDismissKey]);
+
+  const dismissReturnFromDrift = useCallback(() => {
+    setReturnFromDriftDismissed(true);
+    try {
+      localStorage.setItem(returnFromDriftDismissKey, "1");
+    } catch {}
+  }, [returnFromDriftDismissKey]);
 
   // Handle wearable OAuth callback params
   useEffect(() => {
@@ -181,7 +216,12 @@ export default function Home() {
         calendarIntel={todayCalendarIntel}
         wearableConnected={wearableConnected}
         calendarConnected={calendarConnected}
+        drift={drift}
       />
+
+      {drift?.shouldShowReturnFromDrift && !returnFromDriftDismissed ? (
+        <ReturnFromDriftCard drift={drift} onDismiss={dismissReturnFromDrift} />
+      ) : null}
 
       <BossBattleBanner signals={signals} />
 

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { CalendarIntelligence } from "@/lib/calendarIntelligence";
 import type { HealthMetrics } from "@/hooks/useHealthData";
+import type { DriftAlignmentResult } from "@/lib/driftAlignment";
 
 interface TodayHeaderProps {
   userId?: string;
@@ -10,7 +11,29 @@ interface TodayHeaderProps {
   calendarIntel: CalendarIntelligence | null;
   wearableConnected: boolean;
   calendarConnected: boolean;
+  drift?: Pick<
+    DriftAlignmentResult,
+    "alignmentScore" | "driftLevel" | "returnBonusApplied"
+  > | null;
 }
+
+const DRIFT_LEVEL_COPY: Record<
+  NonNullable<TodayHeaderProps["drift"]>["driftLevel"],
+  { label: string; className: string }
+> = {
+  low: {
+    label: "Low Drift",
+    className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600",
+  },
+  moderate: {
+    label: "Moderate Drift",
+    className: "border-amber-500/20 bg-amber-500/10 text-amber-600",
+  },
+  high: {
+    label: "High Drift",
+    className: "border-rose-500/20 bg-rose-500/10 text-rose-600",
+  },
+};
 
 function getDayTypeLabel(
   recovery: number | null,
@@ -50,7 +73,14 @@ function getDaySummary(
   return "Steady conditions. Stay intentional.";
 }
 
-export function TodayHeader({ userId, health, calendarIntel, wearableConnected, calendarConnected }: TodayHeaderProps) {
+export function TodayHeader({
+  userId,
+  health,
+  calendarIntel,
+  wearableConnected,
+  calendarConnected,
+  drift,
+}: TodayHeaderProps) {
   const { data: profile } = useQuery({
     queryKey: ["user-profile", userId],
     queryFn: async () => {
@@ -84,6 +114,7 @@ export function TodayHeader({ userId, health, calendarIntel, wearableConnected, 
     calendarIntel,
     hasData,
   );
+  const driftCopy = drift ? DRIFT_LEVEL_COPY[drift.driftLevel] : null;
 
   const today = new Date();
   const dateStr = today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -102,6 +133,28 @@ export function TodayHeader({ userId, health, calendarIntel, wearableConnected, 
         )}
       </div>
       <p className="text-sm text-muted-foreground leading-relaxed">{summary}</p>
+      {drift && driftCopy ? (
+        <div className="space-y-2 pt-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] font-medium text-foreground">
+              Alignment {drift.alignmentScore}
+            </span>
+            <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${driftCopy.className}`}>
+              {driftCopy.label}
+            </span>
+            {drift.returnBonusApplied ? (
+              <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
+                Re-entry counts
+              </span>
+            ) : null}
+          </div>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {drift.returnBonusApplied
+              ? "Coming back with one honest move still strengthens alignment."
+              : "Alignment reflects how closely your recent life matches what matters most in this season."}
+          </p>
+        </div>
+      ) : null}
     </motion.div>
   );
 }

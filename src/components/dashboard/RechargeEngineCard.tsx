@@ -97,7 +97,7 @@ export const RechargeEngineCard = ({ userId, onComplete, lowEnergy }: RechargeEn
 
       {lowEnergy && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-2.5">
-          <p className="text-xs text-yellow-400">⚡ Low energy detected in your Awareness Move. Your body and mind need fuel.</p>
+          <p className="text-xs text-yellow-400">⚡ Low energy showed up in your Awareness Move. Let your body and spirit get some fuel.</p>
         </motion.div>
       )}
 

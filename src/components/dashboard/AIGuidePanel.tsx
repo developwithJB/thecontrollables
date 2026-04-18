@@ -10,6 +10,11 @@ import { useActionTracking } from "@/hooks/useActionTracking";
 import { toast } from "sonner";
 import { getPricing } from "@/lib/pricing";
 import { AIOperatorIntro, useAIOperatorIntro } from "./AIOperatorIntro";
+import {
+  AWARENESS_GUIDE_PROMPTS,
+  AWARENESS_GUIDE_TAGLINE,
+  AWARENESS_KEYWORDS,
+} from "@/lib/awarenessLanguage";
 
 interface MainQuest {
   title: string;
@@ -53,13 +58,9 @@ const GUIDES: Guide[] = [
     id: "awareness",
     name: "Awareness",
     emoji: "🦉",
-    tagline: "Pause. Observe. Choose.",
+    tagline: AWARENESS_GUIDE_TAGLINE,
     color: "from-amber-500/20 to-amber-600/10",
-    prompts: [
-      "My mind won't stop racing.",
-      "I'm reacting, not responding.",
-      "What's actually true here?",
-    ],
+    prompts: AWARENESS_GUIDE_PROMPTS,
   },
   {
     id: "perspective",
@@ -113,7 +114,7 @@ const GUIDES: Guide[] = [
 
 // Keywords to auto-detect which controllable should respond
 const GUIDE_KEYWORDS: Record<GuideType, string[]> = {
-  awareness: ["mind", "racing", "anxious", "thinking", "thoughts", "observe", "react", "focus", "attention", "present", "aware", "mindful", "meditation", "breathe"],
+  awareness: AWARENESS_KEYWORDS,
   perspective: ["big", "failure", "stuck", "hopeless", "perspective", "zoom", "year", "matter", "overwhelm", "chapter", "story", "future", "past", "worry"],
   habit: ["habit", "routine", "track", "rep", "consistency", "discipline", "motivation", "lazy", "productive", "schedule", "goal", "action", "doing", "procrastinate"],
   wellness: ["tired", "exhausted", "energy", "sleep", "nutrition", "health", "body", "rest", "crash", "systems", "burnout", "stress", "physical"],

@@ -264,13 +264,13 @@ export interface FocusPlanDay {
 export function generateFocusPlan(controllable: string): FocusPlan {
   const plans: Record<string, FocusPlanDay[]> = {
     awareness: [
-      { day: 1, intention: "Notice one trigger today.", rep: "Write down the first distraction you catch.", surrender: "I cannot control every thought, only my response." },
-      { day: 2, intention: "Observe without judgment.", rep: "Set 3 mindfulness alarms for quick check-ins.", surrender: "Awareness grows in patience, not force." },
-      { day: 3, intention: "Name the emotion before reacting.", rep: "Pause 3 seconds before responding to friction.", surrender: "I release the need to fix everything instantly." },
-      { day: 4, intention: "Track your attention leaks.", rep: "Note where your focus drifted 3 times today.", surrender: "Distraction is data, not defeat." },
-      { day: 5, intention: "Choose one focal point.", rep: "Single-task for 25 minutes.", surrender: "I trust that one thing done well is enough." },
-      { day: 6, intention: "Reflect on the week's patterns.", rep: "Review your notes and find one theme.", surrender: "Progress hides in patterns I haven't seen yet." },
-      { day: 7, intention: "Celebrate awareness gains.", rep: "Share one insight with someone.", surrender: "I am building a mind that sees more clearly." },
+      { day: 1, intention: "Check in with God before the day gets loud.", rep: "Write one honest sentence about what feels true today.", surrender: "I do not have to carry this day alone." },
+      { day: 2, intention: "Let scripture steady your inner world.", rep: "Read one short verse slowly before your first major demand.", surrender: "Truth can lead before my mood does." },
+      { day: 3, intention: "Name the emotion before reacting.", rep: "Pause 3 seconds and tell God what is active in you.", surrender: "I release the need to fix everything instantly." },
+      { day: 4, intention: "Notice what keeps pulling your soul off center.", rep: "Note where your attention drifted 3 times today.", surrender: "Distraction is data, not defeat." },
+      { day: 5, intention: "Practice gratitude before urgency takes over.", rep: "Write 3 things you can still receive with gratitude today.", surrender: "I trust that what is good is still worth noticing." },
+      { day: 6, intention: "Reflect honestly on the week's patterns.", rep: "Review your notes and name one place you drifted and one place you stayed grounded.", surrender: "Progress hides in truths I am finally willing to face." },
+      { day: 7, intention: "End the week with surrender and clarity.", rep: "Write a short prayer for the week ahead.", surrender: "I am building a life that stays close to God in real time." },
     ],
     perspective: [
       { day: 1, intention: "Zoom out on one problem.", rep: "Ask: will this matter in 30 days?", surrender: "I cannot control outcomes, only my lens." },

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { AWARENESS_CHAT_WELCOME } from "@/lib/awarenessLanguage";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -40,7 +41,7 @@ const PLAN_DAILY_LIMITS: Record<PlanTier, number> = {
 const getTodayKey = () => new Date().toISOString().slice(0, 10);
 
 const WELCOME_MESSAGES: Record<string, string> = {
-  awareness: "Hello, I am the Owl 🦉. I help you see things clearly, as they truly are. What's weighing on your mind today?",
+  awareness: AWARENESS_CHAT_WELCOME,
   perspective: "Greetings, I am the Turtle 🐢. I teach the power of patience and perspective. What situation would you like to pause and reflect on?",
   habit: "I'm the Shark 🦈. I keep moving, always forward. What action do you want to take today? Let's build momentum.",
   wellness: "I am the Satellite 🛰️, monitoring your systems. How are your batteries today—Sleep, Movement, Nutrition?",

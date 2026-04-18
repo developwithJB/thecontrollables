@@ -6,6 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { ALL_CONTROLLABLES, getControllableTheme } from "@/lib/controllableTheme";
 import { getControllableRosterProfile } from "@/lib/controllableRoster";
+import {
+  AWARENESS_GUIDE_PROMPTS,
+  AWARENESS_KEYWORDS,
+} from "@/lib/awarenessLanguage";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import type { ControllableType } from "@/components/ControllableCard";
@@ -18,8 +22,8 @@ interface SuggestedPrompt {
 
 const SUGGESTED_PROMPTS: SuggestedPrompt[] = [
   {
-    label: "Scout: help me see what I'm missing",
-    prompt: "Help me see what I'm missing today.",
+    label: "Scout: help me check in with God",
+    prompt: AWARENESS_GUIDE_PROMPTS[0],
     controllable: "awareness",
   },
   {
@@ -74,7 +78,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
     if (/\b(food|eat|lunch|dinner|breakfast|meal|log|steak|chicken|protein|calories|snack|drink|water)\b/.test(lower)) return "wellness";
     if (/\b(sleep|tired|energy|rest|hydrat|move|workout|exercise|run|gym|health)\b/.test(lower)) return "wellness";
     if (/\b(habit|rep|streak|routine|discipline|consistent|daily|skip|move)\b/.test(lower)) return "habit";
-    if (/\b(feel|anxious|stress|overwhelm|confus|think|mind|thought|notice|aware)\b/.test(lower)) return "awareness";
+    if (new RegExp(`\\b(${AWARENESS_KEYWORDS.join("|")})\\b`).test(lower)) return "awareness";
     if (/\b(perspective|zoom out|big picture|long term|future|past|time|season|patient)\b/.test(lower)) return "perspective";
     if (/\b(environment|space|room|desk|phone|app|screen|trigger|design|setup|friction)\b/.test(lower)) return "environment";
 
@@ -203,7 +207,9 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
 
   const hasConversation = messages.length > 0;
   const selectedPrompt = activeProfile
-    ? `Ask your ${activeProfile.role} what it sees, what it needs, or what move comes next...`
+    ? activeControllable === "awareness"
+      ? "Ask your scout what feels true before God, what needs surrender, or what move comes next..."
+      : `Ask your ${activeProfile.role} what it sees, what it needs, or what move comes next...`
     : "Ask your team what's needed right now...";
 
   return (

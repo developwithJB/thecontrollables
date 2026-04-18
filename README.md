@@ -1,76 +1,167 @@
 # The Dashboard
 
-The Dashboard is an open-source React + TypeScript app for people who want a calmer, more reflective way to run their days.
+The Dashboard is a calm, reflective Life OS for people who want help understanding their days before those days run away from them.
 
-Instead of treating life like a productivity contest, it turns real signals, like your calendar load, recovery, sleep, and simple check-ins, into a grounded daily read:
+It is built for users who do not want another streak app, another guilt machine, or another productivity tool that mistakes pressure for progress.
 
-- what kind of day this is
-- what matters most
-- what to protect
-- one main quest
-- one support move
+Instead, The Dashboard helps people:
 
-The product is built around the 5 Controllables as your starter team:
+- understand what kind of day they are actually in
+- notice drift before it becomes a spiral
+- choose one meaningful move instead of ten scattered ones
+- reconnect planning, recovery, honesty, faith, and follow-through
+- return without shame when life gets heavy
 
-- Awareness: scout
-- Perspective: translator
-- Habit: builder
-- Wellness: charger
-- Environment: protector
+This repository is open source and designed to be useful for both:
 
-## What This App Can Help With
+- people exploring The Dashboard as a product
+- builders who want to fork it into their own coaching, wellness, planning, or reflective operating system
 
-The Dashboard is designed to help users:
+## What The Dashboard Is
 
-- understand their current state without spiraling or over-planning
-- pick the next right move instead of juggling ten priorities
-- notice when the day calls for recovery, protection, or stretch
-- build personal momentum through reflection, repair, and re-entry
-- connect planning, wellness, money, and life context in one place
+The Dashboard is a React + TypeScript + Supabase app that turns real-life signals into calm daily guidance.
 
-This repo is useful if you want to build:
+Those signals can include:
 
-- a personal life dashboard
-- a coaching product
-- a wellness or readiness app
-- a reflective planner
-- a calmer alternative to streak-heavy habit apps
+- calendar load and meeting density
+- wearable recovery, sleep, and strain
+- quick check-ins about mood, stress, and energy
+- daily moves and kept promises
+- planner activity and environment resets
 
-## Core Product Ideas
+The product interprets those signals into a daily state read such as:
 
-The current app centers around a few ideas:
+- what matters most today
+- what needs protection
+- whether this is a stretch day, recovery day, or protection day
+- what your main quest is
+- what one support move would help most
 
-- Life perspective: onboarding uses age and season-of-life context to frame the experience
-- Starter team: the 5 Controllables act like a roster the user can lean on
-- Daily moves: daily actions are framed as moves rather than chores
-- Charge: progress is built around being undercharged, stable, strong, charged, or fully charged
-- Evolution: progress supports repair and recovery, not just perfect consistency
-- Regions and chapter quests: users move through meaningful periods without changing the underlying snapshot data model
+## The Core Philosophy
 
-## Tech Stack
+The Dashboard is built around a simple idea:
 
-- React 18
-- TypeScript
-- Vite
-- Tailwind CSS
-- Radix UI + shadcn/ui patterns
-- TanStack Query
-- Supabase Auth, Postgres, and Edge Functions
-- Optional PostHog + Sentry telemetry
+You cannot control everything, but you can learn to respond well to what is actually yours.
 
-## Repository Structure
+The current product language centers on:
 
-High-signal areas if you are exploring the codebase for the first time:
+- `Life perspective`: onboarding uses age and season-of-life framing to make the app feel personal from the start
+- `Starter team`: the 5 Controllables are presented as a team you can lean on
+- `Moves`: daily actions are framed as meaningful moves, not chores
+- `Charge`: the product uses grounded energy language instead of pressure-heavy productivity language
+- `Evolution`: progress supports repair, return, and recovery, not only perfect consistency
+- `Regions / chapter quests`: progression is meaningful without becoming childish or fantasy-heavy
+- `Drift and alignment`: the app tracks how close lived life is to what matters most right now
 
-- `src/pages` - top-level routes like home, planner, wellness, money, auth, and onboarding entry points
-- `src/components/dashboard` - the home dashboard surfaces, guidance cards, progression UI, and daily-state modules
-- `src/components/onboarding` - onboarding flow steps and account handoff behavior
-- `src/hooks` - data access and domain hooks for signals, progress, planner, health, and onboarding state
-- `src/lib` - app logic, adapters, interpretation rules, and shared product-language helpers
-- `supabase/migrations` - schema history
-- `supabase/functions` - edge functions for AI, integrations, sync, and server-side workflows
+## The 5 Controllables
 
-## Getting Started
+The Dashboard treats the 5 Controllables like a starter team:
+
+- `Awareness = scout`
+  Helps the user check in with God, tell the truth, surrender what they cannot control, and notice what is happening internally before reaction takes over.
+- `Perspective = translator`
+  Helps the user zoom out, reframe wisely, and remember that one hard moment is not the whole story.
+- `Habit = builder`
+  Helps the user turn intention into one concrete rep.
+- `Wellness = charger`
+  Helps the user pay attention to recovery, sleep, stress, movement, and energy.
+- `Environment = protector`
+  Helps the user reduce friction and shape the world around them so the next right move is easier.
+
+## Who This Can Help
+
+The Dashboard is especially useful for people who:
+
+- feel scattered by the amount of life they are carrying
+- want a daily operating system that feels emotionally intelligent
+- need help re-entering after drift, burnout, or inconsistency
+- want faith, reflection, planning, and recovery to live in one place
+- are tired of all-or-nothing self-improvement tools
+
+It can also be forked into products for:
+
+- coaching
+- founder life management
+- wellness / readiness
+- Christian reflection and spiritual grounding
+- reflective planning
+- behavior change without shame-heavy gamification
+
+## What Using The Dashboard Feels Like
+
+If the product is working well, the user should feel:
+
+- calmer, because the app narrows the day down instead of exploding it
+- more honest, because it makes room for reality instead of performance
+- more supported, because return and repair count
+- more grounded, because the app reacts to signals instead of pretending every day is the same
+
+This is not a dopamine trap. It is meant to feel premium, useful, and steady.
+
+## A Typical Daily Flow
+
+For a user, the app usually works like this:
+
+1. Open the home dashboard.
+2. See the daily read:
+   what kind of day it is, what matters most, what needs protecting.
+3. Choose one main quest.
+4. Complete one or more daily moves with the starter team.
+5. Use planner, wellness, money, or vault surfaces as needed.
+6. Return later for re-alignment rather than perfection.
+
+## Main Product Surfaces
+
+The app already contains a broad set of “life portal” surfaces. Depending on your fork and environment, these can include:
+
+- `Home dashboard`
+  Daily game-state read, main quest, support move, drift/alignment, and return-from-drift support.
+- `Onboarding`
+  Life perspective, season-of-life framing, starter team reveal, and chapter recommendation.
+- `Planner`
+  Time blocks, tasks, routines, and calendar-aware planning.
+- `Vault`
+  Notes, reflections, captured context, and longer-term memory.
+- `Wellness`
+  Recovery, sleep, health sync, and body-aware guidance.
+- `Money`
+  Bills, subscriptions, budgets, goals, and weekly financial resets.
+- `Operator / AI guidance`
+  Structured guidance and assistant behavior built around the Controllables.
+- `Regions / chapter quests`
+  Lightweight progression and weekly focus loops.
+
+## If You Are New Here
+
+Use this checklist to get oriented quickly.
+
+### As a user or product reviewer
+
+Start with:
+
+- the onboarding flow
+- the home dashboard
+- daily moves
+- planner
+- one recovery or return-to-drift path
+
+That gives the clearest feel for the product.
+
+### As a developer or builder
+
+Start with:
+
+- `src/pages/Home.tsx`
+- `src/components/dashboard`
+- `src/components/onboarding`
+- `src/hooks`
+- `src/lib`
+- `supabase/functions`
+- `supabase/migrations`
+
+Those folders explain most of the product quickly.
+
+## Quick Start For Local Development
 
 ### 1. Fork and clone
 
@@ -81,19 +172,19 @@ cd thecontrollables
 
 ### 2. Install dependencies
 
-This repo includes both `package-lock.json` and Bun locks. `npm` is the safest default:
+`npm` is the safest default for this repo:
 
 ```bash
 npm install
 ```
 
-### 3. Add environment variables
+### 3. Add frontend environment variables
 
-Create a local env file such as `.env.local` or update your local `.env` with the public client variables the app expects:
+Create `.env.local` or `.env`:
 
 ```bash
 VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_or_publishable_key
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_or_anon_key
 VITE_SUPABASE_PROJECT_ID=your_supabase_project_id
 
 # Optional telemetry
@@ -104,11 +195,10 @@ VITE_SENTRY_TRACES_SAMPLE_RATE=
 VITE_ENABLE_SUPABASE_ANALYTICS=false
 ```
 
-Notes:
+Minimum required for the frontend to boot:
 
-- `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are required for the app to boot
-- some integrations and edge functions will also require provider secrets configured in Supabase, not in the Vite env file
-- avoid committing your real local env values
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
 
 ### 4. Run the app
 
@@ -116,9 +206,19 @@ Notes:
 npm run dev
 ```
 
-### 5. Optional: run Supabase locally
+### 5. Build for sanity check
 
-If you want a fully local backend workflow, install the Supabase CLI and run:
+```bash
+npm run build
+```
+
+## Running Supabase
+
+You can point the frontend at a hosted Supabase project, or run Supabase locally.
+
+### Local workflow
+
+If you have the Supabase CLI installed:
 
 ```bash
 supabase start
@@ -126,86 +226,195 @@ supabase db reset
 supabase functions serve
 ```
 
-You can also point the frontend at a hosted Supabase project if that is simpler for your fork.
+This is the best option if you want to work on schema or edge functions.
 
-## How To Fork And Customize
+## Server-Side Secrets
 
-You do not need to rewrite the backend to make this your own. Most product changes can happen cleanly in the frontend through copy, adapters, and interpretation rules.
+Several app capabilities depend on Supabase Edge Functions and server-side secrets.
 
-### Customize the product language
+These are configured in Supabase, not in the Vite `.env` file.
 
-Start here if you want to re-theme the experience without changing the data model:
+Common secrets used in this repo:
 
-- `src/components/dashboard/*`
-- `src/components/onboarding/*`
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `LOVABLE_API_KEY`
+- `RESEND_API_KEY`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `WHOOP_CLIENT_ID`
+- `WHOOP_CLIENT_SECRET`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_PRICE_ID_PLUS`
+- `STRIPE_PRICE_ID_PRO`
+
+You do not need every integration configured to run the app locally.
+
+### Useful defaults
+
+- no wearable secrets: the app still works, but without wearable sync
+- no Google secrets: planner and integration OAuth flows are limited
+- no `LOVABLE_API_KEY`: AI-powered functions degrade or stop working
+- no `RESEND_API_KEY`: email flows will not send
+- no Stripe secrets: billing flows will not work
+
+## How The Dashboard Can Help A Real User
+
+The easiest way to explain the product is:
+
+The Dashboard helps a person stop asking, “How do I get everything together?” and start asking, “What kind of day is this, what matters most, and what is one honest move I can make from here?”
+
+Practically, that means the app can help a user:
+
+- notice overload before the day collapses
+- protect recovery on hard days
+- choose a smaller, keepable promise
+- see drift early and re-align without shame
+- use planning and reflection together instead of separately
+- bring spiritual grounding into daily self-leadership
+
+## How To Explore The Product In The Right Order
+
+If you want to understand the experience the way a user would, follow this order:
+
+1. `Onboarding`
+   Learn the life perspective, current season, and starter team framing.
+2. `Home`
+   See how the product reads the day and narrows it down.
+3. `Daily moves`
+   Understand the Controllables as lived behavior.
+4. `Return from drift`
+   This is one of the most important trust-building loops in the product.
+5. `Planner`
+   See how the app moves from reflection into execution.
+6. `Wellness / Money / Vault`
+   These expand the app into a fuller life portal.
+
+## How To Fork And Make It Your Own
+
+You do not need a backend rewrite to customize The Dashboard.
+
+Most forks should begin with:
+
+- product language
+- interpretation rules
+- onboarding framing
+- AI voice
+- which modules are emphasized
+
+### Best low-risk customization points
+
+#### 1. Product language and framing
+
+Good files to start with:
+
 - `src/pages/Home.tsx`
 - `src/pages/QuickStart.tsx`
-
-### Customize life perspective and season logic
-
-If you want a different framing for age, life week, or season-of-life logic:
-
-- `src/lib/lifePerspective.ts`
-
-### Customize the starter team
-
-If you want different roles, descriptions, or presentation for the 5 Controllables:
-
+- `src/components/dashboard`
+- `src/components/onboarding`
+- `src/lib/awarenessLanguage.ts`
 - `src/lib/controllableRoster.ts`
-- `src/components/dashboard/ControllableHub.tsx`
-- `src/components/dashboard/ControllableLevelsCard.tsx`
-- `src/components/dashboard/ControllableLevelBadge.tsx`
 
-### Customize daily interpretation rules
+#### 2. Daily signal interpretation
 
-If you want the app to react differently to recovery, workload, stress, or energy:
+If you want the app to react differently to stress, recovery, energy, or calendar load:
 
 - `src/lib/signalInterpreter.ts`
 - `src/hooks/useGameSignals.ts`
+- `src/lib/driftAlignment.ts`
+- `src/hooks/useDriftAlignment.ts`
 
-This is one of the best extension points in the whole app because it changes the feel of the product without forcing schema rewrites.
+This is one of the best places to customize the product without destabilizing the data model.
 
-### Customize progression and chapter framing
+#### 3. Onboarding and life-season framing
 
-If you want different region, chapter quest, or progression language while keeping existing snapshot records:
+If you want different identity, age, season, or worldview framing:
 
-- `src/components/dashboard/SnapshotSelector.tsx`
-- `src/components/dashboard/StartSnapshotDialog.tsx`
-- `src/components/dashboard/SnapshotHistory.tsx`
-- `src/components/dashboard/SnapshotReviewCard.tsx`
-- `src/components/dashboard/WeeklyPulseScreen.tsx`
+- `src/lib/lifePerspective.ts`
+- `src/components/onboarding`
+- `src/pages/QuickStart.tsx`
 
-### Customize backend workflows
+#### 4. Team / move system
 
-If you want to extend the product beyond copy and UI:
+If you want different team roles, move semantics, or progression tone:
 
-- add or adjust tables through `supabase/migrations/*`
-- edit edge functions in `supabase/functions/*`
-- keep adapter layers where possible so the product can evolve without constantly renaming stored data
+- `src/hooks/useDailyRings.ts`
+- `src/components/dashboard/DailyRings.tsx`
+- `src/components/dashboard/RingActionCard.tsx`
+- `src/components/dashboard/ControllableHub.tsx`
+- `src/components/dashboard/ControllableLevelsCard.tsx`
 
-## Suggested Fork Directions
+#### 5. AI behavior
 
-Some strong directions this codebase already supports well:
+If you want to adjust the assistant’s voice or product theology/philosophy:
 
-- a founder or executive dashboard
-- a wellness-first daily check-in app
-- a coaching product with guided reflection
-- a planner that reacts to energy and recovery instead of fixed schedules
-- a life admin app that combines planning, money, and reflective review
+- `supabase/functions/ai-chat/index.ts`
+- `supabase/functions/ai-chat/controllables-knowledge.ts`
+- `supabase/functions/ai-reflect/index.ts`
+- `supabase/functions/daily-os-plan/index.ts`
+- `supabase/functions/operator-console/index.ts`
+
+### Fork strategies that fit this repo well
+
+This codebase is a good fit if you want to build:
+
+- a founder dashboard
+- a Christian daily alignment app
+- a reflective coaching portal
+- a wellness-aware planner
+- a calmer habit and recovery app
+- a family or household dashboard
+- a life admin operating system
+
+## Repository Map
+
+If you are scanning the codebase for the first time:
+
+- `src/pages`
+  Top-level routes such as home, planner, wellness, money, onboarding, and auth.
+- `src/components/dashboard`
+  Most of the product personality lives here.
+- `src/components/onboarding`
+  Entry experience and framing logic.
+- `src/hooks`
+  Data access, interpretation hooks, and UI orchestration hooks.
+- `src/lib`
+  Shared product rules, adapters, language helpers, and derived logic.
+- `supabase/migrations`
+  Database schema history.
+- `supabase/functions`
+  AI, integrations, sync, email, push, and server-side orchestration.
+
+## Design Guardrails For Contributors
+
+This repo works best when contributors keep a few product rules intact:
+
+- do not make the app feel childish
+- do not turn it into a dopamine trap
+- do not add more cards if an existing one can be repurposed
+- prefer adapter layers over backend rewrites
+- keep the tone calm, emotionally useful, and premium
+- let repair and re-entry count just as much as forward momentum
 
 ## Contributing
 
-Issues and pull requests are welcome. If you open a PR, it helps to be explicit about whether you are changing:
+Issues and pull requests are welcome.
+
+If you open a PR, it helps to say whether you are changing:
 
 - product language
+- onboarding
 - dashboard behavior
-- onboarding logic
-- interpretation rules
+- AI behavior
+- signal interpretation
 - Supabase schema
-- provider integrations
+- integrations
 
-That keeps review easier because this app blends UX, product semantics, and backend workflows closely.
+That makes review easier because this app blends UX, product semantics, and backend behavior tightly.
 
-## Practical Note
+## Licensing
 
-If you are making this repo public for outside reuse, add a `LICENSE` file at the repository root. A public GitHub repo without a license is visible, but it is not clearly reusable.
+If you want others to reuse this repo clearly, add a root `LICENSE` file.
+
+A public repository without a license is visible, but reuse rights are not automatically clear.
