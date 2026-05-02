@@ -5,12 +5,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  OPERATOR_CONTROL_LEVELS,
   OPERATOR_DAY_TYPES,
+  OPERATOR_PROTECTION_FOCUS_OPTIONS,
   type DailyOperatorOnboardingAnswers,
-  type OperatorControlLevel,
   type OperatorDayType,
+  type OperatorProtectionFocus,
 } from "@/lib/operatorOnboarding";
+import { ORDERED_CONTROLLABLE_GUIDES } from "@/lib/controllables";
 
 interface DailyOperatorOnboardingFlowProps {
   onComplete: (answers: DailyOperatorOnboardingAnswers) => Promise<void>;
@@ -23,17 +24,18 @@ export function DailyOperatorOnboardingFlow({
 }: DailyOperatorOnboardingFlowProps) {
   const [step, setStep] = useState(0);
   const [dayType, setDayType] = useState<OperatorDayType | null>(null);
-  const [controlLevel, setControlLevel] = useState<OperatorControlLevel | null>(null);
   const [mattersToday, setMattersToday] = useState("");
+  const [protectFocus, setProtectFocus] = useState<OperatorProtectionFocus | null>(null);
 
   const progress = useMemo(() => `${step + 1} / 6`, [step]);
 
   const complete = async () => {
-    if (!dayType || !controlLevel || !mattersToday.trim()) return;
+    if (!dayType || !mattersToday.trim() || !protectFocus) return;
     await onComplete({
       dayType,
-      controlLevel,
+      controlLevel: "Full control",
       mattersToday: mattersToday.trim().slice(0, 160),
+      protectFocus,
       completedAt: new Date().toISOString(),
     });
   };
@@ -43,7 +45,7 @@ export function DailyOperatorOnboardingFlow({
       <div className="w-full max-w-md">
         <div className="mb-5 flex items-center justify-between">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Daily Operator
+            The Dashboard
           </p>
           <span className="text-xs text-muted-foreground">{progress}</span>
         </div>
@@ -68,14 +70,14 @@ export function DailyOperatorOnboardingFlow({
       <div className="space-y-6">
         <div className="space-y-3">
           <h1 className="font-display text-2xl font-semibold leading-tight text-foreground">
-            Your day, decided in 60 seconds.
+            Step inside your Dashboard.
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Every morning, your AI builds a plan for you. You approve it. It adapts.
+            The Controllables introduced the inner operating system. This app helps you use it every day.
           </p>
         </div>
         <Button className="h-12 w-full" onClick={() => setStep(1)}>
-          Build my first day
+          Begin
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>,
@@ -87,17 +89,22 @@ export function DailyOperatorOnboardingFlow({
       <div className="space-y-6">
         <div className="space-y-4">
           <h1 className="font-display text-2xl font-semibold leading-tight text-foreground">
-            You don&apos;t need another to-do list.
+            Meet your five guides.
           </h1>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-            {`You already know what you could do.
-The hard part is deciding what actually matters today.
-
-That's what The Dashboard helps with.`}
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Awareness, Perspective, Habit, Wellness, and Environment help you see clearly, reframe, act, recharge, and shape the space around you.
           </p>
         </div>
+        <div className="grid grid-cols-2 gap-2">
+          {ORDERED_CONTROLLABLE_GUIDES.map((guide) => (
+            <div key={guide.name} className="rounded-lg border border-border/70 bg-background/60 px-3 py-2 text-sm font-medium text-foreground">
+              <span aria-hidden="true" className="mr-2">{guide.emoji}</span>
+              {guide.name}
+            </div>
+          ))}
+        </div>
         <Button className="h-12 w-full" onClick={() => setStep(2)}>
-          Let&apos;s do it
+          Continue
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>,
@@ -107,8 +114,8 @@ That's what The Dashboard helps with.`}
   if (step === 2) {
     return frame(
       <ChoiceStep
-        question="What kind of day is today?"
-        microcopy="This helps shape your first plan."
+        question="What kind of day is this?"
+        microcopy="Awareness uses this to read today's signal."
         options={OPERATOR_DAY_TYPES}
         value={dayType}
         onSelect={(value) => setDayType(value)}
@@ -119,25 +126,12 @@ That's what The Dashboard helps with.`}
 
   if (step === 3) {
     return frame(
-      <ChoiceStep
-        question="How much control do you have today?"
-        microcopy="Your plan should match reality, not fantasy."
-        options={OPERATOR_CONTROL_LEVELS}
-        value={controlLevel}
-        onSelect={(value) => setControlLevel(value)}
-        onContinue={() => setStep(4)}
-      />,
-    );
-  }
-
-  if (step === 4) {
-    return frame(
       <div className="space-y-5">
         <div className="space-y-2">
           <h1 className="font-display text-xl font-semibold text-foreground">
             What actually matters today?
           </h1>
-          <p className="text-sm text-muted-foreground">One thing. That&apos;s it.</p>
+          <p className="text-sm text-muted-foreground">Habit will turn this into one next action.</p>
         </div>
         <Input
           value={mattersToday}
@@ -146,14 +140,27 @@ That's what The Dashboard helps with.`}
           maxLength={160}
           autoFocus
           onKeyDown={(event) => {
-            if (event.key === "Enter" && mattersToday.trim()) setStep(5);
+            if (event.key === "Enter" && mattersToday.trim()) setStep(4);
           }}
         />
-        <Button className="h-12 w-full" onClick={() => setStep(5)} disabled={!mattersToday.trim()}>
+        <Button className="h-12 w-full" onClick={() => setStep(4)} disabled={!mattersToday.trim()}>
           Continue
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>,
+    );
+  }
+
+  if (step === 4) {
+    return frame(
+      <ChoiceStep
+        question="What should your Dashboard protect?"
+        microcopy="Wellness and Environment use this to protect your charge."
+        options={OPERATOR_PROTECTION_FOCUS_OPTIONS}
+        value={protectFocus}
+        onSelect={(value) => setProtectFocus(value)}
+        onContinue={() => setStep(5)}
+      />,
     );
   }
 
@@ -164,15 +171,15 @@ That's what The Dashboard helps with.`}
           <ShieldCheck className="h-5 w-5" />
         </div>
         <h1 className="font-display text-2xl font-semibold leading-tight text-foreground">
-          I&apos;ll suggest a plan. You stay in control.
+          You stay in control.
         </h1>
       </div>
 
       <div className="space-y-3">
         {[
-          "Nothing changes without your approval.",
-          "You can edit everything.",
-          "The system learns what works for you.",
+          "The Controllables can suggest.",
+          "You choose what to approve.",
+          "Nothing changes without your confirmation.",
         ].map((item) => (
           <div key={item} className="flex items-start gap-3 rounded-lg bg-muted/35 px-3 py-3">
             <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -182,7 +189,7 @@ That's what The Dashboard helps with.`}
       </div>
 
       <Button className="h-12 w-full" onClick={complete} disabled={isSubmitting}>
-        {isSubmitting ? "Building your day..." : "Build my day"}
+        {isSubmitting ? "Building your first brief..." : "Build my first brief"}
         {!isSubmitting && <ArrowRight className="ml-2 h-4 w-4" />}
       </Button>
     </div>,
