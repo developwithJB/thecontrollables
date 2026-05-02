@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { endOfWeek, format, startOfWeek } from "date-fns";
-import { Download, Loader2, Lock, Sparkles, TrendingUp } from "lucide-react";
+import { Download, Loader2, Lock, Sparkles, ThumbsDown, ThumbsUp, Zap } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -65,6 +65,7 @@ const proWeeklyInsightPlans = new Set(["pro", "premium", "lifetime"]);
 export function WeeklyAIInsightCard({ userId, className }: WeeklyAIInsightCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [egoFeedbackSent, setEgoFeedbackSent] = useState(false);
   const weeklyWindow = useMemo(isWeeklyInsightWindow, []);
   const week = useMemo(getWeekBounds, []);
   const { planTier, initiateCheckout, isCheckingOut } = useEntitlements(userId);
@@ -155,10 +156,10 @@ export function WeeklyAIInsightCard({ userId, className }: WeeklyAIInsightCardPr
       });
 
       const link = document.createElement("a");
-      link.download = `dashboard-weekly-insight-${week.startDate}.png`;
+      link.download = `dashboard-weekly-charge-report-${week.startDate}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-      toast.success("Weekly insight saved.");
+      toast.success("Weekly Charge Report saved.");
     } catch {
       toast.error("Couldn't save the card. Try a screenshot instead.");
     } finally {
@@ -167,7 +168,33 @@ export function WeeklyAIInsightCard({ userId, className }: WeeklyAIInsightCardPr
   };
 
   const startUpgrade = () => {
-    void initiateCheckout("pro", { source: "weekly_ai_insight" });
+    void initiateCheckout("pro", { source: "weekly_charge_report" });
+  };
+
+  const handleEgoFeedback = async (useful: boolean) => {
+    if (!insight || egoFeedbackSent) return;
+    setEgoFeedbackSent(true);
+
+    const { error } = await supabase
+      .from("ai_feedback_events" as never)
+      .insert({
+        user_id: userId,
+        feedback_type: useful ? "thumbs_up" : "not_useful",
+        feedback_text: useful ? "Weekly Ego Check useful" : "Weekly Ego Check not useful",
+        metadata: {
+          surface: "weekly_charge_report_ego_check",
+          week_start: week.startDate,
+          ego_check: insight.egoCheck,
+        },
+      } as never);
+
+    if (error) {
+      setEgoFeedbackSent(false);
+      toast.error("Couldn't save that feedback.");
+      return;
+    }
+
+    toast.success("Feedback saved.");
   };
 
   if (isLoading) {
@@ -175,14 +202,14 @@ export function WeeklyAIInsightCard({ userId, className }: WeeklyAIInsightCardPr
       <section className={cn("rounded-xl border bg-card p-4 shadow-sm", className)}>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Reading this week's pattern...
+          Reading this week's charge pattern...
         </div>
       </section>
     );
   }
 
   return (
-    <section className={cn("space-y-3", className)} aria-label="Weekly AI Insight">
+    <section className={cn("space-y-3", className)} aria-label="Weekly Charge Report">
       <div
         ref={cardRef}
         className="relative overflow-hidden rounded-xl border bg-card shadow-sm"
@@ -193,8 +220,11 @@ export function WeeklyAIInsightCard({ userId, className }: WeeklyAIInsightCardPr
         <div className="space-y-5 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Weekly AI Insight
+              <h3 className="font-display text-2xl font-semibold leading-tight text-foreground">
+                Weekly Charge Report
+              </h3>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                A look at how your circuits operated this week.
               </p>
               <p className="mt-1 text-xs text-muted-foreground">{week.label}</p>
             </div>
@@ -206,45 +236,111 @@ export function WeeklyAIInsightCard({ userId, className }: WeeklyAIInsightCardPr
 
           {insight ? (
             <>
-              <div className="space-y-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-display text-2xl font-semibold leading-tight text-foreground">
-                    {insight.headline}
-                  </h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{insight.detail}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                {insight.stats.map((stat) => (
-                  <div key={stat.label} className="rounded-lg border bg-background/70 p-3 text-center">
-                    <p className="text-lg font-semibold text-foreground">{stat.value}</p>
-                    <p className="text-[10px] leading-tight text-muted-foreground">{stat.label}</p>
+              {!canUseDeepWeeklyInsight ? (
+                <div className="space-y-4 rounded-xl border border-dashed bg-background/70 p-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                    <Lock className="h-5 w-5 text-primary" />
                   </div>
-                ))}
-              </div>
-
-              {canUseDeepWeeklyInsight ? (
-                <div className="rounded-lg bg-primary/10 p-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">Next week</p>
-                  <p className="mt-1 text-sm font-medium leading-relaxed text-foreground">{insight.nextWeekFocus}</p>
+                  <div className="space-y-2">
+                    <h4 className="font-display text-xl font-semibold leading-tight text-foreground">
+                      Your week has a pattern.
+                    </h4>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      Upgrade to see the full report.
+                    </p>
+                  </div>
+                  <Button size="sm" onClick={startUpgrade} disabled={isCheckingOut} className="gap-2">
+                    {isCheckingOut ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+                    Upgrade to Pro
+                  </Button>
                 </div>
               ) : (
-                <div className="rounded-lg border border-dashed bg-background/70 p-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    Deeper weekly read
-                  </p>
-                  <p className="mt-1 text-sm font-medium leading-relaxed text-foreground">
-                    Unlock Pro to turn this pattern into next week's default.
-                  </p>
-                </div>
+                <>
+                  <div className="space-y-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                      <Zap className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                        Charge Level: {insight.chargeLevel}
+                      </div>
+                      <h4 className="font-display text-2xl font-semibold leading-tight text-foreground">
+                        {insight.headline}
+                      </h4>
+                      <p className="text-sm leading-relaxed text-muted-foreground">{insight.detail}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    {insight.stats.map((stat) => (
+                      <div key={stat.label} className="rounded-lg border bg-background/70 p-3 text-center">
+                        <p className="text-lg font-semibold text-foreground">{stat.value}</p>
+                        <p className="text-[10px] leading-tight text-muted-foreground">{stat.label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid gap-2">
+                    {insight.guideSections.map((section) => (
+                      <div key={section.guideId} className="rounded-lg border bg-background/70 p-3">
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-foreground">
+                            <span aria-hidden="true" className="mr-1.5">{section.guideEmoji}</span>
+                            {section.guideName}
+                          </p>
+                          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                            {section.prompt}
+                          </p>
+                        </div>
+                        <p className="text-sm leading-relaxed text-muted-foreground">{section.insight}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">
+                          Ego Check
+                        </p>
+                        <p className="mt-1 text-sm leading-relaxed text-foreground">{insight.egoCheck}</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] text-muted-foreground"
+                          onClick={() => handleEgoFeedback(true)}
+                          disabled={egoFeedbackSent}
+                        >
+                          <ThumbsUp className="mr-1 h-3 w-3" />
+                          Useful
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] text-muted-foreground"
+                          onClick={() => handleEgoFeedback(false)}
+                          disabled={egoFeedbackSent}
+                        >
+                          <ThumbsDown className="mr-1 h-3 w-3" />
+                          Not useful
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg bg-primary/10 p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
+                      Your Fully Charged Focus
+                    </p>
+                    <p className="mt-1 text-sm font-medium leading-relaxed text-foreground">{insight.nextWeekFocus}</p>
+                  </div>
+                </>
               )}
 
               <div className="flex items-center justify-between gap-3 border-t pt-3 text-[11px] text-muted-foreground">
-                <span>The Dashboard</span>
+                <span>The Controllables</span>
                 <span>{insight.confidence === "solid" ? "Pattern confidence: solid" : "Pattern confidence: early"}</span>
               </div>
             </>
@@ -254,9 +350,9 @@ export function WeeklyAIInsightCard({ userId, className }: WeeklyAIInsightCardPr
                 <Sparkles className="h-5 w-5 text-muted-foreground" />
               </div>
               <div className="space-y-2">
-                <h3 className="font-display text-xl font-semibold text-foreground">Your pattern is warming up.</h3>
+                <h3 className="font-display text-xl font-semibold text-foreground">Your charge pattern is warming up.</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  Use The Dashboard for a few days and your weekly pattern will appear here.
+                  Use The Dashboard for a few days and your Weekly Charge Report will appear here.
                 </p>
               </div>
             </div>
@@ -265,7 +361,7 @@ export function WeeklyAIInsightCard({ userId, className }: WeeklyAIInsightCardPr
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        {insight ? (
+        {insight && canUseDeepWeeklyInsight ? (
           <Button variant="outline" size="sm" onClick={handleSaveImage} disabled={isSaving} className="gap-2">
             {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
             {isSaving ? "Saving..." : "Save Image"}
@@ -281,12 +377,12 @@ export function WeeklyAIInsightCard({ userId, className }: WeeklyAIInsightCardPr
             className="gap-2 text-muted-foreground"
           >
             <Lock className="h-3.5 w-3.5" />
-            Deeper weekly insight unlocks with Pro
+            Full Weekly Charge Report unlocks with Pro
           </Button>
         ) : (
           <Badge variant="secondary" className="gap-1">
             <Sparkles className="h-3 w-3" />
-            Pro weekly insight
+            Pro Charge Report
           </Badge>
         )}
       </div>

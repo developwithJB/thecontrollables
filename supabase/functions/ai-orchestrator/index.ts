@@ -11,6 +11,9 @@ type OrchestratorMode = "daily_brief" | "adjust" | "weekly_plan";
 type AIDepth = "quick" | "balanced" | "deep";
 type ModelTier = "rules" | "cheap" | "standard" | "premium";
 type PlanTier = "free" | "plus" | "pro" | "premium" | "lifetime";
+type AIConfidence = "Low" | "Medium" | "High";
+type GuideId = "awareness" | "perspective" | "habit" | "wellness" | "environment";
+type GuideLens = "full_dashboard" | GuideId;
 type ProposalType =
   | "planner_create_item"
   | "planner_reschedule_item"
@@ -20,6 +23,24 @@ type ProposalType =
   | "daily_checkin_prompt"
   | "weekly_plan_generate"
   | "nudge_schedule";
+
+interface GuideInsight {
+  guide_id: GuideId;
+  guide_name: string;
+  guide_emoji: string;
+  role_label: string;
+  insight: string;
+  recommended_action: string;
+  confidence: AIConfidence;
+  source_context_optional?: string | null;
+}
+
+interface EgoWarning {
+  signal: string;
+  recommended_response: string;
+  confidence?: AIConfidence;
+  source_context_optional?: string | null;
+}
 
 interface DailyPlan {
   day_type: string;
@@ -31,6 +52,14 @@ interface DailyPlan {
   weekly_prompt?: string | null;
   sources_used: string[];
   generated_by: "ai" | "rules";
+  day_signal?: string;
+  main_priority?: string;
+  protect_this?: string;
+  next_actions?: string[];
+  guide_insights?: GuideInsight[];
+  ego_warning_optional?: EgoWarning | null;
+  fully_charged_focus?: string;
+  confidence?: AIConfidence;
 }
 
 interface ProposalInput {
@@ -146,6 +175,39 @@ const AI_PLAN_LIMITS: Record<PlanTier, AIPlanLimits> = {
   },
 };
 const AI_LIMIT_MESSAGE = "You've used your free AI plans for this month. Upgrade to keep your AI learning you.";
+const GUIDE_META: Record<GuideId, Omit<GuideInsight, "insight" | "recommended_action" | "confidence" | "source_context_optional">> = {
+  awareness: {
+    guide_id: "awareness",
+    guide_name: "Awareness",
+    guide_emoji: "🦉",
+    role_label: "See clearly",
+  },
+  perspective: {
+    guide_id: "perspective",
+    guide_name: "Perspective",
+    guide_emoji: "🐢",
+    role_label: "Reframe the story",
+  },
+  habit: {
+    guide_id: "habit",
+    guide_name: "Habit",
+    guide_emoji: "🦈",
+    role_label: "Build the next repeat",
+  },
+  wellness: {
+    guide_id: "wellness",
+    guide_name: "Wellness",
+    guide_emoji: "🛰️",
+    role_label: "Protect your charge",
+  },
+  environment: {
+    guide_id: "environment",
+    guide_name: "Environment",
+    guide_emoji: "🚀",
+    role_label: "Shape the space",
+  },
+};
+const GUIDE_LENSES = new Set<GuideLens>(["full_dashboard", "awareness", "perspective", "habit", "wellness", "environment"]);
 
 const toJson = (payload: unknown, status = 200) =>
   new Response(JSON.stringify(payload), {
@@ -168,6 +230,10 @@ function normalizeDepth(input: unknown, mode: OrchestratorMode): AIDepth {
   return mode === "weekly_plan" ? "balanced" : "quick";
 }
 
+function normalizeGuideLens(input: unknown): GuideLens {
+  return GUIDE_LENSES.has(input as GuideLens) ? (input as GuideLens) : "full_dashboard";
+}
+
 function estimateTokens(value: string): number {
   return Math.max(1, Math.ceil(value.length / 4));
 }
@@ -176,6 +242,178 @@ function estimateCost(modelTier: ModelTier, inputTokens: number, outputTokens: n
   if (modelTier === "rules") return 0;
   const pricing = TOKEN_PRICING_PER_MILLION[modelTier];
   return ((inputTokens * pricing.input) + (outputTokens * pricing.output)) / 1_000_000;
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function confidenceFromSources(sources: string[] = []): AIConfidence {
+  const uniqueSources = new Set(sources.filter(Boolean));
+  if (uniqueSources.size >= 5) return "High";
+  if (uniqueSources.size >= 3) return "Medium";
+  return "Low";
+}
+
+function normalizeConfidence(value: unknown, fallback: AIConfidence): AIConfidence {
+  if (value === "Low" || value === "Medium" || value === "High") return value;
+  if (typeof value === "string") {
+    const normalized = value.toLowerCase();
+    if (normalized === "low") return "Low";
+    if (normalized === "medium") return "Medium";
+    if (normalized === "high") return "High";
+  }
+  if (typeof value === "number") {
+    if (value >= 0.75) return "High";
+    if (value >= 0.45) return "Medium";
+    return "Low";
+  }
+  return fallback;
+}
+
+function normalizeGuideInsight(value: unknown, fallbackConfidence: AIConfidence): GuideInsight | null {
+  if (!value || typeof value !== "object") return null;
+  const source = value as Record<string, unknown>;
+  const guideId = source.guide_id as GuideId;
+  if (!GUIDE_META[guideId]) return null;
+  const insight = asString(source.insight);
+  const recommendedAction = asString(source.recommended_action);
+  if (!insight || !recommendedAction) return null;
+  const meta = GUIDE_META[guideId];
+
+  return {
+    ...meta,
+    guide_name: asString(source.guide_name, meta.guide_name),
+    guide_emoji: asString(source.guide_emoji, meta.guide_emoji),
+    role_label: asString(source.role_label, meta.role_label),
+    insight,
+    recommended_action: recommendedAction,
+    confidence: normalizeConfidence(source.confidence, fallbackConfidence),
+    source_context_optional: asString(source.source_context_optional) || null,
+  };
+}
+
+function normalizeEgoWarning(value: unknown, fallbackConfidence: AIConfidence): EgoWarning | null {
+  if (!value || typeof value !== "object") return null;
+  const source = value as Record<string, unknown>;
+  const signal = asString(source.signal);
+  const recommendedResponse = asString(source.recommended_response || source.recommended_action);
+  if (!signal || !recommendedResponse) return null;
+
+  return {
+    signal,
+    recommended_response: recommendedResponse,
+    confidence: normalizeConfidence(source.confidence, fallbackConfidence),
+    source_context_optional: asString(source.source_context_optional) || null,
+  };
+}
+
+function buildGuideInsights({
+  summary,
+  mattersMost,
+  protect,
+  nextMove,
+  fallback,
+  confidence,
+  mode,
+}: {
+  summary: string;
+  mattersMost: string;
+  protect: string;
+  nextMove: string;
+  fallback: string;
+  confidence: AIConfidence;
+  mode: OrchestratorMode;
+}): GuideInsight[] {
+  const all: GuideInsight[] = [
+    {
+      ...GUIDE_META.awareness,
+      insight: summary,
+      recommended_action: "Name the real shape of the day before you add more.",
+      confidence,
+      source_context_optional: "day signal",
+    },
+    {
+      ...GUIDE_META.perspective,
+      insight: mattersMost,
+      recommended_action: "Keep the day centered on the priority that changes the most.",
+      confidence,
+      source_context_optional: "priority",
+    },
+    {
+      ...GUIDE_META.habit,
+      insight: nextMove,
+      recommended_action: nextMove,
+      confidence,
+      source_context_optional: "next action",
+    },
+    {
+      ...GUIDE_META.wellness,
+      insight: protect,
+      recommended_action: protect,
+      confidence,
+      source_context_optional: "energy protection",
+    },
+    {
+      ...GUIDE_META.environment,
+      insight: fallback,
+      recommended_action: "Remove one source of friction before the next action.",
+      confidence,
+      source_context_optional: "fallback plan",
+    },
+  ];
+
+  return mode === "daily_brief" ? all : all.filter((guide) => ["awareness", "habit", "wellness"].includes(guide.guide_id));
+}
+
+function normalizeDailyPlanShape(plan: Partial<DailyPlan>, context: any, mode: OrchestratorMode): DailyPlan {
+  const sources = Array.isArray(plan.sources_used) ? plan.sources_used.filter((source): source is string => typeof source === "string") : context.sourcesUsed || [];
+  const confidence = normalizeConfidence(plan.confidence, confidenceFromSources(sources));
+  const dayType = asString(plan.day_type, asString(plan.day_signal, "steady execution"));
+  const summary = asString(plan.summary, `Today looks like a ${dayType}. Keep the plan narrow and executable.`);
+  const mattersMost = asString(plan.matters_most, asString(plan.main_priority, "Choose one business-critical win before the day fills itself."));
+  const protect = asString(plan.protect, asString(plan.protect_this, "Protect one uninterrupted focus block."));
+  const nextMove = asString(plan.next_move, Array.isArray(plan.next_actions) ? asString(plan.next_actions[0]) : "Add one 25-minute focus block to your plan.");
+  const fallback = asString(plan.fallback, "If the day gets noisy, return to one task and one close-out.");
+  const nextActions = Array.isArray(plan.next_actions)
+    ? plan.next_actions.filter((action): action is string => typeof action === "string" && action.trim().length > 0).slice(0, 5)
+    : [];
+  const guideInsights = Array.isArray(plan.guide_insights)
+    ? plan.guide_insights
+        .map((insight) => normalizeGuideInsight(insight, confidence))
+        .filter((insight): insight is GuideInsight => Boolean(insight))
+        .slice(0, 5)
+    : [];
+
+  return {
+    day_type: dayType,
+    summary,
+    matters_most: mattersMost,
+    protect,
+    next_move: nextMove,
+    fallback,
+    weekly_prompt: typeof plan.weekly_prompt === "string" ? plan.weekly_prompt : null,
+    sources_used: sources,
+    generated_by: plan.generated_by === "ai" ? "ai" : "rules",
+    day_signal: asString(plan.day_signal, dayType),
+    main_priority: asString(plan.main_priority, mattersMost),
+    protect_this: asString(plan.protect_this, protect),
+    next_actions: nextActions.length > 0 ? nextActions : [nextMove],
+    guide_insights: guideInsights.length > 0
+      ? guideInsights
+      : buildGuideInsights({ summary, mattersMost, protect, nextMove, fallback, confidence, mode }),
+    ego_warning_optional: normalizeEgoWarning(plan.ego_warning_optional, confidence),
+    fully_charged_focus: asString(plan.fully_charged_focus, "End the day with one kept promise and enough energy to recover cleanly."),
+    confidence,
+  };
+}
+
+function normalizeStructuredResponse(structured: StructuredResponse, context: any, mode: OrchestratorMode): StructuredResponse {
+  return {
+    ...structured,
+    daily_plan: normalizeDailyPlanShape(structured.daily_plan || {}, context, mode),
+    proposals: Array.isArray(structured.proposals) ? structured.proposals : [],
+  };
 }
 
 async function sha256(value: string): Promise<string> {
@@ -293,6 +531,8 @@ function ensureProposalShape(proposal: Partial<ProposalInput>, fallbackDate: str
         end_time: typeof (payload as any).end_time === "string" ? (payload as any).end_time : null,
         energy_level: ["low", "medium", "high"].includes((payload as any).energy_level) ? (payload as any).energy_level : "medium",
         description: typeof (payload as any).description === "string" ? (payload as any).description.slice(0, 500) : null,
+        guide_id: GUIDE_META[(payload as any).guide_id as GuideId] ? (payload as any).guide_id : "habit",
+        controllable: GUIDE_META[(payload as any).controllable as GuideId] ? (payload as any).controllable : "habit",
       },
     };
   }
@@ -300,7 +540,7 @@ function ensureProposalShape(proposal: Partial<ProposalInput>, fallbackDate: str
   return {
     proposal_type: proposal.proposal_type,
     title: proposal.title,
-    rationale: proposal.rationale || "Suggested by your Daily Operator.",
+    rationale: proposal.rationale || "Suggested by your Dashboard.",
     display_order: proposal.display_order ?? index,
     payload,
   };
@@ -330,7 +570,9 @@ function buildRulesResponse(context: any, today: string, mode: OrchestratorMode,
     ? `Protect progress on "${firstTask.title}".`
     : "Choose one business-critical win before the day fills itself.";
   let protect = "Protect one uninterrupted focus block.";
-  if (operatorOnboarding.controlLevel === "Survival mode") {
+  if (operatorOnboarding.protectFocus) {
+    protect = `Protect ${String(operatorOnboarding.protectFocus).toLowerCase()} so the plan matches the life you are actually living today.`;
+  } else if (operatorOnboarding.controlLevel === "Survival mode") {
     protect = "Protect the smallest useful version. Do not build a fantasy plan.";
   } else if (operatorOnboarding.controlLevel === "Back-to-back") {
     protect = "Protect transitions and one clean close-out.";
@@ -361,7 +603,9 @@ function buildRulesResponse(context: any, today: string, mode: OrchestratorMode,
         scheduled_date: today,
         item_type: "task",
         energy_level: lowRecovery ? "low" : "medium",
-        description: "Created from your Daily Operator brief.",
+        description: "Created from your Daily Controllables Brief.",
+        guide_id: "habit",
+        controllable: "habit",
       },
     });
   }
@@ -374,6 +618,8 @@ function buildRulesResponse(context: any, today: string, mode: OrchestratorMode,
     payload: {
       prompt: "What moved today, what drained you, and what should be lighter tomorrow?",
       deep_link: "/growth",
+      guide_id: "awareness",
+      controllable: "awareness",
     },
   });
 
@@ -383,21 +629,43 @@ function buildRulesResponse(context: any, today: string, mode: OrchestratorMode,
       title: `${money.billsDueCount} money item${money.billsDueCount === 1 ? "" : "s"} need attention`,
       rationale: "Money pressure is easier to handle before it becomes background stress.",
       display_order: 2,
-      payload: { deep_link: "/wealth", billsDueCount: money.billsDueCount },
+      payload: { deep_link: "/wealth", billsDueCount: money.billsDueCount, guide_id: "environment", controllable: "environment" },
     });
   }
+
+  const summary = `Today looks like a ${dayType}. Keep the plan narrow and executable.`;
+  const fallback = lowRecovery ? "If the day slips, do the smallest useful version and stop cleanly." : "If the day gets noisy, return to one task and one close-out.";
+  const confidence = confidenceFromSources(context.sourcesUsed);
+  const egoWarning = hasHeavyDay || lowRecovery || operatorOnboarding.controlLevel === "Survival mode"
+    ? {
+        signal: hasHeavyDay
+          ? "Watch for overcommitting to catch up."
+          : "Watch for treating low charge as failure.",
+        recommended_response: "Pause before adding more. Shrink the plan before the day starts making decisions for you.",
+        confidence,
+        source_context_optional: "planner and energy signals",
+      }
+    : null;
 
   return {
     daily_plan: {
       day_type: dayType,
-      summary: `Today looks like a ${dayType}. Keep the plan narrow and executable.`,
+      summary,
       matters_most: mattersMost,
       protect,
       next_move: nextMove,
-      fallback: lowRecovery ? "If the day slips, do the smallest useful version and stop cleanly." : "If the day gets noisy, return to one task and one close-out.",
+      fallback,
       weekly_prompt: new Date(`${today}T12:00:00`).getDay() === 1 ? "Set one weekly win before the week starts moving." : null,
       sources_used: context.sourcesUsed,
       generated_by: "rules",
+      day_signal: dayType,
+      main_priority: mattersMost,
+      protect_this: protect,
+      next_actions: [nextMove],
+      guide_insights: buildGuideInsights({ summary, mattersMost, protect, nextMove, fallback, confidence, mode }),
+      ego_warning_optional: egoWarning,
+      fully_charged_focus: "End the day with one kept promise and enough energy to recover cleanly.",
+      confidence,
     },
     proposals,
   };
@@ -786,8 +1054,30 @@ async function gatherContext(admin: any, userId: string, today: string, consents
   };
 }
 
-function buildPrompts(context: any, mode: OrchestratorMode, today: string, prompt?: string) {
-  const systemPrompt = `You are the Daily Operator for a Life OS used by busy professionals.
+function buildPrompts(context: any, mode: OrchestratorMode, today: string, prompt?: string, selectedGuide: GuideLens = "full_dashboard") {
+  const systemPrompt = `You are the Daily Controllables Brief engine for The Dashboard, the companion app to The Controllables book.
+The book introduced The Dashboard as an inner operating system. The app helps the user use it in real life.
+
+Voice:
+- Practical first.
+- Calm, direct, and encouraging.
+- Short, actionable insights. No motivational filler.
+- No cheesy roleplay, fake mystical language, or overuse of character names.
+- Never say you know more than the user has shared. Use "based on the available signals" when needed.
+- Never shame the user. Treat overload, avoidance, low energy, and missed plans as signals to work with.
+- Never over-prescribe wellness, mental health, finance, medical, or relationship advice.
+- Do not diagnose. Do not imply certainty from limited data.
+
+The five Controllables are guidance lenses:
+- Awareness identifies the signal.
+- Perspective reframes the situation.
+- Habit chooses the smallest useful action.
+- Wellness protects energy.
+- Environment reduces friction.
+
+The Ego appears only as a subtle warning around fear, comparison, overcommitment, reactivity, impulsive reaction, or avoidance.
+Use "Ego Check" energy: helpful, neutral, never dramatic. It is a gentle awareness tool, not a diagnosis, villain, or blocker.
+
 Return ONLY valid JSON with this exact shape:
 {
   "daily_plan": {
@@ -799,7 +1089,29 @@ Return ONLY valid JSON with this exact shape:
     "fallback": string,
     "weekly_prompt": string | null,
     "sources_used": string[],
-    "generated_by": "ai"
+    "generated_by": "ai",
+    "day_signal": string,
+    "main_priority": string,
+    "protect_this": string,
+    "next_actions": string[],
+    "guide_insights": [{
+      "guide_id": "awareness" | "perspective" | "habit" | "wellness" | "environment",
+      "guide_name": "Awareness" | "Perspective" | "Habit" | "Wellness" | "Environment",
+      "guide_emoji": string,
+      "role_label": "See clearly" | "Reframe the story" | "Build the next repeat" | "Protect your charge" | "Shape the space",
+      "insight": string,
+      "recommended_action": string,
+      "confidence": "Low" | "Medium" | "High",
+      "source_context_optional": string | null
+    }],
+    "ego_warning_optional": {
+      "signal": string,
+      "recommended_response": string,
+      "confidence": "Low" | "Medium" | "High",
+      "source_context_optional": string | null
+    } | null,
+    "fully_charged_focus": string,
+    "confidence": "Low" | "Medium" | "High"
   },
   "proposals": [{
     "proposal_type": "planner_create_item" | "planner_reschedule_item" | "planner_simplify_day" | "meal_plan_generate" | "money_attention_item" | "daily_checkin_prompt" | "weekly_plan_generate" | "nudge_schedule",
@@ -811,17 +1123,38 @@ Return ONLY valid JSON with this exact shape:
   "memory_candidates": [{"domain": "planner" | "body" | "money" | "growth" | "communication" | "general", "content": string, "confidence": number, "source": string}]
 }
 Rules:
-- Be specific, calm, and practical. No motivational fluff.
+- Be specific, calm, and practical.
 - The user must approve actions before anything mutates.
 - Only include proposals that are clearly useful today.
+- Daily briefs should prefer all five guide_insights. Ask/Adjust can include only the relevant guides.
+- Daily brief output must include one clear day_signal, one main_priority, one protect_this, max five next_actions, guide_insights, optional ego_warning_optional, and a fully_charged_focus phrase.
+- Ask/Adjust output must respond to the user's actual request, include only relevant guides, and propose structured actions only when useful.
+- selected_guide is a lens, not a separate mode. If selected_guide is "full_dashboard", use the full Dashboard view. If it is one Controllable, use that guide as the primary lens while still respecting the full context and safety rules.
+- Use ego_warning_optional sparingly. It should never be the main focus, never shame the user, never diagnose, and never trigger autonomous actions.
+- ego_warning_optional is a subtle signal for overwhelm, fear, comparison, avoidance, overcommitment, impulsive reaction, or reactive autopilot. Use neutral "Watch for..." or "Pause before..." language. If there is no safe signal, return null.
+- next_actions must contain no more than 5 short actions.
 - For planner_create_item payload use: title, scheduled_date, item_type ("task" or "time_block"), start_time, end_time, energy_level ("low"|"medium"|"high"), description.
+- Proposal payload may also include guide_id and controllable when a guide lens is relevant. It still must not mutate anything without approval.
 - Keep the plan concise enough to read in under 30 seconds.
-- Respect sources_used. Do not mention data sources not listed.`;
+- Respect sources_used. Do not mention data sources not listed.
+
+Examples of the voice:
+- day_signal: "This is a focus + recovery day. Win early, then protect your charge."
+- Awareness insight: "Your day has more inputs than open space."
+- Perspective insight: "This is not a catch-up day. It is a choose-well day."
+- Habit insight: "Start with the smallest action that creates momentum."
+- Wellness insight: "Protect energy after the highest-pressure block."
+- Environment insight: "Remove one distraction before your first work block."
+- Ego warning signal: "Watch for all-or-nothing thinking."
+- Ego warning signal: "Watch for overcommitting to prove something."
+- Ego warning signal: "Pause before reacting to pressure."
+- Ego warning signal: "Notice avoidance disguised as planning."`;
 
   const userPrompt = JSON.stringify({
     mode,
     today,
     user_adjustment_request: prompt || null,
+    selected_guide: selectedGuide,
     context,
   });
 
@@ -854,6 +1187,7 @@ Deno.serve(async (req) => {
     const forceRefresh = body.forceRefresh === true;
     const prompt = typeof body.prompt === "string" ? body.prompt.slice(0, 1000) : undefined;
     const requestedDepth = normalizeDepth(body.aiDepth, mode);
+    const selectedGuide = normalizeGuideLens(body.selectedGuide);
 
     const admin = createClient(supabaseUrl, serviceRoleKey);
     const consents = await getOrCreateConsents(admin, userId);
@@ -900,6 +1234,7 @@ Deno.serve(async (req) => {
         mode,
         today,
         prompt: (prompt || "").trim().toLowerCase(),
+        selectedGuide,
         aiDepth: policy.aiDepth,
         modelTier: policy.modelTier,
         limit: usageLimit.limit,
@@ -917,6 +1252,7 @@ Deno.serve(async (req) => {
         period_start: usageLimit.periodStart.toISOString(),
         period_end: usageLimit.periodEnd.toISOString(),
         policy_reason: "monthly entitlement limit reached",
+        selected_guide: selectedGuide,
       });
 
       const proposals = existingPlan
@@ -953,6 +1289,7 @@ Deno.serve(async (req) => {
       mode,
       today,
       prompt: (prompt || "").trim().toLowerCase(),
+      selectedGuide,
       aiDepth: policy.aiDepth,
       modelTier: policy.modelTier,
       sources: context.sourcesUsed,
@@ -992,6 +1329,7 @@ Deno.serve(async (req) => {
           soft_limit: softLimit,
           recent_usage_count: recentUsageCount,
           policy_reason: policy.reason,
+          selected_guide: selectedGuide,
         });
 
         return toJson({
@@ -1007,9 +1345,9 @@ Deno.serve(async (req) => {
 
     if (!structured && provider) {
       try {
-        const prompts = buildPrompts(context, mode, today, prompt);
+        const prompts = buildPrompts(context, mode, today, prompt, selectedGuide);
         const result = await provider.generateStructuredResponse(prompts.systemPrompt, prompts.userPrompt);
-        structured = result.structured;
+        structured = normalizeStructuredResponse(result.structured, context, mode);
         usage = {
           inputTokens: result.inputTokens,
           outputTokens: result.outputTokens,
@@ -1028,6 +1366,7 @@ Deno.serve(async (req) => {
       structured = buildRulesResponse(context, today, mode, prompt);
     }
 
+    structured = normalizeStructuredResponse(structured, context, mode);
     structured.daily_plan.sources_used = context.sourcesUsed;
     structured.daily_plan.generated_by = providerName === "cache" ? "ai" : structured.daily_plan.generated_by;
     const normalizedProposals = (structured.proposals || [])
@@ -1098,6 +1437,7 @@ Deno.serve(async (req) => {
       downgraded: policy.downgraded,
       policy_reason: policy.reason,
       proposal_count: savedProposals.length,
+      selected_guide: selectedGuide,
     });
 
     return toJson({
