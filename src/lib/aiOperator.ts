@@ -510,10 +510,3 @@ export const getConsentCopy = (key: AIConsentKey): { label: string; description:
       };
   }
 };
-import {
-  CONTROLLABLE_GUIDE_IDS,
-  ORDERED_CONTROLLABLE_GUIDES,
-  getControllableGuide,
-  isControllableGuideId,
-  type ControllableGuideId,
-} from "@/lib/controllables";
