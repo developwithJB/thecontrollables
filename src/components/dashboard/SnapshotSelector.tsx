@@ -248,14 +248,14 @@ export function SnapshotSelector({
       setIsOpen(false);
 
       const bucket = newSnapshot ? BUCKETS[newSnapshot.bucketId] : null;
-      toast.success(`Switched to "${newSnapshot?.name}"`, {
-        description: bucket ? `${bucket.emoji} ${bucket.name}` : "Your focus has been updated.",
+      toast.success(`Entered "${newSnapshot?.name}"`, {
+        description: bucket ? `${bucket.emoji} ${bucket.name}` : "Your chapter quest has been updated.",
       });
 
       onSnapshotChanged?.();
     } catch (error) {
       console.error("Failed to change snapshot:", error);
-      toast.error("Failed to change snapshot", {
+      toast.error("Failed to change chapter quest", {
         description: "Please try again.",
       });
     } finally {
@@ -353,14 +353,14 @@ export function SnapshotSelector({
               exit={{ opacity: 0, height: 0 }}
               className="mt-3 pt-3 border-t border-border/50"
             >
-              <p className="text-xs font-medium text-foreground mb-2">7 Days of:</p>
+              <p className="text-xs font-medium text-foreground mb-2">Chapter path:</p>
               <div className="space-y-1">
                 {snapshot.dailyActions.slice(0, 3).map((action) => (
                   <p key={action.day} className="text-xs text-muted-foreground truncate">
                     Day {action.day}: {action.task}
                   </p>
                 ))}
-                <p className="text-xs text-muted-foreground">...and 4 more daily actions</p>
+                <p className="text-xs text-muted-foreground">...and 4 more steps in the chapter path</p>
               </div>
             </motion.div>
           )}
@@ -383,14 +383,14 @@ export function SnapshotSelector({
               <Compass className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground mb-0.5">Current Snapshot</p>
+              <p className="text-xs text-muted-foreground mb-0.5">Current Chapter Quest</p>
               <p className="font-medium text-foreground truncate">
                 {currentSnapshot ? (
                   <>
                     {currentSnapshot.emoji} {currentSnapshot.name}
                   </>
                 ) : (
-                  "No snapshot selected"
+                  "No chapter quest selected"
                 )}
               </p>
             </div>
@@ -404,12 +404,12 @@ export function SnapshotSelector({
         <DialogContent className="max-w-md max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="font-display">
-              {viewMode === "current" ? "Your Current Focus" : "Browse Snapshots"}
+              {viewMode === "current" ? "Your Current Region" : "Browse Regions"}
             </DialogTitle>
             <DialogDescription>
               {viewMode === "current"
-                ? "This is your focus for the week."
-                : "Pick a 7-day focus that resonates with what you want to work on."}
+                ? "This is the region you are moving through right now."
+                : "Pick a 7-day chapter quest that matches the region you want to enter next."}
             </DialogDescription>
           </DialogHeader>
 
@@ -425,7 +425,7 @@ export function SnapshotSelector({
                           {currentSnapshot.emoji}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <Badge variant="secondary" className="text-[10px] mb-1">Active Focus</Badge>
+                          <Badge variant="secondary" className="text-[10px] mb-1">Current Region</Badge>
                           <h3 className="font-medium text-foreground text-lg">{currentSnapshot.name}</h3>
                           <p className="text-sm text-muted-foreground mt-0.5 italic">
                             {currentSnapshot.tagline}
@@ -441,7 +441,7 @@ export function SnapshotSelector({
                       
                       {/* Daily Actions Preview */}
                       <div className="mt-4 pt-3 border-t border-border/50">
-                        <p className="text-xs font-medium text-foreground mb-2">Your 7-Day Actions:</p>
+                        <p className="text-xs font-medium text-foreground mb-2">Your chapter path:</p>
                         <div className="space-y-1.5">
                           {currentSnapshot.dailyActions.map((action, idx) => (
                             <div key={action.day} className={`text-xs ${idx < currentDay ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
@@ -457,7 +457,7 @@ export function SnapshotSelector({
                 {/* Change Snapshot Button - locked for post-trial free users */}
                 {isPaid || !hasUsedFreeTrial ? (
                   <Button variant="outline" className="w-full" onClick={() => setViewMode("browse")}>
-                    Change Focus
+                    Choose a Different Region
                     <ChevronRight className="w-4 h-4 ml-2" />
                   </Button>
                 ) : (
@@ -467,7 +467,7 @@ export function SnapshotSelector({
                     onClick={onUpgrade}
                   >
                     <Lock className="w-4 h-4 mr-2" />
-                    Upgrade to Change Focus
+                    Upgrade to Change Region
                     <ChevronRight className="w-4 h-4 ml-2" />
                   </Button>
                 )}
@@ -478,7 +478,7 @@ export function SnapshotSelector({
                 {currentSnapshotId && (
                   <Button variant="ghost" size="sm" className="mb-2" onClick={() => setViewMode("current")}>
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Current Focus
+                    Back to Current Region
                   </Button>
                 )}
 
@@ -544,13 +544,13 @@ export function SnapshotSelector({
                     {selectedGoal && (
                       <div className="space-y-3">
                         <p className="text-xs font-medium text-muted-foreground">
-                          Recommended Snapshots ({filteredSnapshots.length})
+                          Recommended Regions ({filteredSnapshots.length})
                         </p>
                         {filteredSnapshots.map((snapshot) => renderSnapshotCard(snapshot))}
                       </div>
                     )}
 
-                    {/* Build Your Own */}
+                    {/* Design Your Own Chapter */}
                     <motion.button
                       onClick={() => setShowCustomCreator(true)}
                       whileTap={{ scale: 0.98 }}
@@ -561,9 +561,9 @@ export function SnapshotSelector({
                           <Plus className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                          <h3 className="font-medium text-foreground">Build Your Own</h3>
+                          <h3 className="font-medium text-foreground">Design Your Own Chapter</h3>
                           <p className="text-xs text-muted-foreground italic">
-                            Create a custom 7-day snapshot
+                            Create a custom 7-day chapter quest
                           </p>
                         </div>
                       </div>
@@ -578,7 +578,7 @@ export function SnapshotSelector({
                         <CardContent className="p-3">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
-                              <p className="text-xs font-medium text-foreground">Your Build</p>
+                              <p className="text-xs font-medium text-foreground">Your Life Perspective</p>
                               {currentBuild.updated_at && (
                                 <span className="text-[10px] text-muted-foreground">
                                   • {formatDistanceToNow(new Date(currentBuild.updated_at), { addSuffix: true })}
@@ -654,7 +654,7 @@ export function SnapshotSelector({
                     {/* Primary Recommendation */}
                     {recommendedSnapshot && (
                       <div className="space-y-2">
-                        <p className="text-xs font-medium text-muted-foreground">Based on your Build</p>
+                        <p className="text-xs font-medium text-muted-foreground">Based on your current build</p>
                         {customSnapshot && renderSnapshotCard(customSnapshot, false)}
                         {renderSnapshotCard(recommendedSnapshot, !customSnapshot)}
                       </div>
@@ -662,7 +662,7 @@ export function SnapshotSelector({
 
                     {/* Browse by Bucket */}
                     <div className="space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground">Browse by Category</p>
+                      <p className="text-xs font-medium text-muted-foreground">Browse Regions by Category</p>
                       {(Object.keys(BUCKETS) as BucketId[]).map((bucketId) => {
                         const bucket = BUCKETS[bucketId];
                         const bucketSnapshots = getSnapshotsByBucket(bucketId);
@@ -718,10 +718,10 @@ export function SnapshotSelector({
               className="w-full"
             >
               {isChanging
-                ? "Changing..."
+                ? "Entering..."
                 : selectedSnapshot === currentSnapshotId
-                  ? "Keep Current"
-                  : "Start This Snapshot"}
+                  ? "Stay in This Region"
+                  : "Enter This Region"}
             </Button>
           </div>
         </DialogContent>

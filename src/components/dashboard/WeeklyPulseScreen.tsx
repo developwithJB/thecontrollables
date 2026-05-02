@@ -81,11 +81,11 @@ function getGreeting(dayOfWeek: number, overallScore: number): { headline: strin
   }
   if (dayOfWeek <= 5) {
     if (overallScore >= 70) return { headline: "Strong week forming.", subline: "Your consistency is showing. Finish what you started." };
-    if (overallScore >= 40) return { headline: "The week isn't over.", subline: "Two more days to prove something. What's one system you can push?" };
+    if (overallScore >= 40) return { headline: "The chapter is still turning.", subline: "Two more days to shape how this stretch lands. What's one system you can steady?" };
     return { headline: "Real talk.", subline: "This week's been rough. But you showed up. That counts." };
   }
   // Saturday
-  if (overallScore >= 70) return { headline: "What a week.", subline: "Tomorrow you'll see the full recap. You earned it." };
+  if (overallScore >= 70) return { headline: "What a week.", subline: "Tomorrow you'll see the full chapter read. You earned it." };
   return { headline: "Almost there.", subline: "One more day. Make Saturday count." };
 }
 
@@ -166,7 +166,7 @@ export function WeeklyPulseScreen({ data, previousWeek, onDismiss }: WeeklyPulse
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-3xl font-display font-bold text-foreground">{data.scores.overall}</span>
-                <span className="text-[10px] text-muted-foreground font-medium">WEEK SCORE</span>
+                <span className="text-[10px] text-muted-foreground font-medium">CHAPTER READ</span>
               </div>
             </div>
           </motion.div>
@@ -185,7 +185,7 @@ export function WeeklyPulseScreen({ data, previousWeek, onDismiss }: WeeklyPulse
           <div className="bg-card/80 rounded-xl p-3 text-center border border-border/30">
             <Zap className="w-4 h-4 mx-auto mb-1 text-yellow-500" />
             <p className="text-lg font-bold text-foreground">{data.totalXp}</p>
-            <p className="text-[9px] text-muted-foreground">XP</p>
+            <p className="text-[9px] text-muted-foreground">Evolution</p>
           </div>
           <div className="bg-card/80 rounded-xl p-3 text-center border border-border/30">
             <Flame className="w-4 h-4 mx-auto mb-1 text-orange-500" />
@@ -212,7 +212,7 @@ export function WeeklyPulseScreen({ data, previousWeek, onDismiss }: WeeklyPulse
           className="space-y-3 mb-6"
         >
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Your 5 Systems</h2>
-          <ScoreBar label="Rings" icon={Brain} score={data.scores.rings} prev={previousWeek?.rings ?? null} color="bg-primary/10 text-primary" />
+          <ScoreBar label="Moves" icon={Brain} score={data.scores.rings} prev={previousWeek?.rings ?? null} color="bg-primary/10 text-primary" />
           <ScoreBar label="Body" icon={Heart} score={data.scores.wearable} prev={previousWeek?.wearable ?? null} color="bg-red-500/10 text-red-500" />
           <ScoreBar label="Plan" icon={CalendarCheck} score={data.scores.planner} prev={previousWeek?.planner ?? null} color="bg-blue-500/10 text-blue-500" />
           <ScoreBar label="Fuel" icon={Utensils} score={data.scores.nutrition} prev={previousWeek?.nutrition ?? null} color="bg-green-500/10 text-green-500" />
@@ -229,7 +229,7 @@ export function WeeklyPulseScreen({ data, previousWeek, onDismiss }: WeeklyPulse
           <p className="text-xs font-semibold text-muted-foreground mb-1">TODAY'S FOCUS</p>
           <p className="text-sm text-foreground">
             {data.scores.rings < 40
-              ? "Complete at least 3 rings today to build momentum."
+              ? "Complete at least 3 moves today to build momentum."
               : data.scores.planner < 40
               ? "Knock out your planned tasks — your schedule needs attention."
               : data.scores.nutrition < 40

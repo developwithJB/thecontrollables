@@ -6,6 +6,11 @@ import { Scan, Brain, Zap, AlertTriangle, Heart, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useHealthData } from "@/hooks/useHealthData";
+import {
+  AWARENESS_CHECKIN_HEADER,
+  AWARENESS_CHECKIN_NOTE_PLACEHOLDER,
+  AWARENESS_CHECKIN_SUBTEXT,
+} from "@/lib/awarenessLanguage";
 
 const MOODS = [
   { value: "calm", emoji: "😌", label: "Calm" },
@@ -19,10 +24,35 @@ const MOODS = [
 const LEVEL_LABELS = ["", "Very Low", "Low", "Moderate", "High", "Very High"];
 
 function getInterpretation(mood: string, energy: number, stress: number): { text: string; icon: React.ElementType; variant: "fear" | "low" | "overload" | "grounded" } {
-  if (stress >= 4) return { text: "Mental overload may be building.", icon: AlertTriangle, variant: "overload" };
-  if (energy <= 2) return { text: "Low energy detected — consider recharging.", icon: Zap, variant: "low" };
-  if (["anxious", "frustrated", "overwhelmed"].includes(mood)) return { text: "You may be running on fear circuits.", icon: Brain, variant: "fear" };
-  return { text: "You look steady and grounded.", icon: Heart, variant: "grounded" };
+  if (stress >= 4) {
+    return {
+      text: "Your inner load looks high. Bring the pressure into prayer before you try to push through it.",
+      icon: AlertTriangle,
+      variant: "overload",
+    };
+  }
+
+  if (energy <= 2) {
+    return {
+      text: "Your energy is low. Receive a gentler pace and ask God for today's provision.",
+      icon: Zap,
+      variant: "low",
+    };
+  }
+
+  if (["anxious", "frustrated", "overwhelmed"].includes(mood)) {
+    return {
+      text: "Something tender is active. Name it honestly before God and resist rushing past it.",
+      icon: Brain,
+      variant: "fear",
+    };
+  }
+
+  return {
+    text: "You seem steady enough to move with gratitude, clarity, and a surrendered heart.",
+    icon: Heart,
+    variant: "grounded",
+  };
 }
 
 const VARIANT_STYLES = {
@@ -70,7 +100,7 @@ export const NoticeCheckInCard = ({ userId, onComplete }: NoticeCheckInCardProps
 
     setResult(interpretation);
     setTimeout(() => {
-      onComplete(`Circuit Check: ${mood} mood, energy ${energy}/5, stress ${stress}/5 — ${interpretation.text}`);
+      onComplete(`Awareness move: checked in with God — ${mood} mood, energy ${energy}/5, stress ${stress}/5 — ${interpretation.text}`);
     }, 2000);
   };
 
@@ -91,7 +121,7 @@ export const NoticeCheckInCard = ({ userId, onComplete }: NoticeCheckInCardProps
         <div className={cn("rounded-lg border p-4 text-center", VARIANT_STYLES[result.variant])}>
           <Icon className="w-6 h-6 mx-auto mb-2" />
           <p className="text-sm font-medium">{result.text}</p>
-          <p className="text-xs mt-2 opacity-70">Circuit scanned. Ring complete.</p>
+          <p className="text-xs mt-2 opacity-70">Check-in with God logged.</p>
         </div>
         {whoopMismatch && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground bg-muted/50 border border-border">
@@ -107,12 +137,16 @@ export const NoticeCheckInCard = ({ userId, onComplete }: NoticeCheckInCardProps
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Scan className="w-3.5 h-3.5" />
-        <span>Scan your internal system</span>
+        <span>{AWARENESS_CHECKIN_HEADER}</span>
       </div>
+
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        {AWARENESS_CHECKIN_SUBTEXT}
+      </p>
 
       {/* Mood selector */}
       <div>
-        <p className="text-xs font-medium text-foreground mb-2">What's your current state?</p>
+        <p className="text-xs font-medium text-foreground mb-2">What feels most true before God right now?</p>
         <div className="grid grid-cols-3 gap-1.5">
           {MOODS.map((m) => (
             <button
@@ -135,7 +169,7 @@ export const NoticeCheckInCard = ({ userId, onComplete }: NoticeCheckInCardProps
       {/* Energy level */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <p className="text-xs font-medium text-foreground">Energy</p>
+          <p className="text-xs font-medium text-foreground">Energy in your body</p>
           <span className="text-[10px] text-muted-foreground">{LEVEL_LABELS[energy]}</span>
         </div>
         <div className="flex gap-1">
@@ -154,7 +188,7 @@ export const NoticeCheckInCard = ({ userId, onComplete }: NoticeCheckInCardProps
       {/* Stress level */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <p className="text-xs font-medium text-foreground">Stress</p>
+          <p className="text-xs font-medium text-foreground">Inner pressure</p>
           <span className="text-[10px] text-muted-foreground">{LEVEL_LABELS[stress]}</span>
         </div>
         <div className="flex gap-1">
@@ -174,12 +208,12 @@ export const NoticeCheckInCard = ({ userId, onComplete }: NoticeCheckInCardProps
       <Textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        placeholder="What are you noticing right now? (optional)"
+        placeholder={AWARENESS_CHECKIN_NOTE_PLACEHOLDER}
         className="min-h-[50px] resize-none text-sm"
       />
 
       <Button onClick={handleSubmit} disabled={saving || !mood} className="w-full" size="sm">
-        {saving ? "Scanning..." : "Run Circuit Check"}
+        {saving ? "Checking in..." : "Save Check-In With God"}
       </Button>
     </div>
   );

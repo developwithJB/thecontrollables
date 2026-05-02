@@ -1,31 +1,31 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Download, Share2, X } from "lucide-react";
-import { RING_DEFINITIONS, type RingKey } from "@/hooks/useDailyRings";
+import { Download, X } from "lucide-react";
+import { DAILY_MOVE_DEFINITIONS, type DailyMoveKey } from "@/hooks/useDailyRings";
 import html2canvas from "html2canvas";
 import { useToast } from "@/hooks/use-toast";
 
-const RING_GRADIENTS: Record<string, string> = {
+const MOVE_GRADIENTS: Record<string, string> = {
   notice: "from-[hsl(var(--awareness))] to-[hsl(var(--awareness)/0.7)]",
   choose: "from-[hsl(var(--perspective))] to-[hsl(var(--perspective)/0.7)]",
   prove: "from-[hsl(var(--habit))] to-[hsl(var(--habit)/0.7)]",
-  charge: "from-[hsl(var(--wellness))] to-[hsl(var(--wellness)/0.7)]",
   align: "from-[hsl(var(--environment))] to-[hsl(var(--environment)/0.7)]",
+  charge: "from-[hsl(var(--wellness))] to-[hsl(var(--wellness)/0.7)]",
   fully_charged: "from-[hsl(var(--accent))] to-[hsl(var(--wellness))]",
 };
 
-const RING_MESSAGES: Record<string, { title: string; subtitle: string; emoji: string }> = {
-  notice: { title: "Circuit Check Complete", subtitle: "I noticed what's really going on today.", emoji: "🦉" },
-  choose: { title: "Reframe Complete", subtitle: "I chose love over fear today.", emoji: "🐢" },
-  prove: { title: "Proof Logged", subtitle: "I proved who I'm becoming.", emoji: "🦈" },
-  charge: { title: "Recharged", subtitle: "I invested in my body today.", emoji: "🛰️" },
-  align: { title: "Environment Reset", subtitle: "I shaped my space for growth.", emoji: "🚀" },
-  fully_charged: { title: "Fully Charged", subtitle: "All 5 rings filled. Today I controlled the controllables.", emoji: "⚡" },
+const MOVE_MESSAGES: Record<string, { title: string; subtitle: string; emoji: string }> = {
+  notice: { title: "Awareness Move Complete", subtitle: "My scout helped me check in with God and see what was real today.", emoji: "🦉" },
+  choose: { title: "Perspective Move Complete", subtitle: "My translator helped me zoom out and choose well.", emoji: "🐢" },
+  prove: { title: "Habit Move Complete", subtitle: "My builder turned intention into a real rep.", emoji: "🦈" },
+  align: { title: "Environment Move Complete", subtitle: "My protector shaped the space around the day.", emoji: "🚀" },
+  charge: { title: "Wellness Move Complete", subtitle: "My charger helped restore the energy I need.", emoji: "🛰️" },
+  fully_charged: { title: "Fully Charged", subtitle: "All 5 moves complete. Today my team showed up.", emoji: "⚡" },
 };
 
 interface RingShareCardProps {
-  ringKey: RingKey | "fully_charged";
+  ringKey: DailyMoveKey | "fully_charged";
   onClose: () => void;
   displayName?: string;
 }
@@ -35,8 +35,8 @@ export const RingShareCard = ({ ringKey, onClose, displayName }: RingShareCardPr
   const { toast } = useToast();
   const [downloading, setDownloading] = useState(false);
 
-  const msg = RING_MESSAGES[ringKey];
-  const gradient = RING_GRADIENTS[ringKey];
+  const msg = MOVE_MESSAGES[ringKey];
+  const gradient = MOVE_GRADIENTS[ringKey];
   const dateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   const handleDownload = async () => {
@@ -49,7 +49,7 @@ export const RingShareCard = ({ ringKey, onClose, displayName }: RingShareCardPr
         useCORS: true,
       });
       const link = document.createElement("a");
-      link.download = `ig-proof-${ringKey}-${Date.now()}.png`;
+      link.download = `daily-moves-${ringKey}-${Date.now()}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
       toast({ title: "Downloaded!", description: "Share it on your Instagram Story." });
@@ -95,7 +95,7 @@ export const RingShareCard = ({ ringKey, onClose, displayName }: RingShareCardPr
               <p className="text-[10px] text-white/50">{dateStr}</p>
             </div>
             <div className="flex gap-0.5">
-              {RING_DEFINITIONS.map((d) => (
+              {DAILY_MOVE_DEFINITIONS.map((d) => (
                 <div
                   key={d.key}
                   className={`w-2 h-2 rounded-full ${

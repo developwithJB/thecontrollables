@@ -10,6 +10,11 @@ export { OnboardingSkipConfirmation } from "./OnboardingSkipConfirmation";
 export { OnboardingRecovery } from "./OnboardingRecovery";
 export { OnboardingOrientation } from "./OnboardingOrientation";
 export { OnboardingMeetGuides } from "./OnboardingMeetGuides";
+export { BirthdayOnboardingStep } from "./BirthdayOnboardingStep";
+export { LifePerspectiveReveal } from "./LifePerspectiveReveal";
+export { LifeSeasonReveal } from "./LifeSeasonReveal";
+export { StarterTeamReveal } from "./StarterTeamReveal";
+export { SeasonNeedStep } from "./SeasonNeedStep";
 
 export { OnboardingMissionFirstStep } from "./OnboardingMissionFirstStep";
 export { OnboardingSnapshotRecommendationStep } from "./OnboardingSnapshotRecommendationStep";

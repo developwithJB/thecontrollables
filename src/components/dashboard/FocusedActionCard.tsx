@@ -100,7 +100,7 @@ export const FocusedActionCard = ({
           {action.xp && !isExpanded && (
             <div className="flex items-center justify-center gap-1 text-xs text-accent mb-3">
               <Zap className="w-3 h-3" />
-              +{action.xp} XP
+              +{action.xp} Evolution XP
             </div>
           )}
 

@@ -170,9 +170,9 @@ export function StartSnapshotDialog({
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display">Start Your Next Snapshot</DialogTitle>
+            <DialogTitle className="font-display">Enter Your Next Region</DialogTitle>
             <DialogDescription>
-              Pick a 7-day focus that resonates with what you want to work on.
+              Pick a 7-day chapter quest that fits the region of life you want to move through next.
             </DialogDescription>
           </DialogHeader>
 
@@ -238,13 +238,13 @@ export function StartSnapshotDialog({
               {selectedGoal && (
                 <div className="space-y-3">
                   <p className="text-xs font-medium text-muted-foreground">
-                    Recommended Snapshots ({filteredSnapshots.length})
+                    Recommended Regions ({filteredSnapshots.length})
                   </p>
                   {filteredSnapshots.map((snapshot) => renderSnapshotCard(snapshot))}
                 </div>
               )}
 
-              {/* Build Your Own */}
+              {/* Design Your Own Chapter */}
               <motion.button
                 onClick={() => setShowCustomCreator(true)}
                 whileTap={{ scale: 0.98 }}
@@ -255,9 +255,9 @@ export function StartSnapshotDialog({
                     <Plus className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-medium text-foreground">Build Your Own</h3>
+                    <h3 className="font-medium text-foreground">Design Your Own Chapter</h3>
                     <p className="text-xs text-muted-foreground italic">
-                      Create a custom 7-day snapshot
+                      Create a custom 7-day chapter quest
                     </p>
                   </div>
                 </div>
@@ -324,14 +324,14 @@ export function StartSnapshotDialog({
               {/* Primary Recommendation */}
               {recommendedSnapshot && (
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">Based on your Build</p>
+                  <p className="text-xs font-medium text-muted-foreground">Based on your current build</p>
                   {renderSnapshotCard(recommendedSnapshot, true)}
                 </div>
               )}
 
               {/* Browse by Bucket */}
               <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Browse by Category</p>
+                <p className="text-xs font-medium text-muted-foreground">Browse Regions by Category</p>
                 {Object.entries(BUCKETS).map(([bucketId, bucket]) => {
                   const bucketSnapshots = getSnapshotsByBucket(bucketId as BucketId);
                   const isExpanded = expandedBuckets.has(bucketId as BucketId);
@@ -374,7 +374,7 @@ export function StartSnapshotDialog({
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">Start as a 4-Week Season</p>
                 <p className="text-xs text-muted-foreground">
-                  Chain 4 Snapshots together. See your momentum build over a month.
+                  Chain 4 chapter quests together. See your momentum build over a month.
                 </p>
               </div>
             </label>
@@ -390,7 +390,7 @@ export function StartSnapshotDialog({
               disabled={!selectedSnapshot || isStarting}
               className="flex-1"
             >
-              {isStarting ? "Starting..." : startAsSeason ? "Start Season" : "Start Snapshot"}
+              {isStarting ? "Entering..." : startAsSeason ? "Start Season" : "Enter Region"}
             </Button>
           </div>
         </DialogContent>

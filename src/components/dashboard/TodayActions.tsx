@@ -238,7 +238,7 @@ export function TodayActions({
     // Build sublabel with focus context if available
     const baseSublabel = todayResetCompleted ? "Completed" : todayInfo.chapter;
     const sublabelWithFocus = missionTitle 
-      ? `${baseSublabel} · Snapshot Focus: ${missionTitle.length > 20 ? missionTitle.slice(0, 20) + "..." : missionTitle}`
+      ? `${baseSublabel} · Current Region: ${missionTitle.length > 20 ? missionTitle.slice(0, 20) + "..." : missionTitle}`
       : baseSublabel;
     actions.push({
       id: "checkin",
@@ -576,7 +576,7 @@ export function TodayActions({
             {/* Upgrade prompt */}
             <div className="p-4 space-y-3">
               <p className="text-sm text-muted-foreground">
-                {freeTrialCompletionCopy} Upgrade to continue building proof with unlimited Snapshots.
+                {freeTrialCompletionCopy} Upgrade to continue building proof with unlimited chapter quests.
               </p>
               <Button className="w-full" size="sm" onClick={() => onUpgrade?.()}>
                 <Sparkles className="w-4 h-4 mr-2" />
@@ -603,7 +603,7 @@ export function TodayActions({
               {isResetCompleted && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
                   <Check className="w-3 h-3" />
-                  Snapshot Complete
+                  Chapter Quest Complete
                 </span>
               )}
             </div>
@@ -617,7 +617,7 @@ export function TodayActions({
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-medium text-foreground mb-1">
-                  {isResetCompleted ? "Start a New Snapshot" : "Begin Your 7-Day Snapshot"}
+                  {isResetCompleted ? "Enter a New Region" : "Begin Your 7-Day Chapter Quest"}
                 </h4>
                 <p className="text-xs text-muted-foreground mb-3">
                   7 days. 7 readings. One intentional check-in each day.
@@ -702,7 +702,7 @@ export function TodayActions({
                   <p className="text-sm font-semibold text-foreground">All done for today</p>
                   {todayXpEarned > 0 && (
                     <p className="text-[11px] text-muted-foreground">
-                      <span className="text-primary font-medium">+{todayXpEarned} XP</span> earned
+                      <span className="text-primary font-medium">+{todayXpEarned} Evolution XP</span> earned
                     </p>
                   )}
                 </div>
@@ -850,7 +850,7 @@ export function TodayActions({
               {todayXpEarned > 0 && (
                 <div className="text-center">
                   <p className="text-[11px] text-muted-foreground">
-                    <span className="text-primary font-medium">+{todayXpEarned} XP</span> earned today
+                    <span className="text-primary font-medium">+{todayXpEarned} Evolution XP</span> earned today
                   </p>
                 </div>
               )}

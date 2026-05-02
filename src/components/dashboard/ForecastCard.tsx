@@ -53,14 +53,14 @@ export const ForecastCard = ({ data, compact = false }: ForecastCardProps) => {
       value: "month",
       label: "Month",
       icon: Calendar,
-      content: data.month_forecast || "Complete more rings to unlock monthly forecast.",
+      content: data.month_forecast || "Complete more moves to unlock monthly forecast.",
       detail: "Projected from weekly patterns",
     },
     {
       value: "year",
       label: "Year",
       icon: TrendingUp,
-      content: data.year_forecast || "Complete more rings to unlock yearly forecast.",
+      content: data.year_forecast || "Complete more moves to unlock yearly forecast.",
       detail: "12-month trajectory projection",
     },
   ];

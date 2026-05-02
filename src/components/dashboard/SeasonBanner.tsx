@@ -112,10 +112,10 @@ export function SeasonBanner({ seasonName, snapshots, progress, onCloseSeason }:
             </span>
             <span className="flex items-center gap-1">
               <Zap className="w-3 h-3" />
-              {progress.totalXP} XP
+              {progress.totalXP} Evolution XP
             </span>
             <span>
-              {progress.snapshotsCompleted}/4 completed
+              {progress.snapshotsCompleted}/4 chapter quests completed
             </span>
           </div>
         </CardContent>

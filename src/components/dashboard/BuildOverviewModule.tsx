@@ -139,7 +139,7 @@ export const BuildOverviewModule = forwardRef<BuildOverviewModuleHandle, BuildOv
         <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
-              <DialogTitle className="text-center">Your Build</DialogTitle>
+              <DialogTitle className="text-center">Your Life Perspective</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className={`p-4 rounded-xl ${themeColors.bg} border ${themeColors.border} text-center`}>
@@ -161,7 +161,7 @@ export const BuildOverviewModule = forwardRef<BuildOverviewModuleHandle, BuildOv
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="w-4 h-4 text-primary" />
-              Build History
+              Life Perspective History
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 pt-2" data-testid="build-history">
@@ -249,11 +249,11 @@ export const BuildOverviewModule = forwardRef<BuildOverviewModuleHandle, BuildOv
             <div className="p-1 rounded-md bg-purple-500/10">
               <Dna className="w-3.5 h-3.5 text-purple-500" />
             </div>
-            <h3 className="text-sm font-medium text-foreground">Your Build</h3>
+            <h3 className="text-sm font-medium text-foreground">Your Life Perspective</h3>
           </div>
 
           {!hasBuild ? (
-            <p className="text-xs text-muted-foreground">Not scanned</p>
+            <p className="text-xs text-muted-foreground">Not scanned yet</p>
           ) : (
             <>
               {/* Archetype label with theme chip */}
@@ -300,14 +300,14 @@ export const BuildOverviewModule = forwardRef<BuildOverviewModuleHandle, BuildOv
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Dna className="w-4 h-4 text-purple-500" />
-                Your Build
+                Your Life Perspective
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
               {!hasBuild ? (
                 <div className="text-center py-6">
                   <p className="text-sm text-muted-foreground mb-4">
-                    Take a quick scan to understand your current build.
+                    Take a quick scan to understand your current life perspective.
                   </p>
                   <Button
                     size="sm"
@@ -318,7 +318,7 @@ export const BuildOverviewModule = forwardRef<BuildOverviewModuleHandle, BuildOv
                     disabled={questionsLoading}
                   >
                     <RefreshCw className="w-3 h-3 mr-2" />
-                    Scan Build
+                    Scan Perspective
                   </Button>
                 </div>
               ) : (
@@ -460,14 +460,14 @@ export const BuildOverviewModule = forwardRef<BuildOverviewModuleHandle, BuildOv
           <div className="p-1.5 rounded-lg bg-purple-500/10">
             <Dna className="w-4 h-4 text-purple-500" />
           </div>
-          <h3 className="font-display font-semibold text-foreground">Your Build</h3>
+          <h3 className="font-display font-semibold text-foreground">Your Life Perspective</h3>
         </div>
 
         {!hasBuild ? (
           // Empty state - no assessment yet
           <div className="text-center py-4">
             <p className="text-sm text-muted-foreground mb-3">
-              Take a quick scan to understand your current build.
+              Take a quick scan to understand your current life perspective.
             </p>
             <Button
               size="sm"
@@ -476,7 +476,7 @@ export const BuildOverviewModule = forwardRef<BuildOverviewModuleHandle, BuildOv
               disabled={questionsLoading}
             >
               <RefreshCw className="w-3 h-3 mr-2" />
-              Scan Build
+              Scan Perspective
             </Button>
           </div>
         ) : (

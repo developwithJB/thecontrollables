@@ -7,9 +7,17 @@ interface AISignalsRowProps {
   isLoading: boolean;
 }
 
-const RING_LABELS: Record<string, string> = {
-  notice: "Notice", choose: "Choose", prove: "Prove", charge: "Charge", align: "Align",
-  awareness: "Notice", perspective: "Choose", habit: "Prove", wellness: "Charge", environment: "Align",
+const MOVE_LABELS: Record<string, string> = {
+  notice: "Awareness Move",
+  choose: "Perspective Move",
+  prove: "Habit Move",
+  align: "Environment Move",
+  charge: "Wellness Move",
+  awareness: "Awareness Move",
+  perspective: "Perspective Move",
+  habit: "Habit Move",
+  environment: "Environment Move",
+  wellness: "Wellness Move",
 };
 
 const DirectionIcon = ({ direction }: { direction: string }) => {
@@ -60,8 +68,8 @@ export const AISignalsRow = ({ signals, isLoading }: AISignalsRowProps) => {
     { icon: <Shield className="w-3 h-3" />, label: "Confidence", value: signals.confidence_signal.label, signal: signals.confidence_signal },
     { icon: <Gauge className="w-3 h-3" />, label: "Stress", value: signals.stress_load.label, signal: signals.stress_load },
     { icon: <AlertTriangle className="w-3 h-3" />, label: "Drift Risk", value: signals.drift_risk.label, signal: signals.drift_risk },
-    { icon: <Flame className="w-3 h-3" />, label: "Strongest", value: RING_LABELS[signals.strongest_today] || signals.strongest_today },
-    { icon: <EyeOff className="w-3 h-3" />, label: "Neglected", value: RING_LABELS[signals.most_neglected_week] || signals.most_neglected_week },
+    { icon: <Flame className="w-3 h-3" />, label: "Strongest", value: MOVE_LABELS[signals.strongest_today] || signals.strongest_today },
+    { icon: <EyeOff className="w-3 h-3" />, label: "Neglected", value: MOVE_LABELS[signals.most_neglected_week] || signals.most_neglected_week },
   ];
 
   return (

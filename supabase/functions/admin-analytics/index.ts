@@ -438,6 +438,12 @@ type AIProposalRow = {
   status: string | null;
 };
 
+type AdminAuthUser = {
+  id: string;
+  email?: string | null;
+  created_at: string;
+};
+
 const toNumber = (value: number | string | null | undefined) => {
   const amount = Number(value);
   return Number.isFinite(amount) ? amount : 0;
@@ -558,7 +564,7 @@ async function handleRevenue(adminClient: any, corsHeaders: any) {
       adminClient.from("user_entitlements").select("user_id, granted_at, expires_at, source"),
     ]);
 
-    const allUsers = usersResult.data?.users || [];
+    const allUsers = (usersResult.data?.users || []) as AdminAuthUser[];
     const entitlements = entitlementsResult.data || [];
 
     // Active paid users
@@ -571,7 +577,7 @@ async function handleRevenue(adminClient: any, corsHeaders: any) {
     const mrr = paidUsers * monthlyPrice;
 
     // Conversion data: users who have entitlements
-    const userMap = new Map(allUsers.map((u: any) => [u.id, u]));
+    const userMap = new Map(allUsers.map((u) => [u.id, u]));
     const conversions = entitlements
       .filter((e: any) => userMap.has(e.user_id))
       .map((e: any) => {

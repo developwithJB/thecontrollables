@@ -106,7 +106,7 @@ function ActionChip({
       </span>
       {action.xp_reward > 0 && (
         <span className="text-[10px] text-muted-foreground font-medium">
-          +{action.xp_reward} XP
+          +{action.xp_reward} Evolution XP
         </span>
       )}
     </motion.button>

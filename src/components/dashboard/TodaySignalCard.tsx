@@ -1,9 +1,12 @@
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Battery, BatteryLow, BatteryMedium } from "lucide-react";
 import type { HealthMetrics } from "@/hooks/useHealthData";
 import type { CalendarIntelligence } from "@/lib/calendarIntelligence";
+import { useGameSignals } from "@/hooks/useGameSignals";
+import type { ChargeState, SupportMode } from "@/lib/signalInterpreter";
 
 interface TodaySignalCardProps {
+  userId?: string;
   health: HealthMetrics | null;
   plannerCount: number;
   wearableConnected: boolean;
@@ -12,89 +15,110 @@ interface TodaySignalCardProps {
   calendarIntel?: CalendarIntelligence | null;
 }
 
-function getSignal(
-  recovery: number | null,
-  sleepMin: number | null,
-  plannerCount: number,
-  calendarIntel?: CalendarIntelligence | null,
-): string {
-  const isHeavy = calendarIntel && (calendarIntel.dayType === "heavy" || calendarIntel.dayType === "admin_heavy");
-  const isFragmented = calendarIntel?.dayType === "fragmented";
-  const sleepShort = sleepMin !== null && sleepMin < 360;
-
-  if (recovery !== null && recovery < 34 && isFragmented)
-    return "Low recovery + fragmented schedule — protect your morning for what matters most.";
-  if (recovery !== null && recovery < 34 && isHeavy)
-    return "Low recovery + packed day — simplify where you can and protect downtime tonight.";
-  if (recovery !== null && recovery < 34 && sleepShort)
-    return "Low recovery and short sleep — keep it simple today and recharge tonight.";
-  if (recovery !== null && recovery < 34)
-    return "Your body is undercharged. Keep the day light and give yourself space.";
-  if (recovery !== null && recovery >= 67 && calendarIntel?.dayType === "focus")
-    return "Strong recovery + open calendar — conditions are right for your most important work.";
-  if (recovery !== null && recovery >= 67 && sleepMin && sleepMin >= 420 && !isHeavy)
-    return "Well rested + open day — ideal for deep, focused work.";
-  if (recovery !== null && recovery >= 67 && isHeavy)
-    return "Good recovery for a demanding day. Use the energy wisely.";
-  if (recovery !== null && recovery >= 67)
-    return "Strong readiness today. Lean into what matters most.";
-  if (isFragmented)
-    return "Fragmented schedule today — batch similar tasks and protect focus windows.";
-  if (isHeavy)
-    return "Full schedule today — protect breaks and cut optional commitments.";
-  if (sleepShort)
-    return "Shorter sleep than usual — front-load important work this morning.";
-
-  if (recovery === null && calendarIntel) {
-    switch (calendarIntel.dayType) {
-      case "heavy": return `${calendarIntel.meetingCount} meetings today — protect your energy between them.`;
-      case "fragmented": return "Fragmented schedule — guard your focus windows.";
-      case "focus": return "Open calendar — a good day for deep work.";
-      case "light": return "Light schedule — flexible day ahead.";
-      case "recovery_window": return "Open schedule — use this space intentionally.";
-      default: return `${calendarIntel.meetingCount} commitments today — stay intentional.`;
-    }
+function formatChargeState(chargeState: ChargeState | undefined): string {
+  switch (chargeState) {
+    case "undercharged":
+      return "Undercharged";
+    case "strong":
+      return "Strong";
+    default:
+      return "Stable";
   }
-
-  return "Steady day ahead. Stay intentional with your energy.";
 }
 
-export function TodaySignalCard({ health, plannerCount, wearableConnected, calendarConnected, calendarIntel }: TodaySignalCardProps) {
-  const hasAnyData = wearableConnected || calendarConnected;
-
-  if (!hasAnyData) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-xl border border-border/40 bg-muted/20 px-5 py-4 text-center"
-      >
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          Connect your{" "}
-          <Link to="/planner" className="text-primary hover:underline">calendar</Link>
-          {" and "}
-          <Link to="/wellness" className="text-primary hover:underline">wearable</Link>
-          {" "}to receive your daily signal.
-        </p>
-      </motion.div>
-    );
+function formatSupportMode(mode: SupportMode | undefined): string {
+  switch (mode) {
+    case "recover":
+      return "Recover Mode";
+    case "protect":
+      return "Protect Mode";
+    case "stretch":
+      return "Stretch Mode";
+    default:
+      return "Normal Mode";
   }
+}
 
-  const signal = getSignal(
-    wearableConnected ? (health?.recovery ?? null) : null,
-    wearableConnected ? (health?.sleepMinutes ?? null) : null,
-    plannerCount,
-    calendarIntel,
-  );
+function getChargeDescription(chargeState: ChargeState | undefined): string {
+  switch (chargeState) {
+    case "undercharged":
+      return "Ask less of the day than the day will naturally try to ask of you.";
+    case "strong":
+      return "There is room to press on what matters, as long as you stay deliberate.";
+    default:
+      return "You have enough charge for a clean day if you avoid scattering it.";
+  }
+}
+
+function ChargeIcon({ chargeState }: { chargeState: ChargeState | undefined }) {
+  if (chargeState === "undercharged") {
+    return <BatteryLow className="w-5 h-5 text-amber-500" />;
+  }
+  if (chargeState === "strong") {
+    return <Battery className="w-5 h-5 text-emerald-500" />;
+  }
+  return <BatteryMedium className="w-5 h-5 text-primary/70" />;
+}
+
+export function TodaySignalCard({
+  userId,
+  health,
+  plannerCount,
+  wearableConnected,
+  calendarConnected,
+  trend,
+  calendarIntel,
+}: TodaySignalCardProps) {
+  const { signals } = useGameSignals({
+    userId,
+    wearable: wearableConnected
+      ? {
+          connected: true,
+          recovery: health?.recovery ?? null,
+          sleepMinutes: health?.sleepMinutes ?? null,
+          strain: health?.strain ?? trend?.[0]?.strain ?? null,
+        }
+      : null,
+    calendar: calendarConnected
+      ? {
+          connected: true,
+          plannerCount,
+          meetingCount: calendarIntel?.meetingCount ?? 0,
+          meetingMinutes: calendarIntel?.meetingMinutes ?? 0,
+          longestFocusBlock: calendarIntel?.longestFocusBlock ?? 0,
+          contextSwitches: calendarIntel?.contextSwitches ?? 0,
+          dayType: calendarIntel?.dayType ?? null,
+          overloadedPeriod: calendarIntel?.overloadedPeriod ?? null,
+        }
+      : null,
+  });
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="rounded-xl border border-border/30 bg-card/40 px-5 py-4"
+      className="rounded-2xl border border-border/30 bg-card px-5 py-5 space-y-3"
     >
-      <p className="text-sm text-foreground leading-relaxed">{signal}</p>
+      <div className="flex items-center gap-2">
+        <ChargeIcon chargeState={signals?.chargeState} />
+        <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          Charge State
+        </span>
+      </div>
+
+      <div className="space-y-1">
+        <h2 className="font-display text-xl font-semibold text-foreground">
+          {formatChargeState(signals?.chargeState)}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {formatSupportMode(signals?.supportMode)}
+        </p>
+      </div>
+
+      <p className="text-sm text-foreground leading-relaxed">
+        {getChargeDescription(signals?.chargeState)}
+      </p>
     </motion.div>
   );
 }

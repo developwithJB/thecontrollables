@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ProofEntryCard } from "./ProofEntryCard";
 import { ProofHistory } from "./IGProofHistory";
 import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
-import { useDailyRings } from "@/hooks/useDailyRings";
+import { useDailyMoves } from "@/hooks/useDailyRings";
 
 interface CommandModeViewProps {
   userId?: string;
@@ -58,7 +58,7 @@ export const CommandModeView = ({
   const { toast } = useToast();
   const navigate = useNavigate();
   const [showProof, setShowProof] = useState(false);
-  const { rings, completedCount } = useDailyRings(userId);
+  const { rings, completedCount } = useDailyMoves(userId);
   const intelligence = useDashboardIntelligence(userId, completedCount, rings);
 
   // Screen time logging handler

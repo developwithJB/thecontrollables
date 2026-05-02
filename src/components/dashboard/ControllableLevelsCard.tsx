@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Swords, ChevronDown, Clock } from "lucide-react";
+import { ChevronDown, Clock, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useControllableLevels } from "@/hooks/useControllableLevels";
 import { getControllableTheme } from "@/lib/controllableTheme";
+import {
+  getControllableEvolutionState,
+  getControllableRosterProfile,
+} from "@/lib/controllableRoster";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
 import type { ControllableType } from "@/components/ControllableCard";
 
 interface ControllableLevelsCardProps {
@@ -20,38 +24,43 @@ export function ControllableLevelsCard({ userId }: ControllableLevelsCardProps) 
   const initRef = useRef(false);
   const [expandedType, setExpandedType] = useState<ControllableType | null>(null);
 
-  // Detect level-ups by comparing to localStorage-persisted highest levels
   useEffect(() => {
     if (!levels || !userId) return;
 
     const storageKey = `controllable_levels_${userId}`;
     let saved: Record<string, number> = {};
+
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw) saved = JSON.parse(raw);
-    } catch { /* ignore */ }
+    } catch {}
 
     const updated: Record<string, number> = { ...saved };
     let changed = false;
 
-    for (const cl of levels) {
-      const prev = saved[cl.type] ?? 0;
-      // Only toast after first load (skip initial hydration)
-      if (initRef.current && cl.level > prev && prev > 0) {
-        const theme = getControllableTheme(cl.type);
+    for (const controllableLevel of levels) {
+      const previousLevel = saved[controllableLevel.type] ?? 0;
+
+      if (initRef.current && controllableLevel.level > previousLevel && previousLevel > 0) {
+        const theme = getControllableTheme(controllableLevel.type);
+        const profile = getControllableRosterProfile(controllableLevel.type);
+
         toast({
-          title: `${theme.emoji} ${theme.label} leveled up!`,
-          description: `You reached Level ${cl.level}. Keep going!`,
+          title: `${theme.label} evolved`,
+          description: `Your ${profile.role} is carrying more of the load now.`,
         });
       }
-      if (cl.level > (updated[cl.type] ?? 0)) {
-        updated[cl.type] = cl.level;
+
+      if (controllableLevel.level > (updated[controllableLevel.type] ?? 0)) {
+        updated[controllableLevel.type] = controllableLevel.level;
         changed = true;
       }
     }
 
     if (changed) {
-      try { localStorage.setItem(storageKey, JSON.stringify(updated)); } catch { /* ignore */ }
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+      } catch {}
     }
 
     initRef.current = true;
@@ -64,41 +73,78 @@ export function ControllableLevelsCard({ userId }: ControllableLevelsCardProps) 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.15 }}
-      className="rounded-2xl border border-border/60 bg-card p-4 space-y-3"
+      className="rounded-2xl border border-border/60 bg-card p-4 space-y-4"
     >
-      <div className="flex items-center gap-2">
-        <Swords className="w-4 h-4 text-accent" />
-        <h3 className="text-sm font-semibold text-foreground">Controllable Levels</h3>
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-accent" />
+          <h3 className="text-sm font-semibold text-foreground">Starter Team</h3>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Each Controllable plays a role. The more real moves you make, the more the team comes online.
+        </p>
       </div>
 
-      <div className="space-y-1">
-        {levels.map((cl) => {
-          const theme = getControllableTheme(cl.type);
-          const isExpanded = expandedType === cl.type;
+      <div className="space-y-2">
+        {levels.map((controllableLevel) => {
+          const theme = getControllableTheme(controllableLevel.type);
+          const profile = getControllableRosterProfile(controllableLevel.type);
+          const evolution = getControllableEvolutionState(controllableLevel);
+          const isExpanded = expandedType === controllableLevel.type;
+
           return (
-            <div key={cl.type}>
+            <div
+              key={controllableLevel.type}
+              className="rounded-xl border border-border/50 bg-background/40 overflow-hidden"
+            >
               <button
-                onClick={() => setExpandedType(isExpanded ? null : cl.type)}
-                className="w-full text-left space-y-1 rounded-lg px-2 py-1.5 -mx-2 transition-colors hover:bg-muted/50 active:bg-muted/70"
+                onClick={() => setExpandedType(isExpanded ? null : controllableLevel.type)}
+                className="w-full text-left p-3 transition-colors hover:bg-muted/40 active:bg-muted/60"
               >
-                <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1.5">
-                    <span>{theme.emoji}</span>
-                    <span className={`font-medium ${theme.textClass}`}>{theme.label}</span>
-                  </span>
-                  <span className="flex items-center gap-1 text-muted-foreground tabular-nums">
-                    Lv.{cl.level}
-                    <span className="ml-1 text-[10px]">
-                      {cl.totalXp.toLocaleString()} / {cl.next.toLocaleString()} XP
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${theme.bgClass}`}
+                  >
+                    <span className="text-lg" aria-hidden="true">
+                      {theme.emoji}
                     </span>
-                    <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
-                  </span>
+                  </div>
+
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-sm font-semibold ${theme.textClass}`}>{theme.label}</span>
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                            {profile.roleLabel}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                          {profile.shortDescription}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium capitalize ${theme.bgClass} ${theme.textClass}`}>
+                          {evolution.stageLabel}
+                        </span>
+                        <ChevronDown
+                          className={`w-3 h-3 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Progress value={controllableLevel.progress * 100} className={`h-2 ${theme.bgClass}`} />
+                      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                        <span>{evolution.progressLabel}</span>
+                        <span className="shrink-0">{evolution.nextMilestoneLabel}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <Progress
-                  value={cl.progress * 100}
-                  className={`h-2 ${theme.bgClass}`}
-                />
               </button>
+
               <AnimatePresence>
                 {isExpanded && userId && (
                   <motion.div
@@ -106,9 +152,9 @@ export function ControllableLevelsCard({ userId }: ControllableLevelsCardProps) 
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
+                    className="overflow-hidden border-t border-border/40 bg-background/60"
                   >
-                    <XpHistoryPanel userId={userId} controllable={cl.type} />
+                    <MoveHistoryPanel userId={userId} controllable={controllableLevel.type} />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -120,7 +166,7 @@ export function ControllableLevelsCard({ userId }: ControllableLevelsCardProps) 
   );
 }
 
-function XpHistoryPanel({ userId, controllable }: { userId: string; controllable: ControllableType }) {
+function MoveHistoryPanel({ userId, controllable }: { userId: string; controllable: ControllableType }) {
   const { data: history, isLoading } = useQuery({
     queryKey: ["xp-history", userId, controllable],
     queryFn: async () => {
@@ -131,6 +177,7 @@ function XpHistoryPanel({ userId, controllable }: { userId: string; controllable
         .eq("controllable", controllable)
         .order("completed_at", { ascending: false })
         .limit(15);
+
       if (error) throw error;
       return data ?? [];
     },
@@ -138,23 +185,34 @@ function XpHistoryPanel({ userId, controllable }: { userId: string; controllable
   });
 
   const theme = getControllableTheme(controllable);
+  const profile = getControllableRosterProfile(controllable);
 
   return (
-    <div className="px-2 pb-2 pt-1">
+    <div className="px-3 py-3">
+      <div className="mb-2">
+        <p className="text-[11px] font-medium text-foreground">Recent moves for your {profile.role}</p>
+        <p className="text-[10px] text-muted-foreground">
+          This is where {theme.label.toLowerCase()} has been gaining evolution progress.
+        </p>
+      </div>
+
       {isLoading ? (
-        <p className="text-[10px] text-muted-foreground py-2">Loading…</p>
+        <p className="text-[10px] text-muted-foreground py-2">Loading recent moves...</p>
       ) : !history || history.length === 0 ? (
-        <p className="text-[10px] text-muted-foreground py-2">No XP earned yet for {theme.label}.</p>
+        <p className="text-[10px] text-muted-foreground py-2">No moves logged here yet.</p>
       ) : (
         <div className="space-y-1 max-h-40 overflow-y-auto">
-          {history.map((entry, i) => (
-            <div key={i} className="flex items-center justify-between text-[11px] py-0.5 border-b border-border/20 last:border-0">
+          {history.map((entry, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-between gap-2 text-[11px] py-1 border-b border-border/20 last:border-0"
+            >
               <div className="flex items-center gap-1.5 min-w-0">
                 <Clock className="w-2.5 h-2.5 text-muted-foreground shrink-0" />
                 <span className="text-foreground truncate">{entry.action_text}</span>
               </div>
-              <div className="flex items-center gap-2 shrink-0 ml-2">
-                <span className={`font-medium ${theme.textClass}`}>+{entry.xp_awarded}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={`font-medium ${theme.textClass}`}>+{entry.xp_awarded} progress</span>
                 <span className="text-[9px] text-muted-foreground">
                   {format(new Date(entry.completed_at), "MMM d")}
                 </span>

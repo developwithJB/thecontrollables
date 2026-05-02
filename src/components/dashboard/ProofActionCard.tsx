@@ -124,7 +124,7 @@ export const ProofActionCard = ({ userId, onComplete }: ProofActionCardProps) =>
         <Trophy className="w-6 h-6 text-accent mx-auto" />
         <p className="text-sm font-medium text-foreground">"{proofAction}"</p>
         <p className="text-xs text-accent">{msg}</p>
-        {streak > 1 && <p className="text-[10px] text-muted-foreground">🔥 {streak}-day proof streak</p>}
+        {streak > 1 && <p className="text-[10px] text-muted-foreground">🔥 {streak}-day proof rhythm</p>}
       </motion.div>
     );
   }

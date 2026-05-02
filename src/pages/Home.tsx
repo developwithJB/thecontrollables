@@ -14,9 +14,13 @@ import { useAutoWearableSync } from "@/hooks/useAutoWearableSync";
 import { usePlannerItems, getWeekRange, type PlannerItem } from "@/hooks/usePlanner";
 import { analyzeCalendar } from "@/lib/calendarIntelligence";
 import { useWeeklyTracker } from "@/hooks/useWeeklyTracker";
+import { useGameSignals } from "@/hooks/useGameSignals";
+import { useDriftAlignment } from "@/hooks/useDriftAlignment";
 import { WeeklyPulseScreen } from "@/components/dashboard/WeeklyPulseScreen";
 
 import { TodayHeader } from "@/components/dashboard/TodayHeader";
+import { ReturnFromDriftCard } from "@/components/dashboard/ReturnFromDriftCard";
+import { BossBattleBanner } from "@/components/dashboard/BossBattleBanner";
 import { DailyReadingCard } from "@/components/dashboard/DailyReadingCard";
 import { DailyOperatorBrief } from "@/components/dashboard/DailyOperatorBrief";
 import { WeeklyAIInsightCard } from "@/components/dashboard/WeeklyAIInsightCard";
@@ -31,6 +35,7 @@ export default function Home() {
   const { toast } = useToast();
 
   const [pulseDismissed, setPulseDismissed] = useState(false);
+  const [returnFromDriftDismissed, setReturnFromDriftDismissed] = useState(false);
 
   const { isLoading: resetLoading } = useReset(user.id);
 
@@ -73,6 +78,42 @@ export default function Home() {
     [weekPlannerItems, todayStr],
   );
   const todayCalendarIntel = useMemo(() => analyzeCalendar(todayPlannerItems), [todayPlannerItems]);
+  const {
+    signals,
+    calendar: signalCalendar,
+    wearable: signalWearable,
+    checkIn: signalCheckIn,
+  } = useGameSignals({
+    userId: user.id,
+    wearable: {
+      connected: wearableConnected,
+      recovery: healthLatest.recovery,
+      sleepMinutes: healthLatest.sleepMinutes,
+      strain: healthLatest.strain,
+    },
+    calendar: {
+      connected: calendarConnected,
+      plannerCount: todayPlannerItems.length,
+      meetingCount: todayCalendarIntel?.meetingCount ?? 0,
+      meetingMinutes: todayCalendarIntel?.meetingMinutes ?? 0,
+      longestFocusBlock: todayCalendarIntel?.longestFocusBlock ?? 0,
+      contextSwitches: todayCalendarIntel?.contextSwitches ?? 0,
+      dayType: todayCalendarIntel?.dayType ?? null,
+      overloadedPeriod: todayCalendarIntel?.overloadedPeriod ?? null,
+    },
+  });
+  const { drift } = useDriftAlignment({
+    userId: user.id,
+    enabled: true,
+    signals,
+    calendar: signalCalendar,
+    wearable: signalWearable,
+    checkIn: signalCheckIn,
+  });
+  const returnFromDriftDismissKey = useMemo(
+    () => `return_from_drift_${user.id}_${todayStr}`,
+    [user.id, todayStr],
+  );
 
   // Pulse dismiss
   useEffect(() => {
@@ -85,6 +126,23 @@ export default function Home() {
     const key = `pulse_seen_${user.id}_${new Date().toLocaleDateString("sv-SE")}`;
     try { sessionStorage.setItem(key, "1"); } catch { /* sessionStorage may be unavailable */ }
   }, [user.id]);
+
+  useEffect(() => {
+    try {
+      setReturnFromDriftDismissed(localStorage.getItem(returnFromDriftDismissKey) === "1");
+    } catch {
+      setReturnFromDriftDismissed(false);
+    }
+  }, [returnFromDriftDismissKey]);
+
+  const dismissReturnFromDrift = useCallback(() => {
+    setReturnFromDriftDismissed(true);
+    try {
+      localStorage.setItem(returnFromDriftDismissKey, "1");
+    } catch {
+      // localStorage may be unavailable.
+    }
+  }, [returnFromDriftDismissKey]);
 
   // Handle wearable OAuth callback params
   useEffect(() => {
@@ -189,10 +247,17 @@ export default function Home() {
         calendarIntel={todayCalendarIntel}
         wearableConnected={wearableConnected}
         calendarConnected={calendarConnected}
+        drift={drift}
       />
 
       {/* 2. Daily Operator — one AI-native command center with confirmable actions */}
       <DailyOperatorBrief userId={user.id} />
+
+      {drift?.shouldShowReturnFromDrift && !returnFromDriftDismissed ? (
+        <ReturnFromDriftCard drift={drift} onDismiss={dismissReturnFromDrift} />
+      ) : null}
+
+      <BossBattleBanner signals={signals} />
 
       {/* 3. Daily reading — secondary insight */}
       <DailyReadingCard userId={user.id} />

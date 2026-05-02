@@ -1,66 +1,98 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getControllableRosterProfile } from "@/lib/controllableRoster";
+import { AWARENESS_MOVE_MEANING } from "@/lib/awarenessLanguage";
+import type { ControllableType } from "@/components/ControllableCard";
 
 export type RingKey = "notice" | "choose" | "prove" | "charge" | "align";
+export type DailyMoveKey = RingKey;
 
 export interface RingDefinition {
   key: RingKey;
   name: string;
-  controllable: string;
+  shortName: string;
+  controllable: ControllableType;
   emoji: string;
+  roleLabel: string;
   meaning: string;
   prompt: string;
+  completionLabel: string;
   color: string;
 }
 
-export const RING_DEFINITIONS: RingDefinition[] = [
+export type DailyMoveDefinition = RingDefinition;
+
+const awarenessProfile = getControllableRosterProfile("awareness");
+const perspectiveProfile = getControllableRosterProfile("perspective");
+const habitProfile = getControllableRosterProfile("habit");
+const wellnessProfile = getControllableRosterProfile("wellness");
+const environmentProfile = getControllableRosterProfile("environment");
+
+export const DAILY_MOVE_DEFINITIONS: DailyMoveDefinition[] = [
   {
     key: "notice",
-    name: "Notice",
+    name: "Awareness Move",
+    shortName: "Awareness",
     controllable: "awareness",
     emoji: "🦉",
-    meaning: "Scan your internal system — catch fear circuits before they take over.",
-    prompt: "Run a Circuit Check",
+    roleLabel: awarenessProfile.roleLabel,
+    meaning: AWARENESS_MOVE_MEANING,
+    prompt: "Open the Awareness Move",
+    completionLabel: "Complete Awareness Move",
     color: "awareness",
   },
   {
     key: "choose",
-    name: "Choose",
+    name: "Perspective Move",
+    shortName: "Perspective",
     controllable: "perspective",
     emoji: "🐢",
-    meaning: "Reframe the story. Move from fear to love.",
-    prompt: "Open the Reframe Studio",
+    roleLabel: perspectiveProfile.roleLabel,
+    meaning: "Let your translator zoom out and turn the moment into something usable.",
+    prompt: "Open the Perspective Move",
+    completionLabel: "Complete Perspective Move",
     color: "perspective",
   },
   {
     key: "prove",
-    name: "Prove",
+    name: "Habit Move",
+    shortName: "Habit",
     controllable: "habit",
     emoji: "🦈",
-    meaning: "One action that proves who you're becoming.",
-    prompt: "Set your Proof Action",
+    roleLabel: habitProfile.roleLabel,
+    meaning: "Let your builder pick one rep that turns intention into action.",
+    prompt: "Open the Habit Move",
+    completionLabel: "Complete Habit Move",
     color: "habit",
   },
   {
-    key: "charge",
-    name: "Charge",
-    controllable: "wellness",
-    emoji: "🛰️",
-    meaning: "Recharge your system with one physical win.",
-    prompt: "Open the Recharge Engine",
-    color: "wellness",
-  },
-  {
     key: "align",
-    name: "Align",
+    name: "Environment Move",
+    shortName: "Environment",
     controllable: "environment",
     emoji: "🚀",
-    meaning: "Shape your environment to support growth.",
-    prompt: "Run an Environment Reset",
+    roleLabel: environmentProfile.roleLabel,
+    meaning: "Let your protector shape the space around you so the next move has less friction.",
+    prompt: "Open the Environment Move",
+    completionLabel: "Complete Environment Move",
     color: "environment",
   },
+  {
+    key: "charge",
+    name: "Wellness Move",
+    shortName: "Wellness",
+    controllable: "wellness",
+    emoji: "🛰️",
+    roleLabel: wellnessProfile.roleLabel,
+    meaning: "Let your charger restore the energy the rest of the team depends on.",
+    prompt: "Open the Wellness Move",
+    completionLabel: "Complete Wellness Move",
+    color: "wellness",
+  },
 ];
+
+export const RING_DEFINITIONS = DAILY_MOVE_DEFINITIONS;
 
 export interface DailyRingsState {
   notice_completed: boolean;
@@ -75,18 +107,25 @@ export interface DailyRingsState {
   align_response: string | null;
 }
 
+export type DailyMovesState = DailyRingsState;
+
 const DEFAULT_STATE: DailyRingsState = {
-  notice_completed: false, notice_response: null,
-  choose_completed: false, choose_response: null,
-  prove_completed: false, prove_response: null,
-  charge_completed: false, charge_response: null,
-  align_completed: false, align_response: null,
+  notice_completed: false,
+  notice_response: null,
+  choose_completed: false,
+  choose_response: null,
+  prove_completed: false,
+  prove_response: null,
+  charge_completed: false,
+  charge_response: null,
+  align_completed: false,
+  align_response: null,
 };
 
 function getStatusLabel(count: number): string {
-  if (count === 0) return "Just Getting Started";
-  if (count <= 2) return "Building Momentum";
-  if (count <= 4) return "Locked In";
+  if (count === 0) return "Choose your moves";
+  if (count <= 2) return "Moves in motion";
+  if (count <= 4) return "Team coming online";
   return "Fully Charged ⚡";
 }
 
@@ -98,9 +137,12 @@ export function useDailyRings(userId?: string) {
   const [rowId, setRowId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Fetch or create today's row
   useEffect(() => {
-    if (!userId) { setLoading(false); return; }
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     const load = async () => {
@@ -115,7 +157,7 @@ export function useDailyRings(userId?: string) {
       if (cancelled) return;
 
       if (error) {
-        console.error("Failed to load daily rings:", error);
+        console.error("Failed to load daily moves:", error);
         setLoading(false);
         return;
       }
@@ -135,7 +177,6 @@ export function useDailyRings(userId?: string) {
           align_response: data.align_response,
         });
       } else {
-        // Create today's row
         const { data: newRow, error: insertErr } = await supabase
           .from("daily_rings")
           .insert({ user_id: userId, ring_date: dateStr })
@@ -143,72 +184,86 @@ export function useDailyRings(userId?: string) {
           .single();
 
         if (!cancelled && newRow) setRowId(newRow.id);
-        if (insertErr) console.error("Failed to create daily rings:", insertErr);
+        if (insertErr) console.error("Failed to create daily moves:", insertErr);
       }
+
       setLoading(false);
     };
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   const completedCount = useMemo(() => {
-    let c = 0;
-    if (rings.notice_completed) c++;
-    if (rings.choose_completed) c++;
-    if (rings.prove_completed) c++;
-    if (rings.charge_completed) c++;
-    if (rings.align_completed) c++;
-    return c;
+    let count = 0;
+    if (rings.notice_completed) count++;
+    if (rings.choose_completed) count++;
+    if (rings.prove_completed) count++;
+    if (rings.charge_completed) count++;
+    if (rings.align_completed) count++;
+    return count;
   }, [rings]);
 
   const statusLabel = useMemo(() => getStatusLabel(completedCount), [completedCount]);
 
-  const completeRing = useCallback(async (key: RingKey, response?: string) => {
-    if (!rowId) return;
+  const completeRing = useCallback(
+    async (key: RingKey, response?: string) => {
+      if (!rowId) return;
 
-    // Optimistic update
-    setRings((prev) => ({
-      ...prev,
-      [`${key}_completed`]: true,
-      [`${key}_response`]: response || null,
-    }));
-
-    const update: Record<string, unknown> = {
-      [`${key}_completed`]: true,
-      [`${key}_response`]: response || null,
-      updated_at: new Date().toISOString(),
-    };
-
-    const { error } = await supabase
-      .from("daily_rings")
-      .update(update)
-      .eq("id", rowId);
-
-    if (error) {
-      console.error("Failed to complete ring:", error);
-      // Revert
       setRings((prev) => ({
         ...prev,
-        [`${key}_completed`]: false,
-        [`${key}_response`]: null,
+        [`${key}_completed`]: true,
+        [`${key}_response`]: response || null,
       }));
-      toast({ title: "Error", description: "Could not save ring completion.", variant: "destructive" });
-    }
-  }, [rowId, toast]);
 
-  const isCompleted = useCallback((key: RingKey) => {
-    return rings[`${key}_completed`];
-  }, [rings]);
+      const update: Record<string, unknown> = {
+        [`${key}_completed`]: true,
+        [`${key}_response`]: response || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from("daily_rings").update(update).eq("id", rowId);
+
+      if (error) {
+        console.error("Failed to complete move:", error);
+        setRings((prev) => ({
+          ...prev,
+          [`${key}_completed`]: false,
+          [`${key}_response`]: null,
+        }));
+        toast({
+          title: "Error",
+          description: "Could not save move completion.",
+          variant: "destructive",
+        });
+      }
+    },
+    [rowId, toast],
+  );
+
+  const isCompleted = useCallback(
+    (key: RingKey) => {
+      return rings[`${key}_completed`];
+    },
+    [rings],
+  );
 
   return {
     rings,
+    moves: rings,
     loading,
     completedCount,
     statusLabel,
     completeRing,
+    completeMove: completeRing,
     isCompleted,
-    definitions: RING_DEFINITIONS,
+    isMoveCompleted: isCompleted,
+    definitions: DAILY_MOVE_DEFINITIONS,
+    moveDefinitions: DAILY_MOVE_DEFINITIONS,
     rowId,
   };
 }
+
+export const useDailyMoves = useDailyRings;

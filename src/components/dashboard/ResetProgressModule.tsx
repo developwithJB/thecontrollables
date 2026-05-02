@@ -76,8 +76,8 @@ function JourneyDisplay({
             <Compass className="w-4 h-4 text-muted-foreground" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Select a Snapshot</p>
-            <p className="text-xs text-muted-foreground">Choose your weekly focus</p>
+            <p className="text-sm font-medium text-foreground">Enter a Region</p>
+            <p className="text-xs text-muted-foreground">Choose your next chapter quest</p>
           </div>
           <ChevronDown className="w-4 h-4 text-muted-foreground" />
         </button>
@@ -101,7 +101,7 @@ function JourneyDisplay({
             <Compass className="w-4 h-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <span className="text-xs text-muted-foreground">Snapshot Focus</span>
+            <span className="text-xs text-muted-foreground">Current Region</span>
             <p className="text-sm font-medium text-foreground truncate">
               {journey.emoji} {journey.title}
             </p>
@@ -124,7 +124,7 @@ function JourneyDisplay({
           <Compass className="w-4 h-4 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <span className="text-xs text-muted-foreground">Snapshot Focus</span>
+          <span className="text-xs text-muted-foreground">Current Region</span>
           <p className="text-sm font-medium text-foreground truncate">
             {journey.emoji} {journey.title}
           </p>
@@ -240,8 +240,8 @@ export function ResetProgressModule({
               <RefreshCw className="w-5 h-5 text-muted-foreground" />
             </div>
             <div>
-              <h3 className="font-display font-semibold text-foreground">7-Day Snapshot</h3>
-              <p className="text-sm text-muted-foreground">Capture this week</p>
+              <h3 className="font-display font-semibold text-foreground">7-Day Chapter Quest</h3>
+              <p className="text-sm text-muted-foreground">Move through this chapter with intention</p>
             </div>
           </div>
 
@@ -255,13 +255,13 @@ export function ResetProgressModule({
           )}
           
           <p className="text-sm text-muted-foreground mb-4">
-            Your Snapshot builds momentum.{" "}
-            <span className="text-foreground/70">Your Focus gives you direction.</span>
+            Your chapter quest gives the week shape.{" "}
+            <span className="text-foreground/70">Your region gives it direction.</span>
           </p>
           
           <Button className="w-full" onClick={handleOpenCovenantDialog}>
             <RefreshCw className="w-4 h-4 mr-2" />
-            Begin Your Snapshot
+            Enter Your Region
           </Button>
         </motion.div>
 
@@ -321,7 +321,7 @@ export function ResetProgressModule({
               <RefreshCw className="w-5 h-5 text-amber-500" />
             </div>
             <div>
-              <h3 className="font-display font-semibold text-foreground">7-Day Snapshot</h3>
+              <h3 className="font-display font-semibold text-foreground">7-Day Chapter Quest</h3>
               <p className="text-sm text-amber-600 dark:text-amber-400">
                 Incomplete • {completedDays.length} of 7 days
               </p>
@@ -332,7 +332,7 @@ export function ResetProgressModule({
             <div className="flex items-start gap-2">
               <Lock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-foreground">Free snapshot used</p>
+                <p className="text-sm font-medium text-foreground">Free chapter quest used</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Upgrade to try again and unlock certificate downloads.
                 </p>
@@ -360,7 +360,7 @@ export function ResetProgressModule({
               <RefreshCw className="w-5 h-5 text-amber-500" />
             </div>
             <div className="flex-1">
-              <h3 className="font-display font-semibold text-foreground">7-Day Snapshot</h3>
+              <h3 className="font-display font-semibold text-foreground">7-Day Chapter Quest</h3>
               <p className="text-sm text-amber-600 dark:text-amber-400">
                 Incomplete • {completedDays.length} of 7 days
               </p>
@@ -433,7 +433,7 @@ export function ResetProgressModule({
               <Check className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-display font-semibold text-foreground">7-Day Snapshot</h3>
+              <h3 className="font-display font-semibold text-foreground">7-Day Chapter Quest</h3>
               <p className="text-sm text-primary">Complete • Well played</p>
             </div>
           </div>
@@ -442,7 +442,7 @@ export function ResetProgressModule({
           {daysSinceLastReset !== null && (
             <div className="mb-4 p-3 rounded-lg bg-background/50 border border-primary/10">
               <p className="text-sm text-muted-foreground">
-                <span className="text-foreground font-medium">{daysSinceLastReset} days</span> since you completed your Snapshot
+                <span className="text-foreground font-medium">{daysSinceLastReset} days</span> since you completed your chapter quest
               </p>
             </div>
           )}
@@ -451,9 +451,9 @@ export function ResetProgressModule({
             <div className="flex items-start gap-2">
               <Lock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-foreground">Free Snapshot complete</p>
+                <p className="text-sm font-medium text-foreground">Free chapter quest complete</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Upgrade to download your certificate and start new Snapshots.
+                  Upgrade to download your certificate and start new chapter quests.
                 </p>
               </div>
             </div>
@@ -480,7 +480,7 @@ export function ResetProgressModule({
                 <Check className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">7-Day Snapshot</p>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">7-Day Chapter Quest</p>
                 <h3 className="font-display font-semibold text-foreground text-lg">Complete</h3>
               </div>
             </div>
@@ -631,7 +631,7 @@ export function ResetProgressModule({
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">7-Day Snapshot</p>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">7-Day Chapter Quest</p>
                 {(() => {
                   const dayTheme = getControllableTheme(getControllableForDay(currentDay));
                   return (
@@ -735,7 +735,7 @@ export function ResetProgressModule({
                           <ChevronRight className="w-4 h-4 text-muted-foreground" />
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          Tap to change snapshot
+                          Tap to change region
                         </p>
                       </div>
                     </div>

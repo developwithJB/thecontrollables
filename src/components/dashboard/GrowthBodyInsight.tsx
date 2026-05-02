@@ -24,7 +24,7 @@ function deriveInsight(latest: HealthMetrics, trend: HealthMetrics[], selfEnergy
     return "Low recovery + dense schedule — keep growth actions small and achievable today.";
   }
   if (isFragmented) {
-    return "High context-switching may reduce reflection quality — find one quiet moment for your rings.";
+    return "High context-switching may reduce reflection quality — find one quiet moment for your moves.";
   }
   if (isHeavy) {
     return "Dense schedule today — simplify growth actions. Smaller reps still count.";
@@ -52,7 +52,7 @@ function deriveInsight(latest: HealthMetrics, trend: HealthMetrics[], selfEnergy
     if (avg >= 65) return "Consistent recovery this week — a strong foundation for building new habits.";
   }
 
-  if (recovery !== null && recovery >= 67) return "Strong recovery supports the Charge ring today. Use this energy for what matters most.";
+  if (recovery !== null && recovery >= 67) return "Strong recovery supports the Wellness Move today. Use this energy for what matters most.";
   if (recovery !== null && recovery < 34) return "Low recovery may affect follow-through. Keep growth actions small and achievable.";
 
   return null;

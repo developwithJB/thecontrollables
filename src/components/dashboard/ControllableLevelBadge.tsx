@@ -1,11 +1,11 @@
 import { useControllableLevels } from "@/hooks/useControllableLevels";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getControllableEvolutionState, getControllableRosterProfile } from "@/lib/controllableRoster";
+import { getControllableTheme } from "@/lib/controllableTheme";
 import type { ControllableType } from "@/components/ControllableCard";
 
-/** Tiny inline badge showing "Lv.X" for a specific controllable. Uses cached query. */
 export function ControllableLevelBadge({ controllable, className = "" }: { controllable: ControllableType; className?: string }) {
-  // Get current user id from cached auth state
   const { data: userId } = useQuery({
     queryKey: ["current-user-id"],
     queryFn: async () => {
@@ -16,13 +16,20 @@ export function ControllableLevelBadge({ controllable, className = "" }: { contr
   });
 
   const { data: levels } = useControllableLevels(userId ?? null);
-  const level = levels?.find((l) => l.type === controllable)?.level;
+  const levelData = levels?.find((level) => level.type === controllable);
 
-  if (!level) return null;
+  if (!levelData) return null;
+
+  const evolution = getControllableEvolutionState(levelData);
+  const theme = getControllableTheme(controllable);
+  const profile = getControllableRosterProfile(controllable);
 
   return (
-    <span className={`text-[10px] font-semibold text-muted-foreground bg-muted/60 rounded px-1 py-0.5 tabular-nums ${className}`}>
-      Lv.{level}
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${theme.bgClass} ${theme.textClass} ${className}`}
+      title={`${profile.roleLabel} · ${evolution.stageLabel}`}
+    >
+      <span>{evolution.stageLabel}</span>
     </span>
   );
 }
