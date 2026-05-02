@@ -2935,6 +2935,9 @@ export type Database = {
           journey_controllable: string | null
           journey_selected_at: string | null
           onboarding_step: string | null
+          operator_onboarding_answers: Json
+          operator_onboarding_completed: boolean
+          operator_onboarding_completed_at: string | null
           simplified_mode_completed: boolean
           user_id: string
           welcome_foundation_progress: Json | null
@@ -2949,6 +2952,9 @@ export type Database = {
           journey_controllable?: string | null
           journey_selected_at?: string | null
           onboarding_step?: string | null
+          operator_onboarding_answers?: Json
+          operator_onboarding_completed?: boolean
+          operator_onboarding_completed_at?: string | null
           simplified_mode_completed?: boolean
           user_id: string
           welcome_foundation_progress?: Json | null
@@ -2963,6 +2969,9 @@ export type Database = {
           journey_controllable?: string | null
           journey_selected_at?: string | null
           onboarding_step?: string | null
+          operator_onboarding_answers?: Json
+          operator_onboarding_completed?: boolean
+          operator_onboarding_completed_at?: string | null
           simplified_mode_completed?: boolean
           user_id?: string
           welcome_foundation_progress?: Json | null

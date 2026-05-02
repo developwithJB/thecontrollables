@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { LogOut, Moon, Sun, CreditCard, Mail, Calendar, Bell, Plug } from "lucide-react";
 import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush } from "@/lib/pushNotifications";
 import { ObservationsSettingsCard } from "@/components/settings/ObservationsSettingsCard";
+import { AISettingsCard } from "@/components/settings/AISettingsCard";
 import { useObservations } from "@/hooks/useObservations";
 import {
   Dialog,
@@ -399,6 +400,9 @@ export function ProfileSettingsModal({
             >
               {isSaving ? "Saving..." : "Save Changes"}
             </Button>
+
+            {/* Daily Operator AI Settings */}
+            <AISettingsCard userId={userId} onRevisitStart={() => onOpenChange(false)} />
 
             {/* System Intelligence Settings */}
             <ObservationsSettingsCard

@@ -15,3 +15,4 @@ export { OnboardingMissionFirstStep } from "./OnboardingMissionFirstStep";
 export { OnboardingSnapshotRecommendationStep } from "./OnboardingSnapshotRecommendationStep";
 export { OnboardingQuickStartFlow } from "./OnboardingQuickStartFlow";
 export { OnboardingConnectionSummary } from "./OnboardingConnectionSummary";
+export { DailyOperatorOnboardingFlow } from "./DailyOperatorOnboardingFlow";

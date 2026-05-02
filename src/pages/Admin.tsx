@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Shield, RefreshCw, BarChart3, Route, Mail,
-  User, AlertTriangle, Radar, DollarSign, HeartPulse, Zap, Sparkles, Megaphone
+  User, AlertTriangle, Radar, DollarSign, HeartPulse, Zap, Sparkles, Megaphone, Bot
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,7 @@ import NudgesTab from "@/components/admin/NudgesTab";
 import ActionCenter from "@/components/admin/ActionCenter";
 import AIInsightsPanel from "@/components/admin/AIInsightsPanel";
 import CampaignComposer from "@/components/admin/CampaignComposer";
+import AIUsageDashboard from "@/components/admin/AIUsageDashboard";
 
 export default function Admin() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -48,8 +49,12 @@ export default function Admin() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : "Unknown error";
+
   useEffect(() => {
     checkAuthAndLoad();
+    // Admin bootstrapping should run once on page entry.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getAuthHeaders = async () => {
@@ -81,7 +86,7 @@ export default function Admin() {
       }
       setIsAuthorized(true);
       loadAllData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Admin verification failed:", error);
       toast({ title: "Access Denied", description: "You don't have permission to view this page.", variant: "destructive" });
       navigate("/dashboard");
@@ -92,17 +97,17 @@ export default function Admin() {
     setIsLoading(true);
     try {
       await Promise.all([
-        loadResource("admin-users", "", (d) => setUsers(d.users || [])),
-        loadResource("admin-users", "resource=events&limit=100", (d) => setEvents(d.events || [])),
-        loadResource("admin-users", "resource=errors&limit=100", (d) => setErrors(d.errors || [])),
-        loadResource("admin-users", "resource=page_views&limit=100", (d) => setPageViews(d.page_views || [])),
-        loadResource("admin-users", "resource=analytics_summary", (d) => setSummary(d.summary)),
-        loadResource("admin-users", "resource=user_activity", (d) => {
+        loadResource<{ users?: AdminUser[] }>("admin-users", "", (d) => setUsers(d.users || [])),
+        loadResource<{ events?: AppEvent[] }>("admin-users", "resource=events&limit=100", (d) => setEvents(d.events || [])),
+        loadResource<{ errors?: AppError[] }>("admin-users", "resource=errors&limit=100", (d) => setErrors(d.errors || [])),
+        loadResource<{ page_views?: PageView[] }>("admin-users", "resource=page_views&limit=100", (d) => setPageViews(d.page_views || [])),
+        loadResource<{ summary?: AnalyticsSummary | null }>("admin-users", "resource=analytics_summary", (d) => setSummary(d.summary || null)),
+        loadResource<{ users?: UserActivity[]; stats?: UserActivityStats | null }>("admin-users", "resource=user_activity", (d) => {
           setUserActivities(d.users || []);
           setUserActivityStats(d.stats || null);
         }),
-        loadResource("admin-users", "resource=action_flow", (d) => setActionFlows(d.commonFlows || [])),
-        loadResource("admin-users", "resource=nudge_logs&limit=100", (d) => {
+        loadResource<{ commonFlows?: ActionFlow[] }>("admin-users", "resource=action_flow", (d) => setActionFlows(d.commonFlows || [])),
+        loadResource<{ logs?: NudgeLog[]; stats?: NudgeStats | null; potentialIssues?: NudgePotentialIssue[] }>("admin-users", "resource=nudge_logs&limit=100", (d) => {
           setNudgeLogs(d.logs || []);
           setNudgeStats(d.stats || null);
           setNudgePotentialIssues(d.potentialIssues || []);
@@ -113,7 +118,7 @@ export default function Admin() {
     }
   };
 
-  const loadResource = async (fn: string, query: string, onSuccess: (data: any) => void) => {
+  const loadResource = async <TData,>(fn: string, query: string, onSuccess: (data: TData) => void) => {
     try {
       const headers = await getAuthHeaders();
       const sep = query ? (query.startsWith("?") ? "" : "?") : "";
@@ -122,7 +127,7 @@ export default function Admin() {
         { headers }
       );
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json() as TData;
         onSuccess(data);
       }
     } catch (error) {
@@ -140,10 +145,10 @@ export default function Admin() {
       );
       if (!response.ok) throw new Error("Failed to resolve error");
       toast({ title: "Error marked as resolved" });
-      loadResource("admin-users", "resource=errors&limit=100", (d) => setErrors(d.errors || []));
-      loadResource("admin-users", "resource=analytics_summary", (d) => setSummary(d.summary));
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      loadResource<{ errors?: AppError[] }>("admin-users", "resource=errors&limit=100", (d) => setErrors(d.errors || []));
+      loadResource<{ summary?: AnalyticsSummary | null }>("admin-users", "resource=analytics_summary", (d) => setSummary(d.summary || null));
+    } catch (error: unknown) {
+      toast({ title: "Error", description: getErrorMessage(error), variant: "destructive" });
     } finally {
       setActionLoading(null);
     }
@@ -208,6 +213,10 @@ export default function Admin() {
               <Sparkles className="h-4 w-4" />
               <span className="hidden sm:inline">Insights</span>
             </TabsTrigger>
+            <TabsTrigger value="ai-usage" className="flex items-center gap-1">
+              <Bot className="h-4 w-4" />
+              <span className="hidden sm:inline">AI Usage</span>
+            </TabsTrigger>
             <TabsTrigger value="health" className="flex items-center gap-1">
               <AlertTriangle className="h-4 w-4" />
               <span className="hidden sm:inline">Health</span>
@@ -267,6 +276,10 @@ export default function Admin() {
 
           <TabsContent value="insights">
             <AIInsightsPanel />
+          </TabsContent>
+
+          <TabsContent value="ai-usage">
+            <AIUsageDashboard />
           </TabsContent>
 
           <TabsContent value="health">

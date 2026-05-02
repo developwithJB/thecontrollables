@@ -24,6 +24,9 @@ verify_jwt = false
 [functions.customer-portal]
 verify_jwt = false
 
+[functions.stripe-webhook]
+verify_jwt = false
+
 [functions.dashboard-summary]
 verify_jwt = false
 
@@ -82,4 +85,16 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.generate-weekly-review]
+verify_jwt = false
+
+[functions.ai-orchestrator]
+verify_jwt = false
+
+[functions.ai-action-confirm]
+verify_jwt = false
+
+[functions.ai-memory-update]
+verify_jwt = false
+
+[functions.ai-consent-update]
 verify_jwt = false

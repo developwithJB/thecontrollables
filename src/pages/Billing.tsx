@@ -89,6 +89,7 @@ export default function Billing() {
 
   const getPlanDisplay = () => {
     if (planTier === "lifetime") return "Lifetime Access";
+    if (planTier === "premium") return "Premium";
     if (planTier === "pro") return "Pro";
     if (planTier === "plus") return "Plus";
     return "Free";
@@ -96,6 +97,7 @@ export default function Billing() {
 
   const getPlanPrice = () => {
     if (planTier === "lifetime") return "One-time purchase";
+    if (planTier === "premium") return "Premium subscription";
     if (planTier === "pro") return `$${pricing.pro.annual}/year`;
     if (planTier === "plus") return `$${pricing.plus.annual}/year`;
     return "$0";

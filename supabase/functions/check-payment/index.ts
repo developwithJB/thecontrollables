@@ -7,16 +7,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-type PlanTier = "plus" | "pro" | "lifetime";
+type PlanTier = "plus" | "pro" | "premium" | "lifetime";
 
-const PRICE_TO_TIER: Record<string, Exclude<PlanTier, "lifetime">> = {
-  [Deno.env.get("STRIPE_PRICE_ID_PLUS") ?? "price_1Sty3RIrFORWV7K4lF4DZhPV"]: "plus",
-  [Deno.env.get("STRIPE_PRICE_ID_PRO") ?? "price_1Sty37IrFORWV7K43PkIVSJx"]: "pro",
+const PRICE_TO_TIER = (): Record<string, Exclude<PlanTier, "lifetime">> => {
+  const map: Record<string, Exclude<PlanTier, "lifetime">> = {};
+  const plus = Deno.env.get("STRIPE_PRICE_ID_PLUS");
+  const pro = Deno.env.get("STRIPE_PRICE_ID_PRO");
+  const premium = Deno.env.get("STRIPE_PRICE_ID_PREMIUM");
+  if (plus) map[plus] = "plus";
+  if (pro) map[pro] = "pro";
+  if (premium) map[premium] = "premium";
+  return map;
 };
 
 const getTierFromPrice = (priceId?: string | null): Exclude<PlanTier, "lifetime"> => {
   if (!priceId) return "plus";
-  return PRICE_TO_TIER[priceId] ?? "plus";
+  return PRICE_TO_TIER()[priceId] ?? "plus";
 };
 
 serve(async (req) => {
@@ -47,14 +53,15 @@ serve(async (req) => {
       .maybeSingle();
 
     if (entitlement && (!entitlement.expires_at || new Date(entitlement.expires_at) >= new Date())) {
-      const planTier = (entitlement.plan_tier ?? (entitlement.source === "stripe" ? "plus" : "lifetime")) as PlanTier;
+      const planTier = (entitlement.plan_tier ?? (entitlement.source === "manual" ? "lifetime" : "pro")) as PlanTier;
       return new Response(JSON.stringify({
         plan_tier: planTier,
         isPaid: true,
         purchasedAt: entitlement.granted_at,
         source: entitlement.source,
         expiresAt: entitlement.expires_at,
-        subscriptionStatus: "active",
+        subscriptionStatus: entitlement.subscription_status || "active",
+        currentPeriodEnd: entitlement.current_period_end || entitlement.expires_at,
         message: "Full Access granted",
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
     }
@@ -86,8 +93,18 @@ serve(async (req) => {
         granted_at: new Date(subscription.start_date * 1000).toISOString(),
         expires_at: currentPeriodEnd,
         stripe_session_id: subscription.id,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscription.id,
+        subscription_status: subscription.status,
+        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+        current_period_end: currentPeriodEnd,
+        cancel_at_period_end: subscription.cancel_at_period_end,
+        price_id: subscription.items.data[0]?.price?.id ?? null,
         plan_tier: planTier,
+        updated_at: new Date().toISOString(),
       }, { onConflict: "user_id,entitlement_type" });
+
+      await supabaseClient.from("profiles").update({ plan_tier: planTier }).eq("id", user.id);
 
       return new Response(JSON.stringify({
         plan_tier: planTier,
