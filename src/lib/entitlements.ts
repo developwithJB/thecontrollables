@@ -3,14 +3,35 @@
  */
 import { getFeatureFlags } from "@/lib/featureFlags";
 
-export type PlanTier = "free" | "plus" | "pro" | "lifetime";
+export type PlanTier = "free" | "plus" | "pro" | "premium" | "lifetime";
+export type AIBillingUsageMode = "daily_brief" | "adjust" | "weekly_plan" | "memory";
 
 const TIER_RANK: Record<PlanTier, number> = {
   free: 0,
   plus: 1,
   pro: 2,
-  lifetime: 2,
+  premium: 3,
+  lifetime: 3,
 };
+
+export interface AIPlanLimits {
+  dailyBriefsPerMonth: number | null;
+  adjustmentsPerMonth: number | null;
+  weeklyDeepReview: boolean;
+  memoryItems: number;
+  deeperMoments: boolean;
+}
+
+export interface AIUsageLimitStatus {
+  allowed: boolean;
+  used: number;
+  limit: number | null;
+  remaining: number | null;
+  planTier: PlanTier;
+  mode: AIBillingUsageMode;
+  upgradeRequired: boolean;
+  message?: string;
+}
 
 export const PAID_FEATURES = {
   progressHistory: "plus",
@@ -36,6 +57,45 @@ export const FREE_FEATURES = {
 export type FreeFeature = keyof typeof FREE_FEATURES;
 
 export const SNAPSHOT_DURATION_DAYS = 7;
+
+export const AI_PLAN_LIMITS: Record<PlanTier, AIPlanLimits> = {
+  free: {
+    dailyBriefsPerMonth: 5,
+    adjustmentsPerMonth: 10,
+    weeklyDeepReview: false,
+    memoryItems: 0,
+    deeperMoments: false,
+  },
+  // Legacy tier support. Plus remains paid for existing app features, but AI-native value lives in Pro.
+  plus: {
+    dailyBriefsPerMonth: 20,
+    adjustmentsPerMonth: 50,
+    weeklyDeepReview: false,
+    memoryItems: 5,
+    deeperMoments: false,
+  },
+  pro: {
+    dailyBriefsPerMonth: null,
+    adjustmentsPerMonth: 300,
+    weeklyDeepReview: true,
+    memoryItems: 200,
+    deeperMoments: true,
+  },
+  premium: {
+    dailyBriefsPerMonth: null,
+    adjustmentsPerMonth: null,
+    weeklyDeepReview: true,
+    memoryItems: 1000,
+    deeperMoments: true,
+  },
+  lifetime: {
+    dailyBriefsPerMonth: null,
+    adjustmentsPerMonth: null,
+    weeklyDeepReview: true,
+    memoryItems: 1000,
+    deeperMoments: true,
+  },
+};
 
 export const isPaidTier = (tier: PlanTier | null | undefined): boolean => {
   return !!tier && tier !== "free";
@@ -94,7 +154,7 @@ export const canAccessFeature = (feature: PaidFeature | FreeFeature, tier: PlanT
 
 export const getLockedFeatures = (tier: PlanTier | boolean): PaidFeature[] => {
   const resolvedTier = normalizeTier(tier);
-  if (resolvedTier === "lifetime") return [];
+  if (resolvedTier === "lifetime" || resolvedTier === "premium") return [];
   return (Object.keys(PAID_FEATURES) as PaidFeature[]).filter((feature) => isFeatureLocked(feature, resolvedTier));
 };
 
@@ -105,8 +165,67 @@ export const isValidEntitlement = (entitlement: unknown): entitlement is {
   if (typeof entitlement !== "object" || entitlement === null) return false;
   const ent = entitlement as Record<string, unknown>;
   const tier = ent.plan_tier;
-  const tierValid = tier === null || tier === "free" || tier === "plus" || tier === "pro" || tier === "lifetime";
+  const tierValid =
+    tier === null ||
+    tier === "free" ||
+    tier === "plus" ||
+    tier === "pro" ||
+    tier === "premium" ||
+    tier === "lifetime";
   return tierValid && (ent.purchasedAt === null || typeof ent.purchasedAt === "string");
+};
+
+export const normalizePlanTier = (tier: unknown): PlanTier => {
+  if (tier === "plus" || tier === "pro" || tier === "premium" || tier === "lifetime") return tier;
+  return "free";
+};
+
+export const getAIPlanLimits = (tier: PlanTier | boolean | null | undefined): AIPlanLimits => {
+  return AI_PLAN_LIMITS[normalizeTier(tier)];
+};
+
+export const getAIUsageLimit = (tier: PlanTier | boolean | null | undefined, mode: AIBillingUsageMode): number | null => {
+  const limits = getAIPlanLimits(tier);
+  switch (mode) {
+    case "daily_brief":
+      return limits.dailyBriefsPerMonth;
+    case "adjust":
+      return limits.adjustmentsPerMonth;
+    case "weekly_plan":
+      return limits.weeklyDeepReview ? null : 0;
+    case "memory":
+      return limits.memoryItems;
+  }
+};
+
+export const getAIUsageLimitStatus = ({
+  tier,
+  mode,
+  used,
+}: {
+  tier: PlanTier | boolean | null | undefined;
+  mode: AIBillingUsageMode;
+  used: number;
+}): AIUsageLimitStatus => {
+  const planTier = normalizeTier(tier);
+  const safeUsed = Number.isFinite(used) ? Math.max(0, Math.floor(used)) : 0;
+  const limit = getAIUsageLimit(planTier, mode);
+  const allowed = limit === null || safeUsed < limit;
+
+  return {
+    allowed,
+    used: safeUsed,
+    limit,
+    remaining: limit === null ? null : Math.max(0, limit - safeUsed),
+    planTier,
+    mode,
+    upgradeRequired: !allowed && planTier === "free",
+    message: allowed ? undefined : "You've used your free AI plans for this month. Upgrade to keep your AI learning you.",
+  };
+};
+
+export const canUseAIMemory = (tier: PlanTier | boolean | null | undefined, currentMemoryCount = 0): boolean => {
+  return getAIUsageLimitStatus({ tier, mode: "memory", used: currentMemoryCount }).allowed;
 };
 
 export const hasUsedFreeTrial = (tier: PlanTier | boolean, sessionCount: number): boolean => {

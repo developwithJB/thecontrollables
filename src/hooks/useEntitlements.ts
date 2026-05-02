@@ -2,14 +2,15 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { type PlanTier } from "@/lib/pricing";
+import { type PlanTier as CheckoutPlanTier } from "@/lib/pricing";
+import { type PlanTier as EntitlementPlanTier } from "@/lib/entitlements";
 import { withTimeout } from "@/lib/withTimeout";
 
 interface SubscriptionInfo {
   isPaid: boolean;
-  planTier: PlanTier | "lifetime" | null;
+  planTier: EntitlementPlanTier | null;
   // Backward compatibility alias
-  plan?: PlanTier | "lifetime" | null;
+  plan?: EntitlementPlanTier | null;
   subscriptionStatus: string | null;
   currentPeriodEnd: string | null;
   purchasedAt: string | null;
@@ -19,13 +20,13 @@ interface EntitlementStatus {
   isPaid: boolean;
   isLoading: boolean;
   purchasedAt: string | null;
-  planTier: PlanTier | "lifetime" | null;
+  planTier: EntitlementPlanTier | null;
   // Backward compatibility alias
-  plan?: PlanTier | "lifetime" | null;
+  plan?: EntitlementPlanTier | null;
   subscriptionStatus: string | null;
   currentPeriodEnd: string | null;
   checkPaymentStatus: () => void;
-  initiateCheckout: (tier?: PlanTier, options?: CheckoutStartOptions) => Promise<void>;
+  initiateCheckout: (tier?: CheckoutPlanTier, options?: CheckoutStartOptions) => Promise<void>;
   openCustomerPortal: () => Promise<void>;
   isCheckingOut: boolean;
   isOpeningPortal: boolean;
@@ -254,7 +255,7 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
     refetch();
   }, [refetch]);
 
-  const initiateCheckout = useCallback(async (tier: PlanTier = "pro", options?: CheckoutStartOptions) => {
+  const initiateCheckout = useCallback(async (tier: CheckoutPlanTier = "pro", options?: CheckoutStartOptions) => {
     if (!userId) {
       toast.error("Please sign in to subscribe");
       return;

@@ -16,34 +16,30 @@ import {
 
 describe('Subscription Pricing', () => {
   describe('PRICING constants', () => {
-    it('has correct monthly price', () => {
-      expect(PRICING.monthly).toBe(9.99);
+    it('has correct Plus annual price', () => {
+      expect(PRICING.plus.annual).toBe(79.99);
     });
 
-    it('has correct yearly price', () => {
-      expect(PRICING.yearly).toBe(79.99);
+    it('has correct Pro annual price', () => {
+      expect(PRICING.pro.annual).toBe(119.99);
     });
 
-    it('has correct yearly monthly equivalent', () => {
-      expect(PRICING.yearlyMonthlyEquivalent).toBe(6.67);
+    it('has correct Plus monthly equivalent', () => {
+      expect(PRICING.plus.monthlyEquivalent).toBe(6.67);
     });
 
-    it('has correct yearly savings percent', () => {
-      expect(PRICING.yearlySavingsPercent).toBe(33);
-    });
-
-    it('has correct yearly savings amount', () => {
-      expect(PRICING.yearlySavingsAmount).toBe(40);
+    it('has correct Pro monthly equivalent', () => {
+      expect(PRICING.pro.monthlyEquivalent).toBe(9.99);
     });
   });
 
   describe('PRICE_IDS', () => {
-    it('has monthly price ID', () => {
-      expect(PRICE_IDS.monthly).toBe("price_1Sty37IrFORWV7K43PkIVSJx");
+    it('has Plus price ID', () => {
+      expect(PRICE_IDS.plus).toBe("price_1Sty3RIrFORWV7K4lF4DZhPV");
     });
 
-    it('has yearly price ID', () => {
-      expect(PRICE_IDS.yearly).toBe("price_1Sty3RIrFORWV7K4lF4DZhPV");
+    it('has Pro price ID', () => {
+      expect(PRICE_IDS.pro).toBe("price_1Sty37IrFORWV7K43PkIVSJx");
     });
   });
 
@@ -51,62 +47,50 @@ describe('Subscription Pricing', () => {
     it('returns all pricing info', () => {
       const pricing = getPricing();
       
-      expect(pricing.monthly).toBe(9.99);
-      expect(pricing.yearly).toBe(79.99);
-      expect(pricing.yearlyMonthlyEquivalent).toBe(6.67);
-      expect(pricing.yearlySavingsPercent).toBe(33);
-      expect(pricing.yearlySavingsAmount).toBe(40);
+      expect(pricing.plus.annual).toBe(79.99);
+      expect(pricing.plus.monthlyEquivalent).toBe(6.67);
+      expect(pricing.pro.annual).toBe(119.99);
+      expect(pricing.pro.monthlyEquivalent).toBe(9.99);
     });
   });
 
   describe('getPriceId', () => {
-    it('returns monthly price ID for monthly plan', () => {
-      expect(getPriceId("monthly")).toBe(PRICE_IDS.monthly);
+    it('returns Plus price ID', () => {
+      expect(getPriceId("plus")).toBe(PRICE_IDS.plus);
     });
 
-    it('returns yearly price ID for yearly plan', () => {
-      expect(getPriceId("yearly")).toBe(PRICE_IDS.yearly);
+    it('returns Pro price ID', () => {
+      expect(getPriceId("pro")).toBe(PRICE_IDS.pro);
     });
   });
 
   describe('formatPrice', () => {
-    it('formats monthly price correctly', () => {
-      expect(formatPrice("monthly")).toBe("$9.99/mo");
+    it('formats Plus price correctly', () => {
+      expect(formatPrice("plus")).toBe("$79.99/yr");
     });
 
-    it('formats yearly price correctly', () => {
-      expect(formatPrice("yearly")).toBe("$79.99/yr");
+    it('formats Pro price correctly', () => {
+      expect(formatPrice("pro")).toBe("$119.99/yr");
     });
   });
 
   describe('getPlanLabel', () => {
-    it('returns "Monthly" for monthly plan', () => {
-      expect(getPlanLabel("monthly")).toBe("Monthly");
+    it('returns "Plus" for plus plan', () => {
+      expect(getPlanLabel("plus")).toBe("Plus");
     });
 
-    it('returns "Yearly" for yearly plan', () => {
-      expect(getPlanLabel("yearly")).toBe("Yearly");
+    it('returns "Pro" for pro plan', () => {
+      expect(getPlanLabel("pro")).toBe("Pro");
     });
   });
 
   describe('Pricing math validation', () => {
-    it('yearly is cheaper than 12 months of monthly', () => {
-      const yearlyMonthlyCost = PRICING.monthly * 12;
-      expect(PRICING.yearly).toBeLessThan(yearlyMonthlyCost);
+    it('Plus monthly equivalent matches annual price', () => {
+      expect(Math.abs(PRICING.plus.monthlyEquivalent * 12 - PRICING.plus.annual)).toBeLessThan(0.1);
     });
 
-    it('savings amount is approximately correct', () => {
-      const yearlyMonthlyCost = PRICING.monthly * 12; // $119.88
-      const actualSavings = yearlyMonthlyCost - PRICING.yearly; // ~$39.89
-      // Allow small rounding difference
-      expect(Math.abs(actualSavings - PRICING.yearlySavingsAmount)).toBeLessThan(1);
-    });
-
-    it('savings percent is approximately correct', () => {
-      const yearlyMonthlyCost = PRICING.monthly * 12;
-      const actualPercent = ((yearlyMonthlyCost - PRICING.yearly) / yearlyMonthlyCost) * 100;
-      // Allow small rounding difference
-      expect(Math.abs(actualPercent - PRICING.yearlySavingsPercent)).toBeLessThan(1);
+    it('Pro monthly equivalent matches annual price', () => {
+      expect(Math.abs(PRICING.pro.monthlyEquivalent * 12 - PRICING.pro.annual)).toBeLessThan(0.2);
     });
   });
 });

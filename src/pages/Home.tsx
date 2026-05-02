@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useReset } from "@/hooks/useReset";
 import { useOnboarding } from "@/hooks/useOnboarding";
@@ -11,7 +11,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { useHealthData } from "@/hooks/useHealthData";
 import { useAutoWearableSync } from "@/hooks/useAutoWearableSync";
-import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
+import { usePlannerItems, getWeekRange, type PlannerItem } from "@/hooks/usePlanner";
 import { analyzeCalendar } from "@/lib/calendarIntelligence";
 import { useWeeklyTracker } from "@/hooks/useWeeklyTracker";
 import { useGameSignals } from "@/hooks/useGameSignals";
@@ -21,17 +21,15 @@ import { WeeklyPulseScreen } from "@/components/dashboard/WeeklyPulseScreen";
 import { TodayHeader } from "@/components/dashboard/TodayHeader";
 import { ReturnFromDriftCard } from "@/components/dashboard/ReturnFromDriftCard";
 import { BossBattleBanner } from "@/components/dashboard/BossBattleBanner";
-import { PrimaryGuidanceCard } from "@/components/dashboard/PrimaryGuidanceCard";
-import { ProtectEnergyCard } from "@/components/dashboard/ProtectEnergyCard";
-import { NextMoveCard } from "@/components/dashboard/NextMoveCard";
 import { DailyReadingCard } from "@/components/dashboard/DailyReadingCard";
-import { OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
+import { DailyOperatorBrief } from "@/components/dashboard/DailyOperatorBrief";
+import { WeeklyAIInsightCard } from "@/components/dashboard/WeeklyAIInsightCard";
+import { DailyOperatorOnboardingFlow, OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 
 export default function Home() {
   usePageViewTracking("Today");
   const { trackEvent } = useAnalytics();
   const user = useLifeOSUser();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -39,20 +37,23 @@ export default function Home() {
   const [pulseDismissed, setPulseDismissed] = useState(false);
   const [returnFromDriftDismissed, setReturnFromDriftDismissed] = useState(false);
 
-  const { activeSession, isLoading: resetLoading } = useReset(user.id);
+  const { isLoading: resetLoading } = useReset(user.id);
 
   const {
     isLoading: onboardingLoading,
     needsOnboarding,
+    needsDailyOperatorOnboarding,
     currentOnboardingStep,
     updateOnboardingProgress,
+    completeDailyOperatorOnboarding,
+    isCompletingDailyOperatorOnboarding,
   } = useOnboarding(user.id);
 
-  const { isPaid, isLoading: entitlementsLoading } = useEntitlements(user.id);
+  const { isPaid } = useEntitlements(user.id);
   const { data: weeklyTrackerData, previousWeek: prevWeekScores, isLoading: weeklyTrackerLoading } = useWeeklyTracker(user.id);
 
   // Health & calendar signals
-  const { trend: healthTrend, isConnected: wearableConnected, provider: wearableProvider, latest: healthLatest } = useHealthData(user.id);
+  const { isConnected: wearableConnected, provider: wearableProvider, latest: healthLatest } = useHealthData(user.id);
   useAutoWearableSync(user.id, wearableProvider, wearableConnected);
 
   const { data: calendarConnected = false } = useQuery({
@@ -72,7 +73,10 @@ export default function Home() {
   const todayStr = new Date().toLocaleDateString("sv-SE");
   const weekRange = useMemo(() => getWeekRange(new Date()), []);
   const { data: weekPlannerItems = [] } = usePlannerItems(weekRange.start, weekRange.end, user.id);
-  const todayPlannerItems = useMemo(() => weekPlannerItems.filter((i: any) => i.scheduled_date === todayStr), [weekPlannerItems, todayStr]);
+  const todayPlannerItems = useMemo(
+    () => weekPlannerItems.filter((item: PlannerItem) => item.scheduled_date === todayStr),
+    [weekPlannerItems, todayStr],
+  );
   const todayCalendarIntel = useMemo(() => analyzeCalendar(todayPlannerItems), [todayPlannerItems]);
   const {
     signals,
@@ -114,13 +118,13 @@ export default function Home() {
   // Pulse dismiss
   useEffect(() => {
     const key = `pulse_seen_${user.id}_${new Date().toLocaleDateString("sv-SE")}`;
-    try { if (sessionStorage.getItem(key) === "1") setPulseDismissed(true); } catch {}
+    try { if (sessionStorage.getItem(key) === "1") setPulseDismissed(true); } catch { /* sessionStorage may be unavailable */ }
   }, [user.id]);
 
   const dismissPulse = useCallback(() => {
     setPulseDismissed(true);
     const key = `pulse_seen_${user.id}_${new Date().toLocaleDateString("sv-SE")}`;
-    try { sessionStorage.setItem(key, "1"); } catch {}
+    try { sessionStorage.setItem(key, "1"); } catch { /* sessionStorage may be unavailable */ }
   }, [user.id]);
 
   useEffect(() => {
@@ -135,7 +139,9 @@ export default function Home() {
     setReturnFromDriftDismissed(true);
     try {
       localStorage.setItem(returnFromDriftDismissKey, "1");
-    } catch {}
+    } catch {
+      // localStorage may be unavailable.
+    }
   }, [returnFromDriftDismissKey]);
 
   // Handle wearable OAuth callback params
@@ -167,10 +173,35 @@ export default function Home() {
         trackEvent("retention", "daily_return", { days_since_last_visit: daysSince });
         localStorage.setItem(lastVisitKey, todayStr);
       }
-    } catch {}
+    } catch {
+      // localStorage may be unavailable.
+    }
   }, [user.id, trackEvent]);
 
   const quickStartEnabled = onboardingQuickStartEnabled();
+
+  if (onboardingLoading || resetLoading) {
+    return (
+      <div className="max-w-lg mx-auto space-y-4 pb-24">
+        <div className="h-6 w-36 rounded bg-muted animate-pulse" />
+        <div className="h-40 rounded-xl bg-muted/60 animate-pulse" />
+      </div>
+    );
+  }
+
+  if (needsDailyOperatorOnboarding) {
+    return (
+      <DailyOperatorOnboardingFlow
+        isSubmitting={isCompletingDailyOperatorOnboarding}
+        onComplete={async (answers) => {
+          await completeDailyOperatorOnboarding(answers);
+          const key = `pulse_seen_${user.id}_${new Date().toLocaleDateString("sv-SE")}`;
+          try { sessionStorage.setItem(key, "1"); } catch { /* sessionStorage may be unavailable */ }
+          queryClient.invalidateQueries({ queryKey: ["ai-daily-operator-brief", user.id] });
+        }}
+      />
+    );
+  }
 
   // Onboarding
   if (needsOnboarding && currentOnboardingStep) {
@@ -219,40 +250,20 @@ export default function Home() {
         drift={drift}
       />
 
+      {/* 2. Daily Operator — one AI-native command center with confirmable actions */}
+      <DailyOperatorBrief userId={user.id} />
+
       {drift?.shouldShowReturnFromDrift && !returnFromDriftDismissed ? (
         <ReturnFromDriftCard drift={drift} onDismiss={dismissReturnFromDrift} />
       ) : null}
 
       <BossBattleBanner signals={signals} />
 
-      {/* 2. What matters most today */}
-      <PrimaryGuidanceCard
-        signals={signals}
-        health={healthLatest}
-        calendarIntel={todayCalendarIntel}
-        wearableConnected={wearableConnected}
-        userId={user.id}
-        plannerCount={todayPlannerItems.length}
-        calendarConnected={calendarConnected}
-      />
-
-      {/* 3. Protect your energy */}
-      <ProtectEnergyCard
-        health={healthLatest}
-        calendarIntel={todayCalendarIntel}
-        wearableConnected={wearableConnected}
-      />
-
-      {/* 4. Next best move */}
-      <NextMoveCard
-        signals={signals}
-        health={healthLatest}
-        calendarIntel={todayCalendarIntel}
-        wearableConnected={wearableConnected}
-      />
-
-      {/* 5. Daily reading — secondary insight */}
+      {/* 3. Daily reading — secondary insight */}
       <DailyReadingCard userId={user.id} />
+
+      {/* 4. Weekly AI insight — privacy-safe share card */}
+      <WeeklyAIInsightCard userId={user.id} />
 
       <footer className="pt-6 pb-4 text-center">
         <p className="text-xs text-muted-foreground/50">© {new Date().getFullYear()} AGB Coaching</p>

@@ -54,8 +54,20 @@ serve(async (req) => {
         granted_at: new Date(subscription.start_date * 1000).toISOString(),
         expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
         stripe_session_id: subscription.id,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscription.id,
+        subscription_status: subscription.status,
+        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        cancel_at_period_end: subscription.cancel_at_period_end,
+        price_id: subscription.items.data[0]?.price?.id ?? null,
         plan_tier: planTier,
+        updated_at: new Date().toISOString(),
       }, { onConflict: "user_id,entitlement_type" });
+
+      if (planTier === "plus" || planTier === "pro" || planTier === "premium") {
+        await supabaseClient.from("profiles").update({ plan_tier: planTier }).eq("id", user.id);
+      }
     }
 
     const origin = req.headers.get("origin") || "https://thedashboard.agbcoaching.com";

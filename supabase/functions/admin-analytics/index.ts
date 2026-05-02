@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -69,6 +70,10 @@ serve(async (req) => {
 
     if (resource === "revenue") {
       return await handleRevenue(adminClient, corsHeaders);
+    }
+
+    if (resource === "ai_usage") {
+      return await handleAIUsage(adminClient, corsHeaders);
     }
 
     // Executive metrics
@@ -412,6 +417,142 @@ async function handleRetentionRadar(adminClient: any, corsHeaders: any) {
   }
 }
 
+type AIUsageRow = {
+  id: string;
+  surface: string | null;
+  mode: string | null;
+  ai_depth: string | null;
+  model_tier: string | null;
+  provider: string | null;
+  model: string | null;
+  prompt_hash: string | null;
+  cache_hit: boolean | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  estimated_cost_usd: number | string | null;
+  created_at: string;
+};
+
+type AIProposalRow = {
+  id: string;
+  status: string | null;
+};
+
+type AdminAuthUser = {
+  id: string;
+  email?: string | null;
+  created_at: string;
+};
+
+const toNumber = (value: number | string | null | undefined) => {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : 0;
+};
+
+const sumEstimatedCost = (rows: AIUsageRow[]) =>
+  rows.reduce((sum, row) => sum + toNumber(row.estimated_cost_usd), 0);
+
+const groupCostBy = (rows: AIUsageRow[], key: keyof AIUsageRow, fallback: string) => {
+  const groups = new Map<string, { key: string; requests: number; estimated_cost_usd: number }>();
+
+  for (const row of rows) {
+    const rawKey = row[key];
+    const groupKey = typeof rawKey === "string" && rawKey.trim() ? rawKey : fallback;
+    const current = groups.get(groupKey) || { key: groupKey, requests: 0, estimated_cost_usd: 0 };
+    current.requests += 1;
+    current.estimated_cost_usd += toNumber(row.estimated_cost_usd);
+    groups.set(groupKey, current);
+  }
+
+  return Array.from(groups.values()).sort((a, b) => b.estimated_cost_usd - a.estimated_cost_usd);
+};
+
+async function handleAIUsage(adminClient: any, corsHeaders: any) {
+  try {
+    const now = new Date();
+    const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const last7dStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [usageResult, proposalsResult] = await Promise.all([
+      adminClient
+        .from("ai_usage_events")
+        .select("id, surface, mode, ai_depth, model_tier, provider, model, prompt_hash, cache_hit, input_tokens, output_tokens, estimated_cost_usd, created_at")
+        .gte("created_at", last7dStart.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(5000),
+      adminClient
+        .from("ai_action_proposals")
+        .select("id, status, updated_at, approved_at, executed_at")
+        .in("status", ["approved", "executed"])
+        .gte("updated_at", last7dStart.toISOString())
+        .limit(5000),
+    ]);
+
+    if (usageResult.error) throw usageResult.error;
+    if (proposalsResult.error) throw proposalsResult.error;
+
+    const usageRows = (usageResult.data || []) as AIUsageRow[];
+    const proposalRows = (proposalsResult.data || []) as AIProposalRow[];
+    const todayRows = usageRows.filter((row) => new Date(row.created_at) >= todayStart);
+    const requestCount = usageRows.length;
+    const totalCost7d = sumEstimatedCost(usageRows);
+    const approvedProposals = proposalRows.length;
+    const generatedBriefs = usageRows.filter((row) => row.mode === "daily_brief" && !row.cache_hit).length;
+    const adjustmentRequests = usageRows.filter((row) => row.mode === "adjust").length;
+    const cacheHits = usageRows.filter((row) => row.cache_hit).length;
+
+    const topRequests = [...usageRows]
+      .sort((a, b) => toNumber(b.estimated_cost_usd) - toNumber(a.estimated_cost_usd))
+      .slice(0, 10)
+      .map((row) => ({
+        id: row.id,
+        created_at: row.created_at,
+        surface: row.surface,
+        mode: row.mode,
+        ai_depth: row.ai_depth,
+        model_tier: row.model_tier,
+        provider: row.provider,
+        model: row.model,
+        cache_hit: Boolean(row.cache_hit),
+        input_tokens: row.input_tokens || 0,
+        output_tokens: row.output_tokens || 0,
+        estimated_cost_usd: toNumber(row.estimated_cost_usd),
+        prompt_hash_prefix: row.prompt_hash ? row.prompt_hash.slice(0, 12) : null,
+      }));
+
+    return new Response(
+      JSON.stringify({
+        generatedAt: now.toISOString(),
+        window: {
+          from: last7dStart.toISOString(),
+          to: now.toISOString(),
+        },
+        metrics: {
+          totalCostToday: sumEstimatedCost(todayRows),
+          totalCost7d,
+          cacheHitRate: requestCount > 0 ? (cacheHits / requestCount) * 100 : 0,
+          averageCostPerRequest: requestCount > 0 ? totalCost7d / requestCount : 0,
+          requestCount7d: requestCount,
+          dailyBriefGenerations: generatedBriefs,
+          adjustments: adjustmentRequests,
+          approvedProposals,
+          costPerApprovedProposal: approvedProposals > 0 ? totalCost7d / approvedProposals : 0,
+        },
+        costByModel: groupCostBy(usageRows, "model", "unknown model"),
+        costByDepth: groupCostBy(usageRows, "ai_depth", "unknown depth"),
+        topRequests,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error: any) {
+    console.error("AI usage dashboard error:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+}
+
 async function handleRevenue(adminClient: any, corsHeaders: any) {
   try {
     const now = new Date();
@@ -423,7 +564,7 @@ async function handleRevenue(adminClient: any, corsHeaders: any) {
       adminClient.from("user_entitlements").select("user_id, granted_at, expires_at, source"),
     ]);
 
-    const allUsers = usersResult.data?.users || [];
+    const allUsers = (usersResult.data?.users || []) as AdminAuthUser[];
     const entitlements = entitlementsResult.data || [];
 
     // Active paid users
@@ -436,7 +577,7 @@ async function handleRevenue(adminClient: any, corsHeaders: any) {
     const mrr = paidUsers * monthlyPrice;
 
     // Conversion data: users who have entitlements
-    const userMap = new Map(allUsers.map((u: any) => [u.id, u]));
+    const userMap = new Map(allUsers.map((u) => [u.id, u]));
     const conversions = entitlements
       .filter((e: any) => userMap.has(e.user_id))
       .map((e: any) => {

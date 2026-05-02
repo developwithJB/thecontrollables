@@ -18,11 +18,12 @@ import { getDefaultCheckoutPlan } from "@/lib/featureFlags";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useHealthData } from "@/hooks/useHealthData";
-import { usePlannerItems, getWeekRange } from "@/hooks/usePlanner";
+import { usePlannerItems, getWeekRange, type PlannerItem } from "@/hooks/usePlanner";
 import { analyzeCalendar } from "@/lib/calendarIntelligence";
 
 import { DailyRings } from "@/components/dashboard/DailyRings";
 import { WeeklyRecapCard } from "@/components/dashboard/WeeklyRecapCard";
+import { WeeklyAIInsightCard } from "@/components/dashboard/WeeklyAIInsightCard";
 import { ForecastCard } from "@/components/dashboard/ForecastCard";
 import { QuickHistoryEntry } from "@/components/dashboard/QuickHistoryEntry";
 import { AskDashboardBar } from "@/components/dashboard/AskDashboardBar";
@@ -57,7 +58,7 @@ export default function Growth() {
   const { data: growthPlannerItems = [] } = usePlannerItems(growthWeekRange.start, growthWeekRange.end, user.id);
   const growthCalendarIntel = useMemo(() => {
     const todayStr = new Date().toLocaleDateString("sv-SE");
-    const todayItems = growthPlannerItems.filter((i: any) => i.scheduled_date === todayStr);
+    const todayItems = growthPlannerItems.filter((item: PlannerItem) => item.scheduled_date === todayStr);
     return analyzeCalendar(todayItems);
   }, [growthPlannerItems]);
 
@@ -264,8 +265,9 @@ export default function Growth() {
       )}
 
       {/* Weekly Review */}
-      <div className="max-w-sm mx-auto w-full">
-        <WeeklyRecapCard userId={user.id} />
+      <div className="max-w-sm mx-auto w-full space-y-3">
+        <WeeklyRecapCard userId={user.id} isPaid={isPaid} />
+        <WeeklyAIInsightCard userId={user.id} />
       </div>
 
       {/* Proof card + history */}

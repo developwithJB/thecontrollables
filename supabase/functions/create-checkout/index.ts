@@ -11,8 +11,8 @@ type PlanTier = "plus" | "pro";
 type PaymentState = "success" | "canceled";
 
 const STRIPE_PRICE_IDS: Record<PlanTier, string> = {
-  plus: Deno.env.get("STRIPE_PRICE_ID_PLUS") ?? "price_1Sty3RIrFORWV7K4lF4DZhPV",
-  pro: Deno.env.get("STRIPE_PRICE_ID_PRO") ?? "price_1Sty37IrFORWV7K43PkIVSJx",
+  plus: Deno.env.get("STRIPE_PRICE_ID_PLUS") ?? "",
+  pro: Deno.env.get("STRIPE_PRICE_ID_PRO") ?? "",
 };
 
 const DEFAULT_ORIGIN = "https://thedashboard.agbcoaching.com";
@@ -198,6 +198,7 @@ const existingSubscription = subscriptions.data.find((sub: { status: string }) =
     }
 
     const priceId = STRIPE_PRICE_IDS[tier];
+    if (!priceId) throw new Error(`Stripe price ID is not configured for ${tier}`);
     const idempotencyBucket = Math.floor(Date.now() / (1000 * 60 * 5));
     const idempotencyKey = `checkout:${user.id}:${tier}:${idempotencyBucket}`;
     logStep("Creating checkout session", { tier, priceId, checkoutSource });

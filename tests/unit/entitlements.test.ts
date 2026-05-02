@@ -4,6 +4,9 @@ import {
   FREE_FEATURES,
   SNAPSHOT_DURATION_DAYS,
   canAccessFeature,
+  canUseAIMemory,
+  getAIPlanLimits,
+  getAIUsageLimitStatus,
   canModifySnapshot,
   canStartNewSnapshot,
   getFreeTrialCompletionCopy,
@@ -62,8 +65,44 @@ describe("entitlements", () => {
 
   it("validates entitlement payload shape", () => {
     expect(isValidEntitlement({ plan_tier: "plus", purchasedAt: "2026-02-17T00:00:00Z" })).toBe(true);
+    expect(isValidEntitlement({ plan_tier: "premium", purchasedAt: "2026-02-17T00:00:00Z" })).toBe(true);
     expect(isValidEntitlement({ plan_tier: null, purchasedAt: null })).toBe(true);
     expect(isValidEntitlement({ isPaid: true, purchasedAt: null })).toBe(false);
+  });
+
+  it("defines AI-native limits by plan", () => {
+    expect(getAIPlanLimits("free")).toMatchObject({
+      dailyBriefsPerMonth: 5,
+      adjustmentsPerMonth: 10,
+      weeklyDeepReview: false,
+      memoryItems: 0,
+    });
+    expect(getAIPlanLimits("pro")).toMatchObject({
+      dailyBriefsPerMonth: null,
+      weeklyDeepReview: true,
+      deeperMoments: true,
+    });
+    expect(getAIPlanLimits("premium").adjustmentsPerMonth).toBeNull();
+  });
+
+  it("exhausts free AI usage safely", () => {
+    expect(getAIUsageLimitStatus({ tier: "free", mode: "daily_brief", used: 4 })).toMatchObject({
+      allowed: true,
+      remaining: 1,
+    });
+    expect(getAIUsageLimitStatus({ tier: "free", mode: "daily_brief", used: 5 })).toMatchObject({
+      allowed: false,
+      upgradeRequired: true,
+    });
+    expect(getAIUsageLimitStatus({ tier: "free", mode: "adjust", used: 10 }).message).toContain("Upgrade");
+  });
+
+  it("gates weekly review and memory by AI plan limits", () => {
+    expect(getAIUsageLimitStatus({ tier: "free", mode: "weekly_plan", used: 0 }).allowed).toBe(false);
+    expect(getAIUsageLimitStatus({ tier: "pro", mode: "weekly_plan", used: 50 }).allowed).toBe(true);
+    expect(canUseAIMemory("free", 0)).toBe(false);
+    expect(canUseAIMemory("pro", 199)).toBe(true);
+    expect(canUseAIMemory("pro", 200)).toBe(false);
   });
 
   it("applies trial rules from feature flags for free tier users", () => {
