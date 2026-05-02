@@ -1,4 +1,5 @@
 import type { ControllableType } from "@/components/ControllableCard";
+import { CONTROLLABLE_GUIDES, CONTROLLABLE_GUIDE_IDS, getControllableGuideClasses } from "@/lib/controllables";
 
 export interface ControllableTheme {
   emoji: string;
@@ -11,43 +12,43 @@ export interface ControllableTheme {
 
 const themes: Record<ControllableType, ControllableTheme> = {
   awareness: {
-    emoji: "🦉",
-    label: "Awareness",
-    borderClass: "border-l-2 border-awareness/30",
-    bgClass: "bg-awareness-soft",
-    textClass: "text-awareness",
+    emoji: CONTROLLABLE_GUIDES.awareness.emoji,
+    label: CONTROLLABLE_GUIDES.awareness.name,
+    borderClass: `border-l-2 ${getControllableGuideClasses("awareness").borderClass}`,
+    bgClass: getControllableGuideClasses("awareness").bgClass,
+    textClass: getControllableGuideClasses("awareness").textClass,
     tip: "🦉 Notice where your minutes actually went.",
   },
   perspective: {
-    emoji: "🐢",
-    label: "Perspective",
-    borderClass: "border-l-2 border-perspective/30",
-    bgClass: "bg-perspective-soft",
-    textClass: "text-perspective",
+    emoji: CONTROLLABLE_GUIDES.perspective.emoji,
+    label: CONTROLLABLE_GUIDES.perspective.name,
+    borderClass: `border-l-2 ${getControllableGuideClasses("perspective").borderClass}`,
+    bgClass: getControllableGuideClasses("perspective").bgClass,
+    textClass: getControllableGuideClasses("perspective").textClass,
     tip: "🐢 A kept promise compounds. A broken one teaches.",
   },
   habit: {
-    emoji: "🦈",
-    label: "Habit",
-    borderClass: "border-l-2 border-habit/30",
-    bgClass: "bg-habit-soft",
-    textClass: "text-habit",
+    emoji: CONTROLLABLE_GUIDES.habit.emoji,
+    label: CONTROLLABLE_GUIDES.habit.name,
+    borderClass: `border-l-2 ${getControllableGuideClasses("habit").borderClass}`,
+    bgClass: getControllableGuideClasses("habit").bgClass,
+    textClass: getControllableGuideClasses("habit").textClass,
     tip: "🦈 Reps over results. Show up again.",
   },
   wellness: {
-    emoji: "🛰️",
-    label: "Wellness",
-    borderClass: "border-l-2 border-wellness/30",
-    bgClass: "bg-wellness-soft",
-    textClass: "text-wellness",
+    emoji: CONTROLLABLE_GUIDES.wellness.emoji,
+    label: CONTROLLABLE_GUIDES.wellness.name,
+    borderClass: `border-l-2 ${getControllableGuideClasses("wellness").borderClass}`,
+    bgClass: getControllableGuideClasses("wellness").bgClass,
+    textClass: getControllableGuideClasses("wellness").textClass,
     tip: "🛰️ Your body is the vehicle. Maintain it.",
   },
   environment: {
-    emoji: "🚀",
-    label: "Environment",
-    borderClass: "border-l-2 border-environment/30",
-    bgClass: "bg-environment-soft",
-    textClass: "text-environment",
+    emoji: CONTROLLABLE_GUIDES.environment.emoji,
+    label: CONTROLLABLE_GUIDES.environment.name,
+    borderClass: `border-l-2 ${getControllableGuideClasses("environment").borderClass}`,
+    bgClass: getControllableGuideClasses("environment").bgClass,
+    textClass: getControllableGuideClasses("environment").textClass,
     tip: "🚀 Your mission shapes your environment.",
   },
 };
@@ -63,7 +64,7 @@ export function getControllableBadge(type: ControllableType) {
 }
 
 /** Rotating controllable based on day number (1-indexed, wraps) */
-const ROTATION: ControllableType[] = ["awareness", "perspective", "habit", "wellness", "environment"];
+const ROTATION: ControllableType[] = [...CONTROLLABLE_GUIDE_IDS];
 
 export function getControllableForDay(dayNumber: number): ControllableType {
   return ROTATION[(dayNumber - 1) % ROTATION.length];

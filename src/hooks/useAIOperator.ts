@@ -6,7 +6,10 @@ import {
   type AIConsentKey,
   type AIMemoryDomain,
   type AIProposalType,
-  normalizeAIDepth,
+  type AIControllablePlanFields,
+  type AIGuideLensId,
+  buildAIAdjustmentRequestBody,
+  normalizeAIDailyPlanData,
   normalizeAIConsents,
 } from "@/lib/aiOperator";
 
@@ -26,7 +29,7 @@ export interface AIMemory {
   archived_at: string | null;
 }
 
-export interface AIDailyPlanData {
+export interface AIDailyPlanData extends AIControllablePlanFields {
   day_type: string;
   summary: string;
   matters_most: string;
@@ -97,6 +100,24 @@ export type AIFeedbackType = "thumbs_up" | "not_useful" | "too_much" | "do_more"
 const getLocalDate = () => new Date().toLocaleDateString("sv-SE");
 const getTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+const normalizeAIOperatorResponse = (data: unknown): AIOperatorResponse => {
+  const response = (data || {}) as AIOperatorResponse;
+  const dailyPlan = response.daily_plan
+    ? {
+        ...response.daily_plan,
+        plan_data: normalizeAIDailyPlanData(response.daily_plan.plan_data as unknown as Record<string, unknown>) as AIDailyPlanData,
+      }
+    : null;
+
+  return {
+    ...response,
+    daily_plan: dailyPlan,
+    consents: normalizeAIConsents(response.consents) as AIConsents,
+    proposals: response.proposals || [],
+    cached: response.cached === true,
+  };
+};
+
 export function useDailyOperatorBrief(userId: string | null) {
   return useQuery({
     queryKey: ["ai-daily-operator-brief", userId, getLocalDate()],
@@ -110,10 +131,7 @@ export function useDailyOperatorBrief(userId: string | null) {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      return {
-        ...data,
-        consents: normalizeAIConsents(data?.consents) as AIConsents,
-      } as AIOperatorResponse;
+      return normalizeAIOperatorResponse(data);
     },
     enabled: !!userId,
     staleTime: 60_000,
@@ -171,26 +189,24 @@ export function useAIOperatorActions(userId: string | null) {
     mutationFn: async ({
       prompt,
       aiDepth = "quick",
+      selectedGuide = "full_dashboard",
     }: {
       prompt: string;
       aiDepth?: AIDepthLevel;
+      selectedGuide?: AIGuideLensId;
     }): Promise<AIOperatorResponse> => {
       const { data, error } = await supabase.functions.invoke("ai-orchestrator", {
-        body: {
-          mode: "adjust",
+        body: buildAIAdjustmentRequestBody({
           prompt,
-          aiDepth: normalizeAIDepth(aiDepth),
+          aiDepth,
+          selectedGuide,
           localDate: getLocalDate(),
           timezone: getTimezone(),
-          forceRefresh: true,
-        },
+        }),
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      return {
-        ...data,
-        consents: normalizeAIConsents(data?.consents) as AIConsents,
-      } as AIOperatorResponse;
+      return normalizeAIOperatorResponse(data);
     },
     onSuccess: (result) => {
       invalidate();

@@ -46,7 +46,37 @@ describe("weekly AI insight generation", () => {
     const renderedText = JSON.stringify(insight);
 
     expect(insight?.headline).toBe("You protected your mornings better than your afternoons.");
+    expect(insight?.chargeLevel).toBe("Steady charge");
+    expect(insight?.guideSections).toHaveLength(5);
+    expect(insight?.guideSections.map((section) => section.guideName)).toEqual([
+      "Awareness",
+      "Perspective",
+      "Habit",
+      "Wellness",
+      "Environment",
+    ]);
+    expect(insight?.egoCheck).toContain("overcommitting");
     expect(renderedText).not.toContain("Private board meeting");
+  });
+
+  it("keeps the weekly Ego Check short, neutral, and actionable", () => {
+    const insight = generateWeeklyAIInsight(
+      baseInput({
+        dailyPlans: [
+          { planDate: "2026-04-27", status: "accepted" },
+          { planDate: "2026-04-28", status: "accepted" },
+          { planDate: "2026-04-29", status: "accepted" },
+        ],
+        usageEvents: [
+          { mode: "adjust" },
+          { mode: "adjust" },
+          { mode: "adjust" },
+        ],
+      }),
+    );
+
+    expect(insight?.egoCheck).toMatch(/^(Watch for|Pause before|Notice)/);
+    expect(insight?.egoCheck.length).toBeLessThan(120);
   });
 
   it("detects that lower-load days executed better", () => {
@@ -75,6 +105,8 @@ describe("weekly AI insight generation", () => {
 
     expect(insight?.headline).toBe("Your best execution days had fewer than 4 planned actions.");
     expect(insight?.confidence).toBe("solid");
+    expect(insight?.chargeLevel).toBe("Steady charge");
+    expect(insight?.guideSections.find((section) => section.guideId === "perspective")?.insight).toContain("smaller plan");
   });
 
   it("connects approved proposals to momentum", () => {
@@ -92,5 +124,6 @@ describe("weekly AI insight generation", () => {
     );
 
     expect(insight?.headline).toBe("You moved faster when you turned the brief into approved action.");
+    expect(insight?.nextWeekFocus).toContain("Approve one small action");
   });
 });
