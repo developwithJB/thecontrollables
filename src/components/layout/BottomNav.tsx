@@ -1,11 +1,15 @@
-import { Sun, CalendarDays, Activity } from "lucide-react";
+import { Activity, BatteryCharging, CalendarDays, CheckCircle2, Dumbbell, Sun } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { APP_ROUTES } from "@/lib/appRoutes";
 
 const navItems = [
-  { path: "/home", label: "Today", icon: Sun },
-  { path: "/planner", label: "Plan", icon: CalendarDays },
-  { path: "/wellness", label: "Energy", icon: Activity },
+  { path: APP_ROUTES.home, label: "Today", icon: Sun },
+  { path: APP_ROUTES.train, label: "Train", icon: Dumbbell },
+  { path: APP_ROUTES.proof, label: "Proof", icon: CheckCircle2 },
+  { path: APP_ROUTES.myControllables, label: "My", icon: BatteryCharging },
+  { path: APP_ROUTES.planner, label: "Plan", icon: CalendarDays },
+  { path: APP_ROUTES.wellness, label: "Energy", icon: Activity },
 ];
 
 export const BottomNav = () => {

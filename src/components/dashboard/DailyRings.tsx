@@ -92,7 +92,6 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
   const {
     rings,
     completedCount,
-    statusLabel,
     completeMove,
     isMoveCompleted,
     loading,
@@ -111,7 +110,7 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
 
     const check = async () => {
       const { data } = await supabase
-        .from("notice_entries" as any)
+        .from("notice_entries")
         .select("energy_level")
         .eq("user_id", userId)
         .eq("entry_date", todayStr)
@@ -119,7 +118,7 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
         .limit(1)
         .maybeSingle();
 
-      if (data && (data as any).energy_level <= 2) setLowEnergy(true);
+      if (data && data.energy_level <= 2) setLowEnergy(true);
     };
 
     check();
@@ -149,9 +148,9 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
     <div className="flex flex-col items-center gap-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-1">
         <p className="text-xs text-muted-foreground tracking-wide uppercase">
-          {isFullyCharged ? "Fully Charged ⚡" : "Choose your moves"}
+          {isFullyCharged ? "Fully Charged" : "Charge your Controllables"}
         </p>
-        {!isFullyCharged && <p className="text-[11px] text-muted-foreground/80">{statusLabel}</p>}
+        {!isFullyCharged && <p className="text-[11px] text-muted-foreground/80">One step, one habit, one choice.</p>}
       </motion.div>
 
       <motion.div
@@ -214,9 +213,9 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
             >
               <span className="text-sm">{definition.emoji}</span>
               <span className="flex flex-col leading-none">
-                <span className="text-[11px] font-medium">{definition.shortName} Move</span>
+                <span className="text-[11px] font-medium">{definition.shortName}</span>
                 <span className="text-[9px] uppercase tracking-[0.16em] opacity-70">
-                  {definition.roleLabel}
+                  {completed ? "Charged" : "Ready"}
                 </span>
               </span>
             </button>
@@ -267,7 +266,7 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
 
       {completedCount > 0 && completedCount < 5 && (
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-muted-foreground text-center">
-          {5 - completedCount} move{5 - completedCount > 1 ? "s" : ""} to go. Re-entry counts.
+          {5 - completedCount} Controllable{5 - completedCount > 1 ? "s" : ""} left. Return with one small move.
         </motion.p>
       )}
 
@@ -277,14 +276,13 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
           animate={{ opacity: 1, scale: 1 }}
           className="text-center py-2 space-y-2"
         >
-          <p className="text-sm font-semibold text-accent">🔥 All 5 moves complete. You're Fully Charged today.</p>
-          <p className="text-xs text-muted-foreground">Your team showed up across awareness, perspective, habit, environment, and wellness.</p>
+          <p className="text-sm font-semibold text-accent">All 5 Controllables charged today.</p>
           <button
             onClick={() => setShareMove("fully_charged")}
             className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
           >
             <Share2 className="w-3 h-3" />
-            Share to Stories
+            Share proof
           </button>
         </motion.div>
       )}

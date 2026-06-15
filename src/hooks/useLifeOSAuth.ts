@@ -2,13 +2,21 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { getDevMockUser, isDevMockAuthEnabled } from "@/lib/devMockAuth";
 
 export function useLifeOSAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const devMockAuth = isDevMockAuthEnabled();
 
   useEffect(() => {
+    if (devMockAuth) {
+      setUser(getDevMockUser());
+      setIsLoading(false);
+      return;
+    }
+
     let isMounted = true;
 
     const {
@@ -54,7 +62,7 @@ export function useLifeOSAuth() {
       subscription.unsubscribe();
       clearTimeout(timeout);
     };
-  }, [navigate]);
+  }, [devMockAuth, navigate]);
 
   return { user, isLoading };
 }

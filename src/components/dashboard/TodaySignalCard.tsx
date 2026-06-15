@@ -42,11 +42,11 @@ function formatSupportMode(mode: SupportMode | undefined): string {
 function getChargeDescription(chargeState: ChargeState | undefined): string {
   switch (chargeState) {
     case "undercharged":
-      return "Ask less of the day than the day will naturally try to ask of you.";
+      return "Protect the next small move.";
     case "strong":
-      return "There is room to press on what matters, as long as you stay deliberate.";
+      return "Spend the charge cleanly.";
     default:
-      return "You have enough charge for a clean day if you avoid scattering it.";
+      return "Stay charged and avoid scatter.";
   }
 }
 

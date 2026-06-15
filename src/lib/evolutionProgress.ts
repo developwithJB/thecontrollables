@@ -1,9 +1,14 @@
-export interface EvolutionLogLike {
+export interface ChargeLogLike {
   amount: number;
   created_at: string;
 }
 
-export interface EvolutionProgressSnapshot {
+export interface ChargeProgressSnapshot {
+  chargeCircuit: number;
+  chargeStageLevel: 1 | 2 | 3;
+  chargeXp: number;
+  chargeProgress: number;
+  chargeStageLabel: "Base" | "Charged" | "Fully Charged";
   evolutionStage: number;
   evolutionXp: number;
   xpPerStage: number;
@@ -17,6 +22,9 @@ export interface EvolutionProgressSnapshot {
   xpToNextStage: number;
 }
 
+export type EvolutionLogLike = ChargeLogLike;
+export type EvolutionProgressSnapshot = ChargeProgressSnapshot;
+
 export interface ChargeRhythmSnapshot {
   activeDays: number;
   totalDays: number;
@@ -29,7 +37,8 @@ export interface ChargeRhythmSnapshot {
   repairLabel: string | null;
 }
 
-export const EVOLUTION_XP_PER_STAGE = 500;
+export const CHARGE_XP_PER_CIRCUIT = 500;
+export const EVOLUTION_XP_PER_STAGE = CHARGE_XP_PER_CIRCUIT;
 export const CHARGED_THRESHOLD = 0.34;
 export const FULLY_CHARGED_THRESHOLD = 0.84;
 
@@ -47,19 +56,71 @@ function subtractDays(date: Date, days: number): Date {
   return next;
 }
 
-export function getEvolutionProgress(totalXp: number): EvolutionProgressSnapshot {
-  const evolutionXp = Math.max(totalXp, 0);
-  const evolutionStage = Math.floor(evolutionXp / EVOLUTION_XP_PER_STAGE) + 1;
-  const xpInCurrentStage = evolutionXp % EVOLUTION_XP_PER_STAGE;
-  const progressPercent = (xpInCurrentStage / EVOLUTION_XP_PER_STAGE) * 100;
-  const chargedThresholdXp = Math.ceil(EVOLUTION_XP_PER_STAGE * CHARGED_THRESHOLD);
-  const fullyChargedThresholdXp = Math.ceil(EVOLUTION_XP_PER_STAGE * FULLY_CHARGED_THRESHOLD);
+function getChargeStageLevel(chargeState: ChargeProgressSnapshot["chargeState"]): 1 | 2 | 3 {
+  if (chargeState === "fully charged") return 3;
+  if (chargeState === "charged") return 2;
+  return 1;
+}
+
+function getChargeStageLabel(chargeState: ChargeProgressSnapshot["chargeState"]): ChargeProgressSnapshot["chargeStageLabel"] {
+  if (chargeState === "fully charged") return "Fully Charged";
+  if (chargeState === "charged") return "Charged";
+  return "Base";
+}
+
+function buildChargeSnapshot({
+  chargeState,
+  chargeXp,
+  chargeCircuit,
+  xpInCurrentStage,
+  progressPercent,
+  chargedThresholdXp,
+  fullyChargedThresholdXp,
+  nextMilestoneLabel,
+  xpToNextMilestone,
+}: {
+  chargeState: ChargeProgressSnapshot["chargeState"];
+  chargeXp: number;
+  chargeCircuit: number;
+  xpInCurrentStage: number;
+  progressPercent: number;
+  chargedThresholdXp: number;
+  fullyChargedThresholdXp: number;
+  nextMilestoneLabel: string;
+  xpToNextMilestone: number;
+}): ChargeProgressSnapshot {
+  return {
+    chargeCircuit,
+    chargeStageLevel: getChargeStageLevel(chargeState),
+    chargeXp,
+    chargeProgress: Math.round(progressPercent),
+    chargeStageLabel: getChargeStageLabel(chargeState),
+    evolutionStage: chargeCircuit,
+    evolutionXp: chargeXp,
+    xpPerStage: CHARGE_XP_PER_CIRCUIT,
+    xpInCurrentStage,
+    progressPercent,
+    chargedThresholdXp,
+    fullyChargedThresholdXp,
+    chargeState,
+    nextMilestoneLabel,
+    xpToNextMilestone,
+    xpToNextStage: CHARGE_XP_PER_CIRCUIT - xpInCurrentStage,
+  };
+}
+
+export function getChargeProgress(totalXp: number): ChargeProgressSnapshot {
+  const chargeXp = Math.max(totalXp, 0);
+  const chargeCircuit = Math.floor(chargeXp / CHARGE_XP_PER_CIRCUIT) + 1;
+  const xpInCurrentStage = chargeXp % CHARGE_XP_PER_CIRCUIT;
+  const progressPercent = (xpInCurrentStage / CHARGE_XP_PER_CIRCUIT) * 100;
+  const chargedThresholdXp = Math.ceil(CHARGE_XP_PER_CIRCUIT * CHARGED_THRESHOLD);
+  const fullyChargedThresholdXp = Math.ceil(CHARGE_XP_PER_CIRCUIT * FULLY_CHARGED_THRESHOLD);
 
   if (xpInCurrentStage < chargedThresholdXp) {
-    return {
-      evolutionStage,
-      evolutionXp,
-      xpPerStage: EVOLUTION_XP_PER_STAGE,
+    return buildChargeSnapshot({
+      chargeCircuit,
+      chargeXp,
       xpInCurrentStage,
       progressPercent,
       chargedThresholdXp,
@@ -67,15 +128,13 @@ export function getEvolutionProgress(totalXp: number): EvolutionProgressSnapshot
       chargeState: "base",
       nextMilestoneLabel: "Charged",
       xpToNextMilestone: chargedThresholdXp - xpInCurrentStage,
-      xpToNextStage: EVOLUTION_XP_PER_STAGE - xpInCurrentStage,
-    };
+    });
   }
 
   if (xpInCurrentStage < fullyChargedThresholdXp) {
-    return {
-      evolutionStage,
-      evolutionXp,
-      xpPerStage: EVOLUTION_XP_PER_STAGE,
+    return buildChargeSnapshot({
+      chargeCircuit,
+      chargeXp,
       xpInCurrentStage,
       progressPercent,
       chargedThresholdXp,
@@ -83,26 +142,25 @@ export function getEvolutionProgress(totalXp: number): EvolutionProgressSnapshot
       chargeState: "charged",
       nextMilestoneLabel: "Fully Charged",
       xpToNextMilestone: fullyChargedThresholdXp - xpInCurrentStage,
-      xpToNextStage: EVOLUTION_XP_PER_STAGE - xpInCurrentStage,
-    };
+    });
   }
 
-  return {
-    evolutionStage,
-    evolutionXp,
-    xpPerStage: EVOLUTION_XP_PER_STAGE,
+  return buildChargeSnapshot({
+    chargeCircuit,
+    chargeXp,
     xpInCurrentStage,
     progressPercent,
     chargedThresholdXp,
     fullyChargedThresholdXp,
     chargeState: "fully charged",
-    nextMilestoneLabel: `Evolution ${evolutionStage + 1}`,
-    xpToNextMilestone: EVOLUTION_XP_PER_STAGE - xpInCurrentStage,
-    xpToNextStage: EVOLUTION_XP_PER_STAGE - xpInCurrentStage,
-  };
+    nextMilestoneLabel: "Next Circuit",
+    xpToNextMilestone: CHARGE_XP_PER_CIRCUIT - xpInCurrentStage,
+  });
 }
 
-export function getChargeRhythm(logs: EvolutionLogLike[], referenceDate = new Date()): ChargeRhythmSnapshot {
+export const getEvolutionProgress = getChargeProgress;
+
+export function getChargeRhythm(logs: ChargeLogLike[], referenceDate = new Date()): ChargeRhythmSnapshot {
   const todayKey = toLocalDateKey(referenceDate);
   const activityByDay = new Map<string, number>();
 

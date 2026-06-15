@@ -13,7 +13,9 @@ import { PullToRefreshIndicator } from "@/components/pwa/PullToRefreshIndicator"
 import { PageShimmer } from "./PageShimmer";
 import { BottomNav, DesktopNavRail } from "./BottomNav";
 import { useLifeOSAuth, LifeOSUserContext } from "@/hooks/useLifeOSAuth";
+import { DevMockAuthBanner } from "@/components/layout/DevMockAuthBanner";
 import { useEntitlements } from "@/hooks/useEntitlements";
+import { isDevMockAuthEnabled } from "@/lib/devMockAuth";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useToast } from "@/hooks/use-toast";
@@ -48,7 +50,9 @@ export const LifeOSLayout = () => {
     );
     try {
       await Promise.race([refreshPromise, timeoutPromise]);
-    } catch {}
+    } catch (error) {
+      console.warn("Refresh failed:", error);
+    }
     toast({ title: "Refreshed", description: "Data updated successfully." });
   }, [queryClient, toast]);
 
@@ -61,6 +65,12 @@ export const LifeOSLayout = () => {
   } = usePullToRefresh({ onRefresh: handlePullRefresh, threshold: 80 });
 
   const handleSignOut = async () => {
+    if (isDevMockAuthEnabled()) {
+      toast({ title: "Dev mock session cleared", description: "Mock auth stays active while the env flag is on." });
+      navigate("/");
+      return;
+    }
+
     await supabase.auth.signOut();
     toast({ title: "Signed out", description: "See you tomorrow." });
     navigate("/");
@@ -117,6 +127,7 @@ export const LifeOSLayout = () => {
             </div>
           </div>
         </header>
+        <DevMockAuthBanner />
 
         {/* Main area: desktop rail + content */}
         <div className="flex flex-1 overflow-hidden">

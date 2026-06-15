@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { CheckCircle2, ChevronDown, SlidersHorizontal, Sparkles } from "lucide-react";
 import { CONTROLLABLE_LIST } from "@/lib/controllableTheme";
 import type { LifeSeasonMapping } from "@/lib/lifePerspective";
 import type { Controllable } from "@/lib/snapshots";
@@ -21,59 +23,144 @@ export function SeasonNeedStep({
   selectedNeed,
   onSelectNeed,
 }: SeasonNeedStepProps) {
+  const [showOptions, setShowOptions] = useState(false);
+  const recommended =
+    CONTROLLABLE_LIST.find((item) => item.type === season.recommendedControllable) ??
+    CONTROLLABLE_LIST[0];
+  const selected =
+    CONTROLLABLE_LIST.find((item) => item.type === selectedNeed) ?? recommended;
+  const selectedIsRecommended = selected.type === recommended.type;
+  const alternateOptions = CONTROLLABLE_LIST.filter(
+    (controllable) => controllable.type !== recommended.type,
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="space-y-2">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
           What This Season Needs Most
         </p>
-        <h1 className="font-display text-2xl font-semibold text-foreground">
+        <h1 className="font-display text-[1.7rem] font-semibold leading-tight text-foreground">
           Where should we begin?
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          We’d start with <span className="text-foreground font-medium">{CONTROLLABLE_LIST.find((item) => item.type === season.recommendedControllable)?.label}</span>, but choose the one that feels truest right now.
+          We’d start with <span className="font-medium text-foreground">{recommended.label}</span> for this season.
         </p>
       </div>
 
-      <div className="space-y-3">
-        {CONTROLLABLE_LIST.map((controllable) => {
-          const isSelected = controllable.type === selectedNeed;
-          const isRecommended = controllable.type === season.recommendedControllable;
+      <button
+        type="button"
+        onClick={() => onSelectNeed(recommended.type)}
+        className={`w-full rounded-lg border px-5 py-5 text-left transition-all ${
+          selectedIsRecommended
+            ? "border-primary/70 bg-primary/10 shadow-[0_0_0_1px_hsl(var(--primary)/0.18)]"
+            : "border-primary/25 bg-primary/5 hover:border-primary/45"
+        }`}
+      >
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-background/70 text-2xl shadow-sm">
+            {recommended.emoji}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-base font-semibold leading-tight text-foreground">
+                {recommended.label}
+              </p>
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold text-primary-foreground">
+                <Sparkles className="h-3 w-3" />
+                Suggested
+              </span>
+            </div>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              {NEED_COPY[recommended.type]}
+            </p>
+            <div className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-primary">
+              <CheckCircle2 className="h-4 w-4" />
+              {selectedIsRecommended ? "Selected for this season" : "Use suggested focus"}
+            </div>
+          </div>
+        </div>
+      </button>
 
-          return (
-            <button
-              key={controllable.type}
-              type="button"
-              onClick={() => onSelectNeed(controllable.type)}
-              className={`w-full rounded-xl border px-4 py-4 text-left transition-all ${
-                isSelected
-                  ? "border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]"
-                  : "border-border/60 bg-card hover:border-primary/30"
+      {!selectedIsRecommended ? (
+        <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background text-lg">
+              {selected.emoji}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                Selected Instead
+              </p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                {selected.label}
+              </p>
+            </div>
+            <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-primary" />
+          </div>
+        </div>
+      ) : null}
+
+      <div className="space-y-3">
+        <button
+          type="button"
+          onClick={() => setShowOptions((current) => !current)}
+          className="flex w-full items-center justify-between rounded-lg border border-border/60 bg-background/40 px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:border-primary/35 hover:bg-muted/30"
+          aria-expanded={showOptions}
+        >
+          <span className="inline-flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4 text-primary" />
+            View other focus areas
+          </span>
+          <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+            {alternateOptions.length}
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${
+                showOptions ? "rotate-180" : ""
               }`}
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/50 text-xl">
-                  {controllable.emoji}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground">
-                      {controllable.label}
-                    </p>
-                    {isRecommended ? (
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                        Suggested
-                      </span>
-                    ) : null}
+            />
+          </span>
+        </button>
+
+        {showOptions ? (
+          <div className="space-y-2">
+            {alternateOptions.map((controllable) => {
+              const isSelected = controllable.type === selectedNeed;
+
+              return (
+                <button
+                  key={controllable.type}
+                  type="button"
+                  onClick={() => onSelectNeed(controllable.type)}
+                  className={`w-full rounded-lg border px-4 py-3 text-left transition-all ${
+                    isSelected
+                      ? "border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]"
+                      : "border-border/60 bg-card/70 hover:border-primary/30"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted/50 text-xl">
+                      {controllable.emoji}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-foreground">
+                          {controllable.label}
+                        </p>
+                        {isSelected ? (
+                          <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                        ) : null}
+                      </div>
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                        {NEED_COPY[controllable.type]}
+                      </p>
+                    </div>
                   </div>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                    {NEED_COPY[controllable.type]}
-                  </p>
-                </div>
-              </div>
-            </button>
-          );
-        })}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { Check, Archive, ArrowLeft, ChevronDown } from "lucide-react";
 import { RING_DEFINITIONS, type RingKey } from "@/hooks/useDailyRings";
 import type { IGProofAnalysis } from "@/hooks/useIGProof";
 import { cn } from "@/lib/utils";
+import { buildDailyMoveSharePayload } from "@/lib/shareProof";
 
 const RING_BORDER_COLORS: Record<string, string> = {
   notice: "border-[hsl(var(--awareness))]",
@@ -20,23 +21,6 @@ const RING_BG_COLORS: Record<string, string> = {
   prove: "bg-habit-soft",
   charge: "bg-wellness-soft",
   align: "bg-environment-soft",
-};
-
-const TAG_LABELS: Record<string, string> = {
-  workout: "🏋️ Workout",
-  meal: "🍽️ Meal",
-  hydration: "💧 Hydration",
-  gratitude: "🙏 Gratitude",
-  setback: "⚡ Setback",
-  growth: "🌱 Growth",
-  discipline: "🎯 Discipline",
-  recovery: "🛌 Recovery",
-  clean_space: "🧹 Clean Space",
-  social_support: "🤝 Social Support",
-  digital_detox: "📵 Digital Detox",
-  sunlight: "☀️ Sunlight",
-  walk: "🚶 Walk",
-  reflection: "🪞 Reflection",
 };
 
 interface RingSuggestionResultProps {
@@ -62,6 +46,7 @@ export const RingSuggestionResult = ({
   const [showRingPicker, setShowRingPicker] = useState(false);
 
   const def = RING_DEFINITIONS.find((d) => d.key === selectedRing)!;
+  const proofPayload = buildDailyMoveSharePayload(selectedRing);
   const secondaryDef = analysis.secondary_ring && analysis.secondary_ring !== "none"
     ? RING_DEFINITIONS.find((d) => d.key === analysis.secondary_ring)
     : null;
@@ -80,9 +65,7 @@ export const RingSuggestionResult = ({
           {imagePreview && (
             <img src={imagePreview} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
           )}
-          {captionPreview && (
-            <p className="text-xs text-muted-foreground line-clamp-2 italic">"{captionPreview}"</p>
-          )}
+          <p className="text-xs text-muted-foreground">Private proof ready.</p>
         </div>
       )}
 
@@ -104,7 +87,7 @@ export const RingSuggestionResult = ({
             Change <ChevronDown className="w-2.5 h-2.5" />
           </button>
         </div>
-        <p className="text-xs text-foreground/80 leading-relaxed">{analysis.interpretation}</p>
+        <p className="text-xs text-foreground/80 leading-relaxed">{proofPayload.proofLine}</p>
       </motion.div>
 
       {/* Ring picker dropdown */}
@@ -135,17 +118,6 @@ export const RingSuggestionResult = ({
         </p>
       )}
 
-      {/* Tags */}
-      {analysis.tags.length > 0 && (
-        <div className="flex gap-1.5 flex-wrap">
-          {analysis.tags.map((tag) => (
-            <span key={tag} className="px-2 py-0.5 rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
-              {TAG_LABELS[tag] || tag}
-            </span>
-          ))}
-        </div>
-      )}
-
       {/* Action buttons */}
       <div className="space-y-2">
         <div className="flex gap-2">
@@ -156,7 +128,7 @@ export const RingSuggestionResult = ({
             size="sm"
           >
             <Check className="w-3.5 h-3.5" />
-            {saving ? "Saving..." : "Fill Ring"}
+            {saving ? "Saving..." : `Charge ${def.shortName}`}
           </Button>
           <Button
             onClick={() => onSave(selectedRing, false)}
@@ -166,12 +138,12 @@ export const RingSuggestionResult = ({
             size="sm"
           >
             <Archive className="w-3.5 h-3.5" />
-            Save as Evidence
+            Save Proof
           </Button>
         </div>
         <div className="flex gap-2 text-[10px] text-muted-foreground">
-          <p className="flex-1 text-center">Completes today's ring</p>
-          <p className="flex-1 text-center">Logs proof without filling ring</p>
+          <p className="flex-1 text-center">Adds charge progress</p>
+          <p className="flex-1 text-center">Keeps it private</p>
         </div>
       </div>
     </div>

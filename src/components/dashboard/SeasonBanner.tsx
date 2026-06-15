@@ -112,7 +112,7 @@ export function SeasonBanner({ seasonName, snapshots, progress, onCloseSeason }:
             </span>
             <span className="flex items-center gap-1">
               <Zap className="w-3 h-3" />
-              {progress.totalXP} Evolution XP
+              {progress.totalXP} Charge XP
             </span>
             <span>
               {progress.snapshotsCompleted}/4 chapter quests completed

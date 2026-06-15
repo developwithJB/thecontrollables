@@ -185,7 +185,7 @@ export function WeeklyPulseScreen({ data, previousWeek, onDismiss }: WeeklyPulse
           <div className="bg-card/80 rounded-xl p-3 text-center border border-border/30">
             <Zap className="w-4 h-4 mx-auto mb-1 text-yellow-500" />
             <p className="text-lg font-bold text-foreground">{data.totalXp}</p>
-            <p className="text-[9px] text-muted-foreground">Evolution</p>
+            <p className="text-[9px] text-muted-foreground">Charge XP</p>
           </div>
           <div className="bg-card/80 rounded-xl p-3 text-center border border-border/30">
             <Flame className="w-4 h-4 mx-auto mb-1 text-orange-500" />

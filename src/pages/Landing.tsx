@@ -252,17 +252,17 @@ export default function Landing() {
         <section className="px-6 py-20 md:py-28 border-t border-border/30">
           <div className="max-w-md mx-auto text-center space-y-6">
             <h3 className="font-display text-lg md:text-xl font-semibold text-foreground">
-              Build your first Daily Controllables Brief.
+              Start your first Mission of the Day.
             </h3>
             <p className="text-sm text-muted-foreground">
               Start with one day, one priority, and one next action you approve. No credit card required.
             </p>
             <Link
               to={ctaPath}
-              onClick={() => trackEvent("cta", "cta_click", { cta_label: "Build my first brief", position: "bottom" })}
+              onClick={() => trackEvent("cta", "cta_click", { cta_label: "Start my first mission", position: "bottom" })}
             >
               <Button variant="glow" size="lg" className="h-12 px-8 text-base font-medium group">
-                Build my first brief
+                Start my first mission
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>

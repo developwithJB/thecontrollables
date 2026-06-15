@@ -1,7 +1,52 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfWeek, endOfWeek, format, differenceInDays, isAfter } from "date-fns";
+import { startOfWeek, endOfWeek, format } from "date-fns";
+import { isDevMockAuthEnabled } from "@/lib/devMockAuth";
+
+type RecapData = Record<string, unknown>;
+
+type WeeklyTrackingRow = {
+  id: string | null;
+  recap_data?: RecapData | null;
+  overall_score?: number | null;
+  rings_score?: number | null;
+  wearable_score?: number | null;
+  planner_score?: number | null;
+  nutrition_score?: number | null;
+  money_score?: number | null;
+};
+
+type WeeklyRingRow = {
+  ring_date: string;
+  notice_completed: boolean | null;
+  choose_completed: boolean | null;
+  prove_completed: boolean | null;
+  charge_completed: boolean | null;
+  align_completed: boolean | null;
+};
+
+type WeeklyHealthRow = {
+  recovery_score: number | null;
+  sleep_minutes: number | null;
+};
+
+type WeeklyPlannerRow = {
+  status: string | null;
+  scheduled_date: string | null;
+};
+
+type WeeklyMealRow = {
+  log_date: string | null;
+};
+
+type WeeklyTransactionRow = {
+  id: string;
+};
+
+type WeeklyXpRow = {
+  amount: number | null;
+};
 
 export interface WeeklyScores {
   rings: number;
@@ -23,7 +68,7 @@ export interface WeeklyTrackerData {
   totalXp: number;
   daysActive: number;
   isRecapReady: boolean;
-  recapData: any;
+  recapData: RecapData | null;
   // Raw signals for the pulse screen
   ringsToday: number;
   ringsWeekAvg: number;
@@ -44,8 +89,8 @@ function getSaturdayWeekEnd(date: Date): Date {
 }
 
 export function useWeeklyTracker(userId: string | undefined) {
-  const queryClient = useQueryClient();
-  const now = new Date();
+  const devMockAuth = isDevMockAuthEnabled();
+  const now = useMemo(() => new Date(), []);
   const weekStart = format(getSundayWeekStart(now), "yyyy-MM-dd");
   const weekEnd = format(getSaturdayWeekEnd(now), "yyyy-MM-dd");
   const dayOfWeek = now.getDay();
@@ -53,7 +98,7 @@ export function useWeeklyTracker(userId: string | undefined) {
   const daysRemaining = 6 - dayOfWeek;
 
   // Ensure weekly_tracking row exists
-  const { data: trackingRow, isLoading: rowLoading } = useQuery({
+  const { data: trackingRow, isLoading: rowLoading } = useQuery<WeeklyTrackingRow | null>({
     queryKey: ["weekly-tracking", userId, weekStart],
     queryFn: async () => {
       // Try to get existing
@@ -64,7 +109,7 @@ export function useWeeklyTracker(userId: string | undefined) {
         .eq("week_start", weekStart)
         .maybeSingle();
 
-      if (existing) return existing;
+      if (existing) return existing as WeeklyTrackingRow;
 
       // Create new week
       const { data: newRow, error } = await supabase
@@ -81,14 +126,14 @@ export function useWeeklyTracker(userId: string | undefined) {
         console.error("Failed to create weekly tracking:", error);
         return null;
       }
-      return newRow;
+      return newRow as WeeklyTrackingRow;
     },
-    enabled: !!userId,
+    enabled: !!userId && !devMockAuth,
     staleTime: 5 * 60 * 1000,
   });
 
   // Fetch rings data for this week
-  const { data: weekRings = [] } = useQuery({
+  const { data: weekRings = [] } = useQuery<WeeklyRingRow[]>({
     queryKey: ["weekly-rings", userId, weekStart, weekEnd],
     queryFn: async () => {
       const { data } = await supabase
@@ -97,14 +142,14 @@ export function useWeeklyTracker(userId: string | undefined) {
         .eq("user_id", userId!)
         .gte("ring_date", weekStart)
         .lte("ring_date", weekEnd);
-      return data || [];
+      return (data || []) as WeeklyRingRow[];
     },
-    enabled: !!userId,
+    enabled: !!userId && !devMockAuth,
     staleTime: 2 * 60 * 1000,
   });
 
   // Fetch health data for this week
-  const { data: weekHealth = [] } = useQuery({
+  const { data: weekHealth = [] } = useQuery<WeeklyHealthRow[]>({
     queryKey: ["weekly-health", userId, weekStart, weekEnd],
     queryFn: async () => {
       const { data } = await supabase
@@ -113,14 +158,14 @@ export function useWeeklyTracker(userId: string | undefined) {
         .eq("user_id", userId!)
         .gte("sync_date", weekStart)
         .lte("sync_date", weekEnd);
-      return data || [];
+      return (data || []) as WeeklyHealthRow[];
     },
-    enabled: !!userId,
+    enabled: !!userId && !devMockAuth,
     staleTime: 5 * 60 * 1000,
   });
 
   // Fetch planner items for this week
-  const { data: weekPlanner = [] } = useQuery({
+  const { data: weekPlanner = [] } = useQuery<WeeklyPlannerRow[]>({
     queryKey: ["weekly-planner-tracker", userId, weekStart, weekEnd],
     queryFn: async () => {
       const { data } = await supabase
@@ -129,14 +174,14 @@ export function useWeeklyTracker(userId: string | undefined) {
         .eq("user_id", userId!)
         .gte("scheduled_date", weekStart)
         .lte("scheduled_date", weekEnd);
-      return data || [];
+      return (data || []) as WeeklyPlannerRow[];
     },
-    enabled: !!userId,
+    enabled: !!userId && !devMockAuth,
     staleTime: 2 * 60 * 1000,
   });
 
   // Fetch meal logs for this week
-  const { data: weekMeals = [] } = useQuery({
+  const { data: weekMeals = [] } = useQuery<WeeklyMealRow[]>({
     queryKey: ["weekly-meals-tracker", userId, weekStart, weekEnd],
     queryFn: async () => {
       const { data } = await supabase
@@ -145,14 +190,14 @@ export function useWeeklyTracker(userId: string | undefined) {
         .eq("user_id", userId!)
         .gte("log_date", weekStart)
         .lte("log_date", weekEnd);
-      return data || [];
+      return (data || []) as WeeklyMealRow[];
     },
-    enabled: !!userId,
+    enabled: !!userId && !devMockAuth,
     staleTime: 5 * 60 * 1000,
   });
 
   // Fetch transactions for this week
-  const { data: weekTransactions = [] } = useQuery({
+  const { data: weekTransactions = [] } = useQuery<WeeklyTransactionRow[]>({
     queryKey: ["weekly-transactions-tracker", userId, weekStart, weekEnd],
     queryFn: async () => {
       const { data } = await supabase
@@ -161,14 +206,14 @@ export function useWeeklyTracker(userId: string | undefined) {
         .eq("user_id", userId!)
         .gte("transaction_date", weekStart)
         .lte("transaction_date", weekEnd);
-      return data || [];
+      return (data || []) as WeeklyTransactionRow[];
     },
-    enabled: !!userId,
+    enabled: !!userId && !devMockAuth,
     staleTime: 5 * 60 * 1000,
   });
 
   // XP this week
-  const { data: weekXp = [] } = useQuery({
+  const { data: weekXp = [] } = useQuery<WeeklyXpRow[]>({
     queryKey: ["weekly-xp-tracker", userId, weekStart, weekEnd],
     queryFn: async () => {
       const { data } = await supabase
@@ -177,9 +222,9 @@ export function useWeeklyTracker(userId: string | undefined) {
         .eq("user_id", userId!)
         .gte("created_at", `${weekStart}T00:00:00`)
         .lte("created_at", `${weekEnd}T23:59:59`);
-      return data || [];
+      return (data || []) as WeeklyXpRow[];
     },
-    enabled: !!userId,
+    enabled: !!userId && !devMockAuth,
     staleTime: 2 * 60 * 1000,
   });
 
@@ -191,7 +236,7 @@ export function useWeeklyTracker(userId: string | undefined) {
     const todayStr = format(now, "yyyy-MM-dd");
     let ringsToday = 0;
 
-    weekRings.forEach((r: any) => {
+    weekRings.forEach((r) => {
       let dayCount = 0;
       if (r.notice_completed) dayCount++;
       if (r.choose_completed) dayCount++;
@@ -207,18 +252,18 @@ export function useWeeklyTracker(userId: string | undefined) {
 
     // Wearable: avg recovery score (0-100 already)
     const recoveries = weekHealth
-      .map((h: any) => h.recovery_score)
-      .filter((v: any) => v != null) as number[];
+      .map((h) => h.recovery_score)
+      .filter((v): v is number => v != null);
     const recoveryAvg = recoveries.length > 0 ? recoveries.reduce((a, b) => a + b, 0) / recoveries.length : null;
     const sleepMins = weekHealth
-      .map((h: any) => h.sleep_minutes)
-      .filter((v: any) => v != null) as number[];
+      .map((h) => h.sleep_minutes)
+      .filter((v): v is number => v != null);
     const sleepAvg = sleepMins.length > 0 ? sleepMins.reduce((a, b) => a + b, 0) / sleepMins.length : null;
     const wearableScore = recoveryAvg ?? 50; // default 50 if no data
 
     // Planner: % of tasks completed
     const totalTasks = weekPlanner.length;
-    const completedTasks = weekPlanner.filter((p: any) => p.status === "done").length;
+    const completedTasks = weekPlanner.filter((p) => p.status === "done").length;
     const plannerScore = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 50;
 
     // Nutrition: meals logged vs expected (3 per day)
@@ -232,11 +277,15 @@ export function useWeeklyTracker(userId: string | undefined) {
 
     // Days active = unique dates with any activity
     const activeDates = new Set<string>();
-    weekRings.forEach((r: any) => activeDates.add(r.ring_date));
-    weekPlanner.filter((p: any) => p.status === "done").forEach((p: any) => activeDates.add(p.scheduled_date));
-    weekMeals.forEach((m: any) => activeDates.add(m.log_date));
+    weekRings.forEach((r) => activeDates.add(r.ring_date));
+    weekPlanner.forEach((p) => {
+      if (p.status === "done" && p.scheduled_date) activeDates.add(p.scheduled_date);
+    });
+    weekMeals.forEach((m) => {
+      if (m.log_date) activeDates.add(m.log_date);
+    });
 
-    const totalXp = weekXp.reduce((sum: number, x: any) => sum + (x.amount || 0), 0);
+    const totalXp = weekXp.reduce((sum, x) => sum + (x.amount || 0), 0);
 
     return {
       scores: {
@@ -282,10 +331,10 @@ export function useWeeklyTracker(userId: string | undefined) {
   // Update scores on mount/change
   useEffect(() => {
     if (trackingRow?.id) updateScores();
-  }, [trackingRow?.id, computed.scores.overall]);
+  }, [trackingRow?.id, updateScores]);
 
   // Previous week for comparison
-  const { data: previousWeek } = useQuery({
+  const { data: previousWeek } = useQuery<WeeklyTrackingRow | null>({
     queryKey: ["weekly-tracking-prev", userId, weekStart],
     queryFn: async () => {
       const prevStart = new Date(weekStart);
@@ -296,9 +345,9 @@ export function useWeeklyTracker(userId: string | undefined) {
         .eq("user_id", userId!)
         .eq("week_start", format(prevStart, "yyyy-MM-dd"))
         .maybeSingle();
-      return data;
+      return data as WeeklyTrackingRow | null;
     },
-    enabled: !!userId,
+    enabled: !!userId && !devMockAuth,
     staleTime: 30 * 60 * 1000,
   });
 

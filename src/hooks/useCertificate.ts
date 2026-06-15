@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { buildResetProofSharePayload } from "@/lib/shareProof";
 
 interface Certificate {
   id: string;
@@ -103,13 +104,16 @@ export const useCertificate = (resetSessionId: string | undefined) => {
     }
   };
 
-  const shareCertificate = async (displayName: string, startDate: string, endDate: string) => {
-    const formatDate = (dateStr: string) => new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-    const shareText = `I committed to controlling what I could and surrendering what I could not from ${formatDate(startDate)} to ${formatDate(endDate)}. #TheDashboard`;
+  const shareCertificate = async (_displayName: string, _startDate: string, _endDate: string) => {
+    const payload = buildResetProofSharePayload({ completedDays: 7 });
     if (navigator.share) {
-      try { await navigator.share({ text: shareText }); } catch {}
+      try {
+        await navigator.share({ title: payload.headline, text: payload.shareText });
+      } catch {
+        return;
+      }
     } else {
-      await navigator.clipboard.writeText(shareText);
+      await navigator.clipboard.writeText(payload.shareText);
       toast({ title: "Copied to clipboard", description: "Share text copied to your clipboard." });
     }
   };

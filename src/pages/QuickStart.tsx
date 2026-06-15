@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  SlidersHorizontal,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -114,36 +122,54 @@ function SnapshotRecommendationStep({
   selectedSnapshotId: string | null;
   onSelectSnapshot: (snapshotId: string) => void;
 }) {
+  const [showOptions, setShowOptions] = useState(false);
   const recommendation = recommendSnapshotForSeasonNeed(season, selectedNeed);
-  const options = [recommendation.snapshot, ...recommendation.alternatives].slice(0, 6);
+  const alternateOptions = recommendation.alternatives
+    .filter((snapshot) => snapshot.id !== recommendation.snapshot.id)
+    .slice(0, 5);
+  const selectedSnapshot =
+    [recommendation.snapshot, ...alternateOptions].find(
+      (snapshot) => snapshot.id === selectedSnapshotId,
+    ) ?? recommendation.snapshot;
+  const selectedIsRecommended =
+    selectedSnapshot.id === recommendation.snapshot.id;
   const selectedNeedLabel =
     CONTROLLABLE_LIST.find((item) => item.type === selectedNeed)?.label ?? "this focus";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="space-y-2">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          Snapshot Recommendation
+          Recommended Region
         </p>
-        <h1 className="font-display text-2xl font-semibold text-foreground">
+        <h1 className="font-display text-[1.7rem] font-semibold leading-tight text-foreground">
           Start in {recommendation.region.label}
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Based on this season, <span className="text-foreground font-medium">{selectedNeedLabel}</span> looks like the clearest place to begin.
+          Based on this season, <span className="font-medium text-foreground">{selectedNeedLabel}</span> is the clearest place to begin.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-primary/20 bg-primary/5 px-5 py-5">
-        <div className="flex items-start gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-card text-2xl">
+      <button
+        type="button"
+        onClick={() => onSelectSnapshot(recommendation.snapshot.id)}
+        className={`w-full rounded-lg border px-5 py-5 text-left transition-all ${
+          selectedIsRecommended
+            ? "border-primary/70 bg-primary/10 shadow-[0_0_0_1px_hsl(var(--primary)/0.18)]"
+            : "border-primary/25 bg-primary/5 hover:border-primary/45"
+        }`}
+      >
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-background/70 text-2xl shadow-sm">
             {recommendation.snapshot.emoji}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <p className="text-base font-semibold text-foreground">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-base font-semibold leading-tight text-foreground">
                 {recommendation.snapshot.name}
               </p>
-              <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold text-primary-foreground">
+                <Sparkles className="h-3 w-3" />
                 Recommended
               </span>
             </div>
@@ -153,50 +179,97 @@ function SnapshotRecommendationStep({
             <p className="mt-3 text-xs leading-relaxed text-foreground">
               {recommendation.region.description}
             </p>
+            <div className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-primary">
+              <CheckCircle2 className="h-4 w-4" />
+              {selectedIsRecommended ? "Selected for your start" : "Use recommended region"}
+            </div>
           </div>
         </div>
-      </div>
+      </button>
+
+      {!selectedIsRecommended ? (
+        <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background text-lg">
+              {selectedSnapshot.emoji}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                Selected Instead
+              </p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                {selectedSnapshot.name}
+              </p>
+            </div>
+            <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-primary" />
+          </div>
+        </div>
+      ) : null}
 
       <div className="space-y-3">
-        {options.map((snapshot) => {
-          const isSelected = selectedSnapshotId === snapshot.id;
-          const region = getRegionForBucket(snapshot.bucketId);
-
-          return (
-            <button
-              key={snapshot.id}
-              type="button"
-              onClick={() => onSelectSnapshot(snapshot.id)}
-              className={`w-full rounded-xl border px-4 py-4 text-left transition-all ${
-                isSelected
-                  ? "border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]"
-                  : "border-border/60 bg-card hover:border-primary/30"
+        <button
+          type="button"
+          onClick={() => setShowOptions((current) => !current)}
+          className="flex w-full items-center justify-between rounded-lg border border-border/60 bg-background/40 px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:border-primary/35 hover:bg-muted/30"
+          aria-expanded={showOptions}
+        >
+          <span className="inline-flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4 text-primary" />
+            View other regions
+          </span>
+          <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+            {alternateOptions.length}
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${
+                showOptions ? "rotate-180" : ""
               }`}
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/50 text-xl">
-                  {snapshot.emoji}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-foreground">
-                      {snapshot.name}
-                    </p>
-                    {snapshot.id === recommendation.snapshot.id ? (
-                      <Sparkles className="h-3.5 w-3.5 text-primary" />
-                    ) : null}
+            />
+          </span>
+        </button>
+
+        {showOptions ? (
+          <div className="space-y-2">
+            {alternateOptions.map((snapshot) => {
+              const isSelected = selectedSnapshotId === snapshot.id;
+              const region = getRegionForBucket(snapshot.bucketId);
+
+              return (
+                <button
+                  key={snapshot.id}
+                  type="button"
+                  onClick={() => onSelectSnapshot(snapshot.id)}
+                  className={`w-full rounded-lg border px-4 py-3 text-left transition-all ${
+                    isSelected
+                      ? "border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]"
+                      : "border-border/60 bg-card/70 hover:border-primary/30"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted/50 text-xl">
+                      {snapshot.emoji}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-foreground">
+                          {snapshot.name}
+                        </p>
+                        {isSelected ? (
+                          <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                        ) : null}
+                      </div>
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                        {snapshot.tagline}
+                      </p>
+                      <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+                        {region.label}
+                      </p>
+                    </div>
                   </div>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                    {snapshot.tagline}
-                  </p>
-                  <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-                    {region.label}
-                  </p>
-                </div>
-              </div>
-            </button>
-          );
-        })}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -419,6 +492,7 @@ export default function QuickStart() {
     season?.label,
     selectedNeed,
     selectedNeedLabel,
+    selectedSnapshot,
     selectedSnapshot?.bucketId,
     selectedSnapshot?.id,
     selectedSnapshot?.name,
@@ -546,15 +620,15 @@ export default function QuickStart() {
   };
 
   return (
-    <div className="min-h-screen bg-background px-6 py-8">
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-md items-center justify-center">
-        <div className="w-full rounded-3xl border border-border/60 bg-card/95 p-6 shadow-sm backdrop-blur">
-          <div className="mb-6 space-y-3">
+    <div className="min-h-screen bg-background px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-lg items-center justify-center">
+        <div className="w-full rounded-2xl border border-border/70 bg-card/95 p-5 shadow-[0_24px_80px_-48px_hsl(var(--foreground)/0.45)] backdrop-blur sm:p-6">
+          <div className="mb-7 space-y-4">
             <div className="flex items-center justify-between">
               <button
                 type="button"
                 onClick={handleBack}
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition-colors ${
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/60 bg-background/35 text-muted-foreground transition-colors ${
                   stepIndex > 0
                     ? "hover:border-primary/30 hover:text-foreground"
                     : "pointer-events-none opacity-0"
@@ -562,7 +636,7 @@ export default function QuickStart() {
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
-              <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
                 Step {stepIndex + 1} of {STEP_ORDER.length}
               </p>
             </div>
@@ -570,7 +644,7 @@ export default function QuickStart() {
               value={((stepIndex + 1) / STEP_ORDER.length) * 100}
               className="h-1.5 bg-muted/60"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm font-medium text-muted-foreground">
               {STEP_LABELS[step]}
             </p>
           </div>
@@ -589,7 +663,7 @@ export default function QuickStart() {
 
           {step === "cta" ? (
             <div className="mt-8 flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={handleBack}>
+              <Button variant="outline" className="h-12 flex-1" onClick={handleBack}>
                 Back
               </Button>
               <Link
@@ -603,7 +677,7 @@ export default function QuickStart() {
                   });
                 }}
               >
-                <Button className="w-full">
+                <Button className="h-12 w-full">
                   Create account
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -613,14 +687,14 @@ export default function QuickStart() {
             <div className="mt-8 flex gap-3">
               <Button
                 variant="outline"
-                className="flex-1"
+                className="h-12 flex-1"
                 onClick={handleBack}
                 disabled={stepIndex === 0}
               >
                 Back
               </Button>
               <Button
-                className="flex-1"
+                className="h-12 flex-1"
                 onClick={handleContinue}
                 disabled={!canContinue}
               >

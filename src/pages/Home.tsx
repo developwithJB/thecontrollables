@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useReset } from "@/hooks/useReset";
 import { useOnboarding } from "@/hooks/useOnboarding";
@@ -13,6 +14,7 @@ import { useHealthData } from "@/hooks/useHealthData";
 import { useAutoWearableSync } from "@/hooks/useAutoWearableSync";
 import { usePlannerItems, getWeekRange, type PlannerItem } from "@/hooks/usePlanner";
 import { analyzeCalendar } from "@/lib/calendarIntelligence";
+import { isDevMockAuthEnabled } from "@/lib/devMockAuth";
 import { useWeeklyTracker } from "@/hooks/useWeeklyTracker";
 import { useGameSignals } from "@/hooks/useGameSignals";
 import { useDriftAlignment } from "@/hooks/useDriftAlignment";
@@ -20,7 +22,9 @@ import { WeeklyPulseScreen } from "@/components/dashboard/WeeklyPulseScreen";
 
 import { TodayHeader } from "@/components/dashboard/TodayHeader";
 import { ReturnFromDriftCard } from "@/components/dashboard/ReturnFromDriftCard";
-import { BossBattleBanner } from "@/components/dashboard/BossBattleBanner";
+import { ChargeCheckBanner } from "@/components/dashboard/ChargeCheckBanner";
+import { ControllableChargeStrip } from "@/components/dashboard/ControllableChargeStrip";
+import { SelfTrustChargeStrip } from "@/components/dashboard/SelfTrustChargeStrip";
 import { DailyReadingCard } from "@/components/dashboard/DailyReadingCard";
 import { DailyOperatorBrief } from "@/components/dashboard/DailyOperatorBrief";
 import { WeeklyAIInsightCard } from "@/components/dashboard/WeeklyAIInsightCard";
@@ -33,9 +37,11 @@ export default function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const devMock = isDevMockAuthEnabled();
 
   const [pulseDismissed, setPulseDismissed] = useState(false);
   const [returnFromDriftDismissed, setReturnFromDriftDismissed] = useState(false);
+  const [showFullBrief, setShowFullBrief] = useState(false);
 
   const { isLoading: resetLoading } = useReset(user.id);
 
@@ -228,7 +234,7 @@ export default function Home() {
   }
 
   // Weekly Pulse Screen
-  if (!pulseDismissed && !weeklyTrackerLoading && weeklyTrackerData) {
+  if (!devMock && !pulseDismissed && !weeklyTrackerLoading && weeklyTrackerData) {
     return (
       <WeeklyPulseScreen
         data={weeklyTrackerData}
@@ -240,7 +246,6 @@ export default function Home() {
 
   return (
     <div className="max-w-lg mx-auto space-y-4 pb-24">
-      {/* 1. Today Header — date, greeting, day type, summary */}
       <TodayHeader
         userId={user.id}
         health={healthLatest}
@@ -250,20 +255,32 @@ export default function Home() {
         drift={drift}
       />
 
-      {/* 2. Daily Operator — one AI-native command center with confirmable actions */}
       <DailyOperatorBrief userId={user.id} />
+
+      <ControllableChargeStrip userId={user.id} />
+
+      <SelfTrustChargeStrip userId={user.id} />
 
       {drift?.shouldShowReturnFromDrift && !returnFromDriftDismissed ? (
         <ReturnFromDriftCard drift={drift} onDismiss={dismissReturnFromDrift} />
       ) : null}
 
-      <BossBattleBanner signals={signals} />
+      <button
+        type="button"
+        onClick={() => setShowFullBrief((current) => !current)}
+        className="flex w-full items-center justify-between rounded-2xl border border-border/50 bg-card px-4 py-3 text-sm font-medium text-foreground transition-colors hover:border-primary/30"
+      >
+        <span>Open full brief</span>
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showFullBrief ? "rotate-180" : ""}`} />
+      </button>
 
-      {/* 3. Daily reading — secondary insight */}
-      <DailyReadingCard userId={user.id} />
-
-      {/* 4. Weekly AI insight — privacy-safe share card */}
-      <WeeklyAIInsightCard userId={user.id} />
+      {showFullBrief ? (
+        <div className="space-y-4">
+          <ChargeCheckBanner signals={signals} />
+          <DailyReadingCard userId={user.id} />
+          <WeeklyAIInsightCard userId={user.id} />
+        </div>
+      ) : null}
 
       <footer className="pt-6 pb-4 text-center">
         <p className="text-xs text-muted-foreground/50">© {new Date().getFullYear()} AGB Coaching</p>

@@ -22,17 +22,17 @@ interface SuggestedPrompt {
 
 const SUGGESTED_PROMPTS: SuggestedPrompt[] = [
   {
-    label: "Scout: help me check in with God",
+    label: "Awareness: check in with God",
     prompt: AWARENESS_GUIDE_PROMPTS[0],
     controllable: "awareness",
   },
   {
-    label: "Builder: give me the next move",
+    label: "Habit: give me the next move",
     prompt: "Give me the next move that matters most.",
     controllable: "habit",
   },
   {
-    label: "Charger: help me recover",
+    label: "Wellness: help me recover",
     prompt: "I feel off. Help me recover my energy.",
     controllable: "wellness",
   },
@@ -119,7 +119,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
       if (isFoodLog) {
         toast({
           title: "Meal logged",
-          description: "Your charger has the latest fuel check.",
+          description: "Wellness has the latest fuel check.",
           action: onNavigate ? (
             <Button
               variant="outline"
@@ -208,9 +208,9 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
   const hasConversation = messages.length > 0;
   const selectedPrompt = activeProfile
     ? activeControllable === "awareness"
-      ? "Ask your scout what feels true before God, what needs surrender, or what move comes next..."
-      : `Ask your ${activeProfile.role} what it sees, what it needs, or what move comes next...`
-    : "Ask your team what's needed right now...";
+      ? "Ask Awareness what feels true before God, what needs surrender, or what move comes next..."
+      : `Ask ${activeProfile.name} what it sees, what it needs, or what move comes next...`
+    : "Ask what needs charge right now...";
 
   return (
     <motion.div
@@ -232,9 +232,9 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
       {!hasConversation && (
         <div className="w-full max-w-sm space-y-3 mb-4 px-1">
           <div className="text-center space-y-1">
-            <p className="text-sm font-semibold text-foreground">Your starter team</p>
+            <p className="text-sm font-semibold text-foreground">Charge your Controllables</p>
             <p className="text-xs text-muted-foreground">
-              Each Controllable covers a different part of the day. Tap one to lead, or let your question route itself.
+              Tap one to lead, or let your question route itself.
             </p>
           </div>
 
@@ -269,9 +269,6 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={cn("text-sm font-semibold", theme.textClass)}>{theme.label}</span>
-                        <span className="rounded-full bg-background/80 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                          {profile.roleLabel}
-                        </span>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
                         {profile.shortDescription}
@@ -294,12 +291,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
           <motion.span className="text-xl" layoutId={`avatar-${activeControllable}`}>
             {activeTheme.emoji}
           </motion.span>
-          <div className="flex items-center gap-2">
-            <span className={cn("text-sm font-semibold", activeTheme.textClass)}>{activeTheme.label}</span>
-            <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              {activeProfile.roleLabel}
-            </span>
-          </div>
+          <span className={cn("text-sm font-semibold", activeTheme.textClass)}>{activeProfile.name}</span>
         </motion.div>
       )}
 

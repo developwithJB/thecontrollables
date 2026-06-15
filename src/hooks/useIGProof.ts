@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { isDevMockAuthEnabled } from "@/lib/devMockAuth";
 import type { RingKey } from "@/hooks/useDailyRings";
 
 export interface IGProofAnalysis {
@@ -22,6 +23,10 @@ export interface IGProofEntry {
   created_at: string;
 }
 
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  return error instanceof Error && error.message.trim().length > 0 ? error.message : fallback;
+};
+
 export function useIGProof(userId?: string) {
   const { toast } = useToast();
   const [analyzing, setAnalyzing] = useState(false);
@@ -34,6 +39,17 @@ export function useIGProof(userId?: string) {
     setAnalyzing(true);
     setAnalysis(null);
     try {
+      if (isDevMockAuthEnabled()) {
+        const result: IGProofAnalysis = {
+          primary_ring: "prove",
+          secondary_ring: "none",
+          tags: ["dev-qa", "proof"],
+          interpretation: caption.trim() || "Proof saved.",
+        };
+        setAnalysis(result);
+        return result;
+      }
+
       const { data, error } = await supabase.functions.invoke("ig-proof-analyze", {
         body: { caption },
       });
@@ -41,9 +57,9 @@ export function useIGProof(userId?: string) {
       if (data?.error) throw new Error(data.error);
       setAnalysis(data as IGProofAnalysis);
       return data as IGProofAnalysis;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("IG Proof analysis failed:", err);
-      toast({ title: "Analysis failed", description: err.message || "Could not analyze content.", variant: "destructive" });
+      toast({ title: "Analysis failed", description: getErrorMessage(err, "Could not analyze content."), variant: "destructive" });
       return null;
     } finally {
       setAnalyzing(false);
@@ -68,9 +84,9 @@ export function useIGProof(userId?: string) {
       // For MVP, ask user for a caption/description since we can't OCR client-side
       // We'll return the image URL for saving, but we need text for analysis
       return { imageUrl: urlData.publicUrl, storagePath: path };
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Screenshot upload failed:", err);
-      toast({ title: "Upload failed", description: err.message || "Could not upload screenshot.", variant: "destructive" });
+      toast({ title: "Upload failed", description: getErrorMessage(err, "Could not upload screenshot."), variant: "destructive" });
       return null;
     } finally {
       setAnalyzing(false);
@@ -89,8 +105,25 @@ export function useIGProof(userId?: string) {
     if (!userId) return null;
     setSaving(true);
     try {
+      if (isDevMockAuthEnabled()) {
+        const entry = {
+          id: crypto.randomUUID(),
+          ring_key: params.ringKey,
+          source_type: params.sourceType,
+          caption_text: params.captionText || null,
+          image_url: params.imageUrl || null,
+          ai_interpretation: params.interpretation || null,
+          tags: params.tags || [],
+          attached_to_ring: params.attachToRing,
+          created_at: new Date().toISOString(),
+        };
+        setEntries((current) => [entry, ...current]);
+        toast({ title: params.attachToRing ? "Proof charged" : "Proof saved", description: "Dev QA proof saved locally." });
+        return { id: entry.id };
+      }
+
       const { data, error } = await supabase
-        .from("ig_proof_entries" as any)
+        .from("ig_proof_entries")
         .insert({
           user_id: userId,
           ring_key: params.ringKey,
@@ -107,9 +140,9 @@ export function useIGProof(userId?: string) {
       if (error) throw error;
       toast({ title: params.attachToRing ? "Ring filled from proof" : "Proof saved", description: params.attachToRing ? `Your ${params.ringKey} ring is complete.` : "Saved to your proof history." });
       return data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Save IG proof failed:", err);
-      toast({ title: "Save failed", description: err.message || "Could not save entry.", variant: "destructive" });
+      toast({ title: "Save failed", description: getErrorMessage(err, "Could not save entry."), variant: "destructive" });
       return null;
     } finally {
       setSaving(false);
@@ -120,8 +153,13 @@ export function useIGProof(userId?: string) {
     if (!userId) return;
     setLoadingEntries(true);
     try {
+      if (isDevMockAuthEnabled()) {
+        setEntries((current) => ringFilter ? current.filter((entry) => entry.ring_key === ringFilter) : current);
+        return;
+      }
+
       let query = supabase
-        .from("ig_proof_entries" as any)
+        .from("ig_proof_entries")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })

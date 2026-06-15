@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getFeatureFlag } from "@/lib/featureFlags";
+import { isDevMockAuthEnabled } from "@/lib/devMockAuth";
 import type { DailyOperatorOnboardingAnswers } from "@/lib/operatorOnboarding";
 
 export type FirstActionType = "quest" | "operator" | "rep";
@@ -27,9 +28,10 @@ export interface UserOnboarding {
 export const useOnboarding = (userId: string | null) => {
   const queryClient = useQueryClient();
   const quickStartEnabled = getFeatureFlag("onboarding_quick_start_enabled");
+  const devMock = isDevMockAuthEnabled();
 
   // Fetch user's onboarding status
-  const { data: onboarding, isLoading } = useQuery({
+  const { data: fetchedOnboarding, isLoading: fetchedOnboardingLoading } = useQuery({
     queryKey: ["user-onboarding", userId],
     queryFn: async () => {
       if (!userId) return null;
@@ -67,8 +69,27 @@ export const useOnboarding = (userId: string | null) => {
       if (createError) throw createError;
       return created as unknown as UserOnboarding;
     },
-    enabled: !!userId,
+    enabled: !!userId && !devMock,
   });
+
+  const onboarding: UserOnboarding | null = devMock && userId
+    ? {
+        user_id: userId,
+        simplified_mode_completed: true,
+        first_action_type: "operator",
+        first_action_completed_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        onboarding_step: "completed",
+        build_assessment_completed: true,
+        build_assessment_completed_at: new Date().toISOString(),
+        journey_controllable: "habit",
+        journey_selected_at: new Date().toISOString(),
+        operator_onboarding_completed: true,
+        operator_onboarding_answers: {},
+        operator_onboarding_completed_at: new Date().toISOString(),
+      }
+    : fetchedOnboarding ?? null;
+  const isLoading = devMock ? false : fetchedOnboardingLoading;
 
   // Check if user is in simplified mode (new user)
   const isSimplifiedMode = !onboarding?.simplified_mode_completed;
