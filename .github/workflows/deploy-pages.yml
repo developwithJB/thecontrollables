@@ -6,17 +6,15 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: github-pages
   cancel-in-progress: false
 
 jobs:
-  build:
-    name: Build static site
+  deploy:
+    name: Build and publish static site
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -37,24 +35,18 @@ jobs:
       - name: Add SPA fallback
         run: cp dist/index.html dist/404.html
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-  deploy:
-    name: Deploy static site
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Publish to gh-pages branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          cd dist
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b gh-pages
+          git add -A
+          git commit -m "Deploy ${GITHUB_SHA}"
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin gh-pages
