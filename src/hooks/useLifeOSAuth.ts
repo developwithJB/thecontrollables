@@ -2,13 +2,21 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { getDevMockLifeOSUser, isDevMockLifeOSAuthEnabled } from "@/lib/devAuth";
 
 export function useLifeOSAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const isDevMockUser = isDevMockLifeOSAuthEnabled();
+  const [user, setUser] = useState<User | null>(() => (isDevMockUser ? getDevMockLifeOSUser() : null));
+  const [isLoading, setIsLoading] = useState(!isDevMockUser);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (isDevMockUser) {
+      setUser(getDevMockLifeOSUser());
+      setIsLoading(false);
+      return;
+    }
+
     let isMounted = true;
 
     const {
@@ -54,9 +62,9 @@ export function useLifeOSAuth() {
       subscription.unsubscribe();
       clearTimeout(timeout);
     };
-  }, [navigate]);
+  }, [isDevMockUser, navigate]);
 
-  return { user, isLoading };
+  return { user, isLoading, isDevMockUser };
 }
 
 // Context for providing user to child pages

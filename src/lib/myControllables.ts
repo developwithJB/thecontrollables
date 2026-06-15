@@ -173,7 +173,7 @@ export function createStartingReadResult(answers: StartingReadAnswers): Starting
     completedAt: new Date().toISOString(),
     recommendedFirstPractice: growth.recommendedPractice,
     recommendedQuest: `7-Day Reset: start with ${growth.name}`,
-    shareText: `I started tracking My Controllables. Strongest right now: ${strongest.name}. Current training focus: ${growth.name}.`,
+    shareText: getStartingReadShareText(strongest.name, growth.name),
     egoPattern: ego.id,
   };
 }
@@ -247,14 +247,18 @@ export function createProofEntry(input: {
 export function getProofCards(profile: MyControllablesProfile): ProofCard[] {
   const stats = getSelfTrustStats(profile);
   const strongest = profile.assessment ? getBookControllable(profile.assessment.strongest) : null;
-  const localOptIn = profile.participation.visibility !== "private" && Boolean(profile.participation.city || profile.participation.state);
+  const growth = profile.assessment ? getBookControllable(profile.assessment.growth) : null;
+  const localOptIn = isLocalParticipationActive(profile);
 
   return [
     {
       id: "started",
       eyebrow: "Starting Read",
       title: "Started tracking My Controllables",
-      body: profile.assessment?.shareText ?? "Create your first read to unlock this proof.",
+      body:
+        strongest && growth
+          ? getStartingReadShareText(strongest.name, growth.name)
+          : "Create your first read to unlock this proof.",
       unlocked: Boolean(profile.assessment),
     },
     {
@@ -311,9 +315,10 @@ export function getProofCards(profile: MyControllablesProfile): ProofCard[] {
 
 export function getLocalBoards(profile: MyControllablesProfile): LocalBoard[] {
   const stats = getSelfTrustStats(profile);
-  const city = profile.participation.city.trim() || "Your City";
-  const state = profile.participation.state.trim() || "Your State";
-  const contribution = stats.keptPromises + stats.recoveryWins + stats.questsCompleted;
+  const localOptIn = isLocalParticipationActive(profile);
+  const city = localOptIn ? profile.participation.city.trim() || "Your City" : "Local opt-in off";
+  const state = localOptIn ? profile.participation.state.trim() || "Your State" : "Local opt-in off";
+  const contribution = localOptIn ? stats.keptPromises + stats.recoveryWins + stats.questsCompleted : 0;
 
   return [
     {
@@ -360,8 +365,9 @@ export function getLocalBoards(profile: MyControllablesProfile): LocalBoard[] {
 }
 
 export function getLocalChallenges(profile: MyControllablesProfile): LocalChallenge[] {
-  const city = profile.participation.city.trim() || "Chicago";
-  const state = profile.participation.state.trim() || "Illinois";
+  const localOptIn = isLocalParticipationActive(profile);
+  const city = localOptIn ? profile.participation.city.trim() || "Your City" : "Your City";
+  const state = localOptIn ? profile.participation.state.trim() || "Your State" : "Your State";
 
   return [
     {
@@ -389,12 +395,33 @@ export function getLocalChallenges(profile: MyControllablesProfile): LocalChalle
 }
 
 export function getProofShareText(profile: MyControllablesProfile, card: ProofCard): string {
-  const location =
-    profile.participation.visibility === "private"
-      ? ""
-      : `\nRepresenting: ${profile.participation.city || "my city"}${profile.participation.state ? `, ${profile.participation.state}` : ""}`;
+  const participation = getSafeParticipationShareLine(profile);
 
-  return `${card.title}\n${card.body}${location}\n\nI am tracking My Controllables in The Dashboard.`;
+  return `${card.title}\n${card.body}${participation}\n\nI am tracking My Controllables in The Dashboard.`;
+}
+
+function getStartingReadShareText(strongestName: string, growthName: string): string {
+  return `I started tracking My Controllables. Strongest right now: ${strongestName}. Current training focus: ${growthName}.`;
+}
+
+function isLocalParticipationActive(profile: MyControllablesProfile): boolean {
+  return (
+    profile.participation.visibility !== "private" &&
+    Boolean(profile.participation.city.trim() || profile.participation.state.trim())
+  );
+}
+
+function getSafeParticipationShareLine(profile: MyControllablesProfile): string {
+  if (!isLocalParticipationActive(profile)) return "";
+
+  if (profile.participation.visibility === "anonymous") {
+    return "\nLocal boards: anonymous participation";
+  }
+
+  const location = [profile.participation.city.trim(), profile.participation.state.trim()].filter(Boolean).join(", ");
+  const handle = profile.participation.handle.trim();
+  const handleText = handle ? ` as ${handle}` : "";
+  return location ? `\nRepresenting: ${location}${handleText}` : "";
 }
 
 function getDayOfYear(date: Date): number {

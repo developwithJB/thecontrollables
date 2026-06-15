@@ -5,6 +5,7 @@ import {
   createStartingReadResult,
   DEFAULT_MY_CONTROLLABLES_PROFILE,
   getDailyTrainingPlan,
+  getLocalBoards,
   getProofCards,
   getProofShareText,
   getSelfTrustStats,
@@ -145,6 +146,83 @@ describe("my controllables local proof", () => {
     expect(localContribution?.unlocked).toBe(false);
     expect(shareText).not.toContain("Chicago");
     expect(shareText).not.toContain("Illinois");
+  });
+
+  it("derives proof card copy from safe fields instead of stored private text", () => {
+    const assessment = {
+      ...createStartingReadResult({
+        strongest: "awareness",
+        growth: "habit",
+        egoPattern: "approval",
+        avoidedPromise: "Private promise",
+        releaseGrip: "Private release",
+        resetVision: "Private reset",
+      }),
+      shareText: "Private promise Private release Private reset",
+    };
+    const cards = getProofCards(makeProfile({ assessment }));
+
+    expect(cards[0].body).toContain("Strongest right now: Awareness");
+    expect(cards[0].body).toContain("Current training focus: Habit");
+    expect(cards[0].body).not.toContain("Private promise");
+    expect(cards[0].body).not.toContain("Private release");
+    expect(cards[0].body).not.toContain("Private reset");
+  });
+
+  it("keeps local board contribution off until city or state sharing is opted in", () => {
+    const privateProfile = makeProfile({
+      participation: {
+        city: "Chicago",
+        state: "Illinois",
+        handle: "starter",
+        visibility: "private",
+      },
+      proofEntries: [
+        createProofEntry({
+          controllable: "habit",
+          promise: "One small promise",
+          kind: "kept_promise",
+          date: new Date("2026-06-15T12:00:00"),
+        }),
+      ],
+    });
+    const anonymousProfile = makeProfile({
+      ...privateProfile,
+      participation: {
+        ...privateProfile.participation,
+        visibility: "anonymous",
+      },
+    });
+
+    expect(getLocalBoards(privateProfile).every((board) => board.yourContribution === 0)).toBe(true);
+    expect(getLocalBoards(privateProfile)[0].scope).toBe("Local opt-in off");
+    expect(getLocalBoards(anonymousProfile)[0]).toMatchObject({
+      scope: "Chicago",
+      yourContribution: 1,
+    });
+  });
+
+  it("allows anonymous local participation without exposing city, state, or handle in share text", () => {
+    const profile = makeProfile({
+      participation: {
+        city: "Chicago",
+        state: "Illinois",
+        handle: "starter",
+        visibility: "anonymous",
+      },
+    });
+    const shareText = getProofShareText(profile, {
+      id: "local_contribution",
+      eyebrow: "Local Proof",
+      title: "Represented your city or state",
+      body: "Your public proof shares contribution, not private reflection.",
+      unlocked: true,
+    });
+
+    expect(shareText).toContain("anonymous participation");
+    expect(shareText).not.toContain("Chicago");
+    expect(shareText).not.toContain("Illinois");
+    expect(shareText).not.toContain("starter");
   });
 
   it("uses the growth controllable and avoided promise for daily training", () => {

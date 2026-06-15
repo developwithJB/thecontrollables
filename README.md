@@ -212,6 +212,40 @@ npm run dev
 npm run build
 ```
 
+## My Controllables Local QA
+
+`/my-controllables` lives inside the authenticated Life OS shell. Production auth behavior is unchanged: unauthenticated users are redirected to `/auth`.
+
+For local PR review without a Supabase test login, start Vite with the dev-only mock auth flag:
+
+```bash
+VITE_ENABLE_DEV_MOCK_AUTH=true npm run dev -- --host 127.0.0.1 --port 5174
+```
+
+Then open:
+
+```text
+http://127.0.0.1:5174/my-controllables
+```
+
+Expected review signals:
+
+- A visible amber banner says `Dev QA mock auth active`; this banner only appears when `import.meta.env.DEV` and `VITE_ENABLE_DEV_MOCK_AUTH=true` are both true.
+- The My Controllables page renders without a real Supabase session.
+- The 60-Second Starting Read saves a private local profile.
+- Daily Training lets the reviewer log one kept promise; the same date cannot be logged twice.
+- Proof Cards unlock from safe milestone fields only.
+- Local Opt-In defaults to `Private`; city/state contribution does not count on boards until visibility is changed to `Anonymous` or `Public handle`.
+- Anonymous participation counts local contribution without exposing city, state, or handle in share text.
+- Share cards never include private reflections, wellness, money, calendar, journal, or AI guidance.
+
+Useful entry routes for review:
+
+- `/my-controllables`: full profile, Starting Read, daily training, proof cards, local boards, and local challenges.
+- `/home`: daily dashboard entry card for My Controllables.
+- `/train`: Chapter 2 entry point and Starting Read CTA.
+- `/proof`: proof surface entry point and local proof summary.
+
 ## Running Supabase
 
 You can point the frontend at a hosted Supabase project, or run Supabase locally.
