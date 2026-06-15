@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, ShieldAlert } from "lucide-react";
+import { ArrowRight, CheckCircle2, ShieldAlert, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -40,6 +40,12 @@ export default function Train() {
             <p className="mt-2 text-sm leading-relaxed text-foreground">
               Book = belief. App = practice. Dashboard = proof.
             </p>
+            <Link to="/my-controllables">
+              <Button size="sm" variant="secondary" className="mt-3 w-full gap-2">
+                60-Second Starting Read
+                <UserRound className="h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

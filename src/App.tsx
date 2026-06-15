@@ -28,6 +28,7 @@ const Wellness = lazy(() => import("./pages/Wellness"));
 const Growth = lazy(() => import("./pages/Growth"));
 const Reflect = lazy(() => import("./pages/Reflect"));
 const Proof = lazy(() => import("./pages/Proof"));
+const MyControllables = lazy(() => import("./pages/MyControllables"));
 const Planner = lazy(() => import("./pages/Planner"));
 const Money = lazy(() => import("./pages/Money"));
 const Reset = lazy(() => import("./pages/Reset"));
@@ -87,6 +88,7 @@ const AppContent = () => {
             <Route path="/growth" element={<Growth />} />
             <Route path="/reflect" element={<Reflect />} />
             <Route path="/proof" element={<Proof />} />
+            <Route path="/my-controllables" element={<MyControllables />} />
             <Route path="/wealth" element={<Money />} />
           </Route>
 

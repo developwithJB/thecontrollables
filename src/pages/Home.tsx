@@ -26,6 +26,7 @@ import { DailyOperatorBrief } from "@/components/dashboard/DailyOperatorBrief";
 import { WeeklyAIInsightCard } from "@/components/dashboard/WeeklyAIInsightCard";
 import { TodaysReadCard } from "@/components/dashboard/TodaysReadCard";
 import { ControlReleaseMoveCard } from "@/components/dashboard/ControlReleaseMoveCard";
+import { MyControllablesDailyTrainingCard } from "@/components/dashboard/MyControllablesDailyTrainingCard";
 import { DailyOperatorOnboardingFlow, OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 
 export default function Home() {
@@ -261,7 +262,10 @@ export default function Home() {
         mainMission={signals?.suggestedMainQuest}
       />
 
-      {/* 4. Daily Operator - one AI-native command center with confirmable actions */}
+      {/* 4. My Controllables - daily proof loop */}
+      <MyControllablesDailyTrainingCard userId={user.id} />
+
+      {/* 5. Daily Operator - one AI-native command center with confirmable actions */}
       <DailyOperatorBrief userId={user.id} />
 
       {drift?.shouldShowReturnFromDrift && !returnFromDriftDismissed ? (
@@ -270,10 +274,10 @@ export default function Home() {
 
       <BossBattleBanner signals={signals} />
 
-      {/* 5. Daily reading - secondary insight */}
+      {/* 6. Daily reading - secondary insight */}
       <DailyReadingCard userId={user.id} />
 
-      {/* 6. Weekly AI insight - privacy-safe share card */}
+      {/* 7. Weekly AI insight - privacy-safe share card */}
       <WeeklyAIInsightCard userId={user.id} />
 
       <footer className="pt-6 pb-4 text-center">
