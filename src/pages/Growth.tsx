@@ -42,8 +42,13 @@ import { GameRulesSection } from "@/components/GameRulesSection";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
 import { GrowthBodyInsight } from "@/components/dashboard/GrowthBodyInsight";
 
-export default function Growth() {
-  usePageViewTracking("Growth");
+interface GrowthProps {
+  surface?: "growth" | "reflect";
+}
+
+export default function Growth({ surface = "growth" }: GrowthProps) {
+  const isReflectSurface = surface === "reflect";
+  usePageViewTracking(isReflectSurface ? "Reflect" : "Growth");
   const user = useLifeOSUser();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -118,6 +123,7 @@ export default function Growth() {
   const [showProof, setShowProof] = useState(false);
   const hasActiveSession = !!activeSession && !isCompleted && !isExpired;
   const todayAlreadyCompleted = completedDays.some((d) => d.day_number === currentDay);
+  const completedDayCount = completedDays.length;
 
   // Circle invites
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
@@ -131,11 +137,12 @@ export default function Growth() {
   // Auto-log circle showed-up
   const prevCompletedDaysRef = useRef<number>(0);
   useEffect(() => {
-    if (!completedDays || !myCircle) return;
-    const count = completedDays.length;
-    if (count > prevCompletedDaysRef.current && count > 0) logShowedUp(count);
-    prevCompletedDaysRef.current = count;
-  }, [completedDays?.length, myCircle, logShowedUp]);
+    if (!myCircle) return;
+    if (completedDayCount > prevCompletedDaysRef.current && completedDayCount > 0) {
+      logShowedUp(completedDayCount);
+    }
+    prevCompletedDaysRef.current = completedDayCount;
+  }, [completedDayCount, myCircle, logShowedUp]);
 
   const startCheckout = useCallback(
     (source = "growth") => {
@@ -150,9 +157,15 @@ export default function Growth() {
       <div>
         <div className="flex items-center gap-2 mb-1">
           <span className="text-2xl">🌱</span>
-          <h1 className="font-display text-2xl font-semibold text-foreground">Growth</h1>
+          <h1 className="font-display text-2xl font-semibold text-foreground">
+            {isReflectSurface ? "Reflect" : "Growth"}
+          </h1>
         </div>
-        <p className="text-muted-foreground text-sm">Your self-leadership operating panel.</p>
+        <p className="text-muted-foreground text-sm">
+          {isReflectSurface
+            ? "Your mirror for patterns, memories, drift, and the story underneath the day."
+            : "Your self-leadership operating panel."}
+        </p>
       </div>
 
       <ControllablePoweredBy controllables={["perspective", "habit", "environment"]} />

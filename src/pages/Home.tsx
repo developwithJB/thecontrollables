@@ -24,6 +24,8 @@ import { BossBattleBanner } from "@/components/dashboard/BossBattleBanner";
 import { DailyReadingCard } from "@/components/dashboard/DailyReadingCard";
 import { DailyOperatorBrief } from "@/components/dashboard/DailyOperatorBrief";
 import { WeeklyAIInsightCard } from "@/components/dashboard/WeeklyAIInsightCard";
+import { TodaysReadCard } from "@/components/dashboard/TodaysReadCard";
+import { ControlReleaseMoveCard } from "@/components/dashboard/ControlReleaseMoveCard";
 import { DailyOperatorOnboardingFlow, OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 
 export default function Home() {
@@ -250,7 +252,16 @@ export default function Home() {
         drift={drift}
       />
 
-      {/* 2. Daily Operator — one AI-native command center with confirmable actions */}
+      {/* 2. Today's Read - book-aligned signal translation */}
+      <TodaysReadCard signals={signals} />
+
+      {/* 3. Control / Release / Move - the daily book practice */}
+      <ControlReleaseMoveCard
+        userId={user.id}
+        mainMission={signals?.suggestedMainQuest}
+      />
+
+      {/* 4. Daily Operator - one AI-native command center with confirmable actions */}
       <DailyOperatorBrief userId={user.id} />
 
       {drift?.shouldShowReturnFromDrift && !returnFromDriftDismissed ? (
@@ -259,10 +270,10 @@ export default function Home() {
 
       <BossBattleBanner signals={signals} />
 
-      {/* 3. Daily reading — secondary insight */}
+      {/* 5. Daily reading - secondary insight */}
       <DailyReadingCard userId={user.id} />
 
-      {/* 4. Weekly AI insight — privacy-safe share card */}
+      {/* 6. Weekly AI insight - privacy-safe share card */}
       <WeeklyAIInsightCard userId={user.id} />
 
       <footer className="pt-6 pb-4 text-center">

@@ -51,22 +51,22 @@ const STEP_ORDER: QuickStartStep[] = [
 ];
 
 const STEP_LABELS: Record<QuickStartStep, string> = {
-  birthday: "Birthday",
+  birthday: "Starting Point",
   perspective: "Perspective",
   season: "Season",
-  team: "Starter Team",
-  need: "Need",
-  snapshot: "Region",
-  cta: "Create Account",
+  team: "5 Controllables",
+  need: "Training Need",
+  snapshot: "7-Day Reset",
+  cta: "Begin Practice",
 };
 
 const STEP_CTA_LABELS: Record<Exclude<QuickStartStep, "cta">, string> = {
-  birthday: "Continue",
+  birthday: "Start with one honest read",
   perspective: "See my season",
-  season: "Meet the team",
+  season: "Meet the 5 Controllables",
   team: "What this season needs",
-  need: "See my starting region",
-  snapshot: "Continue",
+  need: "See my reset path",
+  snapshot: "Build my reset",
 };
 
 function isValidBirthday(value: string): boolean {
@@ -123,13 +123,13 @@ function SnapshotRecommendationStep({
     <div className="space-y-6">
       <div className="space-y-2">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          Snapshot Recommendation
+          7-Day Reset Recommendation
         </p>
         <h1 className="font-display text-2xl font-semibold text-foreground">
-          Start in {recommendation.region.label}
+          Begin in {recommendation.region.label}
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Based on this season, <span className="text-foreground font-medium">{selectedNeedLabel}</span> looks like the clearest place to begin.
+          Based on this season, <span className="text-foreground font-medium">{selectedNeedLabel}</span> looks like the clearest place to train first. The book gave you the language. This is where you get the reps.
         </p>
       </div>
 
@@ -144,7 +144,7 @@ function SnapshotRecommendationStep({
                 {recommendation.snapshot.name}
               </p>
               <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
-                Recommended
+                Starting point
               </span>
             </div>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
@@ -229,13 +229,13 @@ function CreateAccountStep({
     <div className="space-y-6">
       <div className="space-y-2">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          Your Starting Point
+          Your 7-Day Reset
         </p>
         <h1 className="font-display text-2xl font-semibold text-foreground">
-          Your Dashboard is ready
+          Your Controllables Reset is ready
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Create your account and we’ll keep this season, your starter team, and your first region ready for you.
+          Create your account and we&apos;ll keep this season, your starter team, and your first practice path ready for you.
         </p>
       </div>
 
@@ -419,9 +419,7 @@ export default function QuickStart() {
     season?.label,
     selectedNeed,
     selectedNeedLabel,
-    selectedSnapshot?.bucketId,
-    selectedSnapshot?.id,
-    selectedSnapshot?.name,
+    selectedSnapshot,
     selectedSnapshotId,
     step,
     weeksLived,
@@ -573,6 +571,17 @@ export default function QuickStart() {
             <p className="text-xs text-muted-foreground">
               {STEP_LABELS[step]}
             </p>
+            <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Chapter 2
+              </p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                You finished the book. Now the practice begins.
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                You&apos;ve met the 5 Controllables. Start with one honest read of where you are today.
+              </p>
+            </div>
           </div>
 
           <AnimatePresence mode="wait">
@@ -604,7 +613,7 @@ export default function QuickStart() {
                 }}
               >
                 <Button className="w-full">
-                  Create account
+                  Start the practice
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
