@@ -26,6 +26,7 @@ const Home = lazy(() => import("./pages/Home"));
 const Train = lazy(() => import("./pages/Train"));
 const Wellness = lazy(() => import("./pages/Wellness"));
 const Growth = lazy(() => import("./pages/Growth"));
+const Reflect = lazy(() => import("./pages/Reflect"));
 const Proof = lazy(() => import("./pages/Proof"));
 const Planner = lazy(() => import("./pages/Planner"));
 const Money = lazy(() => import("./pages/Money"));
@@ -84,7 +85,7 @@ const AppContent = () => {
             <Route path="/wellness" element={<Wellness />} />
             <Route path="/planner" element={<Planner />} />
             <Route path="/growth" element={<Growth />} />
-            <Route path="/reflect" element={<Navigate to="/growth" replace />} />
+            <Route path="/reflect" element={<Reflect />} />
             <Route path="/proof" element={<Proof />} />
             <Route path="/wealth" element={<Money />} />
           </Route>

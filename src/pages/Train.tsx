@@ -16,7 +16,7 @@ export default function Train() {
   const { data: levels = [], isLoading } = useControllableLevels(user.id);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-24">
+    <div className="mx-auto max-w-7xl space-y-6 pb-24">
       <section className="rounded-2xl border border-border/60 bg-card px-5 py-6 shadow-sm md:px-7">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="max-w-2xl space-y-3">
@@ -59,7 +59,7 @@ export default function Train() {
           </Badge>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {BOOK_CONTROLLABLES.map((controllable, index) => {
             const level = levels.find((item) => item.type === controllable.id);
             const progress = Math.max(0, Math.min((level?.progress ?? 0) * 100, 100));
@@ -195,4 +195,3 @@ export default function Train() {
     </div>
   );
 }
-
