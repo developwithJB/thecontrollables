@@ -27,37 +27,39 @@ export function BossBattleBanner({ signals }: BossBattleBannerProps) {
           <div className="flex items-center gap-2">
             <Shield className="w-4 h-4 text-amber-600/80" />
             <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Boss Battle Mode
+              Ego Signal
             </span>
           </div>
-          <h2 className="text-base font-medium text-foreground">{bossBattle.headline}</h2>
+          <h2 className="text-base font-medium text-foreground">Ego is loud today</h2>
         </div>
 
         <Badge variant="secondary" className="text-[11px]">
-          {signals.supportMode === "protect" ? "Protect Mode" : "Recover Mode"}
+          {signals.supportMode === "protect" ? "Protect what matters" : "Recover first"}
         </Badge>
       </div>
 
-      <p className="text-sm leading-relaxed text-foreground">{bossBattle.summary}</p>
+      <p className="text-sm leading-relaxed text-foreground">
+        {bossBattle.summary}
+      </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-xl bg-background/70 px-4 py-3 border border-border/40">
           <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            Main Quest
+            Main Mission
           </p>
           <p className="mt-2 text-sm leading-relaxed text-foreground">{bossBattle.mainQuest}</p>
         </div>
 
         <div className="rounded-xl bg-background/70 px-4 py-3 border border-border/40">
           <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            One Support Move
+            Controllable Response
           </p>
           <p className="mt-2 text-sm leading-relaxed text-foreground">{bossBattle.supportMove}</p>
         </div>
       </div>
 
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Let the {atRiskProfile.roleLabel.toLowerCase()} take the lead today. The goal is to move through the stretch with care, not to force a bigger performance.
+        Ego turns pressure into all-or-nothing thinking. Let the {atRiskProfile.roleLabel.toLowerCase()} answer with one grounded practice.
       </p>
     </motion.div>
   );

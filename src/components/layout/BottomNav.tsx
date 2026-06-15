@@ -1,11 +1,12 @@
-import { Sun, CalendarDays, Activity } from "lucide-react";
+import { Award, BookOpen, Dumbbell, Sun } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const navItems = [
   { path: "/home", label: "Today", icon: Sun },
-  { path: "/planner", label: "Plan", icon: CalendarDays },
-  { path: "/wellness", label: "Energy", icon: Activity },
+  { path: "/train", label: "Train", icon: Dumbbell },
+  { path: "/growth", label: "Reflect", icon: BookOpen },
+  { path: "/proof", label: "Proof", icon: Award },
 ];
 
 export const BottomNav = () => {

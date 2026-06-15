@@ -78,7 +78,7 @@ export const CONTROLLABLE_LIST: { type: ControllableType; emoji: string; label: 
   (type) => ({ type, emoji: themes[type].emoji, label: themes[type].label })
 );
 
-/* ── Leveling System (Pokemon-style 1-99) ── */
+/* ── Leveling System (1-99) ── */
 
 /** XP needed to reach a given level: level^2 * 25 */
 export function getXpForLevel(level: number): number {

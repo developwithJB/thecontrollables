@@ -11,14 +11,22 @@ import { AnimatePresence } from "framer-motion";
 import { onboardingQuickStartEnabled } from "@/lib/featureFlags";
 import { LifeOSLayout } from "@/components/layout/LifeOSLayout";
 
+declare global {
+  interface Window {
+    __REACT_QUERY_CLIENT__?: QueryClient;
+  }
+}
+
 // Eagerly load Landing for fastest FCP
 import Landing from "./pages/Landing";
 
 // Lazy load other routes
 const Auth = lazy(() => import("./pages/Auth"));
 const Home = lazy(() => import("./pages/Home"));
+const Train = lazy(() => import("./pages/Train"));
 const Wellness = lazy(() => import("./pages/Wellness"));
 const Growth = lazy(() => import("./pages/Growth"));
+const Proof = lazy(() => import("./pages/Proof"));
 const Planner = lazy(() => import("./pages/Planner"));
 const Money = lazy(() => import("./pages/Money"));
 const Reset = lazy(() => import("./pages/Reset"));
@@ -48,7 +56,7 @@ const queryClient = new QueryClient({
 });
 
 if (typeof window !== "undefined") {
-  (window as any).__REACT_QUERY_CLIENT__ = queryClient;
+  window.__REACT_QUERY_CLIENT__ = queryClient;
 }
 
 const PageLoader = () => <SplashScreen />;
@@ -72,9 +80,12 @@ const AppContent = () => {
           {/* Life OS pages - persistent layout, only content swaps */}
           <Route element={<LifeOSLayout />}>
             <Route path="/home" element={<Home />} />
+            <Route path="/train" element={<Train />} />
             <Route path="/wellness" element={<Wellness />} />
             <Route path="/planner" element={<Planner />} />
             <Route path="/growth" element={<Growth />} />
+            <Route path="/reflect" element={<Navigate to="/growth" replace />} />
+            <Route path="/proof" element={<Proof />} />
             <Route path="/wealth" element={<Money />} />
           </Route>
 
