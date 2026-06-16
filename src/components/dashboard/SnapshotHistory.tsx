@@ -531,7 +531,7 @@ function MonthView({
       {monthActivity.totalXp > 0 && (
         <p className="text-xs text-muted-foreground flex items-center gap-1 mb-4">
           <Zap className="w-3 h-3" />
-          +{monthActivity.totalXp} Evolution XP earned
+          +{monthActivity.totalXp} Charge XP earned
         </p>
       )}
 

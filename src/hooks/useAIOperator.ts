@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { isDevMockAuthEnabled } from "@/lib/devMockAuth";
 import {
   type AIDepthLevel,
   type AIConsentKey,
@@ -12,6 +13,7 @@ import {
   normalizeAIDailyPlanData,
   normalizeAIConsents,
 } from "@/lib/aiOperator";
+import { getControllableGuide } from "@/lib/controllables";
 
 export interface AIConsents extends Record<AIConsentKey, boolean> {
   user_id?: string;
@@ -100,6 +102,57 @@ export type AIFeedbackType = "thumbs_up" | "not_useful" | "too_much" | "do_more"
 const getLocalDate = () => new Date().toLocaleDateString("sv-SE");
 const getTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+function buildDevMockDailyOperatorResponse(): AIOperatorResponse {
+  const guide = getControllableGuide("habit");
+  const now = new Date().toISOString();
+
+  return {
+    daily_plan: {
+      id: "dev-mock-daily-plan",
+      plan_date: getLocalDate(),
+      plan_data: {
+        day_type: "Build Day",
+        summary: "Control the Controllables one day at a time.",
+        matters_most: "Keep one promise.",
+        protect: "Keep the mission small.",
+        next_move: "Keep one small promise before noon.",
+        fallback: "Return with one small move.",
+        sources_used: ["dev_mock"],
+        generated_by: "rules",
+        day_signal: "Build trust with one rep.",
+        main_priority: "Charge Habit",
+        protect_this: "One clean promise.",
+        next_actions: ["Keep one small promise before noon."],
+        guide_insights: [
+          {
+            guide_id: "habit",
+            guide_name: guide.name,
+            guide_emoji: guide.emoji,
+            role_label: guide.role,
+            insight: "Consistency rewires the circuit.",
+            recommended_action: "Keep one small promise before noon.",
+            confidence: "High",
+          },
+        ],
+        fully_charged_focus: "Stay Charged.",
+        confidence: "High",
+      },
+      context_digest: {},
+      status: "draft",
+      provider: "dev-mock",
+      model: null,
+      ai_depth: "quick",
+      model_tier: "rules",
+      generated_by: "rules",
+      created_at: now,
+      updated_at: now,
+    },
+    proposals: [],
+    consents: normalizeAIConsents({}) as AIConsents,
+    cached: true,
+  };
+}
+
 const normalizeAIOperatorResponse = (data: unknown): AIOperatorResponse => {
   const response = (data || {}) as AIOperatorResponse;
   const dailyPlan = response.daily_plan
@@ -122,6 +175,8 @@ export function useDailyOperatorBrief(userId: string | null) {
   return useQuery({
     queryKey: ["ai-daily-operator-brief", userId, getLocalDate()],
     queryFn: async (): Promise<AIOperatorResponse> => {
+      if (isDevMockAuthEnabled()) return buildDevMockDailyOperatorResponse();
+
       const { data, error } = await supabase.functions.invoke("ai-orchestrator", {
         body: {
           mode: "daily_brief",

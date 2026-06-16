@@ -73,9 +73,8 @@ export const RingActionCard = (props: RingActionCardProps) => {
         <div className="flex items-center gap-2">
           <span className="text-lg">{definition.emoji}</span>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">{definition.name}</h3>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{definition.roleLabel}</p>
-            <p className="text-[11px] text-muted-foreground">{definition.meaning}</p>
+            <h3 className="text-sm font-semibold text-foreground">Charge {definition.shortName}</h3>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Charge Progress</p>
           </div>
         </div>
         <button onClick={onDismiss} className="p-1 rounded-md hover:bg-muted transition-colors">
@@ -88,11 +87,11 @@ export const RingActionCard = (props: RingActionCardProps) => {
         embeddedTool
       ) : (
         <>
-          <p className="text-xs font-medium text-foreground mb-3">{definition.prompt}</p>
+          <p className="text-xs font-medium text-foreground mb-3">One small move.</p>
           <Textarea
             value={response}
             onChange={(e) => setResponse(e.target.value)}
-            placeholder="Write your response (optional)..."
+            placeholder="Proof note (optional)"
             className="min-h-[60px] resize-none text-sm mb-3"
           />
           <motion.div whileTap={{ scale: 0.97 }}>
@@ -104,7 +103,7 @@ export const RingActionCard = (props: RingActionCardProps) => {
               ) : (
                 <Check className="w-4 h-4" />
               )}
-              {completing ? "Completing..." : definition.completionLabel}
+              {completing ? "Charging..." : `Charge ${definition.shortName}`}
             </Button>
           </motion.div>
         </>

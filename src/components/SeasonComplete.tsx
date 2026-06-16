@@ -343,7 +343,7 @@ export function SeasonComplete({
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
           <div className="flex items-center justify-center gap-2 text-sm text-primary">
             <span className="text-xl">🏅</span>
-            <span className="font-medium">Season Finisher badge earned</span>
+            <span className="font-medium">Season Complete badge earned</span>
           </div>
         </motion.div>
 

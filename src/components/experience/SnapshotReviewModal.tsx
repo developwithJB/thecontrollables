@@ -9,6 +9,7 @@ import { useSnapshotInsight } from "@/hooks/useSnapshotInsight";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { buildResetProofSharePayload } from "@/lib/shareProof";
 
 interface SnapshotReviewModalProps {
   sessionId: string;
@@ -157,33 +158,23 @@ export function SnapshotReviewModal({ sessionId, userId, isPaid, onClose }: Snap
   };
 
   const handleShare = async () => {
-    const journeyText = snapshot ? `Journey: ${snapshot.name}` : "";
-    const promiseText = promiseStats && promiseStats.made > 0 
-      ? `🛡️ ${Math.round((promiseStats.kept / promiseStats.made) * 100)}% promises kept\n`
-      : "";
-    const shareText = 
-      `🏆 7-Day Snapshot Complete\n` +
-      `${formatDateRange()}\n\n` +
-      (journeyText ? `${snapshot?.emoji || "📅"} ${journeyText}\n\n` : "") +
-      `✅ ${completedDays.length}/7 days checked in\n` +
-      `⚡ ${sessionXp} XP earned\n` +
-      promiseText +
-      `\nBuilding proof, one week at a time.\n` +
-      `thedashboard.agbcoaching.com\n\n` +
-      `#TheDashboard`;
+    const payload = buildResetProofSharePayload({
+      completedDays: completedDays.length,
+      xp: sessionXp,
+    });
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: "My 7-Day Snapshot Complete", text: shareText });
+        await navigator.share({ title: payload.headline, text: payload.shareText });
         toast.success("Shared!");
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
-          await navigator.clipboard.writeText(shareText);
+          await navigator.clipboard.writeText(payload.shareText);
           toast.success("Copied to clipboard!");
         }
       }
     } else {
-      await navigator.clipboard.writeText(shareText);
+      await navigator.clipboard.writeText(payload.shareText);
       toast.success("Copied to clipboard!");
     }
   };

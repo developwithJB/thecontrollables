@@ -84,7 +84,7 @@ export const ProofEntryCard = ({ userId, onRingFilled, onClose }: ProofEntryCard
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">Daily Proof</h3>
-            <p className="text-[10px] text-muted-foreground">Log what you did today</p>
+            <p className="text-[10px] text-muted-foreground">Keep one promise</p>
           </div>
         </div>
         {onClose && (
@@ -109,7 +109,7 @@ export const ProofEntryCard = ({ userId, onRingFilled, onClose }: ProofEntryCard
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value.slice(0, 280))}
-              placeholder="What did you do today?"
+              placeholder="What proof are you keeping?"
               className="min-h-[60px] resize-none text-sm"
               maxLength={280}
             />
@@ -146,7 +146,7 @@ export const ProofEntryCard = ({ userId, onRingFilled, onClose }: ProofEntryCard
             {analyzing && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                Analyzing...
+                Reading proof...
               </div>
             )}
 
@@ -159,10 +159,10 @@ export const ProofEntryCard = ({ userId, onRingFilled, onClose }: ProofEntryCard
               {analyzing ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Analyzing...
+                  Reading...
                 </>
               ) : (
-                "Log Proof"
+                "Save Proof"
               )}
             </Button>
 

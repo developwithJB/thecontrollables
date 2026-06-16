@@ -70,7 +70,7 @@ export function WellnessStreakHistory({ recentLogs, streak }: WellnessStreakHist
         <CardTitle className="flex items-center justify-between text-base">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-wellness" />
-            <span>Wellness Streak</span>
+            <span>Wellness Rhythm</span>
           </div>
           {streak > 0 && (
             <div className="flex items-center gap-1 text-sm font-medium text-wellness">

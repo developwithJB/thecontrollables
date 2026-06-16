@@ -10,7 +10,7 @@ import {
 import { ControllableLevelBadge } from "./ControllableLevelBadge";
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { getControllableTheme } from "@/lib/controllableTheme";
-import { getChargeRhythm, getEvolutionProgress } from "@/lib/evolutionProgress";
+import { getChargeProgress, getChargeRhythm } from "@/lib/evolutionProgress";
 
 const theme = getControllableTheme("habit");
 
@@ -55,7 +55,7 @@ export function XpMomentumModule({ totalXp, recentLogs, compact = false }: XpMom
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const { trackModalAction } = useActionTracking();
 
-  const evolution = useMemo(() => getEvolutionProgress(totalXp), [totalXp]);
+  const charge = useMemo(() => getChargeProgress(totalXp), [totalXp]);
   const rhythm = useMemo(() => getChargeRhythm(recentLogs), [recentLogs]);
   const recentEntries = useMemo(
     () =>
@@ -76,13 +76,13 @@ export function XpMomentumModule({ totalXp, recentLogs, compact = false }: XpMom
     rhythm.todayXp > 0
       ? rhythm.isRepairDay
         ? `+${rhythm.todayXp} Repair XP today`
-        : `+${rhythm.todayXp} Evolution XP today`
+        : `+${rhythm.todayXp} Charge XP today`
       : null;
 
   const nextMilestoneCopy =
-    evolution.xpToNextMilestone > 0
-      ? `${evolution.xpToNextMilestone} Evolution XP to ${evolution.nextMilestoneLabel}`
-      : `${evolution.nextMilestoneLabel} unlocked`;
+    charge.xpToNextMilestone > 0
+      ? `${charge.xpToNextMilestone} XP to ${charge.nextMilestoneLabel}`
+      : `${charge.nextMilestoneLabel} unlocked`;
 
   if (compact) {
     return (
@@ -98,21 +98,21 @@ export function XpMomentumModule({ totalXp, recentLogs, compact = false }: XpMom
             <div className="rounded-md bg-accent/20 p-1">
               <Sparkles className="h-3.5 w-3.5 text-accent" />
             </div>
-            <h3 className="text-sm font-medium text-foreground">Evolution</h3>
+            <h3 className="text-sm font-medium text-foreground">Charge Stage</h3>
             <span className="ml-auto text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-              {evolution.chargeState}
+              {charge.chargeStageLabel}
             </span>
           </div>
 
           <div className="mb-3 flex items-end gap-1">
-            <span className="text-2xl font-display font-bold text-foreground">{evolution.evolutionXp.toLocaleString()}</span>
-            <span className="pb-1 text-xs text-muted-foreground">Evolution XP</span>
+            <span className="text-2xl font-display font-bold text-foreground">{charge.chargeXp.toLocaleString()}</span>
+            <span className="pb-1 text-xs text-muted-foreground">Charge XP</span>
           </div>
 
-          <ChargeMilestoneRail progressPercent={evolution.progressPercent} chargeState={evolution.chargeState} />
+          <ChargeMilestoneRail progressPercent={charge.progressPercent} chargeState={charge.chargeState} />
 
           <div className="mt-3 flex items-center justify-between gap-3 text-[10px] text-muted-foreground">
-            <span>Stage {evolution.evolutionStage}</span>
+            <span>Circuit {charge.chargeCircuit}</span>
             <span className="truncate text-right">{nextMilestoneCopy}</span>
           </div>
 
@@ -129,14 +129,15 @@ export function XpMomentumModule({ totalXp, recentLogs, compact = false }: XpMom
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-accent" />
-                Evolution
+                Charge Stage
               </DialogTitle>
             </DialogHeader>
-            <EvolutionDetailContent
-              evolutionXp={evolution.evolutionXp}
-              evolutionStage={evolution.evolutionStage}
-              chargeState={evolution.chargeState}
-              progressPercent={evolution.progressPercent}
+            <ChargeDetailContent
+              chargeXp={charge.chargeXp}
+              chargeCircuit={charge.chargeCircuit}
+              chargeStageLabel={charge.chargeStageLabel}
+              chargeState={charge.chargeState}
+              progressPercent={charge.progressPercent}
               nextMilestoneCopy={nextMilestoneCopy}
               rhythmLabel={rhythm.rhythmLabel}
               rhythmSupport={rhythm.rhythmSupport}
@@ -162,16 +163,17 @@ export function XpMomentumModule({ totalXp, recentLogs, compact = false }: XpMom
         <div className="rounded-lg bg-habit/10 p-1.5">
           <Sparkles className="h-4 w-4 text-habit" />
         </div>
-        <h3 className="font-display font-semibold text-foreground">Evolution</h3>
+        <h3 className="font-display font-semibold text-foreground">Charge Stage</h3>
         <span className={`ml-auto text-xs font-medium ${theme.textClass}`}>{theme.emoji} {theme.label}</span>
         <ControllableLevelBadge controllable="habit" />
       </div>
 
-      <EvolutionDetailContent
-        evolutionXp={evolution.evolutionXp}
-        evolutionStage={evolution.evolutionStage}
-        chargeState={evolution.chargeState}
-        progressPercent={evolution.progressPercent}
+      <ChargeDetailContent
+        chargeXp={charge.chargeXp}
+        chargeCircuit={charge.chargeCircuit}
+        chargeStageLabel={charge.chargeStageLabel}
+        chargeState={charge.chargeState}
+        progressPercent={charge.progressPercent}
         nextMilestoneCopy={nextMilestoneCopy}
         rhythmLabel={rhythm.rhythmLabel}
         rhythmSupport={rhythm.rhythmSupport}
@@ -182,15 +184,16 @@ export function XpMomentumModule({ totalXp, recentLogs, compact = false }: XpMom
       />
 
       <p className="mt-4 text-center text-xs italic text-muted-foreground">
-        Evolution grows through reps, repair, and returning without drama.
+        Charge grows through reps, repair, and returning without drama.
       </p>
     </motion.div>
   );
 }
 
-function EvolutionDetailContent({
-  evolutionXp,
-  evolutionStage,
+function ChargeDetailContent({
+  chargeXp,
+  chargeCircuit,
+  chargeStageLabel,
   chargeState,
   progressPercent,
   nextMilestoneCopy,
@@ -201,8 +204,9 @@ function EvolutionDetailContent({
   todayChipLabel,
   recentEntries,
 }: {
-  evolutionXp: number;
-  evolutionStage: number;
+  chargeXp: number;
+  chargeCircuit: number;
+  chargeStageLabel: string;
   chargeState: string;
   progressPercent: number;
   nextMilestoneCopy: string;
@@ -226,10 +230,10 @@ function EvolutionDetailContent({
 
       <div className="text-center">
         <div className="inline-flex items-baseline gap-1">
-          <span className="text-4xl font-display font-bold text-foreground">{evolutionXp.toLocaleString()}</span>
-          <span className="text-lg text-muted-foreground">Evolution XP</span>
+          <span className="text-4xl font-display font-bold text-foreground">{chargeXp.toLocaleString()}</span>
+          <span className="text-lg text-muted-foreground">Charge XP</span>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">Evolution Stage {evolutionStage}</p>
+        <p className="mt-1 text-sm text-muted-foreground">Circuit {chargeCircuit} · {chargeStageLabel}</p>
       </div>
 
       <div className="space-y-2">
@@ -247,7 +251,7 @@ function EvolutionDetailContent({
         </div>
         <div className="rounded-xl bg-muted/30 p-3 text-center">
           <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">This Week</p>
-          <p className="mt-1 text-sm font-medium text-foreground">{weekXp} Evolution XP</p>
+          <p className="mt-1 text-sm font-medium text-foreground">{weekXp} Charge XP</p>
         </div>
       </div>
 
@@ -266,7 +270,7 @@ function EvolutionDetailContent({
 
       {isModal && (
         <div className="border-t pt-3">
-          <p className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">Recent Evolution XP</p>
+          <p className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">Recent Charge XP</p>
           <div className="max-h-32 space-y-2 overflow-y-auto">
             {recentEntries.map((log) => (
               <div key={log.id} className="flex items-center justify-between gap-2 text-sm">

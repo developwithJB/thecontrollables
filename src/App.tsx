@@ -10,6 +10,7 @@ import { lazy, Suspense, useState, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import { onboardingQuickStartEnabled } from "@/lib/featureFlags";
 import { LifeOSLayout } from "@/components/layout/LifeOSLayout";
+import { APP_ROUTES } from "@/lib/appRoutes";
 
 declare global {
   interface Window {
@@ -23,11 +24,12 @@ import Landing from "./pages/Landing";
 // Lazy load other routes
 const Auth = lazy(() => import("./pages/Auth"));
 const Home = lazy(() => import("./pages/Home"));
+const MyControllables = lazy(() => import("./pages/MyControllables"));
 const Train = lazy(() => import("./pages/Train"));
+const Proof = lazy(() => import("./pages/Proof"));
 const Wellness = lazy(() => import("./pages/Wellness"));
 const Growth = lazy(() => import("./pages/Growth"));
 const Reflect = lazy(() => import("./pages/Reflect"));
-const Proof = lazy(() => import("./pages/Proof"));
 const Planner = lazy(() => import("./pages/Planner"));
 const Money = lazy(() => import("./pages/Money"));
 const Reset = lazy(() => import("./pages/Reset"));
@@ -71,35 +73,36 @@ const AppContent = () => {
       <Sonner />
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/auth" element={<Auth />} />
+          <Route path={APP_ROUTES.landing} element={<Landing />} />
+          <Route path={APP_ROUTES.auth} element={<Auth />} />
           <Route
-            path="/quick-start"
+            path={APP_ROUTES.quickStart}
             element={onboardingQuickStartEnabled() ? <QuickStart /> : <Navigate to="/auth?mode=signup" replace />}
           />
 
           {/* Life OS pages - persistent layout, only content swaps */}
           <Route element={<LifeOSLayout />}>
-            <Route path="/home" element={<Home />} />
-            <Route path="/train" element={<Train />} />
-            <Route path="/wellness" element={<Wellness />} />
-            <Route path="/planner" element={<Planner />} />
-            <Route path="/growth" element={<Growth />} />
-            <Route path="/reflect" element={<Reflect />} />
-            <Route path="/proof" element={<Proof />} />
-            <Route path="/wealth" element={<Money />} />
+            <Route path={APP_ROUTES.home} element={<Home />} />
+            <Route path={APP_ROUTES.myControllables} element={<MyControllables />} />
+            <Route path={APP_ROUTES.train} element={<Train />} />
+            <Route path={APP_ROUTES.proof} element={<Proof />} />
+            <Route path={APP_ROUTES.wellness} element={<Wellness />} />
+            <Route path={APP_ROUTES.planner} element={<Planner />} />
+            <Route path={APP_ROUTES.growth} element={<Growth />} />
+            <Route path={APP_ROUTES.reflect} element={<Reflect />} />
+            <Route path={APP_ROUTES.wealth} element={<Money />} />
           </Route>
 
-          <Route path="/money" element={<Navigate to="/wealth" replace />} />
+          <Route path={APP_ROUTES.money} element={<Navigate to={APP_ROUTES.wealth} replace />} />
 
           {/* Back-compat redirect */}
-          <Route path="/dashboard" element={<Navigate to="/home" replace />} />
+          <Route path={APP_ROUTES.dashboard} element={<Navigate to={APP_ROUTES.home} replace />} />
 
           {/* Standalone pages */}
-          <Route path="/reset" element={<Reset />} />
-          <Route path="/billing" element={<Billing />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/integrations" element={<Integrations />} />
+          <Route path={APP_ROUTES.reset} element={<Reset />} />
+          <Route path={APP_ROUTES.billing} element={<Billing />} />
+          <Route path={APP_ROUTES.admin} element={<Admin />} />
+          <Route path={APP_ROUTES.integrations} element={<Integrations />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

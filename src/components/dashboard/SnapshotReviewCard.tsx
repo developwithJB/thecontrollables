@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSnapshotById, BUCKETS } from "@/lib/snapshots";
 import { useSnapshotInsight } from "@/hooks/useSnapshotInsight";
 import { toast } from "sonner";
+import { buildResetProofSharePayload } from "@/lib/shareProof";
 
 interface SnapshotReviewCardProps {
   userId: string;
@@ -221,39 +222,28 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
     return `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
   };
 
-  // Share chapter quest summary
+  // Share public proof without private reset details.
   const handleShareSnapshot = async () => {
-    const journeyText = snapshot ? `Region: ${snapshot.name}` : "";
-    const promiseText = promiseStats && promiseStats.made > 0 
-      ? `🛡️ ${Math.round((promiseStats.kept / promiseStats.made) * 100)}% promises kept\n`
-      : "";
-    
-    const shareText = 
-      `🏆 7-Day Chapter Quest Complete\n` +
-      `${formatDateRange()}\n\n` +
-      (journeyText ? `${snapshot?.emoji || "📅"} ${journeyText}\n\n` : "") +
-      `✅ ${completedDays.length}/7 days checked in\n` +
-      `⚡ ${sessionXp} Evolution XP earned\n` +
-      promiseText +
-      `\nBuilding proof, one chapter at a time.\n` +
-      `thedashboard.agbcoaching.com\n\n` +
-      `#TheDashboard`;
+    const payload = buildResetProofSharePayload({
+      completedDays: isCompleted ? 7 : completedDays.length,
+      xp: sessionXp,
+    });
     
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "My 7-Day Chapter Quest Complete",
-          text: shareText,
+          title: payload.headline,
+          text: payload.shareText,
         });
         toast.success("Shared!");
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
-          await navigator.clipboard.writeText(shareText);
+          await navigator.clipboard.writeText(payload.shareText);
           toast.success("Copied to clipboard!");
         }
       }
     } else {
-      await navigator.clipboard.writeText(shareText);
+      await navigator.clipboard.writeText(payload.shareText);
       toast.success("Copied to clipboard!");
     }
   };
@@ -321,7 +311,7 @@ export function SnapshotReviewCard({ userId, isPaid, onStartNewSnapshot, onUpgra
             </div>
             <div className="bg-primary/10 rounded-xl p-4 text-center">
               <p className="text-3xl font-bold text-primary">{sessionXp}</p>
-              <p className="text-xs text-muted-foreground">Evolution XP</p>
+              <p className="text-xs text-muted-foreground">Charge XP</p>
             </div>
             {promiseStats && promiseStats.made > 0 && (
               <div className="col-span-2 bg-emerald-500/10 rounded-xl p-4 text-center">

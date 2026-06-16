@@ -1,12 +1,14 @@
-import { Award, BookOpen, Dumbbell, Sun } from "lucide-react";
+import { BatteryCharging, BookOpen, CheckCircle2, Dumbbell, Sun } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { APP_ROUTES } from "@/lib/appRoutes";
 
 const navItems = [
-  { path: "/home", label: "Today", icon: Sun },
-  { path: "/train", label: "Train", icon: Dumbbell },
-  { path: "/reflect", label: "Reflect", icon: BookOpen },
-  { path: "/proof", label: "Proof", icon: Award },
+  { path: APP_ROUTES.home, label: "Today", icon: Sun },
+  { path: APP_ROUTES.train, label: "Train", icon: Dumbbell },
+  { path: APP_ROUTES.reflect, label: "Reflect", icon: BookOpen },
+  { path: APP_ROUTES.proof, label: "Proof", icon: CheckCircle2 },
+  { path: APP_ROUTES.myControllables, label: "My", icon: BatteryCharging },
 ];
 
 export const BottomNav = () => {

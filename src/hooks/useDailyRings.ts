@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getControllableRosterProfile } from "@/lib/controllableRoster";
 import { AWARENESS_MOVE_MEANING } from "@/lib/awarenessLanguage";
+import { isDevMockAuthEnabled } from "@/lib/devMockAuth";
+import { readDevMockDailyRings, writeDevMockDailyRings } from "@/lib/devMockProgress";
 import type { ControllableType } from "@/components/ControllableCard";
 
 export type RingKey = "notice" | "choose" | "prove" | "charge" | "align";
@@ -32,62 +34,62 @@ const environmentProfile = getControllableRosterProfile("environment");
 export const DAILY_MOVE_DEFINITIONS: DailyMoveDefinition[] = [
   {
     key: "notice",
-    name: "Awareness Move",
+    name: "Awareness",
     shortName: "Awareness",
     controllable: "awareness",
     emoji: "🦉",
     roleLabel: awarenessProfile.roleLabel,
     meaning: AWARENESS_MOVE_MEANING,
-    prompt: "Open the Awareness Move",
-    completionLabel: "Complete Awareness Move",
+    prompt: "Charge Awareness",
+    completionLabel: "Charge Awareness",
     color: "awareness",
   },
   {
     key: "choose",
-    name: "Perspective Move",
+    name: "Perspective",
     shortName: "Perspective",
     controllable: "perspective",
     emoji: "🐢",
     roleLabel: perspectiveProfile.roleLabel,
-    meaning: "Let your translator zoom out and turn the moment into something usable.",
-    prompt: "Open the Perspective Move",
-    completionLabel: "Complete Perspective Move",
+    meaning: "Pause and put the moment in proportion.",
+    prompt: "Charge Perspective",
+    completionLabel: "Charge Perspective",
     color: "perspective",
   },
   {
     key: "prove",
-    name: "Habit Move",
+    name: "Habit",
     shortName: "Habit",
     controllable: "habit",
     emoji: "🦈",
     roleLabel: habitProfile.roleLabel,
-    meaning: "Let your builder pick one rep that turns intention into action.",
-    prompt: "Open the Habit Move",
-    completionLabel: "Complete Habit Move",
+    meaning: "Pick one rep that turns intention into action.",
+    prompt: "Charge Habit",
+    completionLabel: "Charge Habit",
     color: "habit",
   },
   {
     key: "align",
-    name: "Environment Move",
+    name: "Environment",
     shortName: "Environment",
     controllable: "environment",
     emoji: "🚀",
     roleLabel: environmentProfile.roleLabel,
-    meaning: "Let your protector shape the space around you so the next move has less friction.",
-    prompt: "Open the Environment Move",
-    completionLabel: "Complete Environment Move",
+    meaning: "Shape the space around you so the next move has less friction.",
+    prompt: "Charge Environment",
+    completionLabel: "Charge Environment",
     color: "environment",
   },
   {
     key: "charge",
-    name: "Wellness Move",
+    name: "Wellness",
     shortName: "Wellness",
     controllable: "wellness",
     emoji: "🛰️",
     roleLabel: wellnessProfile.roleLabel,
-    meaning: "Let your charger restore the energy the rest of the team depends on.",
-    prompt: "Open the Wellness Move",
-    completionLabel: "Complete Wellness Move",
+    meaning: "Restore the energy your next choice depends on.",
+    prompt: "Charge Wellness",
+    completionLabel: "Charge Wellness",
     color: "wellness",
   },
 ];
@@ -123,10 +125,10 @@ const DEFAULT_STATE: DailyRingsState = {
 };
 
 function getStatusLabel(count: number): string {
-  if (count === 0) return "Choose your moves";
-  if (count <= 2) return "Moves in motion";
-  if (count <= 4) return "Team coming online";
-  return "Fully Charged ⚡";
+  if (count === 0) return "Charge your Controllables";
+  if (count <= 2) return "Charge building";
+  if (count <= 4) return "Charge building";
+  return "Fully Charged";
 }
 
 const today = () => new Date().toLocaleDateString("sv-SE");
@@ -136,9 +138,18 @@ export function useDailyRings(userId?: string) {
   const [loading, setLoading] = useState(true);
   const [rowId, setRowId] = useState<string | null>(null);
   const { toast } = useToast();
+  const devMock = isDevMockAuthEnabled();
 
   useEffect(() => {
     if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    if (devMock) {
+      const dateStr = today();
+      setRings(readDevMockDailyRings(userId, dateStr));
+      setRowId(`dev-${userId}-${dateStr}`);
       setLoading(false);
       return;
     }
@@ -194,7 +205,7 @@ export function useDailyRings(userId?: string) {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [devMock, userId]);
 
   const completedCount = useMemo(() => {
     let count = 0;
@@ -211,6 +222,18 @@ export function useDailyRings(userId?: string) {
   const completeRing = useCallback(
     async (key: RingKey, response?: string) => {
       if (!rowId) return;
+
+      if (devMock && userId) {
+        const dateStr = today();
+        const next = {
+          ...rings,
+          [`${key}_completed`]: true,
+          [`${key}_response`]: response || null,
+        } as DailyRingsState;
+        setRings(next);
+        writeDevMockDailyRings(userId, dateStr, next);
+        return;
+      }
 
       setRings((prev) => ({
         ...prev,
@@ -240,7 +263,7 @@ export function useDailyRings(userId?: string) {
         });
       }
     },
-    [rowId, toast],
+    [devMock, rings, rowId, toast, userId],
   );
 
   const isCompleted = useCallback(

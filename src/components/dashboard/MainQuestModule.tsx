@@ -179,7 +179,7 @@ export function MainQuestModule({
                 <p className="text-sm text-foreground/90">{signals.suggestedMainQuest}</p>
                 {questProfile ? (
                   <p className="text-xs text-muted-foreground mt-1">
-                    {questProfile.roleLabel} energy is shaping the read right now.
+                    {questProfile.name} is shaping the read right now.
                   </p>
                 ) : null}
               </div>

@@ -288,7 +288,7 @@ You follow a strict 4-tier daily hierarchy:
 
 Generate a structured daily briefing as a JSON object with exactly these fields:
 {
-  "day_type": "<one of: Recovery Day, Focus Day, Heavy Day, Reset Day, Fragmented Day, Momentum Day, Protected Day, Catch-Up Day>",
+  "day_type": "<one of: Recovery Day, Focus Day, Build Day, Reset Day, Fragmented Day, Momentum Day, Protected Day, Catch-Up Day>",
   "interpretation": "<one sentence: what kind of day this is and why — synthesize body, calendar, and context>",
   "focus": "<one sentence: the single smartest next move — ONE clear action, not a list>",
   "watchout": "<one sentence: what to protect or simplify today>"
@@ -297,7 +297,7 @@ Generate a structured daily briefing as a JSON object with exactly these fields:
 DAY TYPE SELECTION RULES:
 - Recovery Day: low recovery or poor sleep — protect energy
 - Focus Day: light calendar + strong readiness — ideal for deep work
-- Heavy Day: packed schedule, many meetings — manage energy carefully
+- Build Day: full schedule, many reps — manage energy carefully
 - Reset Day: it's Day 1 of their snapshot or they're restarting
 - Fragmented Day: many context switches, scattered schedule
 - Momentum Day: rings > 3 completed, strong engagement

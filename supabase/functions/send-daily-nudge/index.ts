@@ -1,5 +1,11 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import {
+  buildMissionEmailPayload,
+  buildMissionOfTheDay,
+  normalizeMissionDayMode,
+  type MissionDayMode,
+} from "../_shared/mission-of-the-day.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -77,8 +83,8 @@ const SNAPSHOT_DATA: Record<string, { name: string; tagline: string; focus: stri
   "ship-something": { name: "Ship Something", tagline: "Done beats perfect", focus: "Habit" },
   "reflect-and-plan": { name: "Reflect and Plan", tagline: "Review before moving forward", focus: "Awareness" },
   "raise-the-bar": { name: "Raise the Bar", tagline: "Incrementally level up", focus: "Habit" },
-  "new-level-new-rules": { name: "New Level, New Rules", tagline: "Evolve your playbook", focus: "Perspective" },
-  "build-next-version": { name: "Build the Next Version", tagline: "Intentional evolution", focus: "Awareness" },
+  "new-level-new-rules": { name: "New Level, New Rules", tagline: "Upgrade your playbook", focus: "Perspective" },
+  "build-next-version": { name: "Build the Next Version", tagline: "Intentional upgrade", focus: "Awareness" },
   "step-into-more": { name: "Step Into More", tagline: "Expand your capacity", focus: "Habit" },
   "expand-capacity": { name: "Expand the Capacity", tagline: "Handle more without breaking", focus: "Wellness" },
   "play-bigger-game": { name: "Play a Bigger Game", tagline: "Think bigger, act bolder", focus: "Perspective" },
@@ -174,6 +180,38 @@ interface UserContext {
   todayActionsCompleted: boolean;
   missionTitle: string | null;
   sessionId: string | null;
+}
+
+const DASHBOARD_URL = "https://thedashboard.agbcoaching.com/dashboard";
+
+function getMissionDayModeForContext(context: UserContext): MissionDayMode {
+  if (context.currentDay <= 1) return "Reset Day";
+  if (context.focusArea === "Wellness") return "Recovery Day";
+  if (context.focusArea === "Habit") return "Build Day";
+  if (context.currentDay >= 6) return "Momentum Day";
+  return normalizeMissionDayMode(context.snapshotName);
+}
+
+function generateMissionOfTheDayEmailContent(
+  context: UserContext,
+  localDate: string,
+): { subject: string; body: string; previewText: string; text: string } {
+  const mission = buildMissionOfTheDay({
+    date: localDate,
+    dayMode: getMissionDayModeForContext(context),
+    targetControllable: context.focusArea,
+    appCtaLabel: "Open The Dashboard",
+    appCtaUrl: DASHBOARD_URL,
+    completed: context.todayActionsCompleted,
+  });
+  const payload = buildMissionEmailPayload(mission);
+
+  return {
+    subject: payload.subject,
+    body: payload.html,
+    previewText: payload.previewText,
+    text: payload.text,
+  };
 }
 
 type DriftLevel = "low" | "moderate" | "high";
@@ -409,7 +447,7 @@ async function selectScripture(
   const recentIds = (recentLogs || []).map((l: { scripture_id: string }) => l.scripture_id);
 
   // Try to find a matching theme scripture not recently sent
-  let { data: scriptures } = await supabase
+  const { data: scriptures } = await supabase
     .from("daily_scriptures")
     .select("id, verse_reference, verse_text")
     .eq("theme_tag", themeTag)
@@ -1438,7 +1476,7 @@ Deno.serve(async (req) => {
 
     let sentCount = 0;
     let skippedCount = 0;
-    let alignmentCount = 0;
+    let missionCount = 0;
     const errors: string[] = [];
 
     // Process in batches of 10
@@ -1576,97 +1614,21 @@ Deno.serve(async (req) => {
 
           const email = userData.user.email;
 
-          // Check if user is paid (for Daily Alignment) and fetch levels
-          const [userIsPaid, userLevels, driftAlignment] = await Promise.all([
-            checkIsPaid(supabase, userId),
-            getUserControllableLevels(supabase, userId),
-            isWeekly ? Promise.resolve(null) : getDriftAlignmentPayload(supabase, userId, localDate),
-          ]);
+          const userLevels = await getUserControllableLevels(supabase, userId);
           
           let subject: string;
           let body: string;
+          let text: string | undefined;
 
-          if (!isWeekly && userIsPaid) {
-            // PREMIUM PATH: Daily Alignment with scripture + AI
-            console.log(`[NUDGE] Generating Daily Alignment for paid user ${userId}`);
-            
-            // Gather data for personalization
-            const [lowestControllable, recentReflection] = await Promise.all([
-              getLowestControllable(supabase, userId),
-              getRecentReflection(supabase, userId),
-            ]);
-
-            const themeTag = getThemeForControllable(lowestControllable || context.focusArea.toLowerCase());
-            const scripture = await selectScripture(supabase, userId, themeTag, localDate);
-
-            if (scripture) {
-              const aiContent = await generateAlignmentContent(
-                context.displayName || "Friend",
-                lowestControllable || context.focusArea.toLowerCase(),
-                context.missionTitle,
-                recentReflection,
-                driftAlignment,
-                scripture.verse_reference,
-                scripture.verse_text
-              );
-
-              if (aiContent) {
-                const result = generateDailyAlignmentEmailContent(context, scripture.verse_reference, scripture.verse_text, aiContent, userLevels);
-                subject = result.subject;
-                body = result.body;
-
-                // Log alignment data
-                await supabase.from("daily_alignment_logs").upsert({
-                  user_id: userId,
-                  scripture_id: scripture.id,
-                  nudge_date: localDate,
-                  generated_content: {
-                    ...aiContent,
-                    driftAlignment,
-                  },
-                }, { onConflict: "user_id,nudge_date" });
-
-                alignmentCount++;
-              } else {
-                // AI failed, fall back to basic premium email with scripture only
-                const fallbackContent = {
-                  contextReflection: `This verse speaks to your ${lowestControllable || "growth"} journey. Let it settle before you act on it.`,
-                  reflectionQuestion: "What part of this verse challenges you most right now?",
-                  microAction: "Choose one small action today that reflects what this verse is asking of you.",
-                  eveningPrompt: "Did I live closer to this verse today than yesterday?",
-                };
-                const fallbackResult = generateDailyAlignmentEmailContent(context, scripture.verse_reference, scripture.verse_text, {
-                  ...fallbackContent,
-                }, userLevels);
-                subject = fallbackResult.subject;
-                body = fallbackResult.body;
-
-                await supabase.from("daily_alignment_logs").upsert({
-                  user_id: userId,
-                  scripture_id: scripture.id,
-                  nudge_date: localDate,
-                  generated_content: {
-                    ...fallbackContent,
-                    driftAlignment,
-                    fallback: true,
-                  },
-                }, { onConflict: "user_id,nudge_date" });
-              }
-            } else {
-              // No scripture found, fall back to basic email
-              const basicResult = generateDailyEmailContent(context, userLevels, driftAlignment);
-              subject = basicResult.subject;
-              body = basicResult.body;
-            }
-          } else if (isWeekly) {
+          if (isWeekly) {
             const result = generateWeeklyEmailContent(context, userLevels);
             subject = result.subject;
             body = result.body;
           } else {
-            // FREE PATH: Basic daily nudge with upgrade CTA
-            const result = generateDailyEmailContent(context, userLevels, driftAlignment);
+            const result = generateMissionOfTheDayEmailContent(context, localDate);
             subject = result.subject;
             body = result.body;
+            text = result.text;
           }
 
           // Send email via Resend
@@ -1675,9 +1637,10 @@ Deno.serve(async (req) => {
             to: [email],
             subject: subject,
             html: body,
+            ...(text ? { text } : {}),
           });
 
-          console.log(`[NUDGE] Sent ${isWeekly ? "weekly" : userIsPaid ? "alignment" : "daily"} to ${email} with subject "${subject}":`, emailResult);
+          console.log(`[NUDGE] Sent ${isWeekly ? "weekly" : "daily mission"} to ${email} with subject "${subject}":`, emailResult);
 
           // Update the pending log to "sent" status
           await supabase
@@ -1687,6 +1650,7 @@ Deno.serve(async (req) => {
             .eq("nudge_date", localDate);
 
           sentCount++;
+          if (!isWeekly) missionCount++;
         } catch (err: unknown) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           console.error(`[NUDGE] Error sending to user ${userId}:`, errorMsg);
@@ -1700,13 +1664,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[NUDGE] Complete. Sent: ${sentCount} (${alignmentCount} alignment), Skipped: ${skippedCount}, Errors: ${errors.length}`);
+    console.log(`[NUDGE] Complete. Sent: ${sentCount} (${missionCount} daily missions), Skipped: ${skippedCount}, Errors: ${errors.length}`);
 
     return new Response(
       JSON.stringify({
         message: "Nudge run complete",
         sent: sentCount,
-        alignment: alignmentCount,
+        dailyMissions: missionCount,
+        alignment: 0,
         skipped: skippedCount,
         errors: errors.length,
       }),

@@ -88,7 +88,7 @@ export const BADGES: Record<BadgeKey, Badge> = {
   season_finisher: {
     key: "season_finisher",
     emoji: "🏅",
-    name: "Season Finisher",
+    name: "Season Complete",
     meaning: "Four weeks of showing up. That's a season.",
     trigger: "Completed a 4-Week Season",
   },

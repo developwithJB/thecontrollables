@@ -1,14 +1,22 @@
 import { forwardRef } from "react";
-import { Flame } from "lucide-react";
+import { buildShareProofPayload } from "@/lib/shareProof";
 
 interface ShareableStreakCardProps {
   milestone: number;
   xpBonus: number;
-  displayName?: string;
 }
 
 export const ShareableStreakCard = forwardRef<HTMLDivElement, ShareableStreakCardProps>(
-  ({ milestone, xpBonus, displayName }, ref) => {
+  ({ milestone, xpBonus }, ref) => {
+    const payload = buildShareProofPayload({
+      kind: "charge_stage",
+      controllable: "wellness",
+      chargeStage: milestone >= 30 ? "fully charged" : "charged",
+      xp: xpBonus,
+      level: milestone,
+      visibility: "anonymous",
+    });
+
     return (
       <div
         ref={ref}
@@ -21,7 +29,7 @@ export const ShareableStreakCard = forwardRef<HTMLDivElement, ShareableStreakCar
           justifyContent: "center",
           alignItems: "center",
           gap: 16,
-          background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+          background: "linear-gradient(135deg, #07111f 0%, #0d1f2d 50%, #103849 100%)",
           borderRadius: 24,
           fontFamily: "system-ui, -apple-system, sans-serif",
           color: "#fff",
@@ -38,7 +46,7 @@ export const ShareableStreakCard = forwardRef<HTMLDivElement, ShareableStreakCar
             width: 200,
             height: 200,
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(251,146,60,0.3) 0%, transparent 70%)",
+            background: "radial-gradient(circle, rgba(56,189,248,0.28) 0%, transparent 70%)",
           }}
         />
         <div
@@ -49,40 +57,39 @@ export const ShareableStreakCard = forwardRef<HTMLDivElement, ShareableStreakCar
             width: 160,
             height: 160,
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(251,146,60,0.15) 0%, transparent 70%)",
+            background: "radial-gradient(circle, rgba(125,211,252,0.14) 0%, transparent 70%)",
           }}
         />
 
         {/* Content */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, zIndex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, zIndex: 1 }}>
           <div
             style={{
               width: 56,
               height: 56,
               borderRadius: "50%",
-              background: "rgba(251,146,60,0.2)",
+              background: "rgba(56,189,248,0.16)",
+              border: "1px solid rgba(255,255,255,0.16)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Flame style={{ width: 28, height: 28, color: "#fb923c" }} />
+            <span style={{ fontSize: 30 }}>{payload.icon}</span>
           </div>
           <div>
             <div style={{ fontSize: 36, fontWeight: 800, lineHeight: 1 }}>
-              {milestone}-Day Streak
+              {payload.headline}
             </div>
-            <div style={{ fontSize: 16, color: "#fb923c", fontWeight: 600, marginTop: 4 }}>
-              +{xpBonus} XP Earned
+            <div style={{ fontSize: 16, color: "#7dd3fc", fontWeight: 600, marginTop: 6 }}>
+              {payload.xpLabel ?? "Charge XP"} · {payload.levelLabel}
             </div>
           </div>
         </div>
 
-        {displayName && (
-          <div style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", zIndex: 1 }}>
-            {displayName}
-          </div>
-        )}
+        <div style={{ fontSize: 15, color: "rgba(255,255,255,0.68)", zIndex: 1 }}>
+          {payload.proofLine}
+        </div>
 
         <div
           style={{
@@ -92,7 +99,7 @@ export const ShareableStreakCard = forwardRef<HTMLDivElement, ShareableStreakCar
             marginTop: 8,
           }}
         >
-          thecontrollables.lovable.app
+          The Dashboard · The Controllables
         </div>
       </div>
     );
