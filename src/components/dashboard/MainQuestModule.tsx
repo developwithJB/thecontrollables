@@ -144,11 +144,11 @@ export function MainQuestModule({
             <AlertTriangle className="w-5 h-5 text-muted-foreground" />
           </div>
           <div>
-            <h3 className="font-display font-semibold text-foreground">No Main Quest Yet</h3>
+            <h3 className="font-display font-semibold text-foreground">No Main Mission Yet</h3>
             <p className="text-xs text-muted-foreground mt-1">
               {signals
                 ? signals.suggestedMainQuest
-                : "Choose the one quest you want the day to quietly serve."}
+                : "Choose the one promise you want the day to quietly serve."}
             </p>
           </div>
         </div>
@@ -157,12 +157,12 @@ export function MainQuestModule({
           <DialogTrigger asChild>
             <Button className="w-full" disabled={disabled}>
               <Target className="w-4 h-4 mr-2" />
-              {disabled ? "Loading..." : "Set Main Quest"}
+              {disabled ? "Loading..." : "Set Main Mission"}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle className="font-display">Set Main Quest</DialogTitle>
+              <DialogTitle className="font-display">Set Main Mission</DialogTitle>
               <p className="text-xs text-muted-foreground mt-1">
                 Give the day one clear direction instead of five competing priorities.
               </p>
@@ -174,7 +174,7 @@ export function MainQuestModule({
                   <Badge variant="secondary" className="text-[11px]">
                     {formatSupportMode(signals.supportMode)} Mode
                   </Badge>
-                  <span className="text-[11px] text-muted-foreground">Recommended quest</span>
+                  <span className="text-[11px] text-muted-foreground">Recommended mission</span>
                 </div>
                 <p className="text-sm text-foreground/90">{signals.suggestedMainQuest}</p>
                 {questProfile ? (
@@ -193,10 +193,10 @@ export function MainQuestModule({
             <div className="space-y-4 pt-2">
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">
-                  What should dominate the day?
+                  What honest outcome should lead the day?
                 </label>
                 <Input
-                  placeholder="Name the quest..."
+                  placeholder="Name the mission..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="text-base"
@@ -219,27 +219,27 @@ export function MainQuestModule({
               <Collapsible>
                 <CollapsibleTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
                   <HelpCircle className="w-3.5 h-3.5" />
-                  <span>Why set a main quest?</span>
+                  <span>Why set a main mission?</span>
                   <ChevronDown className="w-3 h-3 ml-auto" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pt-3">
                   <div className="text-xs text-muted-foreground space-y-2 p-3 rounded-lg bg-muted/50">
                     <p>
-                      Your main quest keeps the day from splintering.
+                      Your main mission keeps the day from splintering.
                       It is the thing your other moves should quietly support.
                     </p>
                     <ul className="space-y-1.5 pl-3">
                       <li className="flex items-start gap-2">
                         <span className="text-primary">•</span>
-                        <span><strong>One quest is enough</strong> — the goal is clarity, not intensity</span>
+                        <span><strong>One mission is enough</strong> — the goal is clarity, not intensity</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-primary">•</span>
-                        <span><strong>Support moves stay secondary</strong> — they help the quest instead of competing with it</span>
+                        <span><strong>Support moves stay secondary</strong> — they help the mission instead of competing with it</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-primary">•</span>
-                        <span><strong>You can repair and reset</strong> — quests are meant to guide, not shame</span>
+                        <span><strong>You can repair and reset</strong> — missions are meant to guide, not shame</span>
                       </li>
                     </ul>
                   </div>
@@ -251,7 +251,7 @@ export function MainQuestModule({
                 className="w-full" 
                 disabled={!title.trim() || isCreating || disabled}
               >
-                {isCreating ? "Setting..." : "Set Main Quest"}
+                {isCreating ? "Setting..." : "Set Main Mission"}
               </Button>
             </div>
           </DialogContent>
@@ -273,7 +273,7 @@ export function MainQuestModule({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Main Quest</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Main Mission</p>
               <span className={`text-xs font-medium ${theme.textClass}`}>{theme.emoji} {theme.label}</span>
               <ControllableLevelBadge controllable="environment" />
             </div>

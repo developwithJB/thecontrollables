@@ -28,6 +28,8 @@ import { SelfTrustChargeStrip } from "@/components/dashboard/SelfTrustChargeStri
 import { DailyReadingCard } from "@/components/dashboard/DailyReadingCard";
 import { DailyOperatorBrief } from "@/components/dashboard/DailyOperatorBrief";
 import { WeeklyAIInsightCard } from "@/components/dashboard/WeeklyAIInsightCard";
+import { TodaysReadCard } from "@/components/dashboard/TodaysReadCard";
+import { ControlReleaseMoveCard } from "@/components/dashboard/ControlReleaseMoveCard";
 import { DailyOperatorOnboardingFlow, OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 
 export default function Home() {
@@ -276,6 +278,11 @@ export default function Home() {
 
       {showFullBrief ? (
         <div className="space-y-4">
+          <TodaysReadCard signals={signals} />
+          <ControlReleaseMoveCard
+            userId={user.id}
+            mainMission={signals?.suggestedMainQuest}
+          />
           <ChargeCheckBanner signals={signals} />
           <DailyReadingCard userId={user.id} />
           <WeeklyAIInsightCard userId={user.id} />

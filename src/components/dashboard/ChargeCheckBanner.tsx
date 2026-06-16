@@ -34,7 +34,7 @@ export function ChargeCheckBanner({ signals }: ChargeCheckBannerProps) {
         </div>
 
         <Badge variant="secondary" className="text-[11px]">
-          {signals.supportMode === "protect" ? "Protect Mode" : "Recover Mode"}
+          {signals.supportMode === "protect" ? "Protect what matters" : "Recover first"}
         </Badge>
       </div>
 
@@ -43,14 +43,14 @@ export function ChargeCheckBanner({ signals }: ChargeCheckBannerProps) {
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-xl bg-background/70 px-4 py-3 border border-border/40">
           <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            Main Quest
+            Main Mission
           </p>
           <p className="mt-2 text-sm leading-relaxed text-foreground">{chargeCheck.mainQuest}</p>
         </div>
 
         <div className="rounded-xl bg-background/70 px-4 py-3 border border-border/40">
           <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            One Support Move
+            Controllable Response
           </p>
           <p className="mt-2 text-sm leading-relaxed text-foreground">{chargeCheck.supportMove}</p>
         </div>

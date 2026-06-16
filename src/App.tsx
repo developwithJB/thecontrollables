@@ -12,14 +12,14 @@ import { onboardingQuickStartEnabled } from "@/lib/featureFlags";
 import { LifeOSLayout } from "@/components/layout/LifeOSLayout";
 import { APP_ROUTES } from "@/lib/appRoutes";
 
-// Eagerly load Landing for fastest FCP
-import Landing from "./pages/Landing";
-
 declare global {
   interface Window {
     __REACT_QUERY_CLIENT__?: QueryClient;
   }
 }
+
+// Eagerly load Landing for fastest FCP
+import Landing from "./pages/Landing";
 
 // Lazy load other routes
 const Auth = lazy(() => import("./pages/Auth"));
@@ -29,6 +29,7 @@ const Train = lazy(() => import("./pages/Train"));
 const Proof = lazy(() => import("./pages/Proof"));
 const Wellness = lazy(() => import("./pages/Wellness"));
 const Growth = lazy(() => import("./pages/Growth"));
+const Reflect = lazy(() => import("./pages/Reflect"));
 const Planner = lazy(() => import("./pages/Planner"));
 const Money = lazy(() => import("./pages/Money"));
 const Reset = lazy(() => import("./pages/Reset"));
@@ -88,6 +89,7 @@ const AppContent = () => {
             <Route path={APP_ROUTES.wellness} element={<Wellness />} />
             <Route path={APP_ROUTES.planner} element={<Planner />} />
             <Route path={APP_ROUTES.growth} element={<Growth />} />
+            <Route path={APP_ROUTES.reflect} element={<Reflect />} />
             <Route path={APP_ROUTES.wealth} element={<Money />} />
           </Route>
 

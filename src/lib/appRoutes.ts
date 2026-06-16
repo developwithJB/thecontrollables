@@ -9,6 +9,7 @@ export const APP_ROUTES = {
   wellness: "/wellness",
   planner: "/planner",
   growth: "/growth",
+  reflect: "/reflect",
   wealth: "/wealth",
   money: "/money",
   dashboard: "/dashboard",
@@ -26,6 +27,7 @@ export const LIFE_OS_ROUTE_PATHS = [
   APP_ROUTES.wellness,
   APP_ROUTES.planner,
   APP_ROUTES.growth,
+  APP_ROUTES.reflect,
   APP_ROUTES.wealth,
 ] as const;
 

@@ -59,22 +59,22 @@ const STEP_ORDER: QuickStartStep[] = [
 ];
 
 const STEP_LABELS: Record<QuickStartStep, string> = {
-  birthday: "Birthday",
+  birthday: "Starting Point",
   perspective: "Perspective",
   season: "Season",
-  team: "Starter Team",
-  need: "Need",
-  snapshot: "Region",
-  cta: "Create Account",
+  team: "5 Controllables",
+  need: "Training Need",
+  snapshot: "7-Day Reset",
+  cta: "Begin Practice",
 };
 
 const STEP_CTA_LABELS: Record<Exclude<QuickStartStep, "cta">, string> = {
-  birthday: "Continue",
+  birthday: "Start with one honest read",
   perspective: "See my season",
-  season: "Meet the team",
+  season: "Meet the 5 Controllables",
   team: "What this season needs",
-  need: "See my starting region",
-  snapshot: "Continue",
+  need: "See my reset path",
+  snapshot: "Build my reset",
 };
 
 function isValidBirthday(value: string): boolean {
@@ -302,13 +302,13 @@ function CreateAccountStep({
     <div className="space-y-6">
       <div className="space-y-2">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          Your Starting Point
+          Your 7-Day Reset
         </p>
         <h1 className="font-display text-2xl font-semibold text-foreground">
-          Your Dashboard is ready
+          Your Controllables Reset is ready
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Create your account and we’ll keep this season, your starter team, and your first region ready for you.
+          Create your account and we&apos;ll keep this season, your starter team, and your first practice path ready for you.
         </p>
       </div>
 
@@ -647,6 +647,17 @@ export default function QuickStart() {
             <p className="text-sm font-medium text-muted-foreground">
               {STEP_LABELS[step]}
             </p>
+            <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Chapter 2
+              </p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                You finished the book. Now the practice begins.
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                You&apos;ve met the 5 Controllables. Start with one honest read of where you are today.
+              </p>
+            </div>
           </div>
 
           <AnimatePresence mode="wait">
