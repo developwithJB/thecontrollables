@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ChargeMoment } from "@/components/dashboard/ChargeMoment";
+import { ChargeProgressRing } from "@/components/dashboard/ControllableChargeVisual";
 import { useAIOperatorActions, useDailyOperatorBrief, type AIActionProposal } from "@/hooks/useAIOperator";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { useMissionCompletion } from "@/hooks/useMissionCompletion";
@@ -40,6 +41,7 @@ import {
   type AIGuideLensId,
 } from "@/lib/aiOperator";
 import { getControllableGuide, getControllableGuideClasses } from "@/lib/controllables";
+import { getControllableChargeVisual } from "@/lib/controllableVisuals";
 import { buildMissionOfTheDayFromPlan } from "@/lib/missionOfTheDay";
 
 interface DailyOperatorBriefProps {
@@ -127,6 +129,12 @@ export function DailyOperatorBrief({ userId }: DailyOperatorBriefProps) {
   const missionGuide = getControllableGuide(mission.targetControllable);
   const missionClasses = getControllableGuideClasses(mission.targetControllable);
   const missionChargeValue = missionSourceGuide?.confidence === "High" ? 88 : missionSourceGuide?.confidence === "Medium" ? 68 : 48;
+  const missionVisual = getControllableChargeVisual({
+    type: mission.targetControllable,
+    level: 1,
+    progress: missionChargeValue / 100,
+    totalXp: mission.xpReward,
+  });
   const missionCompletion = useMissionCompletion(userId, mission);
 
   const buildEditedPayload = (proposal: AIActionProposal) => {
@@ -283,13 +291,13 @@ export function DailyOperatorBrief({ userId }: DailyOperatorBriefProps) {
 
   if (brief.isLoading) {
     return (
-      <div className="rounded-2xl border border-border/30 bg-card px-5 py-5">
+      <div className="dashboard-os-card rounded-2xl px-5 py-5">
         <div className="flex items-center gap-3">
           <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <Loader2 className="h-5 w-5 animate-spin" />
           </span>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Today&apos;s Mission</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Mission of the Day</p>
             <p className="text-sm font-medium text-muted-foreground">Loading mission...</p>
           </div>
         </div>
@@ -299,13 +307,13 @@ export function DailyOperatorBrief({ userId }: DailyOperatorBriefProps) {
 
   if (brief.data?.usage_limited && !plan) {
     return (
-      <div className="rounded-2xl border border-primary/20 bg-card px-5 py-5 shadow-sm">
+      <div className="dashboard-os-card rounded-2xl px-5 py-5">
         <div className="flex items-center gap-4">
           <span className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-2xl">
-            🎮
+            <Target className="h-6 w-6 text-primary" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Today&apos;s Mission</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Mission of the Day</p>
             <h2 className="font-display text-lg font-semibold text-foreground">Mission locked</h2>
           </div>
           <Button size="sm" onClick={() => initiateCheckout("pro", { source: "daily_operator_monthly_limit" })} disabled={isCheckingOut}>
@@ -319,13 +327,13 @@ export function DailyOperatorBrief({ userId }: DailyOperatorBriefProps) {
 
   if (brief.isError || !plan) {
     return (
-      <div className="rounded-2xl border border-border/30 bg-card px-5 py-5">
+      <div className="dashboard-os-card rounded-2xl px-5 py-5">
         <div className="flex items-center gap-4">
           <span className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-2xl">
-            📬
+            <Shield className="h-6 w-6 text-primary" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Today&apos;s Mission</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Mission of the Day</p>
             <h2 className="font-display text-lg font-semibold text-foreground">Mission delayed</h2>
           </div>
           <Button variant="outline" size="icon" onClick={() => brief.refetch()} title="Try again">
@@ -340,12 +348,17 @@ export function DailyOperatorBrief({ userId }: DailyOperatorBriefProps) {
     <motion.section
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="overflow-hidden rounded-2xl border border-primary/20 bg-card shadow-sm"
+      className="dashboard-os-surface rounded-[2rem]"
     >
-      <div className="space-y-4 px-5 py-5">
+      <div className="pointer-events-none absolute inset-x-0 top-0 grid grid-cols-12 gap-px opacity-70">
+        {Array.from({ length: 12 }).map((_, index) => (
+          <span key={index} className={index < 8 ? "h-px bg-primary" : "h-px bg-border"} />
+        ))}
+      </div>
+      <div className="relative z-10 space-y-4 px-5 py-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Today&apos;s Mission</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Mission of the Day</p>
             <h2 className="font-display text-xl font-semibold text-foreground">
               Charge {missionGuide.name}
             </h2>
@@ -362,22 +375,31 @@ export function DailyOperatorBrief({ userId }: DailyOperatorBriefProps) {
           </Button>
         </div>
 
-        <div className={`rounded-2xl border p-4 ${missionClasses?.borderClass || "border-primary/20"} bg-primary/10`}>
-          <div className="flex items-start gap-4">
-            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-background/80 text-4xl shadow-sm">
-              {missionGuide.emoji}
-            </span>
-            <div className="min-w-0 flex-1 space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary-foreground">
+        <div className={`dashboard-os-card relative overflow-hidden rounded-[1.75rem] p-4 ${missionClasses?.borderClass || "border-primary/20"}`}>
+          <div
+            className="pointer-events-none absolute inset-x-4 top-0 h-px"
+            style={{ background: `linear-gradient(90deg, transparent, ${missionVisual.color}, transparent)` }}
+          />
+          <div className="grid gap-4 sm:grid-cols-[auto_1fr] sm:items-center">
+            <div className="flex items-center gap-3 sm:block">
+              <ChargeProgressRing visual={missionVisual} size={86} strokeWidth={5} />
+              <div className="sm:mt-3 sm:text-center">
+                <span className="rounded-full bg-background/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   {mission.dayMode}
                 </span>
-                <Badge variant="outline" className="text-[10px]">{confidence}</Badge>
               </div>
-              <p className="text-lg font-semibold leading-snug text-foreground">
+            </div>
+            <div className="min-w-0 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className="text-[10px]">{confidence}</Badge>
+                <span className="rounded-full bg-background/70 px-2.5 py-1 text-[10px] font-semibold text-foreground">
+                  {missionGuide.emoji} {missionGuide.name}
+                </span>
+              </div>
+              <p className="text-xl font-semibold leading-tight text-foreground">
                 {mission.missionInstruction}
               </p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-2 sm:grid-cols-2">
                 <RewardChip icon={<Zap className="h-3.5 w-3.5" />} label={`+${mission.xpReward} ${missionGuide.name} XP`} />
                 <RewardChip icon={<Shield className="h-3.5 w-3.5" />} label={`+${mission.selfTrustReward} Self-Trust`} />
               </div>
@@ -394,7 +416,7 @@ export function DailyOperatorBrief({ userId }: DailyOperatorBriefProps) {
         <div className="grid gap-2 sm:grid-cols-2">
           <Button
             size="lg"
-            className="h-12 text-sm font-semibold"
+            className="dashboard-primary-glow h-12 text-sm font-semibold"
             onClick={handleStartMission}
             disabled={confirmProposal.isPending}
           >
@@ -414,15 +436,13 @@ export function DailyOperatorBrief({ userId }: DailyOperatorBriefProps) {
         </div>
 
         {missionCompletion.completionResult ? (
-          <div className="rounded-2xl border border-primary/20 bg-background/60 p-3">
-            <ChargeMoment
-              type={missionCompletion.completionResult.progress.type}
-              xpAwarded={Math.max(missionCompletion.completionResult.xpAwarded, mission.xpReward)}
-              progress={missionCompletion.completionResult.progress.progress}
-              totalXp={missionCompletion.completionResult.progress.totalXp}
-              level={missionCompletion.completionResult.progress.level}
-            />
-          </div>
+          <ChargeMoment
+            type={missionCompletion.completionResult.progress.type}
+            xpAwarded={Math.max(missionCompletion.completionResult.xpAwarded, mission.xpReward)}
+            progress={missionCompletion.completionResult.progress.progress}
+            totalXp={missionCompletion.completionResult.progress.totalXp}
+            level={missionCompletion.completionResult.progress.level}
+          />
         ) : null}
 
         <div className="grid grid-cols-2 gap-2">

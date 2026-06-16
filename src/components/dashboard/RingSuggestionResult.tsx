@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Check, Archive, ArrowLeft, ChevronDown } from "lucide-react";
+import { Check, Archive, ArrowLeft, ChevronDown, Share2, Zap } from "lucide-react";
 import { RING_DEFINITIONS, type RingKey } from "@/hooks/useDailyRings";
 import type { IGProofAnalysis } from "@/hooks/useIGProof";
 import { cn } from "@/lib/utils";
@@ -73,12 +73,15 @@ export const RingSuggestionResult = ({
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className={cn("rounded-xl border-2 p-3", RING_BORDER_COLORS[selectedRing], RING_BG_COLORS[selectedRing])}
+        className={cn("dashboard-os-card overflow-hidden rounded-2xl border-2 p-3", RING_BORDER_COLORS[selectedRing], RING_BG_COLORS[selectedRing])}
       >
-        <div className="flex items-center justify-between mb-2">
+        <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-lg">{def.emoji}</span>
-            <span className="text-sm font-semibold text-foreground">{def.name}</span>
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-background/70 text-2xl shadow-sm">{def.emoji}</span>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Charge Proof</p>
+              <span className="text-sm font-semibold text-foreground">{def.name}</span>
+            </div>
           </div>
           <button
             onClick={() => setShowRingPicker(!showRingPicker)}
@@ -87,7 +90,20 @@ export const RingSuggestionResult = ({
             Change <ChevronDown className="w-2.5 h-2.5" />
           </button>
         </div>
-        <p className="text-xs text-foreground/80 leading-relaxed">{proofPayload.proofLine}</p>
+        <div className="rounded-xl border border-primary/15 bg-background/70 p-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Share Card</span>
+            <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+          </div>
+          <p className="font-display text-base font-semibold text-foreground">{proofPayload.headline}</p>
+          <p className="mt-1 text-xs font-medium text-muted-foreground">{proofPayload.proofLine}</p>
+          {proofPayload.xpLabel ? (
+            <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary">
+              <Zap className="h-3 w-3" />
+              {proofPayload.xpLabel}
+            </span>
+          ) : null}
+        </div>
       </motion.div>
 
       {/* Ring picker dropdown */}
@@ -124,7 +140,7 @@ export const RingSuggestionResult = ({
           <Button
             onClick={() => onSave(selectedRing, true)}
             disabled={saving}
-            className="flex-1 gap-1.5"
+            className="dashboard-primary-glow flex-1 gap-1.5"
             size="sm"
           >
             <Check className="w-3.5 h-3.5" />

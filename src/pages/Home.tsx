@@ -247,7 +247,7 @@ export default function Home() {
   }
 
   return (
-    <div className="max-w-lg mx-auto space-y-4 pb-24">
+    <div className="mx-auto max-w-4xl space-y-4 pb-24">
       <TodayHeader
         userId={user.id}
         health={healthLatest}
@@ -270,14 +270,14 @@ export default function Home() {
       <button
         type="button"
         onClick={() => setShowFullBrief((current) => !current)}
-        className="flex w-full items-center justify-between rounded-2xl border border-border/50 bg-card px-4 py-3 text-sm font-medium text-foreground transition-colors hover:border-primary/30"
+        className="dashboard-os-card flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium text-foreground transition-colors hover:border-primary/30"
       >
         <span>Open full brief</span>
         <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showFullBrief ? "rotate-180" : ""}`} />
       </button>
 
       {showFullBrief ? (
-        <div className="space-y-4">
+        <div className="grid gap-4 lg:grid-cols-2">
           <TodaysReadCard signals={signals} />
           <ControlReleaseMoveCard
             userId={user.id}

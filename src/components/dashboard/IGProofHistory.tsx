@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Camera, Filter } from "lucide-react";
+import { Camera, CheckCircle2, Filter } from "lucide-react";
 import { useIGProof, type IGProofEntry } from "@/hooks/useIGProof";
 import { RING_DEFINITIONS, type RingKey } from "@/hooks/useDailyRings";
 import { cn } from "@/lib/utils";
@@ -29,11 +29,16 @@ export const ProofHistory = ({ userId }: ProofHistoryProps) => {
   if (!userId) return null;
 
   return (
-    <div className="space-y-3">
+    <div className="dashboard-os-card space-y-3 rounded-2xl p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Camera className="w-4 h-4 text-accent" />
-          <h3 className="text-sm font-semibold text-foreground">Proof History</h3>
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
+            <Camera className="h-4 w-4" />
+          </span>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Proof History</p>
+            <h3 className="text-sm font-semibold text-foreground">Charge receipts</h3>
+          </div>
         </div>
         <Filter className="w-3.5 h-3.5 text-muted-foreground" />
       </div>
@@ -69,9 +74,12 @@ export const ProofHistory = ({ userId }: ProofHistoryProps) => {
           <div className="w-6 h-6 rounded-full border-2 border-accent border-t-transparent animate-spin" />
         </div>
       ) : entries.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-6">
-          No proof entries yet. Add your first proof entry above.
-        </p>
+        <div className="rounded-2xl border border-dashed border-primary/25 bg-background/50 px-4 py-8 text-center">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <CheckCircle2 className="h-5 w-5" />
+          </span>
+          <p className="mt-3 text-sm font-semibold text-foreground">Proof ready when you are.</p>
+        </div>
       ) : (
         <div className="space-y-2">
           {entries.map((entry, i) => (
@@ -80,7 +88,7 @@ export const ProofHistory = ({ userId }: ProofHistoryProps) => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="flex items-start gap-3 p-3 rounded-lg border bg-card/50"
+              className="flex items-start gap-3 rounded-xl border border-primary/15 bg-background/55 p-3"
             >
               {/* Ring dot */}
               <div className={cn("w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0", RING_DOT_COLORS[entry.ring_key] || "bg-muted")} />
