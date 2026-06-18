@@ -13,7 +13,9 @@ import { PullToRefreshIndicator } from "@/components/pwa/PullToRefreshIndicator"
 import { PageShimmer } from "./PageShimmer";
 import { BottomNav, DesktopNavRail } from "./BottomNav";
 import { useLifeOSAuth, LifeOSUserContext } from "@/hooks/useLifeOSAuth";
+import { DevMockAuthBanner } from "@/components/layout/DevMockAuthBanner";
 import { useEntitlements } from "@/hooks/useEntitlements";
+import { isDevMockAuthEnabled } from "@/lib/devMockAuth";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useToast } from "@/hooks/use-toast";
@@ -63,6 +65,12 @@ export const LifeOSLayout = () => {
   } = usePullToRefresh({ onRefresh: handlePullRefresh, threshold: 80 });
 
   const handleSignOut = async () => {
+    if (isDevMockAuthEnabled()) {
+      toast({ title: "Dev mock session cleared", description: "Mock auth stays active while the env flag is on." });
+      navigate("/");
+      return;
+    }
+
     await supabase.auth.signOut();
     toast({ title: "Signed out", description: "See you tomorrow." });
     navigate("/");
@@ -119,6 +127,7 @@ export const LifeOSLayout = () => {
             </div>
           </div>
         </header>
+        <DevMockAuthBanner />
 
         {isDevMockUser ? (
           <div className="relative z-20 border-b border-amber-500/25 bg-amber-500/10 px-4 py-2 text-amber-900 dark:text-amber-200">

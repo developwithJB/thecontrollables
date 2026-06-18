@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Check, ChevronDown, Sparkles, Target, Lightbulb, ArrowRight, TrendingDown, Crown, Plus } from "lucide-react";
+import { Check, ChevronDown, Sparkles, Target, Lightbulb, ArrowRight, TrendingDown, Crown, Plus, SlidersHorizontal } from "lucide-react";
 import { CustomSnapshotCreator } from "@/components/dashboard/CustomSnapshotCreator";
 import {
   SNAPSHOTS,
@@ -43,9 +43,11 @@ export function OnboardingJourneySelection({
   const [expandedBuckets, setExpandedBuckets] = useState<Set<BucketId>>(new Set());
   const [showCustomCreator, setShowCustomCreator] = useState(false);
   const [customSnapshots, setCustomSnapshots] = useState<Snapshot[]>([]);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
 
   // Get recommended snapshot based on build
   const recommendedSnapshot = buildResult ? getRecommendedSnapshot(buildResult) : null;
+  const primarySnapshot = recommendedSnapshot ?? AGB_SNAPSHOT ?? SNAPSHOTS[0];
 
   // Get lowest controllable from build
   const lowestControllable = buildResult ? (() => {
@@ -70,6 +72,12 @@ export function OnboardingJourneySelection({
 
   const filteredSnapshots = getFilteredSnapshots();
   const goalCategories: GoalCategory[] = ["break-habit", "build-habit", "mindset"];
+
+  useEffect(() => {
+    if (!selectedSnapshot && primarySnapshot) {
+      setSelectedSnapshot(primarySnapshot);
+    }
+  }, [primarySnapshot, selectedSnapshot]);
 
   const toggleBucket = (bucketId: BucketId) => {
     const newExpanded = new Set(expandedBuckets);
@@ -173,33 +181,65 @@ export function OnboardingJourneySelection({
           className="text-center mb-6"
         >
           <h1 className="font-display text-2xl font-semibold text-foreground">
-            Pick Your First Snapshot
+            Start With This Snapshot
           </h1>
           <p className="text-muted-foreground mt-2 text-sm">
-            What do you want to work on this week?
+            We picked the clearest first week. You can browse if another direction fits better.
           </p>
         </motion.div>
 
+        {/* Primary Recommendation */}
+        {primarySnapshot && (
+          <div className="mb-4 space-y-3">
+            <div className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                Recommended Start
+              </p>
+              {renderSnapshotCard(
+                primarySnapshot,
+                recommendedSnapshot?.id === primarySnapshot.id,
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowMoreOptions((current) => !current)}
+              className="flex w-full items-center justify-between rounded-lg border border-border/60 bg-background/40 px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:border-primary/35 hover:bg-muted/30"
+              aria-expanded={showMoreOptions}
+            >
+              <span className="inline-flex items-center gap-2">
+                <SlidersHorizontal className="h-4 w-4 text-primary" />
+                View more snapshots
+              </span>
+              <ChevronDown
+                className={`h-4 w-4 text-muted-foreground transition-transform ${
+                  showMoreOptions ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+          </div>
+        )}
+
         {/* View Mode Toggle */}
-        <Tabs 
-          value={viewMode} 
-          onValueChange={(v) => {
-            setViewMode(v as "goal" | "state");
-            setSelectedGoal(null);
-            setSelectedSnapshot(null);
-          }} 
-          className="w-full flex-1 flex flex-col"
-        >
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="goal" className="flex items-center gap-1.5">
-              <Target className="w-3.5 h-3.5" />
-              By Goal
-            </TabsTrigger>
-            <TabsTrigger value="state" className="flex items-center gap-1.5">
-              <Lightbulb className="w-3.5 h-3.5" />
-              By State
-            </TabsTrigger>
-          </TabsList>
+        {showMoreOptions ? (
+          <Tabs
+            value={viewMode}
+            onValueChange={(v) => {
+              setViewMode(v as "goal" | "state");
+              setSelectedGoal(null);
+            }}
+            className="w-full flex-1 flex flex-col"
+          >
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="goal" className="flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5" />
+                By Goal
+              </TabsTrigger>
+              <TabsTrigger value="state" className="flex items-center gap-1.5">
+                <Lightbulb className="w-3.5 h-3.5" />
+                By State
+              </TabsTrigger>
+            </TabsList>
 
           {/* By Goal Tab */}
           <TabsContent value="goal" className="mt-0 flex-1 overflow-y-auto space-y-4">
@@ -404,7 +444,8 @@ export function OnboardingJourneySelection({
               })}
             </div>
           </TabsContent>
-        </Tabs>
+          </Tabs>
+        ) : null}
 
         {/* Continue button */}
         <motion.div

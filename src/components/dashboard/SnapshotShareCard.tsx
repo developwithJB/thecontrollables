@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Download, X } from "lucide-react";
+import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,63 +11,61 @@ import {
 import html2canvas from "html2canvas";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import type { ControllableType } from "@/components/ControllableCard";
+import { buildShareProofPayload } from "@/lib/shareProof";
 
-const CONTROLLABLE_THEMES: Record<string, { emoji: string; gradient: string }> = {
-  awareness: { emoji: "🦉", gradient: "from-amber-500/20 to-orange-500/20" },
-  perspective: { emoji: "🐢", gradient: "from-emerald-500/20 to-teal-500/20" },
-  habit: { emoji: "🦈", gradient: "from-blue-500/20 to-indigo-500/20" },
-  wellness: { emoji: "🛰️", gradient: "from-violet-500/20 to-purple-500/20" },
-  environment: { emoji: "🚀", gradient: "from-rose-500/20 to-pink-500/20" },
-};
+const CONTROLLABLE_TYPES: ControllableType[] = ["awareness", "perspective", "habit", "wellness", "environment"];
 
 interface SnapshotShareCardProps {
   snapshotName: string;
   controllable?: string;
   completionDate: string;
-  displayName?: string;
 }
 
-function ShareCard({ snapshotName, controllable, completionDate, displayName }: SnapshotShareCardProps) {
-  const theme = CONTROLLABLE_THEMES[controllable || "awareness"] || CONTROLLABLE_THEMES.awareness;
+function getControllableType(value?: string): ControllableType | undefined {
+  return CONTROLLABLE_TYPES.find((type) => type === value);
+}
+
+function ShareCard({ snapshotName, controllable, completionDate }: SnapshotShareCardProps) {
+  const safeControllable = getControllableType(controllable);
+  const isSeason = /season/i.test(snapshotName);
+  const payload = buildShareProofPayload({
+    kind: isSeason ? "continuous_upgrade" : "reset_completed",
+    controllable: safeControllable,
+    completedDays: isSeason ? undefined : 7,
+    visibility: "anonymous",
+  });
   const formattedDate = format(new Date(completionDate), "MMMM d, yyyy");
 
   return (
     <div
-      className={`relative w-[340px] rounded-2xl overflow-hidden bg-gradient-to-br ${theme.gradient} border border-white/10`}
+      className="relative w-[340px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950"
       style={{ backgroundColor: "hsl(var(--background))" }}
     >
-      {/* Inner card */}
-      <div className="p-8 text-center space-y-5">
-        {/* Emoji */}
-        <div className="text-5xl">{theme.emoji}</div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_16%,rgba(56,189,248,0.28),transparent_30%)]" />
+      <div className="relative p-8 text-center text-white">
+        <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-full border border-white/15 bg-white/10 shadow-[0_0_52px_rgba(56,189,248,0.22)]">
+          <span className="text-5xl" aria-hidden="true">{payload.icon}</span>
+        </div>
 
-        {/* Headline */}
-        <div>
-          <h2 className="text-xl font-bold text-foreground tracking-tight">
-            7 days. I showed up.
+        <div className="space-y-3">
+          <p className="mx-auto w-fit rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/65">
+            Proof Card
+          </p>
+          <h2 className="text-2xl font-bold leading-tight tracking-tight">
+            {payload.headline}
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">{snapshotName}</p>
+          <p className="text-sm font-medium text-white/70">{payload.proofLine}</p>
         </div>
 
-        {/* Date & name */}
-        <div className="space-y-1">
-          {displayName && (
-            <p className="text-sm font-medium text-foreground">{displayName}</p>
-          )}
-          <p className="text-xs text-muted-foreground">Completed {formattedDate}</p>
-        </div>
+        <div className="my-6 h-px bg-white/10" />
 
-        {/* Divider */}
-        <div className="w-12 h-px bg-border mx-auto" />
-
-        {/* App link */}
-        <div className="space-y-1">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-            Built with
-          </p>
-          <p className="text-sm font-semibold text-accent">
-            thecontrollables.lovable.app
-          </p>
+        <div className="flex items-end justify-between text-left">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-white/45">{payload.brandSubtitle}</p>
+            <p className="text-sm font-semibold text-white">{payload.brandTitle}</p>
+          </div>
+          <p className="text-[10px] text-white/45">{formattedDate}</p>
         </div>
       </div>
     </div>
@@ -80,7 +78,6 @@ interface SnapshotShareModalProps {
   snapshotName: string;
   controllable?: string;
   completionDate: string;
-  displayName?: string;
 }
 
 export function SnapshotShareModal({
@@ -89,7 +86,6 @@ export function SnapshotShareModal({
   snapshotName,
   controllable,
   completionDate,
-  displayName,
 }: SnapshotShareModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -130,7 +126,6 @@ export function SnapshotShareModal({
               snapshotName={snapshotName}
               controllable={controllable}
               completionDate={completionDate}
-              displayName={displayName}
             />
           </div>
 

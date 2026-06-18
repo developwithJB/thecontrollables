@@ -77,9 +77,9 @@ export function PrimaryGuidanceCard({
 
       {rosterProfile ? (
         <p className="text-sm leading-relaxed text-muted-foreground">
-          {resolvedSignals?.bossBattle
-            ? `Let the ${rosterProfile.roleLabel.toLowerCase()} steady the day while you protect your footing.`
-            : `Let the ${rosterProfile.roleLabel.toLowerCase()} carry this assist so your main quest can stay dominant.`}
+          {resolvedSignals?.chargeCheck
+            ? `Let ${rosterProfile.name} steady the day while you protect your footing.`
+            : `Let ${rosterProfile.name} carry this assist so your main quest can stay dominant.`}
         </p>
       ) : (
         <p className="text-sm leading-relaxed text-muted-foreground">

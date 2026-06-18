@@ -666,7 +666,6 @@ export const Day7Complete = ({
         snapshotName={completedJourney?.title || "7-Day Snapshot"}
         controllable={undefined}
         completionDate={endDate}
-        displayName={displayName}
       />
     </>
   );

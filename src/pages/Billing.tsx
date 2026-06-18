@@ -295,7 +295,7 @@ export default function Billing() {
                   free={true}
                 />
                 <FeatureRow 
-                  label="Evolution & Charge System"
+                  label="Charge Stage System"
                   included={true} 
                   free={true}
                 />

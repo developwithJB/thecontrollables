@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Check, Target, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import type { Database } from "@/integrations/supabase/types";
 
 const CATEGORIES = [
   { value: "work", label: "Work" },
@@ -16,11 +17,11 @@ const CATEGORIES = [
 ] as const;
 
 const REINFORCEMENTS = [
-  "Confidence grows when you keep promises to yourself.",
+  "Self-trust grows one kept promise at a time.",
   "This is proof, not theory.",
-  "Small actions build unshakeable identity.",
-  "You just edged out the Ego with action.",
-  "Proof stacks. Keep going.",
+  "One step, one habit, one choice.",
+  "Edge Out the Ego.",
+  "The Continuous Upgrade continues.",
 ];
 
 interface ProofActionCardProps {
@@ -28,8 +29,10 @@ interface ProofActionCardProps {
   onComplete: (response: string) => void;
 }
 
+type ProofActionRow = Database["public"]["Tables"]["proof_actions"]["Row"];
+
 export const ProofActionCard = ({ userId, onComplete }: ProofActionCardProps) => {
-  const [existingAction, setExistingAction] = useState<any>(null);
+  const [existingAction, setExistingAction] = useState<ProofActionRow | null>(null);
   const [proofAction, setProofAction] = useState("");
   const [category, setCategory] = useState("");
   const [reflection, setReflection] = useState("");
@@ -43,7 +46,7 @@ export const ProofActionCard = ({ userId, onComplete }: ProofActionCardProps) =>
     const load = async () => {
       // Check for today's existing proof action
       const { data } = await supabase
-        .from("proof_actions" as any)
+        .from("proof_actions")
         .select("*")
         .eq("user_id", userId)
         .eq("action_date", todayStr)
@@ -51,16 +54,16 @@ export const ProofActionCard = ({ userId, onComplete }: ProofActionCardProps) =>
 
       if (data) {
         setExistingAction(data);
-        setProofAction((data as any).proof_action);
-        setCategory((data as any).category || "");
-        setPhase((data as any).completed ? "done" : "complete");
+        setProofAction(data.proof_action);
+        setCategory(data.category || "");
+        setPhase(data.completed ? "done" : "complete");
       } else {
         setPhase("set");
       }
 
       // Calculate streak
       const { data: recent } = await supabase
-        .from("proof_actions" as any)
+        .from("proof_actions")
         .select("action_date, completed")
         .eq("user_id", userId)
         .eq("completed", true)
@@ -74,7 +77,7 @@ export const ProofActionCard = ({ userId, onComplete }: ProofActionCardProps) =>
           const checkDate = new Date(today);
           checkDate.setDate(today.getDate() - i);
           const dateStr = checkDate.toLocaleDateString("sv-SE");
-          if ((recent as any[]).some((r: any) => r.action_date === dateStr)) {
+          if (recent.some((record) => record.action_date === dateStr)) {
             s++;
           } else if (i > 0) break;
         }
@@ -87,11 +90,11 @@ export const ProofActionCard = ({ userId, onComplete }: ProofActionCardProps) =>
   const handleSetAction = async () => {
     if (!proofAction) return;
     setSaving(true);
-    const { data, error } = await supabase.from("proof_actions" as any).insert({
+    const { data, error } = await supabase.from("proof_actions").insert({
       user_id: userId,
       proof_action: proofAction,
       category: category || null,
-    } as any).select().single();
+    }).select().single();
 
     if (error) { console.error(error); setSaving(false); return; }
     setExistingAction(data);
@@ -103,9 +106,9 @@ export const ProofActionCard = ({ userId, onComplete }: ProofActionCardProps) =>
     if (!existingAction) return;
     setSaving(true);
     const { error } = await supabase
-      .from("proof_actions" as any)
-      .update({ completed: true, completed_at: new Date().toISOString(), reflection: reflection || null } as any)
-      .eq("id", (existingAction as any).id);
+      .from("proof_actions")
+      .update({ completed: true, completed_at: new Date().toISOString(), reflection: reflection || null })
+      .eq("id", existingAction.id);
 
     if (error) { console.error(error); setSaving(false); return; }
     setPhase("done");
@@ -124,7 +127,7 @@ export const ProofActionCard = ({ userId, onComplete }: ProofActionCardProps) =>
         <Trophy className="w-6 h-6 text-accent mx-auto" />
         <p className="text-sm font-medium text-foreground">"{proofAction}"</p>
         <p className="text-xs text-accent">{msg}</p>
-        {streak > 1 && <p className="text-[10px] text-muted-foreground">🔥 {streak}-day proof rhythm</p>}
+        {streak > 1 && <p className="text-[10px] text-muted-foreground">{streak}-day proof rhythm</p>}
       </motion.div>
     );
   }
@@ -133,14 +136,14 @@ export const ProofActionCard = ({ userId, onComplete }: ProofActionCardProps) =>
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Target className="w-3.5 h-3.5" />
-        <span>{phase === "set" ? "Set your proof action for today" : "Complete your proof"}</span>
+        <span>{phase === "set" ? "Keep one promise" : "Proof ready"}</span>
       </div>
 
       {phase === "set" && (
         <>
           <div>
-            <p className="text-xs font-medium text-foreground mb-1.5">What is one action that proves who you are becoming today?</p>
-            <Input value={proofAction} onChange={(e) => setProofAction(e.target.value)} placeholder="e.g. 30 min focused work, gym session, difficult conversation..." className="text-sm" />
+            <p className="text-xs font-medium text-foreground mb-1.5">Today&apos;s promise</p>
+            <Input value={proofAction} onChange={(e) => setProofAction(e.target.value)} placeholder="One small move" className="text-sm" />
           </div>
           <div>
             <p className="text-xs font-medium text-foreground mb-1.5">Category</p>
@@ -153,7 +156,7 @@ export const ProofActionCard = ({ userId, onComplete }: ProofActionCardProps) =>
             </div>
           </div>
           <Button onClick={handleSetAction} disabled={saving || !proofAction} className="w-full" size="sm">
-            {saving ? "Setting..." : "Set Proof Action"}
+            {saving ? "Saving..." : "Set Promise"}
           </Button>
         </>
       )}
@@ -161,13 +164,13 @@ export const ProofActionCard = ({ userId, onComplete }: ProofActionCardProps) =>
       {phase === "complete" && (
         <>
           <div className="rounded-lg bg-accent/5 border border-accent/20 p-3">
-            <p className="text-[10px] text-accent uppercase tracking-wide mb-1">Today's proof</p>
+            <p className="text-[10px] text-accent uppercase tracking-wide mb-1">Today&apos;s Proof</p>
             <p className="text-sm font-medium text-foreground">{proofAction}</p>
             {category && <span className="text-[10px] text-muted-foreground mt-1 inline-block bg-muted px-1.5 py-0.5 rounded">{category}</span>}
           </div>
-          <Textarea value={reflection} onChange={(e) => setReflection(e.target.value)} placeholder="What did completing this prove? (optional)" className="min-h-[40px] resize-none text-sm" />
+          <Textarea value={reflection} onChange={(e) => setReflection(e.target.value)} placeholder="Proof note (optional)" className="min-h-[40px] resize-none text-sm" />
           <Button onClick={handleComplete} disabled={saving} className="w-full gap-2" size="sm">
-            <Check className="w-3.5 h-3.5" /> {saving ? "Completing..." : "Mark as Proven"}
+            <Check className="w-3.5 h-3.5" /> {saving ? "Charging..." : "Keep Promise"}
           </Button>
         </>
       )}

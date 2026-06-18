@@ -702,7 +702,7 @@ export function TodayActions({
                   <p className="text-sm font-semibold text-foreground">All done for today</p>
                   {todayXpEarned > 0 && (
                     <p className="text-[11px] text-muted-foreground">
-                      <span className="text-primary font-medium">+{todayXpEarned} Evolution XP</span> earned
+                      <span className="text-primary font-medium">+{todayXpEarned} Charge XP</span> earned
                     </p>
                   )}
                 </div>
@@ -850,7 +850,7 @@ export function TodayActions({
               {todayXpEarned > 0 && (
                 <div className="text-center">
                   <p className="text-[11px] text-muted-foreground">
-                    <span className="text-primary font-medium">+{todayXpEarned} Evolution XP</span> earned today
+                    <span className="text-primary font-medium">+{todayXpEarned} Charge XP</span> earned today
                   </p>
                 </div>
               )}

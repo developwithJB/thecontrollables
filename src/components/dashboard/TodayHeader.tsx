@@ -43,10 +43,10 @@ function getDayTypeLabel(
   const lowRecovery = recovery !== null && recovery < 40;
 
   if (lowRecovery) return "Recovery Day";
-  if (isHeavy) return "Heavy Day";
+  if (isHeavy) return "Build Day";
   if (calendarIntel?.dayType === "focus") return "Focus Day";
-  if (calendarIntel?.dayType === "fragmented") return "Admin Day";
-  if (calendarIntel?.dayType === "light") return "Light Day";
+  if (calendarIntel?.dayType === "fragmented") return "Reset Day";
+  if (calendarIntel?.dayType === "light") return "Momentum Day";
   if (calendarIntel?.dayType === "recovery_window") return "Reset Day";
   return null;
 }
@@ -56,21 +56,23 @@ function getDaySummary(
   sleepMin: number | null,
   calendarIntel: CalendarIntelligence | null,
   hasData: boolean,
+  driftLevel?: NonNullable<TodayHeaderProps["drift"]>["driftLevel"],
 ): string {
-  if (!hasData) return "Connect your signals to see your daily overview.";
+  if (!hasData) return "Signals offline";
+  if (driftLevel === "high") return "Return to one grounded choice.";
 
   const isHeavy = calendarIntel && (calendarIntel.dayType === "heavy" || calendarIntel.dayType === "admin_heavy");
   const lowRecovery = recovery !== null && recovery < 40;
   const highRecovery = recovery !== null && recovery >= 65;
   const shortSleep = sleepMin !== null && sleepMin < 360;
 
-  if (lowRecovery && isHeavy) return "Low energy meets a packed schedule. Simplify where you can.";
-  if (lowRecovery) return "Your body needs space today. Keep it light.";
-  if (highRecovery && isHeavy) return "Good energy for a full day. Use it on what matters.";
-  if (highRecovery) return "Strong readiness. Lean into your most important work.";
-  if (isHeavy) return "Full schedule ahead. Protect your breaks.";
-  if (shortSleep) return "Short sleep — front-load important work.";
-  return "Steady conditions. Stay intentional.";
+  if (lowRecovery && isHeavy) return "Keep it light. Protect the vessel.";
+  if (lowRecovery) return "Keep it light. Protect the vessel.";
+  if (highRecovery && isHeavy) return "Strong charge. Spend it cleanly.";
+  if (highRecovery) return "Strong charge. Choose the right rep.";
+  if (isHeavy) return "Full schedule. Protect the space between.";
+  if (shortSleep) return "Short sleep. Choose the next clean rep.";
+  return "Steady charge. Stay intentional.";
 }
 
 export function TodayHeader({
@@ -113,48 +115,28 @@ export function TodayHeader({
     wearableConnected ? (health?.sleepMinutes ?? null) : null,
     calendarIntel,
     hasData,
+    drift?.driftLevel,
   );
   const driftCopy = drift ? DRIFT_LEVEL_COPY[drift.driftLevel] : null;
+  const modeLabel = dayLabel ?? (driftCopy ? driftCopy.label : "Daily Mode");
 
   const today = new Date();
   const dateStr = today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   return (
-    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="space-y-1.5 mb-2">
-      <p className="text-xs text-muted-foreground">{dateStr}</p>
-      <div className="flex items-baseline gap-3">
-        <h1 className="font-display text-2xl font-bold text-foreground">
-          {getGreeting()}{displayName ? `, ${displayName}` : ""}
-        </h1>
-        {dayLabel && (
-          <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2.5 py-0.5 rounded-full">
-            {dayLabel}
-          </span>
-        )}
-      </div>
-      <p className="text-sm text-muted-foreground leading-relaxed">{summary}</p>
-      {drift && driftCopy ? (
-        <div className="space-y-2 pt-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] font-medium text-foreground">
-              Alignment {drift.alignmentScore}
-            </span>
-            <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${driftCopy.className}`}>
-              {driftCopy.label}
-            </span>
-            {drift.returnBonusApplied ? (
-              <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
-                Re-entry counts
-              </span>
-            ) : null}
-          </div>
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            {drift.returnBonusApplied
-              ? "Coming back with one honest move still strengthens alignment."
-              : "Alignment reflects how closely your recent life matches what matters most in this season."}
-          </p>
+    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-1 rounded-2xl border border-border/40 bg-card/60 px-4 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground">{dateStr}</p>
+          <h1 className="font-display text-2xl font-bold leading-tight text-foreground">
+            {displayName ? `${getGreeting()}, ${displayName}` : getGreeting()}
+          </h1>
         </div>
-      ) : null}
+        <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+          {modeLabel}
+        </span>
+      </div>
+      <p className="mt-3 text-sm text-muted-foreground">{summary}</p>
     </motion.div>
   );
 }

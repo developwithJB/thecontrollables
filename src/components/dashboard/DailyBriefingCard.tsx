@@ -149,7 +149,7 @@ export function DailyBriefingCard({
   const secondaryLine = structured
     ? structured.day_type
     : rosterProfile
-      ? `${rosterProfile.roleLabel} energy is leading the read today.`
+      ? `${rosterProfile.name} is leading the read today.`
       : "A calm read of the day, grounded in the signals you have connected.";
 
   return (
@@ -184,7 +184,7 @@ export function DailyBriefingCard({
       <div className="flex flex-wrap items-center gap-2">
         {rosterProfile ? (
           <Badge variant="outline" className="text-[11px]">
-            {rosterProfile.roleLabel}
+            {rosterProfile.name}
           </Badge>
         ) : null}
         {dominantControllable ? (

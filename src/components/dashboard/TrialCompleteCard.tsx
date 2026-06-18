@@ -63,7 +63,7 @@ export function TrialCompleteCard({
           <div className="text-center p-3 rounded-xl bg-card/50">
             <Zap className="w-4 h-4 mx-auto mb-1 text-accent" />
             <p className="font-display font-bold text-lg text-foreground">{totalXp}</p>
-            <p className="text-[10px] text-muted-foreground">Evolution XP</p>
+            <p className="text-[10px] text-muted-foreground">Charge XP</p>
           </div>
           <div className="text-center p-3 rounded-xl bg-card/50">
             <Trophy className="w-4 h-4 mx-auto mb-1 text-amber-500" />

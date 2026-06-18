@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getLevelProgress, ALL_CONTROLLABLES } from "@/lib/controllableTheme";
+import { isDevMockAuthEnabled } from "@/lib/devMockAuth";
+import { readDevMockControllableXp } from "@/lib/devMockProgress";
 import type { ControllableType } from "@/components/ControllableCard";
 
 export interface ControllableLevel {
@@ -17,6 +19,14 @@ export function useControllableLevels(userId: string | null) {
     queryKey: ["controllable-levels", userId],
     queryFn: async (): Promise<ControllableLevel[]> => {
       if (!userId) return ALL_CONTROLLABLES.map(defaultLevel);
+      if (isDevMockAuthEnabled()) {
+        const xpMap = readDevMockControllableXp();
+        return ALL_CONTROLLABLES.map((type) => {
+          const totalXp = xpMap[type] || 0;
+          const lp = getLevelProgress(totalXp);
+          return { type, totalXp, ...lp };
+        });
+      }
 
       const { data, error } = await supabase
         .from("completed_actions")

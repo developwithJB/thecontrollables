@@ -11,7 +11,7 @@ interface NextMoveCardProps {
   wearableConnected: boolean;
 }
 
-function getBossBattleMove(hour: number): string {
+function getChargeCheckMove(hour: number): string {
   if (hour < 10) {
     return "Start gently: water, light, and one small promise before you ask for much more.";
   }
@@ -52,8 +52,8 @@ function getNextMove(
 
 export function NextMoveCard({ signals, health, calendarIntel, wearableConnected }: NextMoveCardProps) {
   const hour = new Date().getHours();
-  const move = signals?.bossBattle
-    ? getBossBattleMove(hour)
+  const move = signals?.chargeCheck
+    ? getChargeCheckMove(hour)
     : getNextMove(
         wearableConnected ? (health?.recovery ?? null) : null,
         calendarIntel,
@@ -69,7 +69,7 @@ export function NextMoveCard({ signals, health, calendarIntel, wearableConnected
       <div className="flex items-center gap-2">
         <Play className="w-4 h-4 text-primary/60" />
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          {signals?.bossBattle ? "Next steady move" : "Next best move"}
+          {signals?.chargeCheck ? "Next steady move" : "Next best move"}
         </span>
       </div>
       <p className="text-sm text-foreground leading-relaxed">{move}</p>

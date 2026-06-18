@@ -558,8 +558,8 @@ function buildRulesResponse(context: any, today: string, mode: OrchestratorMode,
 
   let dayType = operatorOnboarding.dayType ? String(operatorOnboarding.dayType).toLowerCase() : "steady execution";
   if (!operatorOnboarding.dayType) {
-    if (lowRecovery && hasHeavyDay) dayType = "low-energy heavy day";
-    else if (hasHeavyDay) dayType = "meeting-heavy day";
+    if (lowRecovery && hasHeavyDay) dayType = "protected full schedule day";
+    else if (hasHeavyDay) dayType = "full schedule day";
     else if (lowRecovery) dayType = "recovery-aware day";
     else if (plannerItems.length <= 2) dayType = "focus opportunity";
   }
@@ -603,7 +603,7 @@ function buildRulesResponse(context: any, today: string, mode: OrchestratorMode,
         scheduled_date: today,
         item_type: "task",
         energy_level: lowRecovery ? "low" : "medium",
-        description: "Created from your Daily Controllables Brief.",
+        description: "Created from Mission of the Day.",
         guide_id: "habit",
         controllable: "habit",
       },
@@ -1055,7 +1055,7 @@ async function gatherContext(admin: any, userId: string, today: string, consents
 }
 
 function buildPrompts(context: any, mode: OrchestratorMode, today: string, prompt?: string, selectedGuide: GuideLens = "full_dashboard") {
-  const systemPrompt = `You are the Daily Controllables Brief engine for The Dashboard, the companion app to The Controllables book.
+  const systemPrompt = `You are the Mission of the Day engine for The Dashboard, the companion app to The Controllables book.
 The book introduced The Dashboard as an inner operating system. The app helps the user use it in real life.
 
 Voice:

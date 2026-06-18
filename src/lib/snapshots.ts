@@ -666,7 +666,7 @@ export const SNAPSHOTS: Snapshot[] = [
     name: "New Level, New Rules",
     bucketId: "growth-expansion",
     focus: "perspective",
-    tagline: "Evolve your playbook",
+    tagline: "Upgrade your playbook",
     emoji: "🎮",
     dailyActions: [
       { day: 1, task: "Identify one rule that used to work but doesn't anymore", description: "What's outdated?" },
@@ -683,7 +683,7 @@ export const SNAPSHOTS: Snapshot[] = [
     name: "Build the Next Version",
     bucketId: "growth-expansion",
     focus: "awareness",
-    tagline: "Intentional evolution",
+    tagline: "Intentional upgrade",
     emoji: "🔨",
     dailyActions: [
       { day: 1, task: "Describe the next version of yourself", description: "Who are you becoming?" },

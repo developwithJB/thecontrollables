@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ShareableStreakCard } from "./ShareableStreakCard";
 import html2canvas from "html2canvas";
 import { useToast } from "@/hooks/use-toast";
+import { buildShareProofPayload } from "@/lib/shareProof";
 
 interface StreakCelebrationProps {
   milestone: number;
@@ -43,7 +44,7 @@ function ConfettiParticle({ emoji, delay, startX }: { emoji: string; delay: numb
   );
 }
 
-export function StreakCelebration({ milestone, xpBonus, displayName, onDismiss }: StreakCelebrationProps) {
+export function StreakCelebration({ milestone, xpBonus, onDismiss }: StreakCelebrationProps) {
   const [particles, setParticles] = useState<Array<{ id: number; emoji: string; delay: number; startX: number }>>([]);
   const [isSharing, setIsSharing] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -78,6 +79,16 @@ export function StreakCelebration({ milestone, xpBonus, displayName, onDismiss }
     }
   }, []);
 
+  const downloadBlob = useCallback((blob: Blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `streak-${milestone}-days.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Image downloaded!", description: "Share it on your socials 🔥" });
+  }, [milestone, toast]);
+
   const handleShare = useCallback(async () => {
     setIsSharing(true);
     const blob = await generateImage();
@@ -88,16 +99,25 @@ export function StreakCelebration({ milestone, xpBonus, displayName, onDismiss }
     }
 
     const file = new File([blob], `streak-${milestone}-days.png`, { type: "image/png" });
+    const payload = buildShareProofPayload({
+      kind: "charge_stage",
+      controllable: "wellness",
+      chargeStage: milestone >= 30 ? "fully charged" : "charged",
+      xp: xpBonus,
+      level: milestone,
+      visibility: "anonymous",
+    });
 
     if (navigator.share && navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({
-          title: `🔥 ${milestone}-Day Wellness Streak!`,
-          text: `I just hit a ${milestone}-day wellness streak on The Controllables!`,
+          title: payload.headline,
+          text: payload.shareText,
           files: [file],
         });
-      } catch (e: any) {
-        if (e.name !== "AbortError") {
+      } catch (error: unknown) {
+        const errorName = error instanceof Error ? error.name : "";
+        if (errorName !== "AbortError") {
           downloadBlob(blob);
         }
       }
@@ -105,17 +125,7 @@ export function StreakCelebration({ milestone, xpBonus, displayName, onDismiss }
       downloadBlob(blob);
     }
     setIsSharing(false);
-  }, [generateImage, milestone, toast]);
-
-  const downloadBlob = (blob: Blob) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `streak-${milestone}-days.png`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast({ title: "Image downloaded!", description: "Share it on your socials 🔥" });
-  };
+  }, [downloadBlob, generateImage, milestone, toast, xpBonus]);
 
   return (
     <AnimatePresence>
@@ -154,7 +164,7 @@ export function StreakCelebration({ milestone, xpBonus, displayName, onDismiss }
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              🔥 {milestone}-Day Streak!
+              Wellness Charged
             </motion.h2>
             <motion.p
               className="text-lg text-wellness font-medium mt-2"
@@ -162,7 +172,7 @@ export function StreakCelebration({ milestone, xpBonus, displayName, onDismiss }
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              +{xpBonus} XP Bonus
+              +{xpBonus} Wellness XP
             </motion.p>
           </div>
 
@@ -180,7 +190,7 @@ export function StreakCelebration({ milestone, xpBonus, displayName, onDismiss }
               disabled={isSharing}
             >
               {navigator.share ? <Share2 className="w-4 h-4" /> : <Download className="w-4 h-4" />}
-              {isSharing ? "Creating…" : "Share Streak"}
+              {isSharing ? "Creating…" : "Share Proof"}
             </Button>
             <Button size="sm" variant="ghost" onClick={onDismiss}>
               Dismiss
@@ -194,7 +204,6 @@ export function StreakCelebration({ milestone, xpBonus, displayName, onDismiss }
             ref={cardRef}
             milestone={milestone}
             xpBonus={xpBonus}
-            displayName={displayName}
           />
         </div>
       </motion.div>

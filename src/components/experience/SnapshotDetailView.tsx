@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ import { BUCKETS, getSnapshotById } from "@/lib/snapshots";
 import { toast } from "sonner";
 import { SnapshotReviewModal } from "./SnapshotReviewModal";
 import { useEntitlements } from "@/hooks/useEntitlements";
+import { buildResetProofSharePayload } from "@/lib/shareProof";
 
 interface SnapshotRecord {
   id: string;
@@ -138,8 +139,8 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
 
   const snapshot = record.snapshotId ? getSnapshotById(record.snapshotId) : null;
   const bucket = snapshot ? BUCKETS[snapshot.bucketId] : null;
-  const startDate = parseISO(record.startDate);
-  const endDate = addDays(startDate, 6);
+  const startDate = useMemo(() => parseISO(record.startDate), [record.startDate]);
+  const endDate = useMemo(() => addDays(startDate, 6), [startDate]);
   const dateRange = `${format(startDate, "MMM d")} - ${format(endDate, "d, yyyy")}`;
   
   // Check completion status
@@ -237,7 +238,7 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
     }
 
     fetchSnapshotData();
-  }, [record.id, record.startDate]);
+  }, [endDate, record.id, record.startDate, startDate]);
 
   // Calculate summary stats
   const totalXP = data?.xpLogs.reduce((sum, log) => sum + log.amount, 0) || 0;
@@ -297,35 +298,29 @@ export function SnapshotDetailView({ record, onClose }: SnapshotDetailViewProps)
 
   // Share functionality
   const handleShare = async () => {
-    const focusText = snapshot ? `Focus: ${snapshot.focus}` : "";
-    const shareText = 
-      `📊 ${snapshot?.name || "Week Record"}\n` +
-      `${dateRange}\n\n` +
-      (focusText ? `${focusText}\n` : "") +
-      `✅ ${record.daysCompleted}/7 days\n` +
-      `⚡ ${totalXP} XP\n` +
-      (promisesTotal > 0 ? `🛡️ ${promisesKept}/${promisesTotal} promises kept\n` : "") +
-      `\nA quiet place to restart → thedashboard.agbcoaching.com\n\n` +
-      `#TheDashboard`;
+    const payload = buildResetProofSharePayload({
+      completedDays: record.daysCompleted,
+      xp: totalXP,
+    });
     
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `${snapshot?.name || "Week Record"}`,
-          text: shareText,
+          title: payload.headline,
+          text: payload.shareText,
         });
         toast.success("Shared! Thanks for spreading the word 🙏");
       } catch (error) {
         // User cancelled or error
         if ((error as Error).name !== "AbortError") {
           // Fallback to clipboard
-          await navigator.clipboard.writeText(shareText);
+          await navigator.clipboard.writeText(payload.shareText);
           toast.success("Copied to clipboard — ready to share!");
         }
       }
     } else {
       // Fallback for browsers without Web Share API
-      await navigator.clipboard.writeText(shareText);
+      await navigator.clipboard.writeText(payload.shareText);
       toast.success("Copied to clipboard — ready to share!");
     }
   };

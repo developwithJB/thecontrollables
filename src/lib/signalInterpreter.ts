@@ -3,7 +3,7 @@ import type { CalendarIntelligence } from "@/lib/calendarIntelligence";
 
 export type ChargeState = "undercharged" | "stable" | "strong";
 export type SupportMode = "normal" | "protect" | "recover" | "stretch";
-export type BossBattleReason = "calendar_recovery" | "stress_run" | "sleep_strain";
+export type ChargeCheckReason = "calendar_recovery" | "stress_run" | "sleep_strain";
 
 export interface SignalCalendarInput {
   connected: boolean;
@@ -37,9 +37,9 @@ export interface SignalInterpreterInput {
   checkIn: SignalCheckInInput | null;
 }
 
-export interface BossBattleState {
+export interface ChargeCheckState {
   active: true;
-  reason: BossBattleReason;
+  reason: ChargeCheckReason;
   headline: string;
   summary: string;
   mainQuest: string;
@@ -51,7 +51,7 @@ export interface GameSignals {
   likelyControllableAtRisk: ControllableType;
   likelyControllableOpportunity: ControllableType;
   supportMode: SupportMode;
-  bossBattle: BossBattleState | null;
+  chargeCheck: ChargeCheckState | null;
   explanation: string;
   suggestedMainQuest: string;
   suggestedSupportMove: string;
@@ -181,7 +181,7 @@ function buildExplanation(
   return `Signals look mostly steady. Keep the day simple and stay responsive to what changes.`;
 }
 
-function detectBossBattle(input: SignalInterpreterInput): BossBattleState | null {
+function detectChargeCheck(input: SignalInterpreterInput): ChargeCheckState | null {
   const calendar = input.calendar;
   const wearable = input.wearable;
   const checkIn = input.checkIn;
@@ -312,7 +312,7 @@ function buildSuggestedSupportMove(
   if (mode === "stretch") {
     switch (opportunity) {
       case "habit":
-        return "Use the Builder for one decisive move while the signal is strong.";
+        return "Use Habit for one decisive rep while the signal is strong.";
       case "environment":
         return "Claim your longest focus block before admin spreads into it.";
       case "wellness":
@@ -324,9 +324,9 @@ function buildSuggestedSupportMove(
 
   switch (opportunity) {
     case "awareness":
-      return "Use the Scout for a quick read before you commit your energy.";
+      return "Use Awareness for a quick read before you commit your energy.";
     case "perspective":
-      return "Use the Translator to keep one stressor in perspective.";
+      return "Use Perspective to keep one stressor in proportion.";
     default:
       return "Choose one calm, repeatable move and let it be enough for now.";
   }
@@ -373,7 +373,7 @@ export function interpretSignals(input: SignalInterpreterInput): GameSignals | n
   const focusCalendar = calendar?.dayType === "focus";
   const lightCalendar = calendar?.dayType === "light" || calendar?.dayType === "recovery_window";
   const protectedFocus = (calendar?.longestFocusBlock ?? 0) >= 90;
-  const bossBattle = detectBossBattle(input);
+  const chargeCheck = detectChargeCheck(input);
 
   // Physical load drives charge risk first because it tends to cap the rest of the system.
   if (lowRecovery) {
@@ -435,15 +435,15 @@ export function interpretSignals(input: SignalInterpreterInput): GameSignals | n
     scores.perspective.opportunity += 1;
   }
 
-  if (bossBattle?.reason === "calendar_recovery") {
+  if (chargeCheck?.reason === "calendar_recovery") {
     scores.environment.risk += 2;
     scores.wellness.risk += 2;
     scores.awareness.risk += 1;
-  } else if (bossBattle?.reason === "stress_run") {
+  } else if (chargeCheck?.reason === "stress_run") {
     scores.awareness.risk += 2;
     scores.perspective.risk += 2;
     scores.wellness.risk += 1;
-  } else if (bossBattle?.reason === "sleep_strain") {
+  } else if (chargeCheck?.reason === "sleep_strain") {
     scores.wellness.risk += 3;
     scores.habit.risk += 1;
     scores.environment.risk += 1;
@@ -480,7 +480,7 @@ export function interpretSignals(input: SignalInterpreterInput): GameSignals | n
   } else if ((strongRecovery || (highEnergy && calmStress)) && !fragmentedCalendar && !lowEnergy) {
     chargeState = "strong";
   }
-  if (bossBattle) {
+  if (chargeCheck) {
     chargeState = "undercharged";
   }
 
@@ -492,8 +492,8 @@ export function interpretSignals(input: SignalInterpreterInput): GameSignals | n
   } else if (chargeState === "strong" && (focusCalendar || lightCalendar || protectedFocus)) {
     supportMode = "stretch";
   }
-  if (bossBattle) {
-    supportMode = bossBattle.reason === "calendar_recovery" ? "protect" : "recover";
+  if (chargeCheck) {
+    supportMode = chargeCheck.reason === "calendar_recovery" ? "protect" : "recover";
   }
 
   const likelyControllableAtRisk = pickHighest(
@@ -507,14 +507,14 @@ export function interpretSignals(input: SignalInterpreterInput): GameSignals | n
     getFallbackOpportunityMode(supportMode),
   );
 
-  const explanation = bossBattle
-    ? bossBattle.summary
+  const explanation = chargeCheck
+    ? chargeCheck.summary
     : buildExplanation(chargeState, supportMode, input);
-  const suggestedMainQuest = bossBattle
-    ? bossBattle.mainQuest
+  const suggestedMainQuest = chargeCheck
+    ? chargeCheck.mainQuest
     : buildSuggestedMainQuest(supportMode, likelyControllableAtRisk, likelyControllableOpportunity);
-  const suggestedSupportMove = bossBattle
-    ? bossBattle.supportMove
+  const suggestedSupportMove = chargeCheck
+    ? chargeCheck.supportMove
     : buildSuggestedSupportMove(supportMode, likelyControllableAtRisk, likelyControllableOpportunity);
 
   return {
@@ -522,7 +522,7 @@ export function interpretSignals(input: SignalInterpreterInput): GameSignals | n
     likelyControllableAtRisk,
     likelyControllableOpportunity,
     supportMode,
-    bossBattle,
+    chargeCheck,
     explanation,
     suggestedMainQuest,
     suggestedSupportMove,

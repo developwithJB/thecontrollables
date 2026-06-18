@@ -2,17 +2,17 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
-import { getDevMockLifeOSUser, isDevMockLifeOSAuthEnabled } from "@/lib/devAuth";
+import { getDevMockUser, isDevMockAuthEnabled } from "@/lib/devMockAuth";
 
 export function useLifeOSAuth() {
-  const isDevMockUser = isDevMockLifeOSAuthEnabled();
-  const [user, setUser] = useState<User | null>(() => (isDevMockUser ? getDevMockLifeOSUser() : null));
-  const [isLoading, setIsLoading] = useState(!isDevMockUser);
+  const devMockAuth = isDevMockAuthEnabled();
+  const [user, setUser] = useState<User | null>(() => (devMockAuth ? getDevMockUser() : null));
+  const [isLoading, setIsLoading] = useState(!devMockAuth);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isDevMockUser) {
-      setUser(getDevMockLifeOSUser());
+    if (devMockAuth) {
+      setUser(getDevMockUser());
       setIsLoading(false);
       return;
     }
@@ -62,9 +62,9 @@ export function useLifeOSAuth() {
       subscription.unsubscribe();
       clearTimeout(timeout);
     };
-  }, [isDevMockUser, navigate]);
+  }, [devMockAuth, navigate]);
 
-  return { user, isLoading, isDevMockUser };
+  return { user, isLoading, isDevMockUser: devMockAuth };
 }
 
 // Context for providing user to child pages
