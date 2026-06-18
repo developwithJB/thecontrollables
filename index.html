@@ -9,6 +9,17 @@
     <meta name="description" content="A quiet, private place to restart — and build proof you can trust yourself again.">
     <meta name="author" content="AGB Coaching" />
     <link rel="canonical" href="https://thedashboard.agbcoaching.com/" />
+    <script>
+      (() => {
+        try {
+          if (localStorage.getItem("theme") !== "light") {
+            document.documentElement.classList.add("dark");
+          }
+        } catch {
+          document.documentElement.classList.add("dark");
+        }
+      })();
+    </script>
 
     <!-- PWA meta tags -->
     <link rel="manifest" href="/manifest.webmanifest" />

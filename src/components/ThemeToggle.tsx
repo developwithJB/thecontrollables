@@ -1,25 +1,23 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Moon, Sun } from "lucide-react";
+import {
+  applyStoredThemePreference,
+  setThemePreference,
+  type ThemePreference,
+} from "@/lib/theme";
 
 export function ThemeToggle() {
-  const [isDark, setIsDark] = useState(false);
+  const [theme, setTheme] = useState<ThemePreference>("dark");
+  const isDark = theme === "dark";
 
   useEffect(() => {
-    // Check initial theme
-    const stored = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const shouldBeDark = stored === "dark" || (!stored && prefersDark);
-    
-    setIsDark(shouldBeDark);
-    document.documentElement.classList.toggle("dark", shouldBeDark);
+    setTheme(applyStoredThemePreference());
   }, []);
 
   const toggleTheme = () => {
-    const newIsDark = !isDark;
-    setIsDark(newIsDark);
-    document.documentElement.classList.toggle("dark", newIsDark);
-    localStorage.setItem("theme", newIsDark ? "dark" : "light");
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(setThemePreference(nextTheme));
   };
 
   return (

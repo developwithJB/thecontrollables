@@ -26,6 +26,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { CalendarReminderButton } from "@/components/CalendarReminderButton";
+import { getStoredThemePreference, setThemePreference } from "@/lib/theme";
 
 interface ProfileSettingsModalProps {
   open: boolean;
@@ -69,7 +70,7 @@ export function ProfileSettingsModal({
   const [nudgeFrequency, setNudgeFrequency] = useState<NudgeFrequency>("off");
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(true);
   const [pushSupported, setPushSupported] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushToggling, setPushToggling] = useState(false);
@@ -80,8 +81,7 @@ export function ProfileSettingsModal({
 
   // Detect initial theme + push support
   useEffect(() => {
-    const isDarkMode = document.documentElement.classList.contains("dark");
-    setIsDark(isDarkMode);
+    setIsDark(getStoredThemePreference() === "dark");
     setPushSupported(isPushSupported());
     if (isPushSupported()) {
       isPushSubscribed().then(setPushEnabled);
@@ -138,14 +138,7 @@ export function ProfileSettingsModal({
   const handleThemeToggle = () => {
     const newIsDark = !isDark;
     setIsDark(newIsDark);
-    
-    if (newIsDark) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
+    setThemePreference(newIsDark ? "dark" : "light");
   };
 
   const handleSignOut = async () => {
