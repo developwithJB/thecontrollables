@@ -23,42 +23,38 @@ export function useControllablesDex(userId: string | null | undefined) {
     setState(readState(storageKey));
   }, [storageKey]);
 
-  const persist = useCallback(
-    (updater: (current: ControllablesDexState) => ControllablesDexState) => {
-      setState((current) => {
-        const next = updater(current);
-        writeState(storageKey, next);
-        return next;
-      });
-    },
-    [storageKey],
-  );
-
   const addProofEntry = useCallback(
     (input: CreateDexProofEntryInput): DexProofEntry => {
       const entry = createDexProofEntry({
         ...input,
         userId: input.userId ?? userId ?? "local",
       });
-
-      persist((current) => ({
+      const current = readState(storageKey);
+      const next = {
         ...current,
-        entries: [entry, ...current.entries],
-      }));
+        entries: [entry, ...current.entries.filter((candidate) => candidate.id !== entry.id)],
+      };
+
+      writeState(storageKey, next);
+      setState(next);
 
       return entry;
     },
-    [persist, userId],
+    [storageKey, userId],
   );
 
   const deleteProofEntry = useCallback(
     (proofEntryId: string) => {
-      persist((current) => ({
+      const current = readState(storageKey);
+      const next = {
         ...current,
         entries: deleteDexProofEntry(current.entries, proofEntryId),
-      }));
+      };
+
+      writeState(storageKey, next);
+      setState(next);
     },
-    [persist],
+    [storageKey],
   );
 
   const stats = useMemo(() => getDexStats(state.entries), [state.entries]);

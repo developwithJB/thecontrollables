@@ -272,8 +272,8 @@ function normalizeDexProofEntry(value: unknown): DexProofEntry | null {
     state: source.state,
     caption: source.caption,
     visibility: source.visibility,
-    showCityOnShareCards: Boolean(source.shareSafePayload?.city || source.shareSafePayload?.state),
-    includeCaptionInShare: source.shareSafePayload?.captionIncluded === true,
+    showCityOnShareCards: false,
+    includeCaptionInShare: false,
   });
 }
 

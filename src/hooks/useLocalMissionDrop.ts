@@ -15,6 +15,7 @@ interface LocalMissionDropState {
   preferences: LocalMissionPreferences;
   startedMissionIds: string[];
   completedAtByMissionId: Record<string, string>;
+  dismissedPhotoProofMissionIds: string[];
 }
 
 export function useLocalMissionDrop(userId: string | null | undefined) {
@@ -86,6 +87,18 @@ export function useLocalMissionDrop(userId: string | null | undefined) {
     [persist],
   );
 
+  const dismissPhotoProof = useCallback(
+    (missionId: string) => {
+      persist((current) => ({
+        ...current,
+        dismissedPhotoProofMissionIds: current.dismissedPhotoProofMissionIds.includes(missionId)
+          ? current.dismissedPhotoProofMissionIds
+          : [...current.dismissedPhotoProofMissionIds, missionId],
+      }));
+    },
+    [persist],
+  );
+
   const completeMission = useCallback(
     (targetMission: LocalMission): LocalMissionCompletionResult => {
       const completedAt = state.completedAtByMissionId[targetMission.id] ?? null;
@@ -114,6 +127,7 @@ export function useLocalMissionDrop(userId: string | null | undefined) {
   );
 
   const isMissionStarted = mission ? state.startedMissionIds.includes(mission.id) : false;
+  const isPhotoProofDismissed = mission ? state.dismissedPhotoProofMissionIds.includes(mission.id) : false;
   const proofCopy = mission ? getLocalMissionProofCopy(mission, state.preferences) : null;
 
   return {
@@ -124,7 +138,9 @@ export function useLocalMissionDrop(userId: string | null | undefined) {
     updatePreferences,
     enableLocalMissions,
     startMission,
+    dismissPhotoProof,
     completeMission,
+    isPhotoProofDismissed,
   };
 }
 
@@ -167,6 +183,9 @@ function normalizeState(value: unknown): LocalMissionDropState {
             ),
           )
         : {},
+    dismissedPhotoProofMissionIds: Array.isArray(source.dismissedPhotoProofMissionIds)
+      ? source.dismissedPhotoProofMissionIds.filter((id): id is string => typeof id === "string")
+      : [],
   };
 }
 
@@ -175,5 +194,6 @@ function createDefaultState(): LocalMissionDropState {
     preferences: { ...DEFAULT_LOCAL_MISSION_PREFERENCES },
     startedMissionIds: [],
     completedAtByMissionId: {},
+    dismissedPhotoProofMissionIds: [],
   };
 }

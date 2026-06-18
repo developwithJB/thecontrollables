@@ -7,6 +7,7 @@ import {
   getDexCategorySummaries,
   getDexShareText,
   getDexStats,
+  normalizeDexProofEntries,
 } from "@/lib/controllablesDex";
 
 const localMissionPreferences: LocalMissionPreferences = {
@@ -79,6 +80,46 @@ describe("controllables dex photo proof", () => {
     expect(entry.shareSafePayload.caption).toBeUndefined();
     expect(getDexShareText(entry)).not.toContain("Chicago");
     expect(getDexShareText(entry)).not.toContain("Private wellness detail");
+  });
+
+  it("rebuilds stored proof payloads with conservative share defaults", () => {
+    const [entry] = normalizeDexProofEntries([
+      {
+        id: "proof-unsafe",
+        userId: "user-1",
+        missionId: "mission-1",
+        targetControllable: "habit",
+        imageUrl: "data:image/jpeg;base64,proof",
+        capturedAt: "2026-06-17T18:00:00.000Z",
+        city: "Chicago",
+        state: "Illinois",
+        caption: "Private caption",
+        visibility: "public",
+        exactLocationStored: false,
+        shareSafePayload: {
+          title: "Unsafe",
+          body: "Unsafe Chicago Private caption",
+          footer: "Unsafe",
+          targetControllable: "habit",
+          exactLocationStored: false,
+          captionIncluded: true,
+          caption: "Private caption",
+          city: "Chicago",
+          state: "Illinois",
+        },
+      },
+    ]);
+
+    expect(entry.shareSafePayload).toMatchObject({
+      title: "Mission Complete.",
+      body: "I charged Habit today.",
+      captionIncluded: false,
+      exactLocationStored: false,
+    });
+    expect(entry.shareSafePayload.city).toBeUndefined();
+    expect(entry.shareSafePayload.caption).toBeUndefined();
+    expect(getDexShareText(entry)).not.toContain("Chicago");
+    expect(getDexShareText(entry)).not.toContain("Private caption");
   });
 
   it("only includes city/state in share payload when explicitly enabled with public visibility", () => {

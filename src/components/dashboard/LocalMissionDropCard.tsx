@@ -11,6 +11,7 @@ import type { LocalMissionVisibility } from "@/lib/localMissionDrop";
 import { cn } from "@/lib/utils";
 import { PhotoProofCapture } from "@/components/dashboard/PhotoProofCapture";
 import { Link } from "react-router-dom";
+import { useControllablesDex } from "@/hooks/useControllablesDex";
 
 interface LocalMissionDropCardProps {
   userId: string | null;
@@ -32,14 +33,17 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
     updatePreferences,
     enableLocalMissions,
     startMission,
+    dismissPhotoProof,
     completeMission,
+    isPhotoProofDismissed,
   } = useLocalMissionDrop(userId);
+  const { entries: dexEntries } = useControllablesDex(userId);
   const [city, setCity] = useState(preferences.city);
   const [state, setState] = useState(preferences.state);
   const [visibility, setVisibility] = useState<LocalMissionVisibility>(preferences.localMissionVisibility);
   const [showPhotoProofCapture, setShowPhotoProofCapture] = useState(false);
-  const [photoProofPromptDismissed, setPhotoProofPromptDismissed] = useState(false);
   const [photoProofSaved, setPhotoProofSaved] = useState(false);
+  const hasDexProofForMission = mission ? dexEntries.some((entry) => entry.missionId === mission.id) : false;
 
   useEffect(() => {
     setCity(preferences.city);
@@ -49,7 +53,6 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
 
   useEffect(() => {
     setShowPhotoProofCapture(false);
-    setPhotoProofPromptDismissed(false);
     setPhotoProofSaved(false);
   }, [mission?.id]);
 
@@ -149,7 +152,6 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
 
     if (!result.alreadyCompleted) {
       setShowPhotoProofCapture(false);
-      setPhotoProofPromptDismissed(false);
       setPhotoProofSaved(false);
     }
   };
@@ -218,7 +220,7 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
         </Button>
       </div>
 
-      {mission.completed && !showPhotoProofCapture && !photoProofPromptDismissed && !photoProofSaved ? (
+      {mission.completed && !showPhotoProofCapture && !isPhotoProofDismissed && !photoProofSaved && !hasDexProofForMission ? (
         <div className="mt-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -231,7 +233,7 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
               <Button size="sm" onClick={() => setShowPhotoProofCapture(true)}>
                 Add Proof
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => setPhotoProofPromptDismissed(true)}>
+              <Button size="sm" variant="ghost" onClick={() => dismissPhotoProof(mission.id)}>
                 Skip
               </Button>
             </div>
@@ -251,17 +253,16 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
             onSaved={() => {
               setShowPhotoProofCapture(false);
               setPhotoProofSaved(true);
-              setPhotoProofPromptDismissed(true);
             }}
             onSkip={() => {
               setShowPhotoProofCapture(false);
-              setPhotoProofPromptDismissed(true);
+              dismissPhotoProof(mission.id);
             }}
           />
         </div>
       ) : null}
 
-      {photoProofSaved ? (
+      {photoProofSaved || hasDexProofForMission ? (
         <div className="mt-3 rounded-xl border border-border/50 bg-background/60 px-3 py-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs leading-relaxed text-muted-foreground">
