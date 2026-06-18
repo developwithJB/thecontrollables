@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Award, BookOpen, Camera, CheckCircle2, MapPin, ShieldCheck, UserRound } from "lucide-react";
+import { Award, BookOpen, Camera, CheckCircle2, MapPin, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProofEntryCard } from "@/components/dashboard/ProofEntryCard";
@@ -7,6 +7,7 @@ import { ProofHistory } from "@/components/dashboard/IGProofHistory";
 import { ControllableLevelsCard } from "@/components/dashboard/ControllableLevelsCard";
 import { useBadges } from "@/hooks/useBadges";
 import { useMyControllablesProfile } from "@/hooks/useMyControllablesProfile";
+import { useControllablesDex } from "@/hooks/useControllablesDex";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { usePageViewTracking } from "@/hooks/useAnalytics";
 import { BADGES, getAllBadgeKeys } from "@/lib/badges";
@@ -17,6 +18,7 @@ export default function Proof() {
   const user = useLifeOSUser();
   const { earnedBadges, isLoading } = useBadges(user.id);
   const { profile, stats } = useMyControllablesProfile(user.id);
+  const { stats: dexStats } = useControllablesDex(user.id);
   const earnedKeys = new Set(earnedBadges.map((badge) => badge.badge_key));
   const allBadgeKeys = getAllBadgeKeys();
 
@@ -42,6 +44,41 @@ export default function Proof() {
             <Button className="w-full md:w-auto">
               Begin the 7-Day Reset
               <BookOpen className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-border/60 bg-card px-5 py-5 shadow-sm md:px-7">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <div className="space-y-2">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">The Controllables Dex</h2>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  Collect private photo proof from completed missions. Real-life reps, saved without exact location.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary" className="gap-1 text-[11px]">
+                  <ShieldCheck className="h-3 w-3" />
+                  Private-first
+                </Badge>
+                <Badge variant="outline" className="gap-1 text-[11px]">
+                  <Camera className="h-3 w-3" />
+                  {dexStats.totalProofCount} photo proof
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          <Link to="/proof/dex">
+            <Button className="w-full gap-2 md:w-auto">
+              Open Dex
+              <Sparkles className="h-4 w-4" />
             </Button>
           </Link>
         </div>

@@ -9,6 +9,8 @@ import { useLocalMissionDrop } from "@/hooks/useLocalMissionDrop";
 import { getBookControllable } from "@/lib/bookWorld";
 import type { LocalMissionVisibility } from "@/lib/localMissionDrop";
 import { cn } from "@/lib/utils";
+import { PhotoProofCapture } from "@/components/dashboard/PhotoProofCapture";
+import { Link } from "react-router-dom";
 
 interface LocalMissionDropCardProps {
   userId: string | null;
@@ -35,12 +37,21 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
   const [city, setCity] = useState(preferences.city);
   const [state, setState] = useState(preferences.state);
   const [visibility, setVisibility] = useState<LocalMissionVisibility>(preferences.localMissionVisibility);
+  const [showPhotoProofCapture, setShowPhotoProofCapture] = useState(false);
+  const [photoProofPromptDismissed, setPhotoProofPromptDismissed] = useState(false);
+  const [photoProofSaved, setPhotoProofSaved] = useState(false);
 
   useEffect(() => {
     setCity(preferences.city);
     setState(preferences.state);
     setVisibility(preferences.localMissionVisibility);
   }, [preferences.city, preferences.localMissionVisibility, preferences.state]);
+
+  useEffect(() => {
+    setShowPhotoProofCapture(false);
+    setPhotoProofPromptDismissed(false);
+    setPhotoProofSaved(false);
+  }, [mission?.id]);
 
   if (!preferences.localMissionsEnabled) {
     const canEnable = Boolean(city.trim() || state.trim());
@@ -135,6 +146,12 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
         ? "Today's local proof was already counted."
         : `+${result.xpAwarded} ${guide.name} XP and +${result.selfTrustAwarded} Self-Trust.`,
     });
+
+    if (!result.alreadyCompleted) {
+      setShowPhotoProofCapture(false);
+      setPhotoProofPromptDismissed(false);
+      setPhotoProofSaved(false);
+    }
   };
 
   const copyProof = async () => {
@@ -200,6 +217,64 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
           Copy proof
         </Button>
       </div>
+
+      {mission.completed && !showPhotoProofCapture && !photoProofPromptDismissed && !photoProofSaved ? (
+        <div className="mt-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Collect this rep in your Dex?</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Add one private photo as proof of the real-life mission.
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Button size="sm" onClick={() => setShowPhotoProofCapture(true)}>
+                Add Proof
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setPhotoProofPromptDismissed(true)}>
+                Skip
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showPhotoProofCapture ? (
+        <div className="mt-3">
+          <PhotoProofCapture
+            userId={userId}
+            missionId={mission.id}
+            targetControllable={mission.targetControllable}
+            city={mission.city}
+            state={mission.state}
+            visibility="private"
+            onSaved={() => {
+              setShowPhotoProofCapture(false);
+              setPhotoProofSaved(true);
+              setPhotoProofPromptDismissed(true);
+            }}
+            onSkip={() => {
+              setShowPhotoProofCapture(false);
+              setPhotoProofPromptDismissed(true);
+            }}
+          />
+        </div>
+      ) : null}
+
+      {photoProofSaved ? (
+        <div className="mt-3 rounded-xl border border-border/50 bg-background/60 px-3 py-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Photo proof saved privately to The Controllables Dex.
+            </p>
+            <Link to="/proof/dex">
+              <Button size="sm" variant="outline">
+                Open Dex
+              </Button>
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-3 rounded-xl border border-border/50 bg-background/60 px-3 py-3">
         <label className="flex items-start gap-2">
