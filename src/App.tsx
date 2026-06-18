@@ -11,6 +11,7 @@ import { AnimatePresence } from "framer-motion";
 import { onboardingQuickStartEnabled } from "@/lib/featureFlags";
 import { LifeOSLayout } from "@/components/layout/LifeOSLayout";
 import { APP_ROUTES } from "@/lib/appRoutes";
+import { applyStoredThemePreference } from "@/lib/theme";
 
 declare global {
   interface Window {
@@ -118,12 +119,7 @@ const App = () => {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else if (savedTheme === "light") {
-      document.documentElement.classList.remove("dark");
-    }
+    applyStoredThemePreference();
   }, []);
 
   useEffect(() => {

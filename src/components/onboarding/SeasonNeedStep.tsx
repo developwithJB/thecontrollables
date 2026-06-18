@@ -35,30 +35,27 @@ export function SeasonNeedStep({
   );
 
   return (
-    <div className="space-y-5">
-      <div className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          What This Season Needs Most
+    <div className="space-y-4">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+          Training Focus
         </p>
-        <h1 className="font-display text-[1.7rem] font-semibold leading-tight text-foreground">
-          Where should we begin?
+        <h1 className="mt-1 font-display text-2xl font-semibold leading-tight text-foreground">
+          Start with {recommended.label}.
         </h1>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          We’d start with <span className="font-medium text-foreground">{recommended.label}</span> for this season.
-        </p>
       </div>
 
       <button
         type="button"
         onClick={() => onSelectNeed(recommended.type)}
-        className={`w-full rounded-lg border px-5 py-5 text-left transition-all ${
+        className={`w-full rounded-xl border px-4 py-4 text-left transition-all ${
           selectedIsRecommended
             ? "border-primary/70 bg-primary/10 shadow-[0_0_0_1px_hsl(var(--primary)/0.18)]"
             : "border-primary/25 bg-primary/5 hover:border-primary/45"
         }`}
       >
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-background/70 text-2xl shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-background/70 text-2xl shadow-sm">
             {recommended.emoji}
           </div>
           <div className="min-w-0 flex-1">
@@ -74,7 +71,7 @@ export function SeasonNeedStep({
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
               {NEED_COPY[recommended.type]}
             </p>
-            <div className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-primary">
+            <div className="mt-3 inline-flex items-center gap-2 text-xs font-medium text-primary">
               <CheckCircle2 className="h-4 w-4" />
               {selectedIsRecommended ? "Selected for this season" : "Use suggested focus"}
             </div>
@@ -101,11 +98,11 @@ export function SeasonNeedStep({
         </div>
       ) : null}
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         <button
           type="button"
           onClick={() => setShowOptions((current) => !current)}
-          className="flex w-full items-center justify-between rounded-lg border border-border/60 bg-background/40 px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:border-primary/35 hover:bg-muted/30"
+          className="flex w-full items-center justify-between rounded-xl border border-border/60 bg-background/40 px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:border-primary/35 hover:bg-muted/30"
           aria-expanded={showOptions}
         >
           <span className="inline-flex items-center gap-2">
@@ -123,7 +120,7 @@ export function SeasonNeedStep({
         </button>
 
         {showOptions ? (
-          <div className="space-y-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             {alternateOptions.map((controllable) => {
               const isSelected = controllable.type === selectedNeed;
 
@@ -132,14 +129,14 @@ export function SeasonNeedStep({
                   key={controllable.type}
                   type="button"
                   onClick={() => onSelectNeed(controllable.type)}
-                  className={`w-full rounded-lg border px-4 py-3 text-left transition-all ${
+                  className={`w-full rounded-xl border px-3 py-3 text-left transition-all ${
                     isSelected
                       ? "border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]"
                       : "border-border/60 bg-card/70 hover:border-primary/30"
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted/50 text-xl">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/50 text-lg">
                       {controllable.emoji}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -151,7 +148,7 @@ export function SeasonNeedStep({
                           <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
                         ) : null}
                       </div>
-                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
                         {NEED_COPY[controllable.type]}
                       </p>
                     </div>

@@ -133,34 +133,29 @@ function SnapshotRecommendationStep({
     ) ?? recommendation.snapshot;
   const selectedIsRecommended =
     selectedSnapshot.id === recommendation.snapshot.id;
-  const selectedNeedLabel =
-    CONTROLLABLE_LIST.find((item) => item.type === selectedNeed)?.label ?? "this focus";
 
   return (
-    <div className="space-y-5">
-      <div className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          Recommended Region
+    <div className="space-y-4">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+          7-Day Reset
         </p>
-        <h1 className="font-display text-[1.7rem] font-semibold leading-tight text-foreground">
+        <h1 className="mt-1 font-display text-2xl font-semibold leading-tight text-foreground">
           Start in {recommendation.region.label}
         </h1>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          Based on this season, <span className="font-medium text-foreground">{selectedNeedLabel}</span> is the clearest place to begin.
-        </p>
       </div>
 
       <button
         type="button"
         onClick={() => onSelectSnapshot(recommendation.snapshot.id)}
-        className={`w-full rounded-lg border px-5 py-5 text-left transition-all ${
+        className={`w-full rounded-xl border px-4 py-4 text-left transition-all ${
           selectedIsRecommended
             ? "border-primary/70 bg-primary/10 shadow-[0_0_0_1px_hsl(var(--primary)/0.18)]"
             : "border-primary/25 bg-primary/5 hover:border-primary/45"
         }`}
       >
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-background/70 text-2xl shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-background/70 text-2xl shadow-sm">
             {recommendation.snapshot.emoji}
           </div>
           <div className="min-w-0 flex-1">
@@ -176,10 +171,10 @@ function SnapshotRecommendationStep({
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
               {recommendation.snapshot.tagline}
             </p>
-            <p className="mt-3 text-xs leading-relaxed text-foreground">
+            <p className="mt-2 text-xs leading-5 text-foreground">
               {recommendation.region.description}
             </p>
-            <div className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-primary">
+            <div className="mt-3 inline-flex items-center gap-2 text-xs font-medium text-primary">
               <CheckCircle2 className="h-4 w-4" />
               {selectedIsRecommended ? "Selected for your start" : "Use recommended region"}
             </div>
@@ -206,11 +201,11 @@ function SnapshotRecommendationStep({
         </div>
       ) : null}
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         <button
           type="button"
           onClick={() => setShowOptions((current) => !current)}
-          className="flex w-full items-center justify-between rounded-lg border border-border/60 bg-background/40 px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:border-primary/35 hover:bg-muted/30"
+          className="flex w-full items-center justify-between rounded-xl border border-border/60 bg-background/40 px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:border-primary/35 hover:bg-muted/30"
           aria-expanded={showOptions}
         >
           <span className="inline-flex items-center gap-2">
@@ -228,7 +223,7 @@ function SnapshotRecommendationStep({
         </button>
 
         {showOptions ? (
-          <div className="space-y-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             {alternateOptions.map((snapshot) => {
               const isSelected = selectedSnapshotId === snapshot.id;
               const region = getRegionForBucket(snapshot.bucketId);
@@ -238,14 +233,14 @@ function SnapshotRecommendationStep({
                   key={snapshot.id}
                   type="button"
                   onClick={() => onSelectSnapshot(snapshot.id)}
-                  className={`w-full rounded-lg border px-4 py-3 text-left transition-all ${
+                  className={`w-full rounded-xl border px-3 py-3 text-left transition-all ${
                     isSelected
                       ? "border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]"
                       : "border-border/60 bg-card/70 hover:border-primary/30"
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted/50 text-xl">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/50 text-lg">
                       {snapshot.emoji}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -257,7 +252,7 @@ function SnapshotRecommendationStep({
                           <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
                         ) : null}
                       </div>
-                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
                         {snapshot.tagline}
                       </p>
                       <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">
@@ -299,20 +294,17 @@ function CreateAccountStep({
   );
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+    <div className="space-y-4">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
           Your 7-Day Reset
         </p>
-        <h1 className="font-display text-2xl font-semibold text-foreground">
+        <h1 className="mt-1 font-display text-2xl font-semibold leading-tight text-foreground">
           Your Controllables Reset is ready
         </h1>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          Create your account and we&apos;ll keep this season, your starter team, and your first practice path ready for you.
-        </p>
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-border/60 bg-card px-5 py-5">
+      <div className="space-y-3 rounded-2xl border border-border/60 bg-card/85 px-4 py-4">
         <div className="flex items-start justify-between gap-3 border-b border-border/50 pb-3">
           <div>
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
@@ -325,12 +317,12 @@ function CreateAccountStep({
           <Check className="h-4 w-4 text-primary" />
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2">
           <div>
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
               Season
             </p>
-            <p className="mt-1 text-sm font-medium text-foreground">
+            <p className="mt-1 text-xs font-medium leading-5 text-foreground sm:text-sm">
               {season.label}
             </p>
           </div>
@@ -338,7 +330,7 @@ function CreateAccountStep({
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
               Focus
             </p>
-            <p className="mt-1 text-sm font-medium text-foreground">
+            <p className="mt-1 text-xs font-medium leading-5 text-foreground sm:text-sm">
               {selectedNeedLabel}
             </p>
           </div>
@@ -346,23 +338,23 @@ function CreateAccountStep({
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
               Region
             </p>
-            <p className="mt-1 text-sm font-medium text-foreground">
+            <p className="mt-1 text-xs font-medium leading-5 text-foreground sm:text-sm">
               {regionLabel ?? "Ready"}
             </p>
           </div>
         </div>
 
         {selectedSnapshot ? (
-          <div className="rounded-xl bg-muted/30 px-4 py-4">
+          <div className="rounded-xl bg-muted/30 px-3 py-3">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-card text-xl">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-card text-lg">
                 {selectedSnapshot.emoji}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-foreground">
                   {selectedSnapshot.name}
                 </p>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
                   {selectedSnapshot.tagline}
                 </p>
               </div>
@@ -619,101 +611,168 @@ export default function QuickStart() {
     return null;
   };
 
+  const progressValue = ((stepIndex + 1) / STEP_ORDER.length) * 100;
+
   return (
-    <div className="min-h-screen bg-background px-4 py-6 sm:px-6 sm:py-8">
-      <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-lg items-center justify-center">
-        <div className="w-full rounded-2xl border border-border/70 bg-card/95 p-5 shadow-[0_24px_80px_-48px_hsl(var(--foreground)/0.45)] backdrop-blur sm:p-6">
-          <div className="mb-7 space-y-4">
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={handleBack}
-                className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/60 bg-background/35 text-muted-foreground transition-colors ${
-                  stepIndex > 0
-                    ? "hover:border-primary/30 hover:text-foreground"
-                    : "pointer-events-none opacity-0"
-                }`}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </button>
-              <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-                Step {stepIndex + 1} of {STEP_ORDER.length}
-              </p>
-            </div>
-            <Progress
-              value={((stepIndex + 1) / STEP_ORDER.length) * 100}
-              className="h-1.5 bg-muted/60"
-            />
-            <p className="text-sm font-medium text-muted-foreground">
-              {STEP_LABELS[step]}
-            </p>
-            <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                Chapter 2
-              </p>
-              <p className="mt-1 text-sm font-medium text-foreground">
-                You finished the book. Now the practice begins.
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                You&apos;ve met the 5 Controllables. Start with one honest read of where you are today.
-              </p>
+    <div className="relative min-h-screen overflow-hidden bg-background px-3 py-3 text-foreground sm:px-6 sm:py-6">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_12%,hsl(var(--primary)/0.18),transparent_34%),radial-gradient(circle_at_80%_0%,hsl(var(--wellness)/0.12),transparent_30%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(hsl(var(--primary)/0.045)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--primary)/0.035)_1px,transparent_1px)] bg-[size:64px_64px] opacity-60" />
+
+      <div className="relative mx-auto grid min-h-[calc(100vh-1.5rem)] w-full max-w-6xl items-center gap-5 lg:grid-cols-[0.78fr_1fr]">
+        <aside className="hidden lg:block">
+          <div className="dashboard-os-surface rounded-[2rem] p-6">
+            <div className="relative z-10 space-y-7">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+                  Quick Start
+                </p>
+                <h2 className="mt-3 font-display text-4xl font-semibold leading-tight text-foreground">
+                  Find your Starting Charge.
+                </h2>
+                <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                  A focused path from honest read to Mission 001.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {STEP_ORDER.slice(0, 4).map((item, index) => (
+                  <div
+                    key={item}
+                    className={`rounded-2xl border px-4 py-3 ${
+                      index <= stepIndex
+                        ? "border-primary/35 bg-primary/10"
+                        : "border-border/50 bg-background/35"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-semibold text-foreground">
+                        {STEP_LABELS[item]}
+                      </span>
+                      <span className="font-mono text-xs text-muted-foreground">
+                        0{index + 1}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-2xl border border-primary/20 bg-background/45 px-4 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+                  Chapter 2
+                </p>
+                <p className="mt-2 text-sm font-medium text-foreground">
+                  You finished the book. Now the practice begins.
+                </p>
+              </div>
             </div>
           </div>
+        </aside>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={step}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-            >
-              {renderStep()}
-            </motion.div>
-          </AnimatePresence>
+        <div className="mx-auto w-full max-w-2xl">
+          <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-card/85 p-4 shadow-[0_32px_120px_-62px_hsl(var(--primary)/0.75)] backdrop-blur-2xl sm:p-5">
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,hsl(var(--primary)/0.10),transparent_42%)]" />
+            <div className="relative z-10">
+              <div className="mb-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/60 bg-background/45 text-muted-foreground shadow-sm transition-colors ${
+                      stepIndex > 0
+                        ? "hover:border-primary/40 hover:text-foreground"
+                        : "pointer-events-none opacity-0"
+                    }`}
+                    aria-label="Go back"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                  <div className="rounded-full border border-border/60 bg-background/45 px-3 py-1.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                      Step {stepIndex + 1} of {STEP_ORDER.length}
+                    </p>
+                  </div>
+                </div>
+                <Progress
+                  value={progressValue}
+                  className="h-2 bg-muted/70 [&>div]:bg-primary"
+                />
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-foreground">
+                    {STEP_LABELS[step]}
+                  </p>
+                  <div className="flex gap-1.5" aria-hidden="true">
+                    {STEP_ORDER.map((item, index) => (
+                      <span
+                        key={item}
+                        className={`h-1.5 w-6 rounded-full transition-colors ${
+                          index <= stepIndex ? "bg-primary" : "bg-muted"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
 
-          {step === "cta" ? (
-            <div className="mt-8 flex gap-3">
-              <Button variant="outline" className="h-12 flex-1" onClick={handleBack}>
-                Back
-              </Button>
-              <Link
-                to="/auth?mode=signup"
-                className="flex-1"
-                onClick={() => {
-                  trackEvent("cta", "quick_start_create_account_clicked", {
-                    snapshot_id: selectedSnapshot?.id ?? null,
-                    season_key: season?.key ?? null,
-                    season_need: selectedNeed ?? null,
-                  });
-                }}
-              >
-                <Button className="h-12 w-full">
-                  Create account
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={step}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {renderStep()}
+                </motion.div>
+              </AnimatePresence>
+
+              {step === "cta" ? (
+                <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                  <Button
+                    variant="outline"
+                    className="h-11 rounded-xl border-border/70 bg-background/45"
+                    onClick={handleBack}
+                  >
+                    Back
+                  </Button>
+                  <Link
+                    to="/auth?mode=signup"
+                    onClick={() => {
+                      trackEvent("cta", "quick_start_create_account_clicked", {
+                        snapshot_id: selectedSnapshot?.id ?? null,
+                        season_key: season?.key ?? null,
+                        season_need: selectedNeed ?? null,
+                      });
+                    }}
+                  >
+                    <Button className="dashboard-primary-glow h-11 w-full rounded-xl">
+                      Create account
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                  <Button
+                    variant="outline"
+                    className="h-11 rounded-xl border-border/70 bg-background/45"
+                    onClick={handleBack}
+                    disabled={stepIndex === 0}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    className="dashboard-primary-glow h-11 rounded-xl"
+                    onClick={handleContinue}
+                    disabled={!canContinue}
+                  >
+                    {STEP_CTA_LABELS[step as Exclude<QuickStartStep, "cta">]}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="mt-8 flex gap-3">
-              <Button
-                variant="outline"
-                className="h-12 flex-1"
-                onClick={handleBack}
-                disabled={stepIndex === 0}
-              >
-                Back
-              </Button>
-              <Button
-                className="h-12 flex-1"
-                onClick={handleContinue}
-                disabled={!canContinue}
-              >
-                {STEP_CTA_LABELS[step as Exclude<QuickStartStep, "cta">]}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
