@@ -3,6 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getFeatureFlag } from "@/lib/featureFlags";
 import { isDevMockAuthEnabled } from "@/lib/devMockAuth";
+import {
+  RESET_ONBOARDING_ENTRY_STEP,
+  getEffectiveOnboardingStep,
+  shouldForceNewOnboardingExperience,
+} from "@/lib/onboardingReset";
 import type { DailyOperatorOnboardingAnswers } from "@/lib/operatorOnboarding";
 
 export type FirstActionType = "quest" | "operator" | "rep";
@@ -45,23 +50,15 @@ export const useOnboarding = (userId: string | null) => {
       if (error) throw error;
       if (data) return data as unknown as UserOnboarding;
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("created_at")
-        .eq("id", userId)
-        .maybeSingle();
-
-      const createdAt = typeof profile?.created_at === "string" ? new Date(profile.created_at).getTime() : Date.now();
-      const shouldTreatAsReturning = Date.now() - createdAt > 24 * 60 * 60 * 1000;
       const { data: created, error: createError } = await supabase
         .from("user_onboarding")
         .insert({
           user_id: userId,
-          simplified_mode_completed: shouldTreatAsReturning,
-          onboarding_step: shouldTreatAsReturning ? "completed" : null,
+          simplified_mode_completed: false,
+          onboarding_step: RESET_ONBOARDING_ENTRY_STEP,
           build_assessment_completed: false,
-          operator_onboarding_completed: shouldTreatAsReturning,
-          operator_onboarding_completed_at: shouldTreatAsReturning ? new Date().toISOString() : null,
+          operator_onboarding_completed: false,
+          operator_onboarding_completed_at: null,
         })
         .select()
         .single();
@@ -91,6 +88,9 @@ export const useOnboarding = (userId: string | null) => {
     : fetchedOnboarding ?? null;
   const isLoading = devMock ? false : fetchedOnboardingLoading;
 
+  const forceNewOnboardingExperience = shouldForceNewOnboardingExperience(onboarding);
+  const effectiveOnboardingStep = getEffectiveOnboardingStep(onboarding, RESET_ONBOARDING_ENTRY_STEP) as OnboardingStep | null;
+
   // Check if user is in simplified mode (new user)
   const isSimplifiedMode = !onboarding?.simplified_mode_completed;
   
@@ -98,8 +98,7 @@ export const useOnboarding = (userId: string | null) => {
   const needsOnboarding =
     quickStartEnabled &&
     onboarding &&
-    onboarding.onboarding_step !== "completed" &&
-    onboarding.onboarding_step !== null;
+    (forceNewOnboardingExperience || onboarding.onboarding_step !== "completed");
 
   // Create onboarding record if it doesn't exist (for new users, starts onboarding flow)
   const ensureOnboardingRecord = async () => {
@@ -115,7 +114,7 @@ export const useOnboarding = (userId: string | null) => {
       await supabase.from("user_onboarding").insert({
         user_id: userId,
         simplified_mode_completed: false,
-        onboarding_step: null,
+        onboarding_step: RESET_ONBOARDING_ENTRY_STEP,
         build_assessment_completed: false,
         operator_onboarding_completed: false,
       });
@@ -268,8 +267,8 @@ export const useOnboarding = (userId: string | null) => {
     isLoading,
     isSimplifiedMode,
     needsOnboarding,
-    needsDailyOperatorOnboarding: onboarding?.operator_onboarding_completed === false,
-    currentOnboardingStep: quickStartEnabled ? onboarding?.onboarding_step || null : null,
+    needsDailyOperatorOnboarding: !needsOnboarding && onboarding?.operator_onboarding_completed === false,
+    currentOnboardingStep: quickStartEnabled ? effectiveOnboardingStep : null,
     journeyControllable: onboarding?.journey_controllable || null,
     ensureOnboardingRecord,
     updateOnboardingProgress: updateOnboardingProgressMutation.mutateAsync,

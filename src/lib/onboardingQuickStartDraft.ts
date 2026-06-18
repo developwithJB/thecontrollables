@@ -2,6 +2,7 @@ import type { Controllable } from "./snapshots";
 import type { LifeSeasonKey } from "./lifePerspective";
 
 export interface OnboardingQuickStartDraft {
+  version: string;
   currentStep?: string | null;
   mission?: string;
   birthday?: string | null;
@@ -18,6 +19,7 @@ export interface OnboardingQuickStartDraft {
   updatedAt: string;
 }
 
+export const ONBOARDING_QUICK_START_DRAFT_VERSION = "2026-06-18-controllables-relaunch";
 const DRAFT_KEY = "onboarding_quick_start_draft";
 
 const getStorage = () => {
@@ -37,7 +39,13 @@ export const getOnboardingQuickStartDraft = (): OnboardingQuickStartDraft | null
     const raw = storage.getItem(DRAFT_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<OnboardingQuickStartDraft>;
+    if (parsed.version !== ONBOARDING_QUICK_START_DRAFT_VERSION) {
+      storage.removeItem(DRAFT_KEY);
+      return null;
+    }
+
     return {
+      version: ONBOARDING_QUICK_START_DRAFT_VERSION,
       mission: parsed.mission ?? "",
       currentStep: parsed.currentStep ?? null,
       birthday: parsed.birthday ?? null,
@@ -74,6 +82,7 @@ export const saveOnboardingQuickStartDraft = (
   };
 
   const payload: OnboardingQuickStartDraft = {
+    version: ONBOARDING_QUICK_START_DRAFT_VERSION,
     mission: pick("mission", ""),
     currentStep: pick("currentStep", null),
     birthday: pick("birthday", null),

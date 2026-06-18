@@ -1,0 +1,77 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  ONBOARDING_QUICK_START_DRAFT_VERSION,
+  clearOnboardingQuickStartDraft,
+  getOnboardingQuickStartDraft,
+  saveOnboardingQuickStartDraft,
+} from "@/lib/onboardingQuickStartDraft";
+
+const createMemoryStorage = (): Storage => {
+  let values: Record<string, string> = {};
+
+  return {
+    get length() {
+      return Object.keys(values).length;
+    },
+    clear: () => {
+      values = {};
+    },
+    getItem: (key: string) => values[key] ?? null,
+    key: (index: number) => Object.keys(values)[index] ?? null,
+    removeItem: (key: string) => {
+      delete values[key];
+    },
+    setItem: (key: string, value: string) => {
+      values[key] = value;
+    },
+  };
+};
+
+describe("onboarding quick start draft", () => {
+  let storage: Storage;
+
+  beforeEach(() => {
+    storage = createMemoryStorage();
+    vi.stubGlobal("window", {
+      localStorage: storage,
+      sessionStorage: storage,
+    });
+  });
+
+  afterEach(() => {
+    clearOnboardingQuickStartDraft();
+    vi.unstubAllGlobals();
+  });
+
+  it("saves drafts with the current onboarding version", () => {
+    saveOnboardingQuickStartDraft({
+      birthday: "1994-02-10",
+      mission: "Keep one honest promise",
+      snapshotId: "rebuild-confidence-agb",
+      snapshotName: "Rebuild Confidence",
+    });
+
+    expect(getOnboardingQuickStartDraft()).toMatchObject({
+      version: ONBOARDING_QUICK_START_DRAFT_VERSION,
+      birthday: "1994-02-10",
+      mission: "Keep one honest promise",
+      snapshotId: "rebuild-confidence-agb",
+    });
+  });
+
+  it("clears stale drafts from the old onboarding experience", () => {
+    storage.setItem(
+      "onboarding_quick_start_draft",
+      JSON.stringify({
+        birthday: "1994-02-10",
+        mission: "Old partial onboarding",
+        snapshotId: "rebuild-confidence-agb",
+        snapshotName: "Rebuild Confidence",
+        updatedAt: "2026-06-17T00:00:00.000Z",
+      }),
+    );
+
+    expect(getOnboardingQuickStartDraft()).toBeNull();
+    expect(storage.getItem("onboarding_quick_start_draft")).toBeNull();
+  });
+});
