@@ -262,6 +262,16 @@ supabase functions serve
 
 This is the best option if you want to work on schema or edge functions.
 
+## Onboarding Relaunch Reset
+
+The June 18, 2026 Controllables relaunch intentionally sends users through the new first-run experience again.
+
+- Frontend reset gate: `src/lib/onboardingReset.ts`
+- Local draft version: `src/lib/onboardingQuickStartDraft.ts`
+- Database reset migration: `supabase/migrations/20260618124500_reset_onboarding_for_controllables_relaunch.sql`
+
+The reset only touches `user_onboarding` state and stale local quick-start drafts. It does not delete accounts, mission history, XP, Dex proof, journals, wellness, money, calendar data, AI memories, badges, certificates, or private reflections.
+
 ## Server-Side Secrets
 
 Several app capabilities depend on Supabase Edge Functions and server-side secrets.
