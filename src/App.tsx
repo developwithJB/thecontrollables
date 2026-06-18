@@ -27,6 +27,7 @@ const Home = lazy(() => import("./pages/Home"));
 const MyControllables = lazy(() => import("./pages/MyControllables"));
 const Train = lazy(() => import("./pages/Train"));
 const Proof = lazy(() => import("./pages/Proof"));
+const ControllablesDex = lazy(() => import("./pages/ControllablesDex"));
 const Wellness = lazy(() => import("./pages/Wellness"));
 const Growth = lazy(() => import("./pages/Growth"));
 const Reflect = lazy(() => import("./pages/Reflect"));
@@ -86,6 +87,8 @@ const AppContent = () => {
             <Route path={APP_ROUTES.myControllables} element={<MyControllables />} />
             <Route path={APP_ROUTES.train} element={<Train />} />
             <Route path={APP_ROUTES.proof} element={<Proof />} />
+            <Route path={APP_ROUTES.proofDex} element={<ControllablesDex />} />
+            <Route path={APP_ROUTES.dex} element={<ControllablesDex />} />
             <Route path={APP_ROUTES.wellness} element={<Wellness />} />
             <Route path={APP_ROUTES.planner} element={<Planner />} />
             <Route path={APP_ROUTES.growth} element={<Growth />} />

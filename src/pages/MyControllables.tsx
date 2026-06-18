@@ -38,57 +38,57 @@ export default function MyControllables() {
     <div className="mx-auto max-w-6xl space-y-4 pb-24">
       <header className="dashboard-os-surface rounded-[2rem] p-5 sm:p-6">
         <div className="relative z-10">
-        <div className="pointer-events-none absolute inset-x-0 top-0 grid grid-cols-5 gap-px opacity-70">
-          {roster.map((visual) => (
-            <span key={visual.type} className="h-px" style={{ backgroundColor: visual.color }} />
-          ))}
-        </div>
-        <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-[inset_0_0_22px_hsl(var(--primary)/0.1)]">
-                <BatteryCharging className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">The Dashboard</p>
-                <h1 className="dashboard-neon-accent font-display text-4xl font-bold leading-tight">My Controllables</h1>
+          <div className="pointer-events-none absolute inset-x-0 top-0 grid grid-cols-5 gap-px opacity-70">
+            {roster.map((visual) => (
+              <span key={visual.type} className="h-px" style={{ backgroundColor: visual.color }} />
+            ))}
+          </div>
+          <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-[inset_0_0_22px_hsl(var(--primary)/0.1)]">
+                  <BatteryCharging className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">The Dashboard</p>
+                  <h1 className="dashboard-neon-accent font-display text-4xl font-bold leading-tight">My Controllables</h1>
+                </div>
+              </div>
+              <p className="max-w-xl text-sm font-medium text-muted-foreground">
+                Charge your Controllables.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <HeroChip icon={<ShieldCheck className="h-3.5 w-3.5" />} label={`${chargedCount}/5 Charged`} />
+                <HeroChip icon={<Zap className="h-3.5 w-3.5" />} label={`${totalXp.toLocaleString()} XP`} />
+                <HeroChip icon={<Sparkles className="h-3.5 w-3.5" />} label="The Continuous Upgrade" />
               </div>
             </div>
-            <p className="max-w-xl text-sm font-medium text-muted-foreground">
-              Charge your Controllables.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <HeroChip icon={<ShieldCheck className="h-3.5 w-3.5" />} label={`${chargedCount}/5 Charged`} />
-              <HeroChip icon={<Zap className="h-3.5 w-3.5" />} label={`${totalXp.toLocaleString()} XP`} />
-              <HeroChip icon={<Sparkles className="h-3.5 w-3.5" />} label="The Continuous Upgrade" />
-            </div>
-          </div>
 
-          <div className="dashboard-os-card rounded-2xl p-3">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Lead Charge</p>
-              <span className="text-[10px] font-semibold text-primary">{leadVisual?.progressPercent ?? 0}%</span>
-            </div>
-            <div className="grid grid-cols-5 gap-2">
-              {roster.map((visual) => (
-                <div key={visual.type} className="text-center">
-                  <span
-                    className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border text-2xl"
-                    style={{
-                      backgroundColor: visual.softColor,
-                      borderColor: visual.stage === "base" ? "hsl(var(--border))" : visual.color,
-                      boxShadow: visual.stage === "base" ? undefined : `0 0 18px ${visual.softColor}`,
-                    }}
-                    aria-hidden="true"
-                  >
-                    {visual.icon}
-                  </span>
-                  <span className="mt-1 block truncate text-[9px] font-semibold text-muted-foreground">{visual.name}</span>
-                </div>
-              ))}
+            <div className="dashboard-os-card rounded-2xl p-3">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Lead Charge</p>
+                <span className="text-[10px] font-semibold text-primary">{leadVisual?.progressPercent ?? 0}%</span>
+              </div>
+              <div className="grid grid-cols-5 gap-2">
+                {roster.map((visual) => (
+                  <div key={visual.type} className="text-center">
+                    <span
+                      className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border text-2xl"
+                      style={{
+                        backgroundColor: visual.softColor,
+                        borderColor: visual.stage === "base" ? "hsl(var(--border))" : visual.color,
+                        boxShadow: visual.stage === "base" ? undefined : `0 0 18px ${visual.softColor}`,
+                      }}
+                      aria-hidden="true"
+                    >
+                      {visual.icon}
+                    </span>
+                    <span className="mt-1 block truncate text-[9px] font-semibold text-muted-foreground">{visual.name}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
         </div>
       </header>
 

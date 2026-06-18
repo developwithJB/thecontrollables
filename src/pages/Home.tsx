@@ -30,6 +30,8 @@ import { DailyOperatorBrief } from "@/components/dashboard/DailyOperatorBrief";
 import { WeeklyAIInsightCard } from "@/components/dashboard/WeeklyAIInsightCard";
 import { TodaysReadCard } from "@/components/dashboard/TodaysReadCard";
 import { ControlReleaseMoveCard } from "@/components/dashboard/ControlReleaseMoveCard";
+import { MyControllablesDailyTrainingCard } from "@/components/dashboard/MyControllablesDailyTrainingCard";
+import { LocalMissionDropCard } from "@/components/dashboard/LocalMissionDropCard";
 import { DailyOperatorOnboardingFlow, OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 
 export default function Home() {
@@ -262,6 +264,10 @@ export default function Home() {
       <ControllableChargeStrip userId={user.id} />
 
       <SelfTrustChargeStrip userId={user.id} />
+
+      <LocalMissionDropCard userId={user.id} />
+
+      <MyControllablesDailyTrainingCard userId={user.id} />
 
       {drift?.shouldShowReturnFromDrift && !returnFromDriftDismissed ? (
         <ReturnFromDriftCard drift={drift} onDismiss={dismissReturnFromDrift} />

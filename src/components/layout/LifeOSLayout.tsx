@@ -1,6 +1,6 @@
 import { useState, useCallback, Suspense } from "react";
 import { useNavigate, Outlet, useLocation } from "react-router-dom";
-import { Book, RefreshCw, Settings } from "lucide-react";
+import { Book, FlaskConical, RefreshCw, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { SplashScreen } from "@/components/SplashScreen";
@@ -24,7 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const LifeOSLayout = () => {
-  const { user, isLoading } = useLifeOSAuth();
+  const { user, isLoading, isDevMockUser } = useLifeOSAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -50,8 +50,8 @@ export const LifeOSLayout = () => {
     );
     try {
       await Promise.race([refreshPromise, timeoutPromise]);
-    } catch (error) {
-      console.warn("Refresh failed:", error);
+    } catch {
+      // Refresh failures are non-blocking; the user can keep using cached data.
     }
     toast({ title: "Refreshed", description: "Data updated successfully." });
   }, [queryClient, toast]);
@@ -128,6 +128,15 @@ export const LifeOSLayout = () => {
           </div>
         </header>
         <DevMockAuthBanner />
+
+        {isDevMockUser ? (
+          <div className="relative z-20 border-b border-amber-500/25 bg-amber-500/10 px-4 py-2 text-amber-900 dark:text-amber-200">
+            <div className="mx-auto flex max-w-md items-center gap-2 text-xs font-medium md:max-w-none md:px-2">
+              <FlaskConical className="h-3.5 w-3.5 shrink-0" />
+              <span>Dev QA mock auth active. Local review data only; production auth is unchanged.</span>
+            </div>
+          </div>
+        ) : null}
 
         {/* Main area: desktop rail + content */}
         <div className="flex flex-1 overflow-hidden">

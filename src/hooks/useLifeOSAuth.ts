@@ -5,10 +5,10 @@ import type { User } from "@supabase/supabase-js";
 import { getDevMockUser, isDevMockAuthEnabled } from "@/lib/devMockAuth";
 
 export function useLifeOSAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
   const devMockAuth = isDevMockAuthEnabled();
+  const [user, setUser] = useState<User | null>(() => (devMockAuth ? getDevMockUser() : null));
+  const [isLoading, setIsLoading] = useState(!devMockAuth);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (devMockAuth) {
@@ -64,7 +64,7 @@ export function useLifeOSAuth() {
     };
   }, [devMockAuth, navigate]);
 
-  return { user, isLoading };
+  return { user, isLoading, isDevMockUser: devMockAuth };
 }
 
 // Context for providing user to child pages
