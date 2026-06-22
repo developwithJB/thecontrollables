@@ -6,8 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SplashScreen } from "@/components/SplashScreen";
 import { useAppResume } from "@/hooks/useAppResume";
-import { lazy, Suspense, useState, useEffect } from "react";
-import { AnimatePresence } from "framer-motion";
+import { lazy, Suspense, useEffect } from "react";
 import { onboardingQuickStartEnabled } from "@/lib/featureFlags";
 import { LifeOSLayout } from "@/components/layout/LifeOSLayout";
 import { APP_ROUTES } from "@/lib/appRoutes";
@@ -40,6 +39,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const QuickStart = lazy(() => import("./pages/QuickStart"));
 const Integrations = lazy(() => import("./pages/Integrations"));
+const ReadAlong = lazy(() => import("./pages/ReadAlong"));
 
 // Production-hardened query client configuration
 const queryClient = new QueryClient({
@@ -85,6 +85,7 @@ const AppContent = () => {
           {/* Life OS pages - persistent layout, only content swaps */}
           <Route element={<LifeOSLayout />}>
             <Route path={APP_ROUTES.home} element={<Home />} />
+            <Route path={APP_ROUTES.readAlong} element={<ReadAlong />} />
             <Route path={APP_ROUTES.myControllables} element={<MyControllables />} />
             <Route path={APP_ROUTES.train} element={<Train />} />
             <Route path={APP_ROUTES.proof} element={<Proof />} />
@@ -116,15 +117,8 @@ const AppContent = () => {
 };
 
 const App = () => {
-  const [showSplash, setShowSplash] = useState(true);
-
   useEffect(() => {
     applyStoredThemePreference();
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 800);
-    return () => clearTimeout(timer);
   }, []);
 
   return (
@@ -132,9 +126,6 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <TooltipProvider>
-            <AnimatePresence mode="wait">
-              {showSplash && <SplashScreen key="splash" />}
-            </AnimatePresence>
             <AppContent />
           </TooltipProvider>
         </BrowserRouter>

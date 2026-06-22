@@ -17,20 +17,24 @@ export const BottomNav = () => {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-xl pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-2xl pb-[env(safe-area-inset-bottom)] md:hidden"
       style={{
-        background: "hsl(var(--background) / 0.85)",
-        borderColor: "hsl(var(--border) / 0.5)",
+        background: "linear-gradient(180deg, hsl(var(--background) / 0.72), hsl(var(--background) / 0.94))",
+        borderColor: "hsl(var(--primary) / 0.16)",
       }}
     >
-      <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
+      <div className="mx-auto flex h-16 max-w-lg items-center justify-around px-1">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
-            <button
+            <motion.button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className="relative flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors"
+              whileTap={{ scale: 0.96 }}
+              aria-current={isActive ? "page" : undefined}
+              className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-2 transition-colors ${
+                isActive ? "bg-primary/10" : "hover:bg-muted/40"
+              }`}
             >
               <item.icon
                 className={`w-5 h-5 transition-colors ${
@@ -47,11 +51,11 @@ export const BottomNav = () => {
               {isActive && (
                 <motion.div
                   layoutId="bottom-nav-indicator"
-                  className="absolute -top-px left-2 right-2 h-0.5 rounded-full bg-primary"
+                  className="absolute -top-px left-3 right-3 h-0.5 rounded-full bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.55)]"
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 />
               )}
-            </button>
+            </motion.button>
           );
         })}
       </div>
@@ -65,17 +69,17 @@ export const DesktopNavRail = () => {
   const navigate = useNavigate();
 
   return (
-    <nav className="hidden md:flex flex-col w-16 lg:w-48 border-r border-border/50 bg-card/50 py-4 gap-1 shrink-0">
+    <nav className="hidden w-16 shrink-0 flex-col gap-1 border-r border-primary/10 bg-background/35 py-4 backdrop-blur-xl md:flex lg:w-48">
       {navItems.map((item) => {
         const isActive = location.pathname === item.path;
         return (
           <button
             key={item.path}
             onClick={() => navigate(item.path)}
-            className={`relative flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition-colors text-sm font-medium ${
+            className={`relative mx-2 flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${
               isActive
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                ? "border border-primary/20 bg-primary/10 text-primary shadow-[inset_0_0_24px_hsl(var(--primary)/0.05)]"
+                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
             }`}
           >
             <item.icon className="w-5 h-5 shrink-0" />
@@ -83,7 +87,7 @@ export const DesktopNavRail = () => {
             {isActive && (
               <motion.div
                 layoutId="nav-rail-indicator"
-                className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-primary"
+                className="absolute bottom-2 left-0 top-2 w-0.5 rounded-full bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.55)]"
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
               />
             )}

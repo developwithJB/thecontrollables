@@ -41,6 +41,19 @@ export interface MissionEmailPayload {
   mission: MissionOfTheDay;
 }
 
+export interface DashboardRelaunchEmailPayload {
+  subject: string;
+  previewText: string;
+  html: string;
+  text: string;
+  appCtaUrl: string;
+}
+
+export interface BuildDashboardRelaunchEmailInput {
+  displayName?: string | null;
+  appCtaUrl?: string | null;
+}
+
 export interface BuildMissionOfTheDayInput {
   date?: string | null;
   dayMode?: string | null;
@@ -216,7 +229,7 @@ export const buildMissionOfTheDay = (input: BuildMissionOfTheDayInput = {}): Mis
         : template.selfTrustReward,
     chargeStageImpact: toMissionSentence(input.chargeStageImpact || template.chargeStageImpact, 9),
     appCtaLabel: normalizeWhitespace(input.appCtaLabel || "Open The Dashboard"),
-    appCtaUrl: normalizeWhitespace(input.appCtaUrl || "https://thedashboard.agbcoaching.com/dashboard"),
+    appCtaUrl: normalizeWhitespace(input.appCtaUrl || "https://thedashboard.agbcoaching.com/home"),
     completed: input.completed === true,
   };
 };
@@ -251,12 +264,12 @@ export const buildMissionOfTheDayFromPlan = (input: BuildMissionFromPlanInput): 
 };
 
 export const getMissionEmailSubject = (mission: MissionOfTheDay): string => {
-  return `Your Mission Today: Charge ${MISSION_CONTROLLABLE_NAMES[mission.targetControllable]}`;
+  return `Today's Training Drop: Charge ${MISSION_CONTROLLABLE_NAMES[mission.targetControllable]}`;
 };
 
 export const getMissionEmailPreview = (mission: MissionOfTheDay): string => {
   const controllableName = MISSION_CONTROLLABLE_NAMES[mission.targetControllable];
-  return `${trimTrailingPunctuation(mission.missionInstruction)}. +${mission.xpReward} ${controllableName} XP.`;
+  return `Train ${controllableName}: ${trimTrailingPunctuation(mission.missionInstruction)}. +${mission.xpReward} ${controllableName} XP.`;
 };
 
 const escapeHtml = (value: string): string =>
@@ -269,18 +282,22 @@ const escapeHtml = (value: string): string =>
 export const renderMissionEmailText = (mission: MissionOfTheDay): string => {
   const controllableName = MISSION_CONTROLLABLE_NAMES[mission.targetControllable];
   return [
-    "Mission of the Day",
+    "Today's Training Drop",
+    "Train one Controllable. Earn XP. Build Self-Trust. Add proof to your deck.",
+    "",
+    "Card to train:",
     mission.missionTitle,
     "",
-    "Your move:",
+    "Today's rep:",
     mission.missionInstruction,
     "",
     "Why:",
     mission.shortWhy,
     "",
-    "Reward:",
+    "Rewards:",
     `+${mission.xpReward} ${controllableName} XP`,
     `+${mission.selfTrustReward} Self-Trust`,
+    "Proof Loop: add a photo or note after you complete it.",
     "",
     `${mission.appCtaLabel}: ${mission.appCtaUrl}`,
     "",
@@ -303,16 +320,19 @@ export const renderMissionEmailHtml = (mission: MissionOfTheDay): string => {
     <div style="margin:0;padding:32px 16px;background:#060a12;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:${ink};">
       <div style="max-width:480px;margin:0 auto;">
         <div style="border:1px solid #1d2b40;border-radius:20px;background:${panel};padding:24px;">
-          <p style="margin:0 0 12px 0;color:${accent};font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;">
-            Mission of the Day
+          <p style="margin:0 0 10px 0;color:${accent};font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;">
+            Today's Training Drop
           </p>
           <h1 style="margin:0 0 18px 0;color:#f8fbff;font-size:28px;line-height:1.12;font-weight:800;">
             ${escapeHtml(mission.missionTitle)}
           </h1>
+          <p style="margin:-8px 0 18px 0;color:${muted};font-size:14px;line-height:1.45;">
+            Train one Controllable. Earn XP. Build Self-Trust. Add proof to your deck.
+          </p>
 
           <div style="border:1px solid #22314a;border-radius:16px;background:#0a1020;padding:18px;margin:0 0 16px 0;">
             <p style="margin:0 0 8px 0;color:${muted};font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">
-              Your move
+              Today's rep
             </p>
             <p style="margin:0;color:#f8fbff;font-size:20px;line-height:1.35;font-weight:700;">
               ${escapeHtml(mission.missionInstruction)}
@@ -330,7 +350,7 @@ export const renderMissionEmailHtml = (mission: MissionOfTheDay): string => {
 
           <div style="margin:0 0 22px 0;">
             <p style="margin:0 0 10px 0;color:${muted};font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">
-              Reward
+              Rewards
             </p>
             <span style="display:inline-block;margin:0 6px 8px 0;border:1px solid rgba(56,189,248,0.45);border-radius:999px;background:rgba(56,189,248,0.14);color:#dff5ff;padding:8px 12px;font-size:14px;font-weight:700;">
               +${mission.xpReward} ${escapeHtml(controllableName)} XP
@@ -338,6 +358,9 @@ export const renderMissionEmailHtml = (mission: MissionOfTheDay): string => {
             <span style="display:inline-block;margin:0 0 8px 0;border:1px solid rgba(148,163,184,0.35);border-radius:999px;background:rgba(148,163,184,0.12);color:#edf2ff;padding:8px 12px;font-size:14px;font-weight:700;">
               +${mission.selfTrustReward} Self-Trust
             </span>
+            <p style="margin:6px 0 0 0;color:${muted};font-size:13px;line-height:1.45;">
+              Proof Loop: add a photo or note after you complete it.
+            </p>
           </div>
 
           <a href="${escapeHtml(mission.appCtaUrl)}" style="display:block;border-radius:14px;background:${accent};color:#03111f;text-align:center;text-decoration:none;font-size:16px;font-weight:800;padding:15px 18px;">
@@ -363,6 +386,84 @@ export const buildMissionEmailPayload = (mission: MissionOfTheDay): MissionEmail
   };
 };
 
+const DEFAULT_DASHBOARD_RELAUNCH_CTA_URL = "https://thedashboard.agbcoaching.com/quick-start";
+
+export const buildDashboardRelaunchEmailPayload = (
+  input: BuildDashboardRelaunchEmailInput = {},
+): DashboardRelaunchEmailPayload => {
+  const appCtaUrl = normalizeWhitespace(input.appCtaUrl || DEFAULT_DASHBOARD_RELAUNCH_CTA_URL);
+  const displayName = normalizeWhitespace(input.displayName || "");
+  const greeting = displayName ? `Good morning ${displayName},` : "Good morning,";
+  const subject = "The new Dashboard is ready";
+  const previewText = "Start the new onboarding and see the new Controllables training loop.";
+
+  const text = [
+    subject,
+    "",
+    greeting,
+    "",
+    "The Dashboard has changed.",
+    "The book gave you the language. The app now gives you the reps.",
+    "",
+    "Start with one honest read:",
+    "- Starting Charge: find your current charge in 60 seconds.",
+    "- Daily Charge: save today's Control / Release / Move note.",
+    "- My Controllables: train your cards and build Self-Trust.",
+    "- Proof Dex: collect private proof of real-life reps.",
+    "",
+    `Start the new onboarding: ${appCtaUrl}`,
+    "",
+    "Control the Controllables one day at a time.",
+  ].join("\n");
+
+  const html = `
+    <div style="display:none;overflow:hidden;line-height:1px;opacity:0;max-height:0;max-width:0;color:transparent;">
+      ${escapeHtml(previewText)}
+    </div>
+    <div style="margin:0;padding:32px 16px;background:#060a12;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#e5eefc;">
+      <div style="max-width:500px;margin:0 auto;">
+        <div style="border:1px solid #1d2b40;border-radius:24px;background:#0f1522;padding:26px;">
+          <p style="margin:0 0 12px 0;color:#38bdf8;font-size:12px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;">
+            New Dashboard
+          </p>
+          <h1 style="margin:0 0 12px 0;color:#f8fbff;font-size:30px;line-height:1.1;font-weight:850;">
+            The practice begins again.
+          </h1>
+          <p style="margin:0 0 22px 0;color:#a8b3c7;font-size:15px;line-height:1.55;">
+            ${escapeHtml(greeting)} The Dashboard has changed. The book gave you the language. The app now gives you the reps.
+          </p>
+
+          <div style="border:1px solid #22314a;border-radius:18px;background:#0a1020;padding:18px;margin:0 0 18px 0;">
+            <p style="margin:0 0 12px 0;color:#8d99ae;font-size:12px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">
+              Start with one honest read
+            </p>
+            <p style="margin:0 0 10px 0;color:#f8fbff;font-size:16px;line-height:1.45;"><strong>Starting Charge</strong> — find your current charge in 60 seconds.</p>
+            <p style="margin:0 0 10px 0;color:#f8fbff;font-size:16px;line-height:1.45;"><strong>Daily Charge</strong> — save today's Control / Release / Move note.</p>
+            <p style="margin:0 0 10px 0;color:#f8fbff;font-size:16px;line-height:1.45;"><strong>My Controllables</strong> — train your cards and build Self-Trust.</p>
+            <p style="margin:0;color:#f8fbff;font-size:16px;line-height:1.45;"><strong>Proof Dex</strong> — collect private proof of real-life reps.</p>
+          </div>
+
+          <a href="${escapeHtml(appCtaUrl)}" style="display:block;border-radius:14px;background:#38bdf8;color:#03111f;text-align:center;text-decoration:none;font-size:16px;font-weight:850;padding:15px 18px;">
+            Start the new onboarding
+          </a>
+
+          <p style="margin:18px 0 0 0;color:#8d99ae;font-size:13px;line-height:1.45;text-align:center;">
+            Control the Controllables one day at a time.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return {
+    subject,
+    previewText,
+    html,
+    text,
+    appCtaUrl,
+  };
+};
+
 export const MISSION_EMAIL_FORBIDDEN_PATTERNS = [
   /\bprivate reflections?\b/i,
   /\bmoney\b/i,
@@ -375,6 +476,17 @@ export const MISSION_EMAIL_FORBIDDEN_PATTERNS = [
 ];
 
 export const isPrivacySafeMissionEmailPayload = (payload: MissionEmailPayload): boolean => {
+  const combined = [
+    payload.subject,
+    payload.previewText,
+    payload.html,
+    payload.text,
+  ].join(" ");
+
+  return !MISSION_EMAIL_FORBIDDEN_PATTERNS.some((pattern) => pattern.test(combined));
+};
+
+export const isPrivacySafeDashboardRelaunchEmailPayload = (payload: DashboardRelaunchEmailPayload): boolean => {
   const combined = [
     payload.subject,
     payload.previewText,

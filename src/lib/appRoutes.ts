@@ -2,6 +2,7 @@ export const APP_ROUTES = {
   landing: "/",
   auth: "/auth",
   quickStart: "/quick-start",
+  readAlong: "/read-along",
   home: "/home",
   myControllables: "/my-controllables",
   train: "/train",
@@ -23,6 +24,7 @@ export const APP_ROUTES = {
 
 export const LIFE_OS_ROUTE_PATHS = [
   APP_ROUTES.home,
+  APP_ROUTES.readAlong,
   APP_ROUTES.myControllables,
   APP_ROUTES.train,
   APP_ROUTES.proof,

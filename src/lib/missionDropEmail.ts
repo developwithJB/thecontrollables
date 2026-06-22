@@ -30,7 +30,7 @@ interface EmailSection {
 export function formatMissionDropEmail(input: MissionDropEmailInput): MissionDropEmailContent {
   const sections: EmailSection[] = [
     {
-      label: "Core Mission",
+      label: "Core Card",
       title: input.coreMission.title,
       instruction: input.coreMission.instruction,
       reward: formatGenericReward(input.coreMission),
@@ -39,7 +39,7 @@ export function formatMissionDropEmail(input: MissionDropEmailInput): MissionDro
 
   if (input.bonusMission) {
     sections.push({
-      label: "Bonus Mission",
+      label: "Bonus Card",
       title: input.bonusMission.title,
       instruction: input.bonusMission.instruction,
       reward: formatGenericReward(input.bonusMission),
@@ -49,27 +49,33 @@ export function formatMissionDropEmail(input: MissionDropEmailInput): MissionDro
   if (input.localMission) {
     const guide = getBookControllable(input.localMission.targetControllable);
     sections.push({
-      label: input.localMission.city ? `${input.localMission.city} Mission` : "Local Mission",
+      label: input.localMission.city ? `${input.localMission.city} Mission Card` : "Local Card",
       title: `Charge ${guide.name}`,
       instruction: input.localMission.instruction,
-      reward: `+${input.localMission.xpReward} ${guide.name} XP`,
+      reward: `+${input.localMission.xpReward} ${guide.name} XP · +${input.localMission.selfTrustReward} Self-Trust`,
     });
   }
 
   if (input.recoveryMission) {
     sections.push({
-      label: "Recovery Mission",
+      label: "Recovery Card",
       title: input.recoveryMission.title,
       instruction: input.recoveryMission.instruction,
       reward: formatGenericReward(input.recoveryMission),
     });
   }
 
-  const text = sections
+  const intro = "Train one Controllable. Earn XP. Build Self-Trust. Add proof to your deck.";
+  const text = [
+    "Today's Training Drop",
+    intro,
+    "",
+    sections
     .map((section) =>
       [section.label, section.title, section.instruction, section.reward].filter(Boolean).join("\n"),
     )
-    .join("\n\n");
+    .join("\n\n"),
+  ].join("\n");
 
   const html = sections
     .map(
@@ -84,14 +90,22 @@ export function formatMissionDropEmail(input: MissionDropEmailInput): MissionDro
     .join("");
 
   return {
-    subject: "Today's Mission Drop",
+    subject: "Today's Training Drop",
     text,
-    html: `<div>${html}</div>`,
+    html: `
+      <div>
+        <section style="margin:0 0 20px 0;">
+          <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0ea5e9;">Today's Training Drop</p>
+          <h1 style="margin:0 0 6px 0;font-size:24px;line-height:1.15;color:#0f172a;">Train your Controllable card.</h1>
+          <p style="margin:0;color:#334155;">${escapeHtml(intro)}</p>
+        </section>
+        ${html}
+      </div>`,
   };
 }
 
 function formatGenericReward(mission: MissionDropEmailMission): string | undefined {
-  return typeof mission.xpReward === "number" ? `+${mission.xpReward} XP` : undefined;
+  return typeof mission.xpReward === "number" ? `+${mission.xpReward} XP · Card progress` : undefined;
 }
 
 function escapeHtml(value: string): string {

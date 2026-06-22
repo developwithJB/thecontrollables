@@ -43,14 +43,14 @@ export function ControllableChargeStrip({ userId }: ControllableChargeStripProps
           </span>
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              My Controllables
+              Card Deck
             </p>
-            <p className="text-sm font-semibold text-foreground">{chargedCount}/5 charged</p>
+            <p className="text-sm font-semibold text-foreground">{chargedCount}/5 cards charged</p>
           </div>
         </div>
         <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">
           <Zap className="h-3 w-3" />
-          {averageCharge}%
+          Deck {averageCharge}%
         </span>
       </div>
 

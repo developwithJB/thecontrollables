@@ -2,6 +2,8 @@
 
 The Dashboard is a calm, reflective Life OS for people who want help understanding their days before those days run away from them.
 
+For the canonical product narrative, customer promise, current capabilities, privacy model, and technical snapshot, see [docs/PRODUCT_STORY.md](docs/PRODUCT_STORY.md).
+
 It is built for users who do not want another streak app, another guilt machine, or another productivity tool that mistakes pressure for progress.
 
 Instead, The Dashboard helps people:

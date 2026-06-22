@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Mail, Lock, ArrowLeft, User } from "lucide-react";
@@ -11,9 +11,23 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageViewTracking, useAnalytics } from "@/hooks/useAnalytics";
 import { useOnboardingAnalytics } from "@/hooks/useOnboardingAnalytics";
-import { getOnboardingQuickStartDraft } from "@/lib/onboardingQuickStartDraft";
+import { getOnboardingQuickStartDraft, getQuickStartCompletionRoute } from "@/lib/onboardingQuickStartDraft";
+import { READING_STATUS_LABELS } from "@/lib/readAlong";
 
 type AuthMode = "signin" | "signup" | "forgot" | "reset";
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) return error.message;
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof (error as { message?: unknown }).message === "string"
+  ) {
+    return (error as { message: string }).message;
+  }
+  return fallback;
+}
 
 export default function Auth() {
   usePageViewTracking("Auth");
@@ -32,7 +46,7 @@ export default function Auth() {
   const [displayName, setDisplayName] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const quickStartDraft = getOnboardingQuickStartDraft();
+  const quickStartDraft = useMemo(() => getOnboardingQuickStartDraft(), []);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -43,7 +57,7 @@ export default function Auth() {
       if (event === "PASSWORD_RECOVERY") {
         setMode("reset");
       } else if (event === "SIGNED_IN" && mode !== "reset") {
-        navigate("/dashboard");
+        navigate(getQuickStartCompletionRoute(quickStartDraft?.readingStatus));
       }
     });
 
@@ -57,14 +71,14 @@ export default function Auth() {
       const checkSession = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session && mode !== "reset") {
-          navigate("/dashboard");
+          navigate(getQuickStartCompletionRoute(quickStartDraft?.readingStatus));
         }
       };
       checkSession();
     }
 
     return () => subscription.unsubscribe();
-  }, [navigate, mode]);
+  }, [navigate, mode, quickStartDraft]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,8 +92,8 @@ export default function Auth() {
       if (error) throw error;
       toast({ title: "Check your email", description: "We've sent you a password reset link." });
       setMode("signin");
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to send reset email.", variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Error", description: getErrorMessage(error, "Failed to send reset email."), variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -96,9 +110,9 @@ export default function Auth() {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
       toast({ title: "Password updated", description: "Your password has been reset. Redirecting..." });
-      setTimeout(() => navigate("/dashboard"), 1500);
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to update password.", variant: "destructive" });
+      setTimeout(() => navigate(getQuickStartCompletionRoute(quickStartDraft?.readingStatus)), 1500);
+    } catch (error) {
+      toast({ title: "Error", description: getErrorMessage(error, "Failed to update password."), variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -124,7 +138,7 @@ export default function Auth() {
         const { data: signUpData, error } = await supabase.auth.signUp({
           email, password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `${window.location.origin}${getQuickStartCompletionRoute(quickStartDraft?.readingStatus)}`,
             data: { display_name: displayName.trim() || null },
           },
         });
@@ -148,8 +162,8 @@ export default function Auth() {
           } else throw error;
         }
       }
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Something went wrong. Please try again.", variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Error", description: getErrorMessage(error, "Something went wrong. Please try again."), variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -169,6 +183,9 @@ export default function Auth() {
       case "forgot": return "Enter your email and we'll send you a reset link";
       case "reset": return "Enter your new password below";
       case "signup":
+        if (quickStartDraft?.readingStatus) {
+          return `Finish setup to keep your book path: ${READING_STATUS_LABELS[quickStartDraft.readingStatus]}`;
+        }
         if (quickStartDraft?.snapshotName) {
           return `Finish setup to keep your starting region: ${quickStartDraft.snapshotName}`;
         }

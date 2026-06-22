@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
+  BookOpen,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -11,6 +12,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InfoHint } from "@/components/ui/info-hint";
 import { Progress } from "@/components/ui/progress";
 import {
   BirthdayOnboardingStep,
@@ -36,10 +38,16 @@ import {
 } from "@/lib/lifePerspective";
 import { CONTROLLABLE_LIST } from "@/lib/controllableTheme";
 import { SNAPSHOTS, type Controllable, type Snapshot } from "@/lib/snapshots";
+import {
+  READING_STATUS_DESCRIPTIONS,
+  READING_STATUS_LABELS,
+  type ReadingStatus,
+} from "@/lib/readAlong";
 import { usePageViewTracking, useAnalytics } from "@/hooks/useAnalytics";
 import { useOnboardingAnalytics } from "@/hooks/useOnboardingAnalytics";
 
 type QuickStartStep =
+  | "book"
   | "birthday"
   | "perspective"
   | "season"
@@ -49,6 +57,7 @@ type QuickStartStep =
   | "cta";
 
 const STEP_ORDER: QuickStartStep[] = [
+  "book",
   "birthday",
   "perspective",
   "season",
@@ -59,6 +68,7 @@ const STEP_ORDER: QuickStartStep[] = [
 ];
 
 const STEP_LABELS: Record<QuickStartStep, string> = {
+  book: "Book Status",
   birthday: "Starting Point",
   perspective: "Perspective",
   season: "Season",
@@ -69,6 +79,7 @@ const STEP_LABELS: Record<QuickStartStep, string> = {
 };
 
 const STEP_CTA_LABELS: Record<Exclude<QuickStartStep, "cta">, string> = {
+  book: "Continue",
   birthday: "Start with one honest read",
   perspective: "See my season",
   season: "Meet the 5 Controllables",
@@ -84,7 +95,8 @@ function isValidBirthday(value: string): boolean {
 
 function getInitialStep(): QuickStartStep {
   const draft = getOnboardingQuickStartDraft();
-  if (!draft) return "birthday";
+  if (!draft) return "book";
+  if (!draft.readingStatus) return "book";
   if (!draft.birthday || !isValidBirthday(draft.birthday)) return "birthday";
   if (draft.currentStep && STEP_ORDER.includes(draft.currentStep as QuickStartStep)) {
     return draft.currentStep as QuickStartStep;
@@ -94,6 +106,71 @@ function getInitialStep(): QuickStartStep {
   if (draft.lifeSeasonKey) return "need";
   if (draft.birthday) return "perspective";
   return "birthday";
+}
+
+const readingStatusOptions = Object.keys(READING_STATUS_LABELS) as ReadingStatus[];
+
+function BookStatusStep({
+  readingStatus,
+  onSelect,
+}: {
+  readingStatus: ReadingStatus | null;
+  onSelect: (status: ReadingStatus) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+          The book handoff
+        </p>
+        <h1 className="mt-1 font-display text-2xl font-semibold leading-tight text-foreground">
+          Where are you with the book?
+        </h1>
+        <InfoHint title="Book handoff" className="mt-2">
+          The Dashboard meets you where you are and keeps the practice connected to the reading.
+        </InfoHint>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        {readingStatusOptions.map((status) => {
+          const isSelected = readingStatus === status;
+          return (
+            <div
+              key={status}
+              className={`rounded-xl border px-4 py-3 text-left transition-all ${
+                isSelected
+                  ? "border-primary/60 bg-primary/10 shadow-[0_0_0_1px_hsl(var(--primary)/0.16)]"
+                  : "border-border/60 bg-card/70 hover:border-primary/30"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => onSelect(status)}
+                  className="min-w-0 flex-1 text-left text-sm font-semibold text-foreground"
+                >
+                  {READING_STATUS_LABELS[status]}
+                </button>
+                <div className="flex items-center gap-1.5">
+                  <InfoHint title={`${READING_STATUS_LABELS[status]} details`} className="h-6 w-6">
+                    {READING_STATUS_DESCRIPTIONS[status]}
+                  </InfoHint>
+                  {isSelected ? <CheckCircle2 className="h-4 w-4 text-primary" /> : null}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <p className="text-sm font-medium text-foreground">Book = language. App = reps.</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function getSnapshotOptions(
@@ -145,9 +222,7 @@ function SnapshotRecommendationStep({
         </h1>
       </div>
 
-      <button
-        type="button"
-        onClick={() => onSelectSnapshot(recommendation.snapshot.id)}
+      <div
         className={`w-full rounded-xl border px-4 py-4 text-left transition-all ${
           selectedIsRecommended
             ? "border-primary/70 bg-primary/10 shadow-[0_0_0_1px_hsl(var(--primary)/0.18)]"
@@ -160,27 +235,31 @@ function SnapshotRecommendationStep({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-base font-semibold leading-tight text-foreground">
+              <button
+                type="button"
+                onClick={() => onSelectSnapshot(recommendation.snapshot.id)}
+                className="text-left text-base font-semibold leading-tight text-foreground"
+              >
                 {recommendation.snapshot.name}
-              </p>
+              </button>
               <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold text-primary-foreground">
                 <Sparkles className="h-3 w-3" />
                 Recommended
               </span>
             </div>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              {recommendation.snapshot.tagline}
-            </p>
-            <p className="mt-2 text-xs leading-5 text-foreground">
-              {recommendation.region.description}
-            </p>
+            <InfoHint title={`${recommendation.snapshot.name} details`} className="mt-2">
+              <div className="space-y-2">
+                <p className="font-medium text-foreground">{recommendation.snapshot.tagline}</p>
+                <p className="text-muted-foreground">{recommendation.region.description}</p>
+              </div>
+            </InfoHint>
             <div className="mt-3 inline-flex items-center gap-2 text-xs font-medium text-primary">
               <CheckCircle2 className="h-4 w-4" />
               {selectedIsRecommended ? "Selected for your start" : "Use recommended region"}
             </div>
           </div>
         </div>
-      </button>
+      </div>
 
       {!selectedIsRecommended ? (
         <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3">
@@ -229,10 +308,8 @@ function SnapshotRecommendationStep({
               const region = getRegionForBucket(snapshot.bucketId);
 
               return (
-                <button
+                <div
                   key={snapshot.id}
-                  type="button"
-                  onClick={() => onSelectSnapshot(snapshot.id)}
                   className={`w-full rounded-xl border px-3 py-3 text-left transition-all ${
                     isSelected
                       ? "border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]"
@@ -245,22 +322,28 @@ function SnapshotRecommendationStep({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-medium text-foreground">
+                        <button
+                          type="button"
+                          onClick={() => onSelectSnapshot(snapshot.id)}
+                          className="min-w-0 flex-1 text-left text-sm font-medium text-foreground"
+                        >
                           {snapshot.name}
-                        </p>
-                        {isSelected ? (
-                          <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
-                        ) : null}
+                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <InfoHint title={`${snapshot.name} details`} className="h-6 w-6">
+                            {snapshot.tagline}
+                          </InfoHint>
+                          {isSelected ? (
+                            <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                          ) : null}
+                        </div>
                       </div>
-                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                        {snapshot.tagline}
-                      </p>
                       <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">
                         {region.label}
                       </p>
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -271,11 +354,13 @@ function SnapshotRecommendationStep({
 }
 
 function CreateAccountStep({
+  readingStatus,
   birthday,
   season,
   selectedNeed,
   selectedSnapshot,
 }: {
+  readingStatus: ReadingStatus | null;
   birthday: string;
   season: LifeSeasonMapping;
   selectedNeed: Controllable;
@@ -284,6 +369,7 @@ function CreateAccountStep({
   const selectedNeedLabel =
     CONTROLLABLE_LIST.find((item) => item.type === selectedNeed)?.label ?? "Need";
   const regionLabel = selectedSnapshot ? getRegionForBucket(selectedSnapshot.bucketId).label : null;
+  const readingStatusLabel = readingStatus ? READING_STATUS_LABELS[readingStatus] : "Ready";
   const birthdayDisplay = new Date(`${birthday}T00:00:00`).toLocaleDateString(
     "en-US",
     {
@@ -344,6 +430,15 @@ function CreateAccountStep({
           </div>
         </div>
 
+        <div className="rounded-xl bg-primary/5 px-3 py-3">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Book Path
+          </p>
+          <p className="mt-1 text-sm font-medium text-foreground">
+            {readingStatusLabel}
+          </p>
+        </div>
+
         {selectedSnapshot ? (
           <div className="rounded-xl bg-muted/30 px-3 py-3">
             <div className="flex items-start gap-3">
@@ -354,9 +449,9 @@ function CreateAccountStep({
                 <p className="text-sm font-medium text-foreground">
                   {selectedSnapshot.name}
                 </p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                <InfoHint title={`${selectedSnapshot.name} details`} className="mt-1 h-6 w-6">
                   {selectedSnapshot.tagline}
-                </p>
+                </InfoHint>
               </div>
             </div>
           </div>
@@ -373,6 +468,9 @@ export default function QuickStart() {
 
   const draft = useMemo(() => getOnboardingQuickStartDraft(), []);
   const [step, setStep] = useState<QuickStartStep>(getInitialStep);
+  const [readingStatus, setReadingStatus] = useState<ReadingStatus | null>(
+    draft?.readingStatus ?? null,
+  );
   const [birthday, setBirthday] = useState(draft?.birthday ?? "");
   const [selectedNeed, setSelectedNeed] = useState<Controllable | null>(
     draft?.seasonNeed ??
@@ -454,12 +552,13 @@ export default function QuickStart() {
   }, [alternatives, recommended, selectedNeed, selectedSnapshotId]);
 
   useEffect(() => {
-    if (!birthday && !selectedSnapshotId) return;
+    if (!readingStatus && !birthday && !selectedSnapshotId) return;
 
     const shouldPersistSnapshot = step === "snapshot" || step === "cta";
 
     saveOnboardingQuickStartDraft({
       currentStep: step,
+      readingStatus,
       mission: selectedNeedLabel,
       birthday: birthday || null,
       ageLabel,
@@ -479,6 +578,7 @@ export default function QuickStart() {
   }, [
     ageLabel,
     birthday,
+    readingStatus,
     lifePercentage,
     season?.key,
     season?.label,
@@ -499,7 +599,9 @@ export default function QuickStart() {
 
   const stepIndex = STEP_ORDER.indexOf(step);
   const canContinue =
-    step === "birthday"
+    step === "book"
+      ? Boolean(readingStatus)
+      : step === "birthday"
       ? isValidBirthday(birthday)
       : step === "snapshot"
         ? !!selectedSnapshot
@@ -545,6 +647,15 @@ export default function QuickStart() {
   };
 
   const renderStep = () => {
+    if (step === "book") {
+      return (
+        <BookStatusStep
+          readingStatus={readingStatus}
+          onSelect={setReadingStatus}
+        />
+      );
+    }
+
     if (step === "birthday") {
       return (
         <BirthdayOnboardingStep
@@ -600,6 +711,7 @@ export default function QuickStart() {
     if (step === "cta" && season && selectedNeed) {
       return (
         <CreateAccountStep
+          readingStatus={readingStatus}
           birthday={birthday}
           season={season}
           selectedNeed={selectedNeed}
@@ -629,9 +741,9 @@ export default function QuickStart() {
                 <h2 className="mt-3 font-display text-4xl font-semibold leading-tight text-foreground">
                   Find your Starting Charge.
                 </h2>
-                <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                <InfoHint title="Quick Start" className="mt-4">
                   A focused path from honest read to Mission 001.
-                </p>
+                </InfoHint>
               </div>
 
               <div className="space-y-3">
@@ -735,11 +847,12 @@ export default function QuickStart() {
                   >
                     Back
                   </Button>
-                  <Link
-                    to="/auth?mode=signup"
-                    onClick={() => {
-                      trackEvent("cta", "quick_start_create_account_clicked", {
-                        snapshot_id: selectedSnapshot?.id ?? null,
+                    <Link
+                      to="/auth?mode=signup"
+                      onClick={() => {
+                        trackEvent("cta", "quick_start_create_account_clicked", {
+                          reading_status: readingStatus,
+                          snapshot_id: selectedSnapshot?.id ?? null,
                         season_key: season?.key ?? null,
                         season_need: selectedNeed ?? null,
                       });

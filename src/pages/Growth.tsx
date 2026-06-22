@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InfoHint } from "@/components/ui/info-hint";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { usePageViewTracking } from "@/hooks/useAnalytics";
 import { useEntitlements } from "@/hooks/useEntitlements";
@@ -29,7 +30,6 @@ import { QuickHistoryEntry } from "@/components/dashboard/QuickHistoryEntry";
 import { AskDashboardBar } from "@/components/dashboard/AskDashboardBar";
 import { AIRecommendedActions } from "@/components/dashboard/AIRecommendedActions";
 import { BuildOverviewModule } from "@/components/dashboard/BuildOverviewModule";
-import { ControllableLevelsCard } from "@/components/dashboard/ControllableLevelsCard";
 import { ProofEntryCard } from "@/components/dashboard/ProofEntryCard";
 import { ProofHistory } from "@/components/dashboard/IGProofHistory";
 import { ResetProgressModule } from "@/components/dashboard/ResetProgressModule";
@@ -160,12 +160,12 @@ export default function Growth({ surface = "growth" }: GrowthProps) {
           <h1 className="font-display text-2xl font-semibold text-foreground">
             {isReflectSurface ? "Reflect" : "Growth"}
           </h1>
+          <InfoHint title={isReflectSurface ? "Reflect" : "Growth"}>
+            {isReflectSurface
+              ? "Your mirror for patterns, memories, drift, and the story underneath the day."
+              : "Your self-leadership operating panel."}
+          </InfoHint>
         </div>
-        <p className="text-muted-foreground text-sm">
-          {isReflectSurface
-            ? "Your mirror for patterns, memories, drift, and the story underneath the day."
-            : "Your self-leadership operating panel."}
-        </p>
       </div>
 
       <ControllablePoweredBy controllables={["perspective", "habit", "environment"]} />
@@ -306,28 +306,28 @@ export default function Growth({ surface = "growth" }: GrowthProps) {
       {/* Build Overview */}
       <BuildOverviewModule compact />
 
-      {/* Controllable Levels */}
-      <ControllableLevelsCard userId={user.id} />
-
       {/* Game Rules & Manual */}
       <GameRulesSection />
       <DashboardManualSection />
 
       {/* Book promo */}
-      <motion.a
-        href="https://a.co/d/1DGPGEV"
-        target="_blank"
-        rel="noopener noreferrer"
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
-        className="block p-6 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 text-center"
+        className="p-6 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 text-center"
       >
         <BookOpen className="w-8 h-8 mx-auto mb-3 text-primary" />
         <h3 className="font-display font-semibold text-foreground mb-2">Read the Full Book</h3>
-        <p className="text-sm text-muted-foreground mb-4">Dive deeper into The Controllables on Amazon</p>
-        <Button variant="outline" size="sm">Get the Book →</Button>
-      </motion.a>
+        <div className="mb-4 flex justify-center">
+          <InfoHint title="Book link">Dive deeper into The Controllables on Amazon.</InfoHint>
+        </div>
+        <Button asChild variant="outline" size="sm">
+          <a href="https://a.co/d/1DGPGEV" target="_blank" rel="noopener noreferrer">
+            Get the Book →
+          </a>
+        </Button>
+      </motion.div>
 
       {/* Footer */}
       <footer className="py-6 text-center">

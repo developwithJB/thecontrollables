@@ -3,8 +3,10 @@ import {
   ONBOARDING_QUICK_START_DRAFT_VERSION,
   clearOnboardingQuickStartDraft,
   getOnboardingQuickStartDraft,
+  getQuickStartCompletionRoute,
   saveOnboardingQuickStartDraft,
 } from "@/lib/onboardingQuickStartDraft";
+import { APP_ROUTES } from "@/lib/appRoutes";
 
 const createMemoryStorage = (): Storage => {
   let values: Record<string, string> = {};
@@ -46,6 +48,7 @@ describe("onboarding quick start draft", () => {
   it("saves drafts with the current onboarding version", () => {
     saveOnboardingQuickStartDraft({
       birthday: "1994-02-10",
+      readingStatus: "reading_now",
       mission: "Keep one honest promise",
       snapshotId: "rebuild-confidence-agb",
       snapshotName: "Rebuild Confidence",
@@ -54,6 +57,7 @@ describe("onboarding quick start draft", () => {
     expect(getOnboardingQuickStartDraft()).toMatchObject({
       version: ONBOARDING_QUICK_START_DRAFT_VERSION,
       birthday: "1994-02-10",
+      readingStatus: "reading_now",
       mission: "Keep one honest promise",
       snapshotId: "rebuild-confidence-agb",
     });
@@ -73,5 +77,28 @@ describe("onboarding quick start draft", () => {
 
     expect(getOnboardingQuickStartDraft()).toBeNull();
     expect(storage.getItem("onboarding_quick_start_draft")).toBeNull();
+  });
+
+  it("normalizes invalid reading status values", () => {
+    storage.setItem(
+      "onboarding_quick_start_draft",
+      JSON.stringify({
+        version: ONBOARDING_QUICK_START_DRAFT_VERSION,
+        readingStatus: "somewhere_else",
+        snapshotId: null,
+        snapshotName: null,
+        updatedAt: "2026-06-21T00:00:00.000Z",
+      }),
+    );
+
+    expect(getOnboardingQuickStartDraft()?.readingStatus).toBe("reading_now");
+  });
+
+  it("routes quick-start completion by reading status", () => {
+    expect(getQuickStartCompletionRoute("reading_now")).toBe(APP_ROUTES.readAlong);
+    expect(getQuickStartCompletionRoute("rereading_or_leading")).toBe(APP_ROUTES.readAlong);
+    expect(getQuickStartCompletionRoute("finished")).toBe(APP_ROUTES.home);
+    expect(getQuickStartCompletionRoute("not_started")).toBe(APP_ROUTES.myControllables);
+    expect(getQuickStartCompletionRoute(null)).toBe(APP_ROUTES.home);
   });
 });

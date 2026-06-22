@@ -1,13 +1,14 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { isDevMockAuthEnabled } from "@/lib/devMockAuth";
 
 const STALE_THRESHOLD = 2 * 60 * 1000; // 2 minutes (shorter for iOS PWA reliability)
 
 /**
  * Hook that handles app resume from background state.
  * Refreshes auth session and invalidates stale queries when returning
- * after being backgrounded for more than 5 minutes.
+ * after being backgrounded long enough for local state to be stale.
  */
 export function useAppResume() {
   const queryClient = useQueryClient();
@@ -20,6 +21,11 @@ export function useAppResume() {
     isRefreshingRef.current = true;
 
     try {
+      if (isDevMockAuthEnabled()) {
+        await queryClient.invalidateQueries({ type: "active" });
+        return;
+      }
+
       console.log("[useAppResume] Refreshing session and data after resume");
       
       // Actually refresh the auth token (getSession only returns cached token)

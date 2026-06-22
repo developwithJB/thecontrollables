@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import {
+  buildDashboardRelaunchEmailPayload,
   buildMissionEmailPayload,
   buildMissionOfTheDay,
   normalizeMissionDayMode,
@@ -182,7 +183,17 @@ interface UserContext {
   sessionId: string | null;
 }
 
-const DASHBOARD_URL = "https://thedashboard.agbcoaching.com/dashboard";
+const DASHBOARD_URL = "https://thedashboard.agbcoaching.com/home";
+const DASHBOARD_QUICK_START_URL = "https://thedashboard.agbcoaching.com/quick-start";
+const DEFAULT_DASHBOARD_RELAUNCH_EMAIL_DATE = "2026-06-23";
+
+function getDashboardRelaunchEmailDate(): string {
+  return Deno.env.get("DASHBOARD_RELAUNCH_EMAIL_DATE") || DEFAULT_DASHBOARD_RELAUNCH_EMAIL_DATE;
+}
+
+function shouldSendDashboardRelaunchEmail(localDate: string, request: NudgeRequest): boolean {
+  return request.forceRelaunchEmail === true || localDate === getDashboardRelaunchEmailDate();
+}
 
 function getMissionDayModeForContext(context: UserContext): MissionDayMode {
   if (context.currentDay <= 1) return "Reset Day";
@@ -226,6 +237,7 @@ interface DriftAlignmentEmailPayload {
 
 interface NudgeRequest {
   testMode?: boolean;
+  forceRelaunchEmail?: boolean;
 }
 
 const HONEST_MOODS = new Set(["anxious", "frustrated", "overwhelmed", "flat"]);
@@ -1132,7 +1144,7 @@ function generateDailyEmailContent(
         If you want to check in, your next small action is waiting.
       </p>
       
-      <a href="https://thedashboard.agbcoaching.com/dashboard" 
+      <a href="${DASHBOARD_URL}"
          style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 15px;">
         Open Today's Actions
       </a>
@@ -1152,7 +1164,7 @@ function generateDailyEmailContent(
       </p>
       
       <p style="font-size: 11px; color: #aaa; margin-top: 32px;">
-        <a href="https://thedashboard.agbcoaching.com/dashboard" style="color: #888; text-decoration: none;">
+        <a href="${DASHBOARD_URL}" style="color: #888; text-decoration: none;">
           Turn off anytime in settings
         </a>
       </p>
@@ -1236,7 +1248,7 @@ function generateDailyAlignmentEmailContent(
       </p>
       
       <div style="text-align: center;">
-        <a href="https://thedashboard.agbcoaching.com/dashboard" 
+        <a href="${DASHBOARD_URL}"
            style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 15px;">
           Open My Dashboard
         </a>
@@ -1247,7 +1259,7 @@ function generateDailyAlignmentEmailContent(
       </p>
       
       <p style="font-size: 11px; color: #aaa; margin-top: 32px; text-align: center;">
-        <a href="https://thedashboard.agbcoaching.com/dashboard" style="color: #888; text-decoration: none;">
+        <a href="${DASHBOARD_URL}" style="color: #888; text-decoration: none;">
           Turn off anytime in settings
         </a>
       </p>
@@ -1309,7 +1321,7 @@ function generateWeeklyEmailContent(
         If you want to review or start another Snapshot, it's ready.
       </p>
       
-      <a href="https://thedashboard.agbcoaching.com/dashboard" 
+      <a href="${DASHBOARD_URL}"
          style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 15px;">
         View Your Snapshot
       </a>
@@ -1323,7 +1335,7 @@ function generateWeeklyEmailContent(
       </p>
       
       <p style="font-size: 11px; color: #aaa; margin-top: 32px;">
-        <a href="https://thedashboard.agbcoaching.com/dashboard" style="color: #888; text-decoration: none;">
+        <a href="${DASHBOARD_URL}" style="color: #888; text-decoration: none;">
           Turn off anytime in settings
         </a>
       </p>
@@ -1355,17 +1367,18 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse request body
+    let requestBody: NudgeRequest = {};
     let testMode = false;
     try {
-      const body: NudgeRequest = await req.json();
-      if (body.testMode === true) {
-        testMode = true;
-      }
+      requestBody = await req.json();
+      testMode = requestBody.testMode === true;
     } catch {
       // Default to production mode
     }
 
-    console.log(`[NUDGE] Starting nudge run (target hour: ${MORNING_HOUR}:00 local time)`);
+    console.log(
+      `[NUDGE] Starting nudge run (target hour: ${MORNING_HOUR}:00 local time, relaunch date: ${getDashboardRelaunchEmailDate()})`,
+    );
 
     // Get all users with nudges enabled
     const { data: profiles, error: profilesError } = await supabase
@@ -1403,7 +1416,13 @@ Deno.serve(async (req) => {
       return formatter.format(new Date()) === "Monday";
     }
 
-    const usersToNudge: { userId: string; timezone: string; localDate: string; isWeekly: boolean }[] = [];
+    const usersToNudge: {
+      userId: string;
+      timezone: string;
+      localDate: string;
+      isWeekly: boolean;
+      emailKind: "normal" | "relaunch";
+    }[] = [];
     const now = new Date();
 
     // Helper to get user's local hour and date correctly
@@ -1435,16 +1454,37 @@ Deno.serve(async (req) => {
 
       try {
         const { hour: userHour, localDate } = getUserLocalTimeInfo(userTimezone);
+        const relaunchEmailActive = shouldSendDashboardRelaunchEmail(localDate, requestBody);
         
-        console.log(`[NUDGE] User ${profile.id} timezone=${userTimezone}, localHour=${userHour}, frequency=${userFrequency}`);
+        console.log(
+          `[NUDGE] User ${profile.id} timezone=${userTimezone}, localHour=${userHour}, frequency=${userFrequency}, relaunch=${relaunchEmailActive}`,
+        );
 
         if (testMode) {
-          usersToNudge.push({ userId: profile.id, timezone: userTimezone, localDate, isWeekly: userFrequency === "weekly" });
+          usersToNudge.push({
+            userId: profile.id,
+            timezone: userTimezone,
+            localDate,
+            isWeekly: userFrequency === "weekly" && !relaunchEmailActive,
+            emailKind: relaunchEmailActive ? "relaunch" : "normal",
+          });
           continue;
         }
 
         // All nudges go out at morning time (7am)
         if (userHour !== MORNING_HOUR) {
+          continue;
+        }
+
+        // Relaunch day replaces the normal nudge for all email-enabled users.
+        if (relaunchEmailActive) {
+          usersToNudge.push({
+            userId: profile.id,
+            timezone: userTimezone,
+            localDate,
+            isWeekly: false,
+            emailKind: "relaunch",
+          });
           continue;
         }
 
@@ -1454,12 +1494,12 @@ Deno.serve(async (req) => {
             console.log(`[NUDGE] User ${profile.id} has weekly frequency but today is not Monday, skipping`);
             continue;
           }
-          usersToNudge.push({ userId: profile.id, timezone: userTimezone, localDate, isWeekly: true });
+          usersToNudge.push({ userId: profile.id, timezone: userTimezone, localDate, isWeekly: true, emailKind: "normal" });
           continue;
         }
 
         // Daily nudges
-        usersToNudge.push({ userId: profile.id, timezone: userTimezone, localDate, isWeekly: false });
+        usersToNudge.push({ userId: profile.id, timezone: userTimezone, localDate, isWeekly: false, emailKind: "normal" });
       } catch (tzError) {
         console.warn(`[NUDGE] Invalid timezone for user ${profile.id}: ${userTimezone}`, tzError);
       }
@@ -1477,13 +1517,14 @@ Deno.serve(async (req) => {
     let sentCount = 0;
     let skippedCount = 0;
     let missionCount = 0;
+    let relaunchCount = 0;
     const errors: string[] = [];
 
     // Process in batches of 10
     for (let i = 0; i < usersToNudge.length; i += 10) {
       const batch = usersToNudge.slice(i, i + 10);
 
-      await Promise.all(batch.map(async ({ userId, localDate, isWeekly }) => {
+      await Promise.all(batch.map(async ({ userId, localDate, isWeekly, emailKind }) => {
         try {
           // ATOMIC DEDUPLICATION: Insert with unique constraint — only the first invocation wins
           const { error: claimError } = await supabase
@@ -1504,6 +1545,45 @@ Deno.serve(async (req) => {
           // Fetch user context for personalization
           const context = await getUserContext(supabase, userId, localDate);
           console.log(`[NUDGE] Context for ${userId}:`, JSON.stringify(context));
+
+          if (emailKind === "relaunch") {
+            const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
+
+            if (userError || !userData?.user?.email) {
+              console.warn(`[NUDGE] Could not get email for relaunch user ${userId}:`, userError);
+              await supabase
+                .from("email_nudge_logs")
+                .update({ status: "skipped" })
+                .eq("user_id", userId)
+                .eq("nudge_date", localDate);
+              skippedCount++;
+              return;
+            }
+
+            const payload = buildDashboardRelaunchEmailPayload({
+              displayName: context.displayName,
+              appCtaUrl: DASHBOARD_QUICK_START_URL,
+            });
+
+            await resend.emails.send({
+              from: "The Dashboard <noreply@thedashboard.agbcoaching.com>",
+              to: [userData.user.email],
+              subject: payload.subject,
+              html: payload.html,
+              text: payload.text,
+            });
+
+            await supabase
+              .from("email_nudge_logs")
+              .update({ status: "sent", sent_at: new Date().toISOString() })
+              .eq("user_id", userId)
+              .eq("nudge_date", localDate);
+
+            console.log(`[NUDGE] Sent Dashboard relaunch email to ${userData.user.email}`);
+            sentCount++;
+            relaunchCount++;
+            return;
+          }
 
           // SUPPRESSION: Skip daily nudges if Today's Actions already completed
           if (!isWeekly && context.todayActionsCompleted) {
@@ -1558,7 +1638,7 @@ Deno.serve(async (req) => {
                 ${reEngageBuildSection}
                 
                 <div style="text-align: center;">
-                  <a href="https://thedashboard.agbcoaching.com/dashboard" 
+                  <a href="${DASHBOARD_URL}"
                      style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 15px;">
                     Start Your Next Snapshot →
                   </a>
@@ -1569,7 +1649,7 @@ Deno.serve(async (req) => {
                 </p>
                 
                 <p style="font-size: 11px; color: #aaa; margin-top: 32px; text-align: center;">
-                  <a href="https://thedashboard.agbcoaching.com/dashboard" style="color: #888; text-decoration: none;">
+                  <a href="${DASHBOARD_URL}" style="color: #888; text-decoration: none;">
                     Turn off anytime in settings
                   </a>
                 </p>
@@ -1664,13 +1744,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[NUDGE] Complete. Sent: ${sentCount} (${missionCount} daily missions), Skipped: ${skippedCount}, Errors: ${errors.length}`);
+    console.log(
+      `[NUDGE] Complete. Sent: ${sentCount} (${missionCount} daily missions, ${relaunchCount} relaunch), Skipped: ${skippedCount}, Errors: ${errors.length}`,
+    );
 
     return new Response(
       JSON.stringify({
         message: "Nudge run complete",
         sent: sentCount,
         dailyMissions: missionCount,
+        relaunchEmails: relaunchCount,
         alignment: 0,
         skipped: skippedCount,
         errors: errors.length,

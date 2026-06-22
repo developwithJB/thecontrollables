@@ -167,11 +167,12 @@ describe("local mission drop", () => {
       },
     });
 
-    expect(email.subject).toBe("Today's Mission Drop");
-    expect(email.text).toContain("Core Mission");
-    expect(email.text).toContain("Bonus Mission");
-    expect(email.text).toContain("Recovery Mission");
+    expect(email.subject).toBe("Today's Training Drop");
+    expect(email.text).toContain("Core Card");
+    expect(email.text).toContain("Bonus Card");
+    expect(email.text).toContain("Recovery Card");
     expect(email.text).not.toContain("Local Mission");
+    expect(email.text).toContain("Train one Controllable. Earn XP. Build Self-Trust.");
   });
 
   it("formats mission drop email with a short local mission section", () => {
@@ -190,10 +191,10 @@ describe("local mission drop", () => {
       localMission,
     });
 
-    expect(email.text).toContain("Chicago Mission");
+    expect(email.text).toContain("Chicago Mission Card");
     expect(email.text).toContain("Charge Wellness");
     expect(email.text).toContain("Get 10 minutes outside before sunset.");
-    expect(email.text).toContain("+30 Wellness XP");
+    expect(email.text).toContain("+30 Wellness XP · +10 Self-Trust");
   });
 
   it("awards XP once when completing a local mission", () => {

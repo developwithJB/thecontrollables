@@ -13,7 +13,6 @@ import { PullToRefreshIndicator } from "@/components/pwa/PullToRefreshIndicator"
 import { PageShimmer } from "./PageShimmer";
 import { BottomNav, DesktopNavRail } from "./BottomNav";
 import { useLifeOSAuth, LifeOSUserContext } from "@/hooks/useLifeOSAuth";
-import { DevMockAuthBanner } from "@/components/layout/DevMockAuthBanner";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { isDevMockAuthEnabled } from "@/lib/devMockAuth";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
@@ -22,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
+import { APP_ROUTES } from "@/lib/appRoutes";
 
 export const LifeOSLayout = () => {
   const { user, isLoading, isDevMockUser } = useLifeOSAuth();
@@ -81,12 +81,10 @@ export const LifeOSLayout = () => {
 
   return (
     <LifeOSUserContext.Provider value={user}>
-      <div className="min-h-screen bg-background flex flex-col relative">
-        {/* Grid background */}
-        <div className="fixed inset-0 grid-bg pointer-events-none opacity-20" />
+      <div className="app-future-shell relative flex min-h-screen flex-col bg-background">
+        <div className="future-chrome-grid pointer-events-none fixed inset-0 opacity-100" />
 
-        {/* Header */}
-        <header className="os-header pt-[env(safe-area-inset-top)]">
+        <header className="future-header pt-[env(safe-area-inset-top)]">
           <div className="max-w-md md:max-w-none mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
             <Logo />
             <div className="flex items-center gap-2">
@@ -95,31 +93,27 @@ export const LifeOSLayout = () => {
                 size="icon"
                 onClick={triggerRefresh}
                 disabled={isPullRefreshing}
-                className="text-muted-foreground hover:text-foreground md:hidden"
+                className="rounded-xl text-muted-foreground hover:text-foreground md:hidden"
                 title="Refresh"
               >
                 <RefreshCw
                   className={`w-4 h-4 ${isPullRefreshing ? "animate-spin" : ""}`}
                 />
               </Button>
-              <a
-                href="https://a.co/d/1DGPGEV"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate(APP_ROUTES.readAlong)}
+                className="rounded-xl text-muted-foreground hover:text-foreground"
+                title="Read Along Training"
               >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <Book className="w-4 h-4" />
-                </Button>
-              </a>
+                <Book className="w-4 h-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowProfileSettings(true)}
-                className="text-muted-foreground hover:text-foreground"
+                className="rounded-xl text-muted-foreground hover:text-foreground"
                 title="Profile Settings"
               >
                 <Settings className="w-4 h-4" />
@@ -127,7 +121,6 @@ export const LifeOSLayout = () => {
             </div>
           </div>
         </header>
-        <DevMockAuthBanner />
 
         {isDevMockUser ? (
           <div className="relative z-20 border-b border-amber-500/25 bg-amber-500/10 px-4 py-2 text-amber-900 dark:text-amber-200">
@@ -139,7 +132,7 @@ export const LifeOSLayout = () => {
         ) : null}
 
         {/* Main area: desktop rail + content */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="relative z-10 flex flex-1 overflow-hidden">
           <DesktopNavRail />
 
           <main
@@ -151,7 +144,7 @@ export const LifeOSLayout = () => {
               isRefreshing={isPullRefreshing}
               pullDistance={pullDistance}
             />
-            <div className="max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full">
+            <div className="mx-auto w-full max-w-md px-3 py-4 sm:px-5 md:max-w-3xl md:px-6 lg:max-w-5xl xl:max-w-7xl">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={location.pathname}

@@ -4,12 +4,14 @@ import {
   CONTROLLABLE_MISSION_TEMPLATES,
   MISSION_CONTROLLABLE_IDS,
   MISSION_DAY_MODES,
+  buildDashboardRelaunchEmailPayload,
   buildMissionEmailPayload,
   buildMissionOfTheDay,
   buildMissionOfTheDayFromPlan,
   getFallbackControllableForDate,
   getMissionEmailPreview,
   getMissionEmailSubject,
+  isPrivacySafeDashboardRelaunchEmailPayload,
   isPrivacySafeMissionEmailPayload,
 } from "@/lib/missionOfTheDay";
 
@@ -48,27 +50,29 @@ describe("Mission of the Day", () => {
   it("generates a mission subject", () => {
     const mission = buildMissionOfTheDay({ date: "2026-06-15", targetControllable: "habit" });
 
-    expect(getMissionEmailSubject(mission)).toBe("Your Mission Today: Charge Habit");
+    expect(getMissionEmailSubject(mission)).toBe("Today's Training Drop: Charge Habit");
   });
 
   it("generates preview text from the mission move and reward", () => {
     const mission = buildMissionOfTheDay({ date: "2026-06-15", targetControllable: "habit" });
 
-    expect(getMissionEmailPreview(mission)).toBe("Keep one small promise before noon. +40 Habit XP.");
+    expect(getMissionEmailPreview(mission)).toBe("Train Habit: Keep one small promise before noon. +40 Habit XP.");
   });
 
   it("renders concise mission card copy", () => {
     const mission = buildMissionOfTheDay({ date: "2026-06-15", targetControllable: "habit" });
     const payload = buildMissionEmailPayload(mission);
 
-    expect(payload.text).toContain("Mission of the Day");
+    expect(payload.text).toContain("Today's Training Drop");
+    expect(payload.text).toContain("Card to train:");
     expect(payload.text).toContain("Charge Habit");
-    expect(payload.text).toContain("Your move:");
+    expect(payload.text).toContain("Today's rep:");
     expect(payload.text).toContain("Why:");
     expect(payload.text).toContain("+40 Habit XP");
     expect(payload.text).toContain("+10 Self-Trust");
+    expect(payload.text).toContain("Proof Loop: add a photo or note after you complete it.");
     expect(payload.text).toContain("Control the Controllables one day at a time.");
-    expect(payload.html).toContain("Mission of the Day");
+    expect(payload.html).toContain("Today's Training Drop");
     expect(payload.html).toContain("Open The Dashboard");
   });
 
@@ -81,6 +85,26 @@ describe("Mission of the Day", () => {
       expect(isPrivacySafeMissionEmailPayload(payload)).toBe(true);
       expect(combined).not.toMatch(forbiddenEmailTerms);
     }
+  });
+
+  it("renders a privacy-safe relaunch email that sends users into new onboarding", () => {
+    const payload = buildDashboardRelaunchEmailPayload({
+      displayName: "Jordan",
+      appCtaUrl: "https://thedashboard.agbcoaching.com/quick-start",
+    });
+    const combined = [payload.subject, payload.previewText, payload.text, payload.html].join(" ");
+
+    expect(payload.subject).toBe("The new Dashboard is ready");
+    expect(payload.text).toContain("Good morning Jordan");
+    expect(payload.text).toContain("The book gave you the language. The app now gives you the reps.");
+    expect(payload.text).toContain("Starting Charge");
+    expect(payload.text).toContain("Daily Charge");
+    expect(payload.text).toContain("My Controllables");
+    expect(payload.text).toContain("Proof Dex");
+    expect(payload.text).toContain("Start the new onboarding: https://thedashboard.agbcoaching.com/quick-start");
+    expect(payload.html).toContain("Start the new onboarding");
+    expect(isPrivacySafeDashboardRelaunchEmailPayload(payload)).toBe(true);
+    expect(combined).not.toMatch(forbiddenEmailTerms);
   });
 
   it("falls back to a deterministic Controllable mission", () => {
@@ -112,6 +136,6 @@ describe("Mission of the Day", () => {
     expect(mission.targetControllable).toBe("wellness");
     expect(mission.missionTitle).toBe("Charge Wellness");
     expect(mission.missionInstruction).toBe("Take one recovery action.");
-    expect(payload.subject).toBe("Your Mission Today: Charge Wellness");
+    expect(payload.subject).toBe("Today's Training Drop: Charge Wellness");
   });
 });

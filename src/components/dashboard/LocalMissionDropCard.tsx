@@ -3,7 +3,9 @@ import { CheckCircle2, Clock3, Copy, MapPin, Play, ShieldCheck, Zap } from "luci
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { InfoHint } from "@/components/ui/info-hint";
 import { Input } from "@/components/ui/input";
+import { FuturePanel } from "@/components/ui/future";
 import { useToast } from "@/hooks/use-toast";
 import { useLocalMissionDrop } from "@/hooks/useLocalMissionDrop";
 import { getBookControllable } from "@/lib/bookWorld";
@@ -60,9 +62,9 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
     const canEnable = Boolean(city.trim() || state.trim());
 
     return (
-      <section className="rounded-2xl border border-border/60 bg-card px-4 py-4 shadow-sm">
+      <FuturePanel className="px-4 py-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+          <div className="future-icon-frame h-10 w-10">
             <MapPin className="h-5 w-5 text-primary" />
           </div>
           <div className="min-w-0 flex-1 space-y-4">
@@ -70,39 +72,49 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
               <Badge variant="secondary" className="text-[10px] uppercase tracking-[0.16em]">
                 Today's Mission Drop
               </Badge>
-              <h2 className="mt-2 text-base font-semibold text-foreground">Turn on Local Missions?</h2>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Get missions shaped by your city, weather, and community. City/state only. No exact location.
-              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <h2 className="text-base font-semibold text-foreground">Turn on Local Missions?</h2>
+                <InfoHint title="Local Missions">
+                  Get missions shaped by your city, weather, and community. City/state only. No exact location.
+                </InfoHint>
+              </div>
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
-              <Input value={city} onChange={(event) => setCity(event.target.value.slice(0, 60))} placeholder="City" />
-              <Input value={state} onChange={(event) => setState(event.target.value.slice(0, 40))} placeholder="State" />
+              <Input className="future-input" value={city} onChange={(event) => setCity(event.target.value.slice(0, 60))} placeholder="City" />
+              <Input className="future-input" value={state} onChange={(event) => setState(event.target.value.slice(0, 40))} placeholder="State" />
             </div>
 
             <div className="grid gap-2">
               {visibilityOptions.map((option) => (
-                <button
+                <div
                   key={option.value}
-                  onClick={() => setVisibility(option.value)}
                   className={cn(
-                    "rounded-xl border px-3 py-2 text-left transition-colors",
+                    "flex items-center justify-between gap-3 rounded-xl border px-3 py-2 transition-colors",
                     visibility === option.value
                       ? "border-primary/30 bg-primary/5"
                       : "border-border/50 bg-background/60 hover:bg-muted/50",
                   )}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-foreground">{option.label}</p>
+                  <button
+                    type="button"
+                    onClick={() => setVisibility(option.value)}
+                    className="min-w-0 flex-1 text-left text-sm font-medium text-foreground"
+                  >
+                    {option.label}
+                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <InfoHint title={`${option.label} visibility`} className="h-6 w-6">
+                      {option.description}
+                    </InfoHint>
                     {visibility === option.value ? <CheckCircle2 className="h-4 w-4 text-primary" /> : null}
                   </div>
-                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{option.description}</p>
-                </button>
+                </div>
               ))}
             </div>
 
             <Button
+              variant="future"
               className="w-full gap-2"
               disabled={!canEnable}
               onClick={() => {
@@ -122,7 +134,7 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
             </Button>
           </div>
         </div>
-      </section>
+      </FuturePanel>
     );
   }
 
@@ -168,7 +180,7 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
   };
 
   return (
-    <section className="rounded-2xl border border-border/60 bg-card px-4 py-4 shadow-sm">
+    <FuturePanel className="px-4 py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <Badge variant="secondary" className="text-[10px] uppercase tracking-[0.16em]">
@@ -180,7 +192,7 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
             {locationLabel}
           </p>
         </div>
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${guide.classes.bgClass}`}>
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/10 ${guide.classes.bgClass}`}>
           <span className="text-xl" aria-hidden="true">
             {guide.emoji}
           </span>
@@ -191,8 +203,12 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
         <p className={cn("text-xs font-medium uppercase tracking-[0.16em]", guide.classes.textClass)}>
           Charge {guide.name}
         </p>
-        <p className="mt-1 text-sm font-medium leading-relaxed text-foreground">{mission.instruction}</p>
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{mission.shortWhy}</p>
+        <div className="mt-1 flex items-center gap-2">
+          <p className="text-sm font-medium leading-relaxed text-foreground">{mission.instruction}</p>
+          <InfoHint title="Why this mission" className="h-7 w-7">
+            {mission.shortWhy}
+          </InfoHint>
+        </div>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -210,11 +226,11 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
       </div>
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        <Button onClick={handleMissionCta} disabled={mission.completed} className="gap-2">
+        <Button variant="future" onClick={handleMissionCta} disabled={mission.completed} className="gap-2">
           {mission.completed ? <CheckCircle2 className="h-4 w-4" /> : isMissionStarted ? <CheckCircle2 className="h-4 w-4" /> : <Play className="h-4 w-4" />}
           {mission.completed ? "Completed" : isMissionStarted ? "Complete" : "Start"}
         </Button>
-        <Button variant="outline" onClick={copyProof} disabled={!mission.completed || !proofCopy} className="gap-2">
+        <Button variant="futureOutline" onClick={copyProof} disabled={!mission.completed || !proofCopy} className="gap-2">
           <Copy className="h-4 w-4" />
           Copy proof
         </Button>
@@ -224,13 +240,13 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
         <div className="mt-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-foreground">Collect this rep in your Dex?</p>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              <p className="text-sm font-semibold text-foreground">Add this to your Proof Loop?</p>
+              <InfoHint title="Proof Loop" className="mt-1 h-7 w-7">
                 Add one private photo as proof of the real-life mission.
-              </p>
+              </InfoHint>
             </div>
             <div className="flex shrink-0 gap-2">
-              <Button size="sm" onClick={() => setShowPhotoProofCapture(true)}>
+              <Button variant="future" size="sm" onClick={() => setShowPhotoProofCapture(true)}>
                 Add Proof
               </Button>
               <Button size="sm" variant="ghost" onClick={() => dismissPhotoProof(mission.id)}>
@@ -265,36 +281,44 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
       {photoProofSaved || hasDexProofForMission ? (
         <div className="mt-3 rounded-xl border border-border/50 bg-background/60 px-3 py-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Photo proof saved privately to The Controllables Dex.
-            </p>
-            <Link to="/proof/dex">
-              <Button size="sm" variant="outline">
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-medium text-foreground">Proof saved.</p>
+              <InfoHint title="Proof saved">
+                Photo proof saved privately to The Controllables Dex.
+              </InfoHint>
+            </div>
+            <Button asChild size="sm" variant="futureOutline">
+              <Link to="/proof/dex">
                 Open Dex
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         </div>
       ) : null}
 
       <div className="mt-3 rounded-xl border border-border/50 bg-background/60 px-3 py-3">
-        <label className="flex items-start gap-2">
+        <div className="flex items-start gap-2">
           <Checkbox
             checked={preferences.showCityOnShareCards}
             disabled={showCityToggleDisabled}
             onCheckedChange={(checked) => updatePreferences({ showCityOnShareCards: checked === true })}
           />
-          <span className="min-w-0 text-xs leading-relaxed text-muted-foreground">
+          <span className="min-w-0 text-xs text-muted-foreground">
             <span className="block font-medium text-foreground">Show city on share cards</span>
-            City/state only appears when public visibility and this setting are both on.
+            <InfoHint title="City share rules" className="mt-1 h-6 w-6">
+              City/state only appears when public visibility and this setting are both on.
+            </InfoHint>
           </span>
-        </label>
+        </div>
       </div>
 
       <div className="mt-3 flex items-center gap-2 border-t border-border/50 pt-3 text-xs text-muted-foreground">
         <ShieldCheck className="h-3.5 w-3.5" />
-        No exact location. No maps. No private reflections.
+        <span>Privacy-safe</span>
+        <InfoHint title="Local privacy" className="h-6 w-6">
+          No exact location. No maps. No private reflections.
+        </InfoHint>
       </div>
-    </section>
+    </FuturePanel>
   );
 }
