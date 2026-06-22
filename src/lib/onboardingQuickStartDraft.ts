@@ -1,9 +1,12 @@
 import type { Controllable } from "./snapshots";
 import type { LifeSeasonKey } from "./lifePerspective";
+import { normalizeReadingStatus, type ReadingStatus } from "@/lib/readAlong";
+import { APP_ROUTES } from "@/lib/appRoutes";
 
 export interface OnboardingQuickStartDraft {
   version: string;
   currentStep?: string | null;
+  readingStatus?: ReadingStatus | null;
   mission?: string;
   birthday?: string | null;
   ageLabel?: string | null;
@@ -48,6 +51,10 @@ export const getOnboardingQuickStartDraft = (): OnboardingQuickStartDraft | null
       version: ONBOARDING_QUICK_START_DRAFT_VERSION,
       mission: parsed.mission ?? "",
       currentStep: parsed.currentStep ?? null,
+      readingStatus:
+        parsed.readingStatus === null || parsed.readingStatus === undefined
+          ? null
+          : normalizeReadingStatus(parsed.readingStatus),
       birthday: parsed.birthday ?? null,
       ageLabel: parsed.ageLabel ?? null,
       weeksLived: parsed.weeksLived ?? null,
@@ -85,6 +92,7 @@ export const saveOnboardingQuickStartDraft = (
     version: ONBOARDING_QUICK_START_DRAFT_VERSION,
     mission: pick("mission", ""),
     currentStep: pick("currentStep", null),
+    readingStatus: pick("readingStatus", null),
     birthday: pick("birthday", null),
     ageLabel: pick("ageLabel", null),
     weeksLived: pick("weeksLived", null),
@@ -108,3 +116,15 @@ export const clearOnboardingQuickStartDraft = () => {
   const storage = getStorage();
   storage?.removeItem(DRAFT_KEY);
 };
+
+export function getQuickStartCompletionRoute(readingStatus: ReadingStatus | null | undefined): string {
+  if (readingStatus === "reading_now" || readingStatus === "rereading_or_leading") {
+    return APP_ROUTES.readAlong;
+  }
+
+  if (readingStatus === "not_started") {
+    return APP_ROUTES.myControllables;
+  }
+
+  return APP_ROUTES.home;
+}

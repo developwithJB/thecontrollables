@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lightbulb, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InfoHint } from "@/components/ui/info-hint";
 
 interface GameRule {
   statement: string;
@@ -58,11 +59,10 @@ export function GameRulesSection() {
         <h2 className="font-display text-lg font-semibold text-foreground">
           Core Principles
         </h2>
+        <InfoHint title="Core principles">
+          Three rules to remember when you are stuck.
+        </InfoHint>
       </div>
-      
-      <p className="text-sm text-muted-foreground mb-6">
-        Three rules to remember when you're stuck.
-      </p>
 
       {/* Rules */}
       <div className="space-y-3">
@@ -82,12 +82,14 @@ export function GameRulesSection() {
                 </span>
                 
                 <div className="flex-1 min-w-0">
-                  <p className="font-display font-medium text-foreground text-sm leading-snug mb-2">
-                    "{rule.statement}"
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {rule.explanation}
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-display font-medium text-foreground text-sm leading-snug">
+                      "{rule.statement}"
+                    </p>
+                    <InfoHint title={`${rule.statement} details`} className="h-6 w-6">
+                      {rule.explanation}
+                    </InfoHint>
+                  </div>
                 </div>
               </div>
             </motion.div>

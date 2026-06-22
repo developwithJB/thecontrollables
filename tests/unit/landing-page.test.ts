@@ -9,10 +9,23 @@ describe("landing page copy", () => {
     const source = landingSource();
 
     expect(source).toContain("Start Your Scan");
-    expect(source).toContain("Find Your Starting Charge");
-    expect(source).toContain("Choose Your Journey");
-    expect(source).toContain("Complete Mission 001");
-    expect(source).toContain("Build Your Dex");
+    expect(source).toContain("How it works in 5 minutes a day");
+    expect(source).toContain("One read. One promise. One proof.");
+    expect(source).toContain("Get your read");
+    expect(source).toContain("Choose your Controllable");
+    expect(source).toContain("Add private proof");
+    expect(source).toContain("How The Dashboard Helps");
+    expect(source).toContain("Practice the book in real life.");
+    expect(source).toContain("find your starting point");
+    expect(source).toContain("Read Along Training");
+    expect(source).toContain("Daily Charge");
+    expect(source).toContain("Promise Ledger");
+    expect(source).toContain("Proof Loop");
+    expect(source).toContain("Start today grounded");
+    expect(source).toContain("Take Starting Charge");
+    expect(source).toContain("Get your focus");
+    expect(source).toContain("Do Daily Charge");
+    expect(source).toContain("Watch Self-Trust move");
   });
 
   it("keeps proof and sharing privacy-first", () => {
@@ -30,5 +43,7 @@ describe("landing page copy", () => {
 
     expect(source).not.toMatch(/Daily Controllables Brief/i);
     expect(source).not.toMatch(/\bevolution\b/i);
+    expect(source).not.toMatch(/actually advertise/i);
+    expect(source).not.toMatch(/sticky flows/i);
   });
 });

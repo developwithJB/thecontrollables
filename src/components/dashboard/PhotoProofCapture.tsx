@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Camera, CheckCircle2, ImagePlus, ShieldCheck, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InfoHint } from "@/components/ui/info-hint";
 import { Textarea } from "@/components/ui/textarea";
+import { FuturePanel } from "@/components/ui/future";
 import { useToast } from "@/hooks/use-toast";
 import { useControllablesDex } from "@/hooks/useControllablesDex";
 import { BOOK_CONTROLLABLES } from "@/lib/bookWorld";
@@ -90,16 +92,18 @@ export function PhotoProofCapture({
   };
 
   return (
-    <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-4">
+    <FuturePanel className="px-4 py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <Badge variant="secondary" className="text-[10px] uppercase tracking-[0.16em]">
             The Controllables Dex
           </Badge>
-          <h3 className="text-sm font-semibold text-foreground">Add photo proof?</h3>
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            Collect proof of the rep. The photo stays private by default.
-          </p>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground">Add photo proof?</h3>
+            <InfoHint title="Photo proof" className="h-6 w-6">
+              Collect proof of the rep. The photo stays private by default.
+            </InfoHint>
+          </div>
         </div>
         {onSkip ? (
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onSkip}>
@@ -112,7 +116,7 @@ export function PhotoProofCapture({
       <div className="mt-4 grid gap-3 md:grid-cols-[140px_minmax(0,1fr)]">
         <label
           className={cn(
-            "flex aspect-square cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-border/70 bg-background/70 text-center transition-colors hover:bg-muted/50",
+            "flex aspect-square cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-primary/20 bg-background/60 text-center transition-colors hover:bg-muted/50",
             preparedPhoto && "border-primary/30",
           )}
         >
@@ -154,11 +158,11 @@ export function PhotoProofCapture({
             value={caption}
             onChange={(event) => setCaption(event.target.value.slice(0, 120))}
             placeholder="Optional caption. Private unless you choose to share it later."
-            className="min-h-[76px] resize-none text-sm"
+            className="future-input min-h-[76px] resize-none text-sm"
           />
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={handleSave} disabled={!preparedPhoto || isSaving || isPreparing} className="gap-2">
+            <Button variant="future" onClick={handleSave} disabled={!preparedPhoto || isSaving || isPreparing} className="gap-2">
               <Camera className="h-4 w-4" />
               {isSaving ? "Saving..." : "Save proof privately"}
             </Button>
@@ -171,11 +175,14 @@ export function PhotoProofCapture({
         </div>
       </div>
 
-      <div className="mt-3 flex items-start gap-2 border-t border-border/50 pt-3 text-xs leading-relaxed text-muted-foreground">
+      <div className="mt-3 flex items-center gap-2 border-t border-border/50 pt-3 text-xs font-medium text-muted-foreground">
         <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-        Exact GPS is not stored. EXIF metadata is stripped from the saved preview. Captions stay out of share copy by default.
+        <span>Privacy-safe</span>
+        <InfoHint title="Photo privacy" className="h-6 w-6">
+          Exact GPS is not stored. EXIF metadata is stripped from the saved preview. Captions stay out of share copy by default.
+        </InfoHint>
       </div>
-    </div>
+    </FuturePanel>
   );
 }
 

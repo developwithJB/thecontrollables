@@ -259,15 +259,20 @@ export default function Home() {
         drift={drift}
       />
 
-      <DailyOperatorBrief userId={user.id} />
+      <TodaysReadCard signals={signals} />
+
+      <ControlReleaseMoveCard
+        userId={user.id}
+        mainMission={signals?.suggestedMainQuest}
+      />
+
+      <MyControllablesDailyTrainingCard userId={user.id} />
 
       <ControllableChargeStrip userId={user.id} />
 
-      <SelfTrustChargeStrip userId={user.id} />
-
       <LocalMissionDropCard userId={user.id} />
 
-      <MyControllablesDailyTrainingCard userId={user.id} />
+      <SelfTrustChargeStrip userId={user.id} />
 
       {drift?.shouldShowReturnFromDrift && !returnFromDriftDismissed ? (
         <ReturnFromDriftCard drift={drift} onDismiss={dismissReturnFromDrift} />
@@ -284,11 +289,7 @@ export default function Home() {
 
       {showFullBrief ? (
         <div className="grid gap-4 lg:grid-cols-2">
-          <TodaysReadCard signals={signals} />
-          <ControlReleaseMoveCard
-            userId={user.id}
-            mainMission={signals?.suggestedMainQuest}
-          />
+          <DailyOperatorBrief userId={user.id} />
           <ChargeCheckBanner signals={signals} />
           <DailyReadingCard userId={user.id} />
           <WeeklyAIInsightCard userId={user.id} />

@@ -19,6 +19,7 @@ import {
   Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InfoHint } from "@/components/ui/info-hint";
 import { isStandalone, isIOS, hasDeferredPrompt, triggerInstallPrompt } from "@/lib/pwa";
 import { toast } from "sonner";
 
@@ -210,6 +211,9 @@ export function DashboardManualSection() {
           <h2 className="font-display text-lg font-semibold text-foreground">
             How This Works
           </h2>
+          <InfoHint title="How this works">
+            Season sets the arc. Chapters hold your intent. The rest flows from there.
+          </InfoHint>
         </div>
         
         <div className="space-y-3 mb-4">
@@ -226,17 +230,19 @@ export function DashboardManualSection() {
                   </span>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-display font-medium text-foreground text-sm leading-snug">
-                        {item.title}
-                      </p>
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                        {item.subtitle}
-                      </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-display font-medium text-foreground text-sm leading-snug">
+                          {item.title}
+                        </p>
+                        <span className="mt-1 inline-flex text-[10px] uppercase tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                          {item.subtitle}
+                        </span>
+                      </div>
+                      <InfoHint title={`${item.title} details`} className="h-6 w-6">
+                        {item.description}
+                      </InfoHint>
                     </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                      {item.description}
-                    </p>
                   </div>
                 </div>
               </div>
@@ -244,9 +250,6 @@ export function DashboardManualSection() {
           })}
         </div>
         
-        <p className="text-xs text-muted-foreground text-center">
-          Season sets the arc. Chapters hold your intent. The rest flows from there.
-        </p>
       </div>
 
       {/* Section Header */}
@@ -255,11 +258,10 @@ export function DashboardManualSection() {
         <h2 className="font-display text-lg font-semibold text-foreground">
           Quick Reference
         </h2>
+        <InfoHint title="Quick reference">
+          The five core tools of your dashboard.
+        </InfoHint>
       </div>
-      
-      <p className="text-sm text-muted-foreground mb-6">
-        The five core tools of your dashboard.
-      </p>
 
       {/* Manual Sections */}
       <div className="space-y-3">
@@ -283,12 +285,14 @@ export function DashboardManualSection() {
                   </span>
                   
                   <div className="flex-1 min-w-0">
-                    <p className="font-display font-medium text-foreground text-sm leading-snug">
-                      {section.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                      {section.description}
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-display font-medium text-foreground text-sm leading-snug">
+                        {section.title}
+                      </p>
+                      <InfoHint title={`${section.title} details`} className="h-6 w-6">
+                        {section.description}
+                      </InfoHint>
+                    </div>
                     {isInstallSection && renderInstallButton()}
                   </div>
                 </div>

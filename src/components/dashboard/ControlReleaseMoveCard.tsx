@@ -2,12 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InfoHint } from "@/components/ui/info-hint";
 import { Textarea } from "@/components/ui/textarea";
+import { FuturePanel } from "@/components/ui/future";
 import { cn } from "@/lib/utils";
 
 interface ControlReleaseMoveCardProps {
   userId: string;
   mainMission?: string;
+  onSaved?: () => void;
 }
 
 interface RitualState {
@@ -28,7 +31,7 @@ function getTodayKey(): string {
   return new Date().toLocaleDateString("sv-SE");
 }
 
-export function ControlReleaseMoveCard({ userId, mainMission }: ControlReleaseMoveCardProps) {
+export function ControlReleaseMoveCard({ userId, mainMission, onSaved }: ControlReleaseMoveCardProps) {
   const [ritual, setRitual] = useState<RitualState>(EMPTY_RITUAL);
   const [saved, setSaved] = useState(false);
   const storageKey = useMemo(
@@ -53,11 +56,12 @@ export function ControlReleaseMoveCard({ userId, mainMission }: ControlReleaseMo
     try {
       localStorage.setItem(storageKey, JSON.stringify(nextRitual));
       setSaved(true);
+      onSaved?.();
       window.setTimeout(() => setSaved(false), 1600);
     } catch {
       setSaved(false);
     }
-  }, [ritual, storageKey]);
+  }, [onSaved, ritual, storageKey]);
 
   const updateField = (field: keyof Pick<RitualState, "control" | "release" | "move">, value: string) => {
     setSaved(false);
@@ -75,22 +79,24 @@ export function ControlReleaseMoveCard({ userId, mainMission }: ControlReleaseMo
   const hasAnyEntry = ritual.control.trim() || ritual.release.trim() || ritual.move.trim();
 
   return (
-    <motion.section
+    <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.04 }}
-      className="rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/6 via-card to-background px-5 py-5 shadow-sm"
     >
-      <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          Daily Release Practice
-        </p>
-        <h2 className="font-display text-xl font-semibold text-foreground">
-          Control / Release / Move
-        </h2>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          Control what you can, give the rest to God, then take the next honest action.
-        </p>
+      <FuturePanel className="px-5 py-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-2">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            Today's Note
+          </p>
+          <h2 className="font-display text-xl font-semibold text-foreground">
+            Control / Release / Move
+          </h2>
+        </div>
+        <InfoHint title="Control / Release / Move">
+          A light note for today. Name what you can control, what you can release, and the next move. You can change it anytime.
+        </InfoHint>
       </div>
 
       {mainMission ? (
@@ -103,51 +109,58 @@ export function ControlReleaseMoveCard({ userId, mainMission }: ControlReleaseMo
       ) : null}
 
       <div className="mt-4 space-y-3">
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-foreground">
-            What is one thing you can control today?
-          </span>
+        <div className="space-y-2">
+          <label htmlFor={`${storageKey}_control`} className="flex items-center gap-2 text-sm font-medium text-foreground">
+            Control
+            <InfoHint title="Control prompt" className="h-6 w-6">What is one thing you can control today?</InfoHint>
+          </label>
           <Textarea
+            id={`${storageKey}_control`}
             value={ritual.control}
             onChange={(event) => updateField("control", event.target.value)}
-            placeholder="One controllable choice, promise, or boundary."
-            className="min-h-[82px] resize-none bg-background/80"
+            placeholder="One choice, promise, or boundary."
+            className="future-input min-h-[64px] resize-none"
           />
-        </label>
+        </div>
 
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-foreground">
-            What is one thing you need to release or give to God?
-          </span>
+        <div className="space-y-2">
+          <label htmlFor={`${storageKey}_release`} className="flex items-center gap-2 text-sm font-medium text-foreground">
+            Release
+            <InfoHint title="Release prompt" className="h-6 w-6">What is one thing you need to release or give to God?</InfoHint>
+          </label>
           <Textarea
+            id={`${storageKey}_release`}
             value={ritual.release}
             onChange={(event) => updateField("release", event.target.value)}
-            placeholder="The outcome, pressure, comparison, or fear you are gripping."
-            className="min-h-[82px] resize-none bg-background/80"
+            placeholder="Outcome, pressure, comparison, or fear."
+            className="future-input min-h-[64px] resize-none"
           />
-        </label>
+        </div>
 
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-foreground">
-            What is the next honest move?
-          </span>
+        <div className="space-y-2">
+          <label htmlFor={`${storageKey}_move`} className="flex items-center gap-2 text-sm font-medium text-foreground">
+            Move
+            <InfoHint title="Move prompt" className="h-6 w-6">What is the next honest move?</InfoHint>
+          </label>
           <Textarea
+            id={`${storageKey}_move`}
             value={ritual.move}
             onChange={(event) => updateField("move", event.target.value)}
-            placeholder="A move small enough to start and honest enough to count."
-            className="min-h-[82px] resize-none bg-background/80"
+            placeholder="Small enough to start. Honest enough to count."
+            className="future-input min-h-[64px] resize-none"
           />
-        </label>
+        </div>
       </div>
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row">
         <Button
+          variant="future"
           className="flex-1"
           onClick={() => saveRitual()}
           disabled={!hasAnyEntry && !ritual.keptPromise}
         >
           <Save className="mr-2 h-4 w-4" />
-          {saved ? "Saved" : "Save ritual"}
+          {saved ? "Saved" : "Save note"}
         </Button>
         <Button
           type="button"
@@ -156,10 +169,10 @@ export function ControlReleaseMoveCard({ userId, mainMission }: ControlReleaseMo
           onClick={toggleKeptPromise}
         >
           <CheckCircle2 className="mr-2 h-4 w-4" />
-          {ritual.keptPromise ? "Promise kept" : "Mark promise kept"}
+          {ritual.keptPromise ? "Move done" : "I did the move"}
         </Button>
       </div>
-    </motion.section>
+      </FuturePanel>
+    </motion.div>
   );
 }
-

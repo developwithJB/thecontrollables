@@ -17,6 +17,7 @@ describe("onboarding UI", () => {
     const source = readSource("src/pages/QuickStart.tsx");
 
     expect(source).toContain("Find your Starting Charge.");
+    expect(source).toContain("Where are you with the book?");
     expect(source).toContain("dashboard-os-surface");
     expect(source).toContain("dashboard-primary-glow");
   });

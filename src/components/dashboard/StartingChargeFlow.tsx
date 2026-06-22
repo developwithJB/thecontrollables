@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { InfoHint } from "@/components/ui/info-hint";
 import { Input } from "@/components/ui/input";
 import { ChargeProgressRing } from "@/components/dashboard/ControllableChargeVisual";
 import { useToast } from "@/hooks/use-toast";
@@ -314,9 +315,11 @@ export function StartingChargeFlow({ userId, initialResult = null, onSaved }: St
                       className="h-12 border-primary/20 bg-background/70 text-base"
                       maxLength={80}
                     />
-                    <p className="mt-2 text-center text-[10px] font-medium text-muted-foreground">
-                      Custom promises stay private unless you turn sharing on.
-                    </p>
+                    <div className="mt-2 flex justify-center">
+                      <InfoHint title="Custom promise privacy" className="h-6 w-6">
+                        Custom promises stay private unless you turn sharing on.
+                      </InfoHint>
+                    </div>
                   </div>
                 ) : null}
               </div>
@@ -346,17 +349,17 @@ function EntryScreen({ onStart }: { onStart: () => void }) {
     <motion.div
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mx-auto flex min-h-[760px] max-w-3xl flex-col justify-between gap-7 text-center"
+      className="mx-auto flex min-h-[min(640px,calc(100svh-9rem))] max-w-3xl flex-col justify-between gap-4 text-center sm:gap-7"
     >
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         <ScanProgress step={1} total={TOTAL_SCAN_STEPS} />
         <DashboardGlyph />
         <div className="space-y-2">
-          <h2 className="dashboard-neon-text font-display text-5xl font-bold leading-[0.95] sm:text-7xl">
-            Enter Your
+          <h2 className="dashboard-neon-text font-display text-4xl font-bold leading-[0.95] sm:text-7xl">
+            Enter Your{" "}
             <span className="dashboard-neon-accent block">Dashboard</span>
           </h2>
-          <p className="mx-auto max-w-md text-lg font-medium text-muted-foreground">
+          <p className="mx-auto max-w-md text-sm font-medium text-muted-foreground sm:text-lg">
             Find your starting charge in 60 seconds.
           </p>
         </div>
@@ -365,10 +368,10 @@ function EntryScreen({ onStart }: { onStart: () => void }) {
       <OrbitConstellation />
 
       <Button
-        className="dashboard-primary-glow mx-auto h-16 w-full max-w-2xl rounded-[1.75rem] text-xl font-bold"
+        className="dashboard-primary-glow mx-auto h-14 w-full max-w-2xl rounded-2xl text-base font-bold sm:h-16 sm:rounded-[1.75rem] sm:text-xl"
         onClick={onStart}
       >
-        <Target className="mr-3 h-6 w-6" />
+        <Target className="mr-2 h-5 w-5 sm:mr-3 sm:h-6 sm:w-6" />
         Start Scan
       </Button>
     </motion.div>
@@ -397,7 +400,7 @@ function QuestionFrame({
       key={copy.accent}
       initial={{ opacity: 0, x: 16 }}
       animate={{ opacity: 1, x: 0 }}
-      className="mx-auto flex min-h-[760px] max-w-3xl flex-col gap-6"
+      className="mx-auto flex min-h-[min(660px,calc(100svh-8rem))] max-w-3xl flex-col gap-4 sm:gap-6"
     >
       <div className="relative flex items-center justify-center">
         <button
@@ -411,16 +414,18 @@ function QuestionFrame({
         <ScanProgress step={step} total={total} compact />
       </div>
 
-      <div className="space-y-5 text-center">
+      <div className="space-y-3 text-center sm:space-y-5">
         <DashboardGlyph />
         <div>
           <p className="mb-3 text-sm font-bold uppercase tracking-[0.22em] text-muted-foreground">Starting Charge</p>
-          <h2 className="dashboard-neon-text mx-auto max-w-2xl font-display text-5xl font-bold leading-[0.96] sm:text-7xl">
+          <h2 className="dashboard-neon-text mx-auto max-w-2xl font-display text-4xl font-bold leading-[0.96] sm:text-7xl">
             {copy.before ? `${copy.before} ` : ""}
             <span className="dashboard-neon-accent">{copy.accent}</span>
             {copy.after ? ` ${copy.after}` : ""}
           </h2>
-          <p className="mx-auto mt-4 max-w-md text-lg font-medium text-muted-foreground">{copy.subtitle}</p>
+          <div className="mt-4 flex justify-center">
+            <InfoHint title="Question hint">{copy.subtitle}</InfoHint>
+          </div>
         </div>
       </div>
 
@@ -428,16 +433,19 @@ function QuestionFrame({
 
       <div className="space-y-4">
         <Button
-          className="dashboard-primary-glow h-16 w-full rounded-[1.75rem] text-xl font-bold"
+          className="dashboard-primary-glow h-14 w-full rounded-2xl text-base font-bold sm:h-16 sm:rounded-[1.75rem] sm:text-xl"
           onClick={onContinue}
           disabled={!canContinue}
         >
           Continue
-          <ArrowRight className="ml-3 h-6 w-6" />
+          <ArrowRight className="ml-2 h-5 w-5 sm:ml-3 sm:h-6 sm:w-6" />
         </Button>
         <div className="flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground/75">
           <LockKeyhole className="h-4 w-4" />
-          You can change this anytime
+          <span>Editable</span>
+          <InfoHint title="Editable answers" className="h-6 w-6">
+            You can change this anytime.
+          </InfoHint>
         </div>
       </div>
     </motion.div>
@@ -445,7 +453,7 @@ function QuestionFrame({
 }
 
 function OptionGrid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{children}</div>;
+  return <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">{children}</div>;
 }
 
 function TapCard({
@@ -468,7 +476,7 @@ function TapCard({
       type="button"
       onClick={onClick}
       whileTap={{ scale: 0.98 }}
-      className="dashboard-option-card group min-h-[176px] rounded-[1.75rem] p-4 text-center transition-all duration-200 hover:-translate-y-0.5 sm:min-h-[196px]"
+      className="dashboard-option-card group min-h-[132px] rounded-2xl p-3 text-center transition-all duration-200 hover:-translate-y-0.5 sm:min-h-[196px] sm:rounded-[1.75rem] sm:p-4"
       data-selected={selected}
       style={{
         borderColor: selected ? color : undefined,
@@ -477,14 +485,14 @@ function TapCard({
     >
       {selected ? (
         <span
-          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-background"
+          className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full text-background sm:right-4 sm:top-4 sm:h-8 sm:w-8"
           style={{ backgroundColor: color, boxShadow: `0 0 18px ${color}` }}
         >
-          <Check className="h-5 w-5" />
+          <Check className="h-4 w-4 sm:h-5 sm:w-5" />
         </span>
       ) : null}
       <span
-        className="relative z-10 mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border text-4xl"
+        className="relative z-10 mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full border text-3xl sm:mb-5 sm:h-20 sm:w-20 sm:text-4xl"
         style={{
           color,
           borderColor: `${color}77`,
@@ -493,9 +501,9 @@ function TapCard({
         }}
         aria-hidden="true"
       >
-        {isValidElement(icon) ? icon : <Icon className="h-10 w-10" strokeWidth={1.7} />}
+        {isValidElement(icon) ? icon : <Icon className="h-8 w-8 sm:h-10 sm:w-10" strokeWidth={1.7} />}
       </span>
-      <span className={cn("relative z-10 block text-lg font-bold", selected ? "text-primary" : "text-foreground")}>
+      <span className={cn("relative z-10 block text-sm font-bold sm:text-lg", selected ? "text-primary" : "text-foreground")}>
         {label}
       </span>
     </motion.button>
@@ -529,7 +537,7 @@ function ResultScreen({
     <motion.div
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mx-auto flex min-h-[760px] max-w-4xl flex-col gap-6"
+      className="mx-auto flex min-h-[min(680px,calc(100svh-8rem))] max-w-4xl flex-col gap-4 sm:gap-6"
     >
       <div className="relative flex items-center justify-center">
         <button
@@ -543,13 +551,15 @@ function ResultScreen({
         <ScanProgress step={TOTAL_SCAN_STEPS} total={TOTAL_SCAN_STEPS} compact />
       </div>
 
-      <div className="space-y-3 text-center">
+      <div className="space-y-2 text-center sm:space-y-3">
         <DashboardGlyph />
-        <h2 className="dashboard-neon-text font-display text-5xl font-bold leading-[0.96] sm:text-7xl">
+        <h2 className="dashboard-neon-text font-display text-4xl font-bold leading-[0.96] sm:text-7xl">
           Your
           <span className="dashboard-neon-accent block">Starting Charge</span>
         </h2>
-        <p className="text-lg font-medium text-muted-foreground">Here is where you are beginning.</p>
+        <div className="flex justify-center">
+          <InfoHint title="Starting Charge result">Here is where you are beginning.</InfoHint>
+        </div>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
@@ -585,10 +595,10 @@ function ResultScreen({
 
       <div className="space-y-3">
         <Button
-          className="dashboard-primary-glow h-16 w-full rounded-[1.75rem] text-xl font-bold"
+          className="dashboard-primary-glow h-14 w-full rounded-2xl text-base font-bold sm:h-16 sm:rounded-[1.75rem] sm:text-xl"
           onClick={onStartMission}
         >
-          <Zap className="mr-3 h-6 w-6" />
+          <Zap className="mr-2 h-5 w-5 sm:mr-3 sm:h-6 sm:w-6" />
           Start Mission
         </Button>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -616,11 +626,11 @@ function ResultScreen({
 
 function OrbitConstellation() {
   return (
-    <div className="relative mx-auto h-[360px] w-full max-w-[460px]" aria-label="The five Controllables">
-      <div className="absolute left-1/2 top-1/2 h-[280px] w-[280px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/28 shadow-[0_0_44px_hsl(var(--primary)/0.12)]" />
-      <div className="absolute left-1/2 top-1/2 h-[190px] w-[190px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/12" />
-      <div className="dashboard-circuit-core absolute left-1/2 top-1/2 flex h-32 w-32 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-primary/45">
-        <Zap className="h-14 w-14 text-primary" />
+    <div className="relative mx-auto h-[250px] w-full max-w-[360px] sm:h-[360px] sm:max-w-[460px]" aria-label="The five Controllables">
+      <div className="absolute left-1/2 top-1/2 h-[210px] w-[210px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/28 shadow-[0_0_44px_hsl(var(--primary)/0.12)] sm:h-[280px] sm:w-[280px]" />
+      <div className="absolute left-1/2 top-1/2 h-[146px] w-[146px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/12 sm:h-[190px] sm:w-[190px]" />
+      <div className="dashboard-circuit-core absolute left-1/2 top-1/2 flex h-24 w-24 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-primary/45 sm:h-32 sm:w-32">
+        <Zap className="h-10 w-10 text-primary sm:h-14 sm:w-14" />
       </div>
 
       {CONTROLLABLE_GUIDE_IDS.map((type) => {
@@ -628,7 +638,7 @@ function OrbitConstellation() {
         return (
           <div key={type} className={cn("absolute text-center", ORBIT_LAYOUT[type])}>
             <div
-              className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border text-4xl shadow-[0_0_24px_hsl(var(--primary)/0.13)]"
+              className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border text-2xl shadow-[0_0_24px_hsl(var(--primary)/0.13)] sm:h-20 sm:w-20 sm:text-4xl"
               style={{
                 borderColor: `${getControllableVisualColor(type)}99`,
                 backgroundColor: `hsl(var(--${type}) / 0.13)`,
@@ -636,7 +646,7 @@ function OrbitConstellation() {
             >
               {guide.emoji}
             </div>
-            <p className="mt-2 text-sm font-bold text-foreground">{guide.name}</p>
+            <p className="mt-1 text-xs font-bold text-foreground sm:mt-2 sm:text-sm">{guide.name}</p>
           </div>
         );
       })}
@@ -680,7 +690,7 @@ function HeroControllableOrb({ type }: { type: ControllableType }) {
   const color = getControllableVisualColor(type);
 
   return (
-    <div className="relative mx-auto flex h-64 w-64 items-center justify-center sm:h-72 sm:w-72">
+    <div className="relative mx-auto flex h-52 w-52 items-center justify-center sm:h-72 sm:w-72">
       <div className="absolute inset-8 rounded-full border border-primary/25" />
       <div className="absolute inset-4 rounded-full border border-primary/16" />
       <div
@@ -688,7 +698,7 @@ function HeroControllableOrb({ type }: { type: ControllableType }) {
         style={{ borderColor: `${color}88`, boxShadow: `0 0 46px ${color}55` }}
       />
       <div
-        className="relative flex h-40 w-40 items-center justify-center rounded-full border text-7xl"
+        className="relative flex h-32 w-32 items-center justify-center rounded-full border text-6xl sm:h-40 sm:w-40 sm:text-7xl"
         style={{
           borderColor: `${color}99`,
           backgroundColor: `hsl(var(--${type}) / 0.16)`,

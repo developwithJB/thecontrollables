@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { ArrowRight, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { InfoHint } from "@/components/ui/info-hint";
+import { FuturePanel } from "@/components/ui/future";
 import type { GameSignals } from "@/lib/signalInterpreter";
 import { getBookControllable } from "@/lib/bookWorld";
 
@@ -40,36 +42,42 @@ export function TodaysReadCard({ signals }: TodaysReadCardProps) {
     signals?.suggestedSupportMove ?? recommended.recommendedPractice;
 
   return (
-    <motion.section
+    <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-border/60 bg-card px-5 py-5 shadow-sm"
     >
+      <FuturePanel className="px-5 py-5">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
             Today&apos;s Read
           </p>
           <h2 className="font-display text-xl font-semibold text-foreground">
-            Welcome back. Let&apos;s see where your Controllables are today.
+            Your daily read.
           </h2>
         </div>
-        <Badge variant="secondary" className="shrink-0 text-[11px]">
-          Self-Trust
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="shrink-0 text-[11px]">
+            Self-Trust
+          </Badge>
+          <InfoHint title="Today's Read details">{explanation}</InfoHint>
+        </div>
       </div>
-
-      <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{explanation}</p>
 
       <div className="mt-5 space-y-3">
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
-            <ShieldAlert className="h-4 w-4" />
-            <p className="text-[11px] font-medium uppercase tracking-[0.16em]">
-              Ego Signal
-            </p>
+          <div className="flex items-center justify-between gap-2 text-amber-700 dark:text-amber-300">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4" />
+              <p className="text-[11px] font-medium uppercase tracking-[0.16em]">
+                Ego Signal
+              </p>
+            </div>
+            <InfoHint title="Ego Signal" className="h-7 w-7 border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+              {getEgoSignal(signals)}
+            </InfoHint>
           </div>
-          <p className="mt-2 text-sm leading-relaxed text-foreground">{getEgoSignal(signals)}</p>
+          <p className="mt-2 text-sm font-semibold text-foreground">Watch for drift.</p>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
@@ -77,7 +85,7 @@ export function TodaysReadCard({ signals }: TodaysReadCardProps) {
             <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
               Main Mission
             </p>
-            <p className="mt-2 text-sm leading-relaxed text-foreground">{mainMission}</p>
+            <p className="mt-2 text-sm font-semibold text-foreground">{mainMission}</p>
           </div>
 
           <div className="rounded-xl border border-border/50 bg-background/70 px-4 py-3">
@@ -96,9 +104,12 @@ export function TodaysReadCard({ signals }: TodaysReadCardProps) {
                 {response.signalLanguage}
               </p>
             </div>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              {recommended.coreQuestion}
-            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground">Core question</span>
+              <InfoHint title={`${recommended.name} question`} className="h-7 w-7">
+                {recommended.coreQuestion}
+              </InfoHint>
+            </div>
           </div>
         </div>
 
@@ -109,7 +120,7 @@ export function TodaysReadCard({ signals }: TodaysReadCardProps) {
           <p className="mt-2 text-sm leading-relaxed text-foreground">{keptPromise}</p>
         </div>
       </div>
-    </motion.section>
+      </FuturePanel>
+    </motion.div>
   );
 }
-

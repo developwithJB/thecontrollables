@@ -5,6 +5,7 @@ import { APP_ROUTES, LIFE_OS_ROUTE_PATHS, PRIMARY_ENTRY_ROUTE_PATHS } from "@/li
 describe("app route registry", () => {
   it("defines the QA entry routes", () => {
     expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.myControllables);
+    expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.readAlong);
     expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.train);
     expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.proof);
   });

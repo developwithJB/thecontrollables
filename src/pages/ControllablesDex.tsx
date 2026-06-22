@@ -2,7 +2,9 @@ import { Link } from "react-router-dom";
 import { Camera, Copy, LockKeyhole, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InfoHint } from "@/components/ui/info-hint";
 import { Progress } from "@/components/ui/progress";
+import { FutureCard, FutureChip, FutureHero, FutureMetric, FuturePanel } from "@/components/ui/future";
 import { useToast } from "@/hooks/use-toast";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { usePageViewTracking } from "@/hooks/useAnalytics";
@@ -30,79 +32,71 @@ export default function ControllablesDex() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 pb-24">
-      <section className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
-        <div className="grid gap-0 lg:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)]">
-          <div className="space-y-4 px-5 py-6 md:px-7">
-            <Badge variant="secondary" className="w-fit text-[11px] uppercase tracking-[0.16em]">
-              The Controllables Dex
-            </Badge>
-            <div className="space-y-2">
-              <h1 className="font-display text-2xl font-semibold text-foreground md:text-3xl">
-                Collect proof of real-life reps.
-              </h1>
-              <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
-                The Dex is where completed missions become visible evidence. Photos do not judge you. They help you collect proof of who you are becoming.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary" className="gap-1 text-[11px]">
-                <LockKeyhole className="h-3 w-3" />
-                Private first
-              </Badge>
-              <Badge variant="outline" className="gap-1 text-[11px]">
-                <Camera className="h-3 w-3" />
-                {stats.totalProofCount} photo proof
-              </Badge>
-              <Badge variant="outline" className="gap-1 text-[11px]">
-                <Sparkles className="h-3 w-3" />
-                {stats.missionProofCount} mission reps
-              </Badge>
-            </div>
-          </div>
-
-          <div className="border-t border-border/60 bg-background/50 px-5 py-5 lg:border-l lg:border-t-0">
-            <div className="rounded-2xl border border-border/60 bg-card px-4 py-4">
+    <div className="mx-auto max-w-6xl space-y-3 pb-24 sm:space-y-4">
+      <FutureHero
+        eyebrow="Proof Loop · The Controllables Dex"
+        title="Proof Dex"
+        icon={<Camera className="h-5 w-5" />}
+        chips={
+          <>
+            <FutureChip icon={<LockKeyhole className="h-3.5 w-3.5" />} label="Private first" />
+            <FutureChip icon={<Camera className="h-3.5 w-3.5" />} label={`${stats.totalProofCount} proof`} />
+            <FutureChip icon={<Sparkles className="h-3.5 w-3.5" />} label={`${stats.missionProofCount} reps`} />
+          </>
+        }
+        side={
+          <div className="space-y-2">
+            <div className="future-card px-3 py-3 sm:px-4 sm:py-4">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <div className="future-icon-frame h-10 w-10">
                   <ShieldCheck className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-semibold text-foreground">Private-first status</h2>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    Share cards use safe copy only. No exact location, EXIF metadata, private reflections, wellness details, money, calendar, journal, or AI guidance.
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-semibold text-foreground">Private-first</h2>
+                    <InfoHint title="Privacy rules">
+                      Share cards use safe copy only. No exact location, EXIF metadata, private reflections, wellness details, money, calendar, journal, or AI guidance.
+                    </InfoHint>
+                  </div>
                 </div>
               </div>
             </div>
-            <Link to="/proof" className="mt-3 block">
-              <Button variant="outline" className="w-full">
+            <div className="grid grid-cols-2 gap-2">
+              <FutureMetric label="Total" value={stats.totalProofCount.toString()} />
+              <FutureMetric label="Mission reps" value={stats.missionProofCount.toString()} />
+            </div>
+            <Button asChild variant="futureOutline" className="w-full">
+              <Link to="/proof">
                 Back to Proof
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
-        </div>
-      </section>
+        }
+      >
+        <InfoHint title="The Controllables Dex">
+          The Dex is where completed missions become visible evidence. Photos do not judge you. They help you collect proof of who you are becoming.
+        </InfoHint>
+      </FutureHero>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <section className="grid grid-cols-2 gap-2 md:grid-cols-2 md:gap-3 xl:grid-cols-5">
         {categories.map((category) => (
-          <article key={category.controllable} className="rounded-2xl border border-border/60 bg-card px-4 py-4 shadow-sm">
+          <FutureCard key={category.controllable} className="px-3 py-3 sm:px-4 sm:py-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <span className="text-2xl" aria-hidden="true">
+                <span className="future-icon-frame h-10 w-10 text-xl sm:h-11 sm:w-11 sm:text-2xl" aria-hidden="true">
                   {category.emoji}
                 </span>
                 <h2 className="mt-2 text-sm font-semibold text-foreground">{category.name}</h2>
-                <p className="text-xs text-muted-foreground">{category.proofCount} proof collected</p>
+                <p className="text-xs text-muted-foreground">{category.proofCount} proof</p>
               </div>
               <Badge variant={category.proofCount > 0 ? "secondary" : "outline"} className="text-[10px]">
-                {category.chargeStage.label}
+                {category.proofCount > 0 ? category.chargeStage.label : "New"}
               </Badge>
             </div>
 
-            <Progress value={category.chargeStage.progress} className="mt-4 h-2" />
+            <Progress value={category.chargeStage.progress} className="mt-3 h-1.5 sm:mt-4 sm:h-2" />
 
-            <div className="mt-4">
+            <div className="mt-3 sm:mt-4">
               {category.recentProof ? (
                 <div className="overflow-hidden rounded-xl border border-border/50 bg-background/60">
                   <img src={category.recentProof.imageUrl} alt={`${category.name} proof`} className="aspect-[4/3] w-full object-cover" />
@@ -111,23 +105,23 @@ export default function ControllablesDex() {
                   </p>
                 </div>
               ) : (
-                <div className="rounded-xl border border-dashed border-border/70 bg-background/60 px-3 py-4">
+                <div className="rounded-xl border border-dashed border-primary/20 bg-background/50 px-3 py-3 sm:py-4">
                   <p className="text-sm font-medium text-foreground">{category.emptyTitle}</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{category.emptyDescription}</p>
+                  <p className="mt-1 hidden text-xs leading-relaxed text-muted-foreground sm:block">{category.emptyDescription}</p>
                 </div>
               )}
             </div>
-          </article>
+          </FutureCard>
         ))}
       </section>
 
-      <section className="rounded-2xl border border-border/60 bg-card px-5 py-5 shadow-sm md:px-7">
+      <FuturePanel className="px-3 py-4 sm:px-5 sm:py-5 md:px-7">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold text-foreground">Recent proof cards</h2>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            <h2 className="text-base font-semibold text-foreground">Recent proof</h2>
+            <InfoHint title="Share-safe proof" className="mt-1">
               Saved privately. Copying uses the share-safe payload, not private captions or metadata.
-            </p>
+            </InfoHint>
           </div>
           <Badge variant="outline" className="text-[11px]">
             {recentEntries.length} recent
@@ -135,12 +129,14 @@ export default function ControllablesDex() {
         </div>
 
         {recentEntries.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border/70 bg-background/60 px-4 py-8 text-center">
+          <div className="rounded-2xl border border-dashed border-primary/20 bg-background/50 px-4 py-6 text-center sm:py-8">
             <Camera className="mx-auto h-8 w-8 text-muted-foreground" />
             <h3 className="mt-3 text-sm font-semibold text-foreground">No photo proof yet</h3>
-            <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
-              Complete a mission, choose Add Proof, and save one private photo to start building your Dex.
-            </p>
+            <div className="mt-1 flex justify-center">
+              <InfoHint title="How to add proof">
+                Complete a mission, choose Add Proof, and save one private photo to start building your Dex.
+              </InfoHint>
+            </div>
           </div>
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -149,7 +145,7 @@ export default function ControllablesDex() {
               const place = [entry.city, entry.state].filter(Boolean).join(", ");
 
               return (
-                <article key={entry.id} className="overflow-hidden rounded-2xl border border-border/60 bg-background/60">
+                <article key={entry.id} className="future-card overflow-hidden">
                   <img src={entry.imageUrl} alt={`${guide.name} proof`} className="aspect-[4/3] w-full object-cover" />
                   <div className="space-y-3 px-4 py-4">
                     <div className="flex items-start justify-between gap-3">
@@ -175,7 +171,7 @@ export default function ControllablesDex() {
                     ) : null}
 
                     <div className="grid grid-cols-2 gap-2">
-                      <Button variant="outline" size="sm" className="gap-2" onClick={() => copyProof(entry.id)}>
+                      <Button variant="futureOutline" size="sm" className="gap-2" onClick={() => copyProof(entry.id)}>
                         <Copy className="h-3.5 w-3.5" />
                         Copy
                       </Button>
@@ -190,7 +186,7 @@ export default function ControllablesDex() {
             })}
           </div>
         )}
-      </section>
+      </FuturePanel>
     </div>
   );
 }
