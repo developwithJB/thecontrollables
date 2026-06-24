@@ -173,6 +173,10 @@ describe("local mission drop", () => {
     expect(email.text).toContain("Recovery Card");
     expect(email.text).not.toContain("Local Mission");
     expect(email.text).toContain("Train one Controllable. Earn XP. Build Self-Trust.");
+    expect(email.text).toContain("Add proof to your Dex.");
+    expect(email.text).toContain("Daily Charge: Control / Release / Move.");
+    expect(email.text).toContain("Promise Ledger: keep or recover one promise.");
+    expect(email.text).toContain("Proof Loop: add optional proof to your Dex.");
   });
 
   it("formats mission drop email with a short local mission section", () => {

@@ -49,9 +49,31 @@ export interface DashboardRelaunchEmailPayload {
   appCtaUrl: string;
 }
 
+export interface DashboardEmailControllableLevel {
+  emoji: string;
+  label: string;
+  level: number;
+}
+
+export interface DailyTrainingReengagementEmailPayload {
+  subject: string;
+  previewText: string;
+  html: string;
+  text: string;
+  appCtaUrl: string;
+  quickStartUrl: string;
+}
+
 export interface BuildDashboardRelaunchEmailInput {
   displayName?: string | null;
   appCtaUrl?: string | null;
+}
+
+export interface BuildDailyTrainingReengagementEmailInput {
+  displayName?: string | null;
+  levels?: DashboardEmailControllableLevel[] | null;
+  appCtaUrl?: string | null;
+  quickStartUrl?: string | null;
 }
 
 export interface BuildMissionOfTheDayInput {
@@ -283,7 +305,7 @@ export const renderMissionEmailText = (mission: MissionOfTheDay): string => {
   const controllableName = MISSION_CONTROLLABLE_NAMES[mission.targetControllable];
   return [
     "Today's Training Drop",
-    "Train one Controllable. Earn XP. Build Self-Trust. Add proof to your deck.",
+    "Train one Controllable. Earn XP. Build Self-Trust. Add proof to your Dex.",
     "",
     "Card to train:",
     mission.missionTitle,
@@ -297,7 +319,11 @@ export const renderMissionEmailText = (mission: MissionOfTheDay): string => {
     "Rewards:",
     `+${mission.xpReward} ${controllableName} XP`,
     `+${mission.selfTrustReward} Self-Trust`,
-    "Proof Loop: add a photo or note after you complete it.",
+    "",
+    "Today's loop:",
+    "1. Daily Charge: Control / Release / Move.",
+    "2. Promise Ledger: keep or recover one promise.",
+    "3. Proof Loop: add optional proof to your Dex.",
     "",
     `${mission.appCtaLabel}: ${mission.appCtaUrl}`,
     "",
@@ -327,7 +353,7 @@ export const renderMissionEmailHtml = (mission: MissionOfTheDay): string => {
             ${escapeHtml(mission.missionTitle)}
           </h1>
           <p style="margin:-8px 0 18px 0;color:${muted};font-size:14px;line-height:1.45;">
-            Train one Controllable. Earn XP. Build Self-Trust. Add proof to your deck.
+            Train one Controllable. Earn XP. Build Self-Trust. Add proof to your Dex.
           </p>
 
           <div style="border:1px solid #22314a;border-radius:16px;background:#0a1020;padding:18px;margin:0 0 16px 0;">
@@ -359,8 +385,17 @@ export const renderMissionEmailHtml = (mission: MissionOfTheDay): string => {
               +${mission.selfTrustReward} Self-Trust
             </span>
             <p style="margin:6px 0 0 0;color:${muted};font-size:13px;line-height:1.45;">
-              Proof Loop: add a photo or note after you complete it.
+              Add optional proof to your Dex after the rep.
             </p>
+          </div>
+
+          <div style="border:1px solid #22314a;border-radius:16px;background:#0a1020;padding:16px;margin:0 0 18px 0;">
+            <p style="margin:0 0 10px 0;color:${muted};font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">
+              Today's loop
+            </p>
+            <p style="margin:0 0 8px 0;color:${ink};font-size:14px;line-height:1.45;"><strong style="color:#f8fbff;">Daily Charge</strong> — Control / Release / Move.</p>
+            <p style="margin:0 0 8px 0;color:${ink};font-size:14px;line-height:1.45;"><strong style="color:#f8fbff;">Promise Ledger</strong> — keep or recover one promise.</p>
+            <p style="margin:0;color:${ink};font-size:14px;line-height:1.45;"><strong style="color:#f8fbff;">Proof Loop</strong> — add optional proof to your Dex.</p>
           </div>
 
           <a href="${escapeHtml(mission.appCtaUrl)}" style="display:block;border-radius:14px;background:${accent};color:#03111f;text-align:center;text-decoration:none;font-size:16px;font-weight:800;padding:15px 18px;">
@@ -387,6 +422,44 @@ export const buildMissionEmailPayload = (mission: MissionOfTheDay): MissionEmail
 };
 
 const DEFAULT_DASHBOARD_RELAUNCH_CTA_URL = "https://thedashboard.agbcoaching.com/quick-start";
+const DEFAULT_DAILY_TRAINING_CTA_URL = "https://thedashboard.agbcoaching.com/home";
+
+const renderEmailLevelGridHtml = (levels: DashboardEmailControllableLevel[] = []): string => {
+  if (!levels.length) return "";
+
+  const items = levels
+    .map(
+      (level) => `
+        <td style="text-align:center;padding:6px 4px;">
+          <span style="font-size:18px;">${escapeHtml(level.emoji)}</span><br/>
+          <span style="font-size:11px;color:#8d99ae;">${escapeHtml(level.label)}</span><br/>
+          <span style="font-size:14px;font-weight:800;color:#f8fbff;">Lv.${Math.max(1, Math.round(level.level))}</span>
+        </td>
+      `,
+    )
+    .join("");
+
+  return `
+    <div style="border:1px solid #22314a;border-radius:18px;background:#0a1020;padding:16px;margin:0 0 18px 0;">
+      <p style="margin:0 0 10px 0;color:#8d99ae;font-size:12px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;text-align:center;">
+        Your Controllable Cards
+      </p>
+      <table style="width:100%;border-collapse:collapse;"><tr>${items}</tr></table>
+    </div>
+  `;
+};
+
+const renderEmailLevelGridText = (levels: DashboardEmailControllableLevel[] = []): string[] => {
+  if (!levels.length) return [];
+
+  return [
+    "",
+    "Your Controllable Cards:",
+    levels
+      .map((level) => `${level.emoji} ${level.label} Lv.${Math.max(1, Math.round(level.level))}`)
+      .join(" | "),
+  ];
+};
 
 export const buildDashboardRelaunchEmailPayload = (
   input: BuildDashboardRelaunchEmailInput = {},
@@ -464,6 +537,92 @@ export const buildDashboardRelaunchEmailPayload = (
   };
 };
 
+export const buildDailyTrainingReengagementEmailPayload = (
+  input: BuildDailyTrainingReengagementEmailInput = {},
+): DailyTrainingReengagementEmailPayload => {
+  const appCtaUrl = normalizeWhitespace(input.appCtaUrl || DEFAULT_DAILY_TRAINING_CTA_URL);
+  const quickStartUrl = normalizeWhitespace(input.quickStartUrl || DEFAULT_DASHBOARD_RELAUNCH_CTA_URL);
+  const displayName = normalizeWhitespace(input.displayName || "");
+  const greeting = displayName ? `Good morning ${displayName},` : "Good morning,";
+  const subject = "Today's Training Drop is ready";
+  const previewText = "Pick one Controllable card, do one rep, and save proof.";
+  const levels = input.levels || [];
+  const text = [
+    subject,
+    "",
+    greeting,
+    "",
+    "You do not need a full Snapshot to train today.",
+    "Pick one Controllable card, do one honest rep, and let The Dashboard record the proof.",
+    ...renderEmailLevelGridText(levels),
+    "",
+    "Today's loop:",
+    "1. Daily Charge: Control / Release / Move.",
+    "2. Card Training: choose one Controllable to train.",
+    "3. Promise Ledger: keep or recover one promise.",
+    "4. Proof Loop: add optional proof to your Dex.",
+    "",
+    `Open today's training: ${appCtaUrl}`,
+    `Need a fresh read? Start the 60-second Starting Charge: ${quickStartUrl}`,
+    "",
+    "One rep is enough to keep Self-Trust moving.",
+  ].join("\n");
+
+  const html = `
+    <div style="display:none;overflow:hidden;line-height:1px;opacity:0;max-height:0;max-width:0;color:transparent;">
+      ${escapeHtml(previewText)}
+    </div>
+    <div style="margin:0;padding:32px 16px;background:#060a12;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#e5eefc;">
+      <div style="max-width:500px;margin:0 auto;">
+        <div style="border:1px solid #1d2b40;border-radius:24px;background:#0f1522;padding:26px;">
+          <p style="margin:0 0 12px 0;color:#38bdf8;font-size:12px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;">
+            Today's Training Drop
+          </p>
+          <h1 style="margin:0 0 12px 0;color:#f8fbff;font-size:30px;line-height:1.1;font-weight:850;">
+            Pick one card. Do one rep.
+          </h1>
+          <p style="margin:0 0 20px 0;color:#a8b3c7;font-size:15px;line-height:1.55;">
+            ${escapeHtml(greeting)} You do not need a full Snapshot to train today. Pick one Controllable card, do one honest rep, and let The Dashboard record the proof.
+          </p>
+
+          ${renderEmailLevelGridHtml(levels)}
+
+          <div style="border:1px solid #22314a;border-radius:18px;background:#0a1020;padding:18px;margin:0 0 18px 0;">
+            <p style="margin:0 0 12px 0;color:#8d99ae;font-size:12px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">
+              Today's loop
+            </p>
+            <p style="margin:0 0 9px 0;color:#f8fbff;font-size:15px;line-height:1.45;"><strong>Daily Charge</strong> — Control / Release / Move.</p>
+            <p style="margin:0 0 9px 0;color:#f8fbff;font-size:15px;line-height:1.45;"><strong>Card Training</strong> — choose one Controllable to train.</p>
+            <p style="margin:0 0 9px 0;color:#f8fbff;font-size:15px;line-height:1.45;"><strong>Promise Ledger</strong> — keep or recover one promise.</p>
+            <p style="margin:0;color:#f8fbff;font-size:15px;line-height:1.45;"><strong>Proof Loop</strong> — add optional proof to your Dex.</p>
+          </div>
+
+          <a href="${escapeHtml(appCtaUrl)}" style="display:block;border-radius:14px;background:#38bdf8;color:#03111f;text-align:center;text-decoration:none;font-size:16px;font-weight:850;padding:15px 18px;">
+            Open today's training
+          </a>
+
+          <p style="margin:14px 0 0 0;color:#8d99ae;font-size:13px;line-height:1.45;text-align:center;">
+            Need a fresh read? <a href="${escapeHtml(quickStartUrl)}" style="color:#7dd3fc;text-decoration:none;font-weight:800;">Start the 60-second Starting Charge</a>.
+          </p>
+
+          <p style="margin:18px 0 0 0;color:#8d99ae;font-size:13px;line-height:1.45;text-align:center;">
+            One rep is enough to keep Self-Trust moving.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return {
+    subject,
+    previewText,
+    html,
+    text,
+    appCtaUrl,
+    quickStartUrl,
+  };
+};
+
 export const MISSION_EMAIL_FORBIDDEN_PATTERNS = [
   /\bprivate reflections?\b/i,
   /\bmoney\b/i,
@@ -487,6 +646,19 @@ export const isPrivacySafeMissionEmailPayload = (payload: MissionEmailPayload): 
 };
 
 export const isPrivacySafeDashboardRelaunchEmailPayload = (payload: DashboardRelaunchEmailPayload): boolean => {
+  const combined = [
+    payload.subject,
+    payload.previewText,
+    payload.html,
+    payload.text,
+  ].join(" ");
+
+  return !MISSION_EMAIL_FORBIDDEN_PATTERNS.some((pattern) => pattern.test(combined));
+};
+
+export const isPrivacySafeDailyTrainingReengagementEmailPayload = (
+  payload: DailyTrainingReengagementEmailPayload,
+): boolean => {
   const combined = [
     payload.subject,
     payload.previewText,

@@ -5,6 +5,7 @@ import {
   MISSION_CONTROLLABLE_IDS,
   MISSION_DAY_MODES,
   buildDashboardRelaunchEmailPayload,
+  buildDailyTrainingReengagementEmailPayload,
   buildMissionEmailPayload,
   buildMissionOfTheDay,
   buildMissionOfTheDayFromPlan,
@@ -12,6 +13,7 @@ import {
   getMissionEmailPreview,
   getMissionEmailSubject,
   isPrivacySafeDashboardRelaunchEmailPayload,
+  isPrivacySafeDailyTrainingReengagementEmailPayload,
   isPrivacySafeMissionEmailPayload,
 } from "@/lib/missionOfTheDay";
 
@@ -70,9 +72,13 @@ describe("Mission of the Day", () => {
     expect(payload.text).toContain("Why:");
     expect(payload.text).toContain("+40 Habit XP");
     expect(payload.text).toContain("+10 Self-Trust");
-    expect(payload.text).toContain("Proof Loop: add a photo or note after you complete it.");
+    expect(payload.text).toContain("Today's loop:");
+    expect(payload.text).toContain("Daily Charge: Control / Release / Move.");
+    expect(payload.text).toContain("Promise Ledger: keep or recover one promise.");
+    expect(payload.text).toContain("Proof Loop: add optional proof to your Dex.");
     expect(payload.text).toContain("Control the Controllables one day at a time.");
     expect(payload.html).toContain("Today's Training Drop");
+    expect(payload.html).toContain("Today's loop");
     expect(payload.html).toContain("Open The Dashboard");
   });
 
@@ -104,6 +110,35 @@ describe("Mission of the Day", () => {
     expect(payload.text).toContain("Start the new onboarding: https://thedashboard.agbcoaching.com/quick-start");
     expect(payload.html).toContain("Start the new onboarding");
     expect(isPrivacySafeDashboardRelaunchEmailPayload(payload)).toBe(true);
+    expect(combined).not.toMatch(forbiddenEmailTerms);
+  });
+
+  it("renders a sticky re-engagement email when no Snapshot is active", () => {
+    const payload = buildDailyTrainingReengagementEmailPayload({
+      displayName: "JB",
+      appCtaUrl: "https://thedashboard.agbcoaching.com/home",
+      quickStartUrl: "https://thedashboard.agbcoaching.com/quick-start",
+      levels: [
+        { emoji: "🦉", label: "Awareness", level: 2 },
+        { emoji: "🐢", label: "Perspective", level: 1 },
+      ],
+    });
+    const combined = [payload.subject, payload.previewText, payload.text, payload.html].join(" ");
+
+    expect(payload.subject).toBe("Today's Training Drop is ready");
+    expect(payload.text).toContain("Good morning JB");
+    expect(payload.text).toContain("You do not need a full Snapshot to train today.");
+    expect(payload.text).toContain("Your Controllable Cards:");
+    expect(payload.text).toContain("Awareness Lv.2");
+    expect(payload.text).toContain("Daily Charge: Control / Release / Move.");
+    expect(payload.text).toContain("Card Training: choose one Controllable to train.");
+    expect(payload.text).toContain("Promise Ledger: keep or recover one promise.");
+    expect(payload.text).toContain("Proof Loop: add optional proof to your Dex.");
+    expect(payload.text).toContain("Start the 60-second Starting Charge");
+    expect(payload.html).toContain("Pick one card. Do one rep.");
+    expect(payload.html).toContain("Open today's training");
+    expect(isPrivacySafeDailyTrainingReengagementEmailPayload(payload)).toBe(true);
+    expect(combined).not.toContain("Your next Snapshot is waiting");
     expect(combined).not.toMatch(forbiddenEmailTerms);
   });
 
