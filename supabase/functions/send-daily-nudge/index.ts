@@ -2,6 +2,7 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import {
   buildDashboardRelaunchEmailPayload,
+  buildDailyTrainingReengagementEmailPayload,
   buildMissionEmailPayload,
   buildMissionOfTheDay,
   normalizeMissionDayMode,
@@ -1597,7 +1598,7 @@ Deno.serve(async (req) => {
             return;
           }
 
-          // RE-ENGAGEMENT: If no active session, send a "start your next snapshot" nudge instead of skipping
+          // RE-ENGAGEMENT: If no active session, still send a sticky training drop instead of skipping.
           if (!isWeekly && !context.sessionId) {
             console.log(`[NUDGE] User ${userId} has no active session, sending re-engagement nudge`);
             
@@ -1615,53 +1616,21 @@ Deno.serve(async (req) => {
             }
 
             const reEngageEmail = reEngageUser.user.email;
-            const firstName = context.displayName || "Friend";
-            const permissionLine = PERMISSION_LINES[Math.floor(Math.random() * PERMISSION_LINES.length)];
             const reEngageLevels = await getUserControllableLevels(supabase, userId);
-            const reEngageBuildSection = renderBuildLevelsHtml(reEngageLevels);
-
-            const reEngageSubject = "Your next Snapshot is waiting";
-            const reEngageBody = `
-              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 440px; margin: 0 auto; padding: 40px 20px; background: #fafafa;">
-                <p style="font-size: 18px; color: #1a1a1a; margin: 0 0 24px 0;">
-                  Good morning ${firstName},
-                </p>
-                
-                <p style="font-size: 15px; color: #333; margin: 0 0 20px 0; line-height: 1.6;">
-                  You've completed your last Snapshot — well done. When you're ready, a new 7-day focus is waiting for you inside The Dashboard.
-                </p>
-                
-                <p style="font-size: 15px; color: #333; margin: 0 0 24px 0; line-height: 1.6;">
-                  No pressure. Just showing up is the win.
-                </p>
-                
-                ${reEngageBuildSection}
-                
-                <div style="text-align: center;">
-                  <a href="${DASHBOARD_URL}"
-                     style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 15px;">
-                    Start Your Next Snapshot →
-                  </a>
-                </div>
-                
-                <p style="font-size: 13px; color: #888; margin: 24px 0 0 0; font-style: italic; text-align: center;">
-                  ${permissionLine}
-                </p>
-                
-                <p style="font-size: 11px; color: #aaa; margin-top: 32px; text-align: center;">
-                  <a href="${DASHBOARD_URL}" style="color: #888; text-decoration: none;">
-                    Turn off anytime in settings
-                  </a>
-                </p>
-              </div>
-            `;
+            const reEngagePayload = buildDailyTrainingReengagementEmailPayload({
+              displayName: context.displayName,
+              levels: reEngageLevels,
+              appCtaUrl: DASHBOARD_URL,
+              quickStartUrl: DASHBOARD_QUICK_START_URL,
+            });
 
             try {
               await resend.emails.send({
                 from: "The Dashboard <noreply@thedashboard.agbcoaching.com>",
                 to: [reEngageEmail],
-                subject: reEngageSubject,
-                html: reEngageBody,
+                subject: reEngagePayload.subject,
+                html: reEngagePayload.html,
+                text: reEngagePayload.text,
               });
 
               await supabase

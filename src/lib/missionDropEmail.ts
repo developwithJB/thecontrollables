@@ -65,7 +65,13 @@ export function formatMissionDropEmail(input: MissionDropEmailInput): MissionDro
     });
   }
 
-  const intro = "Train one Controllable. Earn XP. Build Self-Trust. Add proof to your deck.";
+  const intro = "Train one Controllable. Earn XP. Build Self-Trust. Add proof to your Dex.";
+  const dailyLoop = [
+    "Today's loop:",
+    "1. Daily Charge: Control / Release / Move.",
+    "2. Promise Ledger: keep or recover one promise.",
+    "3. Proof Loop: add optional proof to your Dex.",
+  ].join("\n");
   const text = [
     "Today's Training Drop",
     intro,
@@ -75,6 +81,8 @@ export function formatMissionDropEmail(input: MissionDropEmailInput): MissionDro
       [section.label, section.title, section.instruction, section.reward].filter(Boolean).join("\n"),
     )
     .join("\n\n"),
+    "",
+    dailyLoop,
   ].join("\n");
 
   const html = sections
@@ -100,6 +108,12 @@ export function formatMissionDropEmail(input: MissionDropEmailInput): MissionDro
           <p style="margin:0;color:#334155;">${escapeHtml(intro)}</p>
         </section>
         ${html}
+        <section style="border:1px solid #dbeafe;border-radius:14px;background:#eff6ff;padding:14px;margin:4px 0 0 0;">
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0369a1;">Today's loop</p>
+          <p style="margin:0 0 6px 0;color:#0f172a;"><strong>Daily Charge</strong> — Control / Release / Move.</p>
+          <p style="margin:0 0 6px 0;color:#0f172a;"><strong>Promise Ledger</strong> — keep or recover one promise.</p>
+          <p style="margin:0;color:#0f172a;"><strong>Proof Loop</strong> — add optional proof to your Dex.</p>
+        </section>
       </div>`,
   };
 }
