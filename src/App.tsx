@@ -40,6 +40,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const QuickStart = lazy(() => import("./pages/QuickStart"));
 const Integrations = lazy(() => import("./pages/Integrations"));
 const ReadAlong = lazy(() => import("./pages/ReadAlong"));
+const Goal = lazy(() => import("./pages/Goal"));
 
 // Production-hardened query client configuration
 const queryClient = new QueryClient({
@@ -86,6 +87,7 @@ const AppContent = () => {
           <Route element={<LifeOSLayout />}>
             <Route path={APP_ROUTES.home} element={<Home />} />
             <Route path={APP_ROUTES.readAlong} element={<ReadAlong />} />
+            <Route path={APP_ROUTES.goal} element={<Goal />} />
             <Route path={APP_ROUTES.myControllables} element={<MyControllables />} />
             <Route path={APP_ROUTES.train} element={<Train />} />
             <Route path={APP_ROUTES.proof} element={<Proof />} />

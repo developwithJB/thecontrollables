@@ -8,6 +8,15 @@ import {
   normalizeMissionDayMode,
   type MissionDayMode,
 } from "../_shared/mission-of-the-day.ts";
+import {
+  buildDatedGoalEmailPayload,
+  getChicagoGoalWeek,
+  getChicagoWeekDates,
+  getGoalDriftSignal,
+  type DatedGoalEmailPayload,
+  type DatedGoalRecord,
+  type GoalDailyLog,
+} from "../_shared/dated-goal.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -185,6 +194,7 @@ interface UserContext {
 }
 
 const DASHBOARD_URL = "https://thedashboard.agbcoaching.com/home";
+const DATED_GOAL_URL = "https://thedashboard.agbcoaching.com/goal";
 const DASHBOARD_QUICK_START_URL = "https://thedashboard.agbcoaching.com/quick-start";
 const DEFAULT_DASHBOARD_RELAUNCH_EMAIL_DATE = "2026-06-23";
 
@@ -239,6 +249,8 @@ interface DriftAlignmentEmailPayload {
 interface NudgeRequest {
   testMode?: boolean;
   forceRelaunchEmail?: boolean;
+  targetUserId?: string;
+  forceSend?: boolean;
 }
 
 const HONEST_MOODS = new Set(["anxious", "frustrated", "overwhelmed", "flat"]);
@@ -1346,6 +1358,96 @@ function generateWeeklyEmailContent(
   return { subject, body };
 }
 
+async function getActiveDatedGoalEmail(
+  supabase: SupabaseClient,
+  userId: string,
+  localDate: string,
+  displayName: string | null,
+): Promise<{ goal: DatedGoalRecord; payload: DatedGoalEmailPayload } | null> {
+  const { data: goalData, error: goalError } = await supabase
+    .from("dated_goals")
+    .select("id, user_id, plan_id, title, event_name, event_date, start_date, timezone, target_result, status")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .gte("event_date", localDate)
+    .order("event_date", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (goalError) {
+    console.warn(`[NUDGE] Dated goal lookup failed for ${userId}: ${goalError.message}`);
+    return null;
+  }
+  if (!goalData) return null;
+
+  const goal = goalData as DatedGoalRecord;
+  const historyStart = shiftLocalDate(localDate, -13);
+  const [logsResult, healthResult] = await Promise.all([
+    supabase
+      .from("dated_goal_daily_logs")
+      .select("log_date, session_type, status, actual_miles, strength_completed, fueling_completed, pain_affecting_stride")
+      .eq("goal_id", goal.id)
+      .gte("log_date", historyStart)
+      .lte("log_date", localDate)
+      .order("log_date", { ascending: true }),
+    supabase
+      .from("health_sync_data")
+      .select("sync_date, sleep_minutes, recovery_score")
+      .eq("user_id", userId)
+      .gte("sync_date", historyStart)
+      .lte("sync_date", localDate)
+      .order("sync_date", { ascending: false }),
+  ]);
+
+  if (logsResult.error) console.warn(`[NUDGE] Dated goal logs unavailable for ${userId}: ${logsResult.error.message}`);
+  if (healthResult.error) console.warn(`[NUDGE] Dated goal health unavailable for ${userId}: ${healthResult.error.message}`);
+
+  const logs: GoalDailyLog[] = (logsResult.data ?? []).map((row: Record<string, unknown>) => ({
+    logDate: String(row.log_date),
+    sessionType: String(row.session_type) as GoalDailyLog["sessionType"],
+    status: String(row.status) as GoalDailyLog["status"],
+    actualMiles: row.actual_miles === null || row.actual_miles === undefined ? null : Number(row.actual_miles),
+    strengthCompleted: Boolean(row.strength_completed),
+    fuelingCompleted: row.fueling_completed === null || row.fueling_completed === undefined ? null : Boolean(row.fueling_completed),
+    painAffectingStride: Boolean(row.pain_affecting_stride),
+  }));
+  const healthRows = healthResult.data ?? [];
+  const sleepPerformances = healthRows
+    .filter((row: { sleep_minutes: number | null }) => row.sleep_minutes !== null)
+    .map((row: { sleep_minutes: number | null }) => Math.min(100, Math.round((Number(row.sleep_minutes) / 480) * 100)));
+  const recentRecoveries = healthRows
+    .slice(0, 3)
+    .map((row: { recovery_score: number | null }) => row.recovery_score);
+  const latestHealth = healthRows[0] ?? null;
+  const drift = getGoalDriftSignal({
+    currentDate: localDate,
+    logs,
+    sleepPerformances,
+    recentRecoveries,
+  });
+  const week = getChicagoGoalWeek(localDate);
+  const weekDates = week ? getChicagoWeekDates(week) : [];
+  const weekMilesCompleted = logs
+    .filter((log) => weekDates.includes(log.logDate))
+    .reduce((total, log) => total + (log.actualMiles ?? 0), 0);
+  const payload = buildDatedGoalEmailPayload({
+    displayName,
+    currentDate: localDate,
+    eventDate: goal.event_date,
+    appUrl: DATED_GOAL_URL,
+    health: {
+      recovery: latestHealth?.recovery_score ?? null,
+      sleepMinutes: latestHealth?.sleep_minutes ?? null,
+      recentRecoveries,
+      painAffectingStride: logs.some((log) => log.logDate === localDate && log.painAffectingStride),
+    },
+    drift,
+    weekMilesCompleted: week ? weekMilesCompleted : undefined,
+  });
+
+  return { goal, payload };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -1365,6 +1467,7 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse request body
@@ -1377,15 +1480,63 @@ Deno.serve(async (req) => {
       // Default to production mode
     }
 
+    const privilegedRequest =
+      testMode ||
+      requestBody.forceRelaunchEmail === true ||
+      Boolean(requestBody.targetUserId) ||
+      requestBody.forceSend === true;
+
+    if (requestBody.forceSend && !requestBody.targetUserId) {
+      return new Response(
+        JSON.stringify({ error: "forceSend requires targetUserId" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (privilegedRequest) {
+      const authHeader = req.headers.get("Authorization");
+      let authorized = authHeader === `Bearer ${supabaseServiceKey}`;
+
+      if (!authorized && authHeader) {
+        const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
+          auth: { persistSession: false },
+          global: { headers: { Authorization: authHeader } },
+        });
+        const { data: authData } = await anonClient.auth.getUser();
+        if (authData.user) {
+          const { data: adminRole } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", authData.user.id)
+            .eq("role", "admin")
+            .maybeSingle();
+          authorized = Boolean(adminRole);
+        }
+      }
+
+      if (!authorized) {
+        return new Response(
+          JSON.stringify({ error: "Admin authorization required" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
     console.log(
       `[NUDGE] Starting nudge run (target hour: ${MORNING_HOUR}:00 local time, relaunch date: ${getDashboardRelaunchEmailDate()})`,
     );
 
     // Get all users with nudges enabled
-    const { data: profiles, error: profilesError } = await supabase
+    let profilesQuery = supabase
       .from("profiles")
       .select("id, timezone, nudge_frequency")
       .eq("email_nudge_enabled", true);
+
+    if (requestBody.targetUserId) {
+      profilesQuery = profilesQuery.eq("id", requestBody.targetUserId);
+    }
+
+    const { data: profiles, error: profilesError } = await profilesQuery;
 
     if (profilesError) {
       console.error("[NUDGE] Error fetching profiles:", profilesError);
@@ -1519,6 +1670,7 @@ Deno.serve(async (req) => {
     let skippedCount = 0;
     let missionCount = 0;
     let relaunchCount = 0;
+    let datedGoalCount = 0;
     const errors: string[] = [];
 
     // Process in batches of 10
@@ -1528,13 +1680,19 @@ Deno.serve(async (req) => {
       await Promise.all(batch.map(async ({ userId, localDate, isWeekly, emailKind }) => {
         try {
           // ATOMIC DEDUPLICATION: Insert with unique constraint — only the first invocation wins
-          const { error: claimError } = await supabase
-            .from("email_nudge_logs")
-            .insert({
+          const claim = {
               user_id: userId,
               nudge_date: localDate,
               status: "pending",
-            });
+            };
+          const claimResult = requestBody.forceSend
+            ? await supabase
+                .from("email_nudge_logs")
+                .upsert(claim, { onConflict: "user_id,nudge_date" })
+            : await supabase
+                .from("email_nudge_logs")
+                .insert(claim);
+          const claimError = claimResult.error;
 
           if (claimError) {
             // Unique constraint violation means another invocation already claimed this slot
@@ -1583,6 +1741,49 @@ Deno.serve(async (req) => {
             console.log(`[NUDGE] Sent Dashboard relaunch email to ${userData.user.email}`);
             sentCount++;
             relaunchCount++;
+            return;
+          }
+
+          // ACTIVE DATED GOAL: The finish line becomes the user's primary morning operating plan.
+          const datedGoalEmail = await getActiveDatedGoalEmail(
+            supabase,
+            userId,
+            localDate,
+            context.displayName,
+          );
+
+          if (datedGoalEmail) {
+            const { data: goalUser, error: goalUserError } = await supabase.auth.admin.getUserById(userId);
+            if (goalUserError || !goalUser?.user?.email) {
+              console.warn(`[NUDGE] Could not get email for dated goal user ${userId}:`, goalUserError);
+              await supabase
+                .from("email_nudge_logs")
+                .update({ status: "skipped" })
+                .eq("user_id", userId)
+                .eq("nudge_date", localDate);
+              skippedCount++;
+              return;
+            }
+
+            await resend.emails.send({
+              from: "The Dashboard <noreply@thedashboard.agbcoaching.com>",
+              to: [goalUser.user.email],
+              subject: datedGoalEmail.payload.subject,
+              html: datedGoalEmail.payload.html,
+              text: datedGoalEmail.payload.text,
+            });
+
+            await supabase
+              .from("email_nudge_logs")
+              .update({ status: "sent", sent_at: new Date().toISOString() })
+              .eq("user_id", userId)
+              .eq("nudge_date", localDate);
+
+            console.log(
+              `[NUDGE] Sent dated goal plan ${datedGoalEmail.goal.plan_id} to ${goalUser.user.email}`,
+            );
+            sentCount++;
+            datedGoalCount++;
             return;
           }
 
@@ -1714,7 +1915,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(
-      `[NUDGE] Complete. Sent: ${sentCount} (${missionCount} daily missions, ${relaunchCount} relaunch), Skipped: ${skippedCount}, Errors: ${errors.length}`,
+      `[NUDGE] Complete. Sent: ${sentCount} (${datedGoalCount} dated goals, ${missionCount} daily missions, ${relaunchCount} relaunch), Skipped: ${skippedCount}, Errors: ${errors.length}`,
     );
 
     return new Response(
@@ -1722,6 +1923,7 @@ Deno.serve(async (req) => {
         message: "Nudge run complete",
         sent: sentCount,
         dailyMissions: missionCount,
+        datedGoalEmails: datedGoalCount,
         relaunchEmails: relaunchCount,
         alignment: 0,
         skipped: skippedCount,

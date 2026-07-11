@@ -1,6 +1,6 @@
-import { useState, useCallback, Suspense } from "react";
+import { useState, useCallback, Suspense, useEffect } from "react";
 import { useNavigate, Outlet, useLocation } from "react-router-dom";
-import { Book, FlaskConical, RefreshCw, Settings } from "lucide-react";
+import { Book, Flag, FlaskConical, RefreshCw, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { SplashScreen } from "@/components/SplashScreen";
@@ -64,6 +64,10 @@ export const LifeOSLayout = () => {
     triggerRefresh,
   } = usePullToRefresh({ onRefresh: handlePullRefresh, threshold: 80 });
 
+  useEffect(() => {
+    pullRefreshRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [location.pathname, pullRefreshRef]);
+
   const handleSignOut = async () => {
     if (isDevMockAuthEnabled()) {
       toast({ title: "Dev mock session cleared", description: "Mock auth stays active while the env flag is on." });
@@ -88,6 +92,15 @@ export const LifeOSLayout = () => {
           <div className="max-w-md md:max-w-none mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
             <Logo />
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate(APP_ROUTES.goal)}
+                className="rounded-xl text-muted-foreground hover:text-foreground"
+                title="Active Goal"
+              >
+                <Flag className="w-4 h-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
