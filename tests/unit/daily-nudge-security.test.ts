@@ -16,4 +16,12 @@ describe("daily nudge privileged test path", () => {
     expect(source).toContain('profilesQuery = profilesQuery.eq("id", requestBody.targetUserId)');
     expect(source).toContain('.upsert(claim, { onConflict: "user_id,nudge_date" })');
   });
+
+  it("only bypasses the morning-hour gate for an authorized targeted force send", () => {
+    expect(source).toContain("const forceTargetedSend =");
+    expect(source).toContain(
+      "requestBody.forceSend === true && Boolean(requestBody.targetUserId)",
+    );
+    expect(source).toContain("if (testMode || forceTargetedSend)");
+  });
 });

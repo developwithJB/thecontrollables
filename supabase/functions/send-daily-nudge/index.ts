@@ -1485,6 +1485,8 @@ Deno.serve(async (req) => {
       requestBody.forceRelaunchEmail === true ||
       Boolean(requestBody.targetUserId) ||
       requestBody.forceSend === true;
+    const forceTargetedSend =
+      requestBody.forceSend === true && Boolean(requestBody.targetUserId);
 
     if (requestBody.forceSend && !requestBody.targetUserId) {
       return new Response(
@@ -1612,7 +1614,7 @@ Deno.serve(async (req) => {
           `[NUDGE] User ${profile.id} timezone=${userTimezone}, localHour=${userHour}, frequency=${userFrequency}, relaunch=${relaunchEmailActive}`,
         );
 
-        if (testMode) {
+        if (testMode || forceTargetedSend) {
           usersToNudge.push({
             userId: profile.id,
             timezone: userTimezone,
