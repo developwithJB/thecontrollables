@@ -6,6 +6,7 @@ describe("app route registry", () => {
   it("defines the QA entry routes", () => {
     expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.myControllables);
     expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.readAlong);
+    expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.goal);
     expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.train);
     expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.proof);
   });
