@@ -2733,6 +2733,36 @@ export type Database = {
           },
         ]
       }
+      time_logs: {
+        Row: {
+          created_at: string
+          id: string
+          log_date: string
+          notes: string | null
+          time_invested_minutes: number | null
+          time_wasted_minutes: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          log_date?: string
+          notes?: string | null
+          time_invested_minutes?: number | null
+          time_wasted_minutes?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          log_date?: string
+          notes?: string | null
+          time_invested_minutes?: number | null
+          time_wasted_minutes?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       timeline_events: {
         Row: {
           confidence: number
@@ -2839,36 +2869,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      time_logs: {
-        Row: {
-          created_at: string
-          id: string
-          log_date: string
-          notes: string | null
-          time_invested_minutes: number | null
-          time_wasted_minutes: number | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          log_date?: string
-          notes?: string | null
-          time_invested_minutes?: number | null
-          time_wasted_minutes?: number | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          log_date?: string
-          notes?: string | null
-          time_invested_minutes?: number | null
-          time_wasted_minutes?: number | null
-          user_id?: string
-        }
-        Relationships: []
       }
       transactions: {
         Row: {
@@ -3902,7 +3902,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      generate_invite_code: { Args: never; Returns: string }
       create_manual_timeline_event: {
         Args: {
           event_title: string
@@ -3914,6 +3913,7 @@ export type Database = {
         }
         Returns: string
       }
+      generate_invite_code: { Args: never; Returns: string }
       get_circle_wellness_streaks: {
         Args: { p_challenge_id: string }
         Returns: {
@@ -3933,6 +3933,31 @@ export type Database = {
       is_challenge_participant: {
         Args: { _challenge_id: string; _user_id: string }
         Returns: boolean
+      }
+      refresh_daily_charge_snapshot: {
+        Args: { target_date: string; target_user_id: string }
+        Returns: undefined
+      }
+      timeline_user_timezone: {
+        Args: { target_user_id: string }
+        Returns: string
+      }
+      upsert_timeline_source_event: {
+        Args: {
+          target_confidence: number
+          target_event_type: string
+          target_impacts: Json
+          target_local_date: string
+          target_metadata: Json
+          target_occurred_at: string
+          target_scoring_status: string
+          target_source_id: string
+          target_source_type: string
+          target_timezone: string
+          target_title: string
+          target_user_id: string
+        }
+        Returns: string
       }
     }
     Enums: {
