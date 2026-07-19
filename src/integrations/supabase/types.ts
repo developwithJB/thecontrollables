@@ -835,42 +835,6 @@ export type Database = {
         }
         Relationships: []
       }
-      daily_charge_snapshots: {
-        Row: {
-          calculated_at: string
-          category_scores: Json
-          charge_date: string
-          event_count: number
-          id: string
-          net_impact: number
-          overall_score: number
-          rule_version: string
-          user_id: string
-        }
-        Insert: {
-          calculated_at?: string
-          category_scores?: Json
-          charge_date: string
-          event_count?: number
-          id?: string
-          net_impact?: number
-          overall_score?: number
-          rule_version?: string
-          user_id: string
-        }
-        Update: {
-          calculated_at?: string
-          category_scores?: Json
-          charge_date?: string
-          event_count?: number
-          id?: string
-          net_impact?: number
-          overall_score?: number
-          rule_version?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       daily_checkins: {
         Row: {
           check_in_date: string
@@ -2733,113 +2697,6 @@ export type Database = {
           },
         ]
       }
-      timeline_events: {
-        Row: {
-          confidence: number
-          created_at: string
-          event_type: string
-          id: string
-          local_date: string
-          occurred_at: string
-          private_metadata: Json
-          recorded_at: string
-          scoring_status: string
-          source_id: string
-          source_type: string
-          timezone: string
-          title: string
-          updated_at: string
-          user_id: string
-          visibility: string
-        }
-        Insert: {
-          confidence?: number
-          created_at?: string
-          event_type: string
-          id?: string
-          local_date: string
-          occurred_at: string
-          private_metadata?: Json
-          recorded_at?: string
-          scoring_status?: string
-          source_id: string
-          source_type: string
-          timezone?: string
-          title: string
-          updated_at?: string
-          user_id: string
-          visibility?: string
-        }
-        Update: {
-          confidence?: number
-          created_at?: string
-          event_type?: string
-          id?: string
-          local_date?: string
-          occurred_at?: string
-          private_metadata?: Json
-          recorded_at?: string
-          scoring_status?: string
-          source_id?: string
-          source_type?: string
-          timezone?: string
-          title?: string
-          updated_at?: string
-          user_id?: string
-          visibility?: string
-        }
-        Relationships: []
-      }
-      timeline_impacts: {
-        Row: {
-          confidence: number
-          controllable: string
-          created_at: string
-          delta: number
-          event_id: string
-          explanation: string
-          id: string
-          reason_code: string
-          rule_version: string
-          updated_at: string
-          user_overridden: boolean
-        }
-        Insert: {
-          confidence?: number
-          controllable: string
-          created_at?: string
-          delta: number
-          event_id: string
-          explanation: string
-          id?: string
-          reason_code: string
-          rule_version?: string
-          updated_at?: string
-          user_overridden?: boolean
-        }
-        Update: {
-          confidence?: number
-          controllable?: string
-          created_at?: string
-          delta?: number
-          event_id?: string
-          explanation?: string
-          id?: string
-          reason_code?: string
-          rule_version?: string
-          updated_at?: string
-          user_overridden?: boolean
-        }
-        Relationships: [
-          {
-            foreignKeyName: "timeline_impacts_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "timeline_events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       time_logs: {
         Row: {
           created_at: string
@@ -3875,10 +3732,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      assess_timeline_event: {
-        Args: { assessment: string; target_event_id: string }
-        Returns: undefined
-      }
       bootstrap_admin: { Args: { admin_user_id: string }; Returns: boolean }
       compute_build_scores: {
         Args: { p_assessment_id: string }
@@ -3903,17 +3756,6 @@ export type Database = {
         }
       }
       generate_invite_code: { Args: never; Returns: string }
-      create_manual_timeline_event: {
-        Args: {
-          event_title: string
-          event_type: string
-          local_date: string
-          occurred_at: string
-          target_controllable: string
-          timezone?: string
-        }
-        Returns: string
-      }
       get_circle_wellness_streaks: {
         Args: { p_challenge_id: string }
         Returns: {
