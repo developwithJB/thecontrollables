@@ -5,6 +5,7 @@ export const APP_ROUTES = {
   readAlong: "/read-along",
   goal: "/goal",
   home: "/home",
+  timeline: "/timeline",
   myControllables: "/my-controllables",
   train: "/train",
   proof: "/proof",
@@ -25,6 +26,7 @@ export const APP_ROUTES = {
 
 export const LIFE_OS_ROUTE_PATHS = [
   APP_ROUTES.home,
+  APP_ROUTES.timeline,
   APP_ROUTES.readAlong,
   APP_ROUTES.goal,
   APP_ROUTES.myControllables,

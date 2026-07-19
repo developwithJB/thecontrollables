@@ -17,6 +17,13 @@ import {
   type DatedGoalRecord,
   type GoalDailyLog,
 } from "../_shared/dated-goal.ts";
+import {
+  appendTimelineEmailRecap,
+  getTimelineEmailNextMove,
+  TIMELINE_EMAIL_CONTROLLABLES,
+  type TimelineEmailControllable,
+  type TimelineEmailRecap,
+} from "../_shared/timeline-recap.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -194,6 +201,7 @@ interface UserContext {
 }
 
 const DASHBOARD_URL = "https://thedashboard.agbcoaching.com/home";
+const DASHBOARD_TIMELINE_URL = "https://thedashboard.agbcoaching.com/timeline";
 const DATED_GOAL_URL = "https://thedashboard.agbcoaching.com/goal";
 const DASHBOARD_QUICK_START_URL = "https://thedashboard.agbcoaching.com/quick-start";
 const DEFAULT_DASHBOARD_RELAUNCH_EMAIL_DATE = "2026-06-23";
@@ -518,6 +526,80 @@ function shiftLocalDate(localDate: string, days: number): string {
   const date = new Date(`${localDate}T12:00:00`);
   date.setDate(date.getDate() + days);
   return date.toISOString().split("T")[0];
+}
+
+async function getTimelineEmailRecap(
+  supabase: SupabaseClient,
+  userId: string,
+  localDate: string,
+): Promise<TimelineEmailRecap | null> {
+  const recapDate = shiftLocalDate(localDate, -1);
+  const [snapshotResult, eventsResult] = await Promise.all([
+    supabase
+      .from("daily_charge_snapshots")
+      .select("overall_score, net_impact, event_count, category_scores")
+      .eq("user_id", userId)
+      .eq("charge_date", recapDate)
+      .maybeSingle(),
+    supabase
+      .from("timeline_events")
+      .select("event_type, occurred_at, scoring_status, timeline_impacts(controllable, delta)")
+      .eq("user_id", userId)
+      .eq("local_date", recapDate)
+      .neq("scoring_status", "excluded")
+      .order("occurred_at", { ascending: false })
+      .limit(5),
+  ]);
+
+  if (snapshotResult.error || eventsResult.error) {
+    console.warn(
+      `[NUDGE] Timeline recap unavailable for ${userId}:`,
+      snapshotResult.error?.message ?? eventsResult.error?.message,
+    );
+    return null;
+  }
+
+  const eventRows = eventsResult.data ?? [];
+  if (!snapshotResult.data && eventRows.length === 0) return null;
+
+  const rawScores = snapshotResult.data?.category_scores;
+  const scoreObject = rawScores && typeof rawScores === "object" && !Array.isArray(rawScores)
+    ? rawScores as Record<string, unknown>
+    : {};
+  const categoryScores = Object.fromEntries(
+    TIMELINE_EMAIL_CONTROLLABLES.map((controllable) => [
+      controllable,
+      Math.max(0, Math.min(100, Number(scoreObject[controllable] ?? 50))),
+    ]),
+  ) as Record<TimelineEmailControllable, number>;
+
+  const moments = eventRows.slice(0, 3).map((event) => {
+    const impacts = event.scoring_status === "scored"
+      ? (event.timeline_impacts ?? [])
+        .filter((impact) => TIMELINE_EMAIL_CONTROLLABLES.includes(impact.controllable as TimelineEmailControllable))
+        .map((impact) => ({
+          controllable: impact.controllable as TimelineEmailControllable,
+          delta: Number(impact.delta),
+        }))
+      : [];
+    return {
+      eventType: event.event_type,
+      occurredAt: event.occurred_at,
+      netImpact: impacts.reduce((sum, impact) => sum + impact.delta, 0),
+      impacts,
+    };
+  });
+
+  return {
+    date: recapDate,
+    overallScore: Number(snapshotResult.data?.overall_score ?? 50),
+    netImpact: Number(snapshotResult.data?.net_impact ?? 0),
+    eventCount: Number(snapshotResult.data?.event_count ?? eventRows.length),
+    categoryScores,
+    moments,
+    nextMove: getTimelineEmailNextMove(categoryScores),
+    timelineUrl: DASHBOARD_TIMELINE_URL,
+  };
 }
 
 function parseDateOnly(value: string | null | undefined): Date | null {
@@ -1746,6 +1828,8 @@ Deno.serve(async (req) => {
             return;
           }
 
+          const timelineRecap = await getTimelineEmailRecap(supabase, userId, localDate);
+
           // ACTIVE DATED GOAL: The finish line becomes the user's primary morning operating plan.
           const datedGoalEmail = await getActiveDatedGoalEmail(
             supabase,
@@ -1767,12 +1851,18 @@ Deno.serve(async (req) => {
               return;
             }
 
+            const datedGoalContent = appendTimelineEmailRecap(
+              datedGoalEmail.payload.html,
+              datedGoalEmail.payload.text,
+              timelineRecap,
+            );
+
             await resend.emails.send({
               from: "The Dashboard <noreply@thedashboard.agbcoaching.com>",
               to: [goalUser.user.email],
               subject: datedGoalEmail.payload.subject,
-              html: datedGoalEmail.payload.html,
-              text: datedGoalEmail.payload.text,
+              html: datedGoalContent.html,
+              text: datedGoalContent.text,
             });
 
             await supabase
@@ -1826,14 +1916,19 @@ Deno.serve(async (req) => {
               appCtaUrl: DASHBOARD_URL,
               quickStartUrl: DASHBOARD_QUICK_START_URL,
             });
+            const reEngageContent = appendTimelineEmailRecap(
+              reEngagePayload.html,
+              reEngagePayload.text,
+              timelineRecap,
+            );
 
             try {
               await resend.emails.send({
                 from: "The Dashboard <noreply@thedashboard.agbcoaching.com>",
                 to: [reEngageEmail],
                 subject: reEngagePayload.subject,
-                html: reEngagePayload.html,
-                text: reEngagePayload.text,
+                html: reEngageContent.html,
+                text: reEngageContent.text,
               });
 
               await supabase
@@ -1881,6 +1976,12 @@ Deno.serve(async (req) => {
             subject = result.subject;
             body = result.body;
             text = result.text;
+          }
+
+          if (!isWeekly) {
+            const contentWithRecap = appendTimelineEmailRecap(body, text, timelineRecap);
+            body = contentWithRecap.html;
+            text = contentWithRecap.text;
           }
 
           // Send email via Resend

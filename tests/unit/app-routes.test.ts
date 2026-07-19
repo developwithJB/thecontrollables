@@ -7,6 +7,7 @@ describe("app route registry", () => {
     expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.myControllables);
     expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.readAlong);
     expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.goal);
+    expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.timeline);
     expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.train);
     expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.proof);
   });

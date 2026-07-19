@@ -33,6 +33,7 @@ import { ControlReleaseMoveCard } from "@/components/dashboard/ControlReleaseMov
 import { MyControllablesDailyTrainingCard } from "@/components/dashboard/MyControllablesDailyTrainingCard";
 import { LocalMissionDropCard } from "@/components/dashboard/LocalMissionDropCard";
 import { ActiveDatedGoalCard } from "@/components/dashboard/ActiveDatedGoalCard";
+import { DailyChargeTimelinePreview } from "@/components/dashboard/DailyChargeTimelinePreview";
 import { DailyOperatorOnboardingFlow, OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 
 export default function Home() {
@@ -261,6 +262,8 @@ export default function Home() {
       />
 
       <ActiveDatedGoalCard userId={user.id} />
+
+      <DailyChargeTimelinePreview userId={user.id} />
 
       <TodaysReadCard signals={signals} />
 

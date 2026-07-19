@@ -24,4 +24,11 @@ describe("daily nudge privileged test path", () => {
     );
     expect(source).toContain("if (testMode || forceTargetedSend)");
   });
+
+  it("adds a privacy-safe prior-day timeline recap to normal daily paths", () => {
+    expect(source).toContain("getTimelineEmailRecap");
+    expect(source).toContain("appendTimelineEmailRecap");
+    expect(source).toContain("DASHBOARD_TIMELINE_URL");
+    expect(source).toContain('shiftLocalDate(localDate, -1)');
+  });
 });

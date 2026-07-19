@@ -4,7 +4,8 @@ import { format, addWeeks, subWeeks, addMonths, subMonths, isToday, isBefore, st
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Plus, RotateCcw, BarChart3, UtensilsCrossed, ArrowRight, CalendarDays, CalendarRange, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, RotateCcw, BarChart3, UtensilsCrossed, ArrowRight, CalendarDays, CalendarRange, Calendar as CalendarIcon, Clock3 } from "lucide-react";
+import { APP_ROUTES } from "@/lib/appRoutes";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
@@ -91,14 +92,14 @@ const Planner = () => {
         );
 
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || "Failed to connect Google Calendar");
+          const errorPayload = await res.json().catch(() => ({})) as { error?: string };
+          throw new Error(errorPayload.error || "Failed to connect Google Calendar");
         }
 
         toast({ title: "Google Calendar connected!" });
         queryClient.invalidateQueries({ queryKey: ["planner-connections"] });
-      } catch (e: any) {
-        toast({ title: "Connection failed", description: e.message, variant: "destructive" });
+      } catch (error: unknown) {
+        toast({ title: "Connection failed", description: error instanceof Error ? error.message : "Try again.", variant: "destructive" });
       } finally {
         navigate("/planner", { replace: true });
       }
@@ -144,7 +145,7 @@ const Planner = () => {
         .lte("plan_date", format(weekRange.end, "yyyy-MM-dd"));
       const counts: Record<string, number> = {};
       for (const row of data || []) {
-        counts[row.plan_date] = (row.meals as any[])?.length || 0;
+        counts[row.plan_date] = Array.isArray(row.meals) ? row.meals.length : 0;
       }
       return counts;
     },
@@ -164,7 +165,7 @@ const Planner = () => {
           onSuccess: (data) => {
             toast({ title: `Pushed to Google Calendar`, description: `${data.pushed} event(s) synced` });
           },
-          onError: (err: any) => {
+          onError: (err: Error) => {
             toast({ title: "Push failed", description: err.message, variant: "destructive" });
           },
         }
@@ -181,7 +182,7 @@ const Planner = () => {
         onSuccess: (data) => {
           toast({ title: `Pushed to Google Calendar`, description: `${data.pushed} event(s) synced` });
         },
-        onError: (err: any) => {
+        onError: (err: Error) => {
           toast({ title: "Push failed", description: err.message, variant: "destructive" });
         },
       }
@@ -383,6 +384,14 @@ const Planner = () => {
             );
           })}
           <div className="flex-1" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1 px-2 text-xs"
+            onClick={() => navigate(APP_ROUTES.timeline)}
+          >
+            <Clock3 className="h-3.5 w-3.5" /> Timeline
+          </Button>
           <Button
             variant="ghost"
             size="sm"
