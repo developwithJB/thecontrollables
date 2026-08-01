@@ -55,6 +55,9 @@ export interface GameSignals {
   explanation: string;
   suggestedMainQuest: string;
   suggestedSupportMove: string;
+  bossBattle?: {
+    summary: string;
+  } | null;
 }
 
 type ScoreBoard = Record<ControllableType, { risk: number; opportunity: number }>;

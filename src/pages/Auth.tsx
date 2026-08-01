@@ -149,7 +149,7 @@ export default function Auth() {
         } else {
           trackAccountCreated("signup_form");
           if (signUpData?.session) {
-            toast({ title: "Welcome aboard!", description: "Your account has been created. Redirecting to your dashboard..." });
+            toast({ title: "Welcome", description: "Your account is ready. Opening your dashboard…" });
           } else {
             toast({ title: "Check your email", description: "We've sent you a confirmation link. Please check your email to activate your account." });
           }
@@ -192,7 +192,7 @@ export default function Auth() {
         if (quickStartDraft?.lifeSeasonLabel) {
           return `Finish setup to keep your ${quickStartDraft.lifeSeasonLabel.toLowerCase()} reflection`;
         }
-        return "Start building momentum today";
+        return "Put Jesus first. Train what you can control.";
       default: return "Sign in to access your dashboard";
     }
   };
@@ -251,7 +251,7 @@ export default function Auth() {
       </div>
 
       {/* Right Panel - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 relative z-10">
+      <main className="flex-1 flex items-center justify-center p-6 lg:p-12 relative z-10">
         <motion.div
           className="w-full max-w-md"
           initial={{ opacity: 0, y: 20 }}
@@ -290,7 +290,7 @@ export default function Auth() {
                       className="pl-10 pr-10 bg-background/50"
                       autoComplete="new-password"
                     />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-0 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground">
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
@@ -346,7 +346,7 @@ export default function Auth() {
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 pr-10 bg-background/50" autoComplete={mode === "signin" ? "current-password" : "new-password"} data-testid="auth-password-input" />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-0 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground">
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
@@ -368,11 +368,11 @@ export default function Auth() {
             )}
 
             <p className="mt-8 text-xs text-center text-muted-foreground/60">
-              Your data is private and secure. We never share your information.
+              Formation reflections stay private to your account and are excluded from formation analytics.
             </p>
           </div>
         </motion.div>
-      </div>
+      </main>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type React from "react";
 import { useNavigate } from "react-router-dom";
+import { toSafeInternalPath } from "@/lib/safeNavigation";
 import { motion } from "framer-motion";
 import {
   Check,
@@ -155,7 +156,7 @@ export function DailyOperatorBrief({ userId }: DailyOperatorBriefProps) {
     });
 
     setEditingId(null);
-    if (result.nextPath) navigate(result.nextPath);
+    if (result.nextPath) navigate(toSafeInternalPath(result.nextPath));
     if (!result.nextPath && !isExecutableAIProposal(proposal.proposal_type)) {
       const link = proposalDeepLink(proposal);
       if (link) navigate(link);

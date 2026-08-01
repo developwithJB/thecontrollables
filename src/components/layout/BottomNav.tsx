@@ -2,9 +2,10 @@ import { BatteryCharging, BookOpen, CheckCircle2, Dumbbell, Sun } from "lucide-r
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { APP_ROUTES } from "@/lib/appRoutes";
+import { formationCircuitsEnabled } from "@/lib/featureFlags";
 
 const navItems = [
-  { path: APP_ROUTES.home, label: "Today", icon: Sun },
+  { path: formationCircuitsEnabled() ? APP_ROUTES.formationToday : APP_ROUTES.home, label: "Today", icon: Sun },
   { path: APP_ROUTES.train, label: "Train", icon: Dumbbell },
   { path: APP_ROUTES.reflect, label: "Reflect", icon: BookOpen },
   { path: APP_ROUTES.proof, label: "Proof", icon: CheckCircle2 },
@@ -25,7 +26,7 @@ export const BottomNav = () => {
     >
       <div className="mx-auto flex h-16 max-w-lg items-center justify-around px-1">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive = location.pathname === item.path || (item.path === APP_ROUTES.formationToday && (location.pathname.startsWith(`${APP_ROUTES.formationToday}/`) || location.pathname === APP_ROUTES.formationCompletion));
           return (
             <motion.button
               key={item.path}
@@ -71,7 +72,7 @@ export const DesktopNavRail = () => {
   return (
     <nav className="hidden w-16 shrink-0 flex-col gap-1 border-r border-primary/10 bg-background/35 py-4 backdrop-blur-xl md:flex lg:w-48">
       {navItems.map((item) => {
-        const isActive = location.pathname === item.path;
+        const isActive = location.pathname === item.path || (item.path === APP_ROUTES.formationToday && (location.pathname.startsWith(`${APP_ROUTES.formationToday}/`) || location.pathname === APP_ROUTES.formationCompletion));
         return (
           <button
             key={item.path}

@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useRef } from "react";
-import posthog from "posthog-js";
-import * as Sentry from "@sentry/react";
 import { supabase } from "@/integrations/supabase/client";
 import { APP_VERSION } from "@/lib/version";
 
@@ -24,14 +22,26 @@ interface ErrorContext {
   [key: string]: string | number | boolean | null | undefined;
 }
 
+declare global {
+  interface Window {
+    __TELEMETRY_READY__?: Promise<void>;
+  }
+}
+
 const ENABLE_SUPABASE_ANALYTICS = import.meta.env.VITE_ENABLE_SUPABASE_ANALYTICS === "true";
+const whenTelemetryReady = () => window.__TELEMETRY_READY__ ?? Promise.resolve();
 
 const capturePosthogEvent = (eventName: string, eventData?: EventData) => {
-  posthog.capture(eventName, {
-    ...eventData,
-    app_version: APP_VERSION,
-    page_path: window.location.pathname,
-  });
+  void whenTelemetryReady()
+    .then(() => import("posthog-js"))
+    .then(({ default: posthog }) => {
+      posthog.capture(eventName, {
+        ...eventData,
+        app_version: APP_VERSION,
+        page_path: window.location.pathname,
+      });
+    })
+    .catch(() => undefined);
 };
 
 export const captureHandledException = (
@@ -39,14 +49,19 @@ export const captureHandledException = (
   context?: ErrorContext,
   level: "error" | "warning" = "error"
 ) => {
-  Sentry.withScope((scope) => {
-    if (context) {
-      scope.setContext("error_context", context);
-    }
-    scope.setTag("app_version", APP_VERSION);
-    scope.setLevel(level);
-    Sentry.captureException(error);
-  });
+  void whenTelemetryReady()
+    .then(() => import("@sentry/react"))
+    .then((Sentry) => {
+      Sentry.withScope((scope) => {
+        if (context) {
+          scope.setContext("error_context", context);
+        }
+        scope.setTag("app_version", APP_VERSION);
+        scope.setLevel(level);
+        Sentry.captureException(error);
+      });
+    })
+    .catch(() => undefined);
 };
 
 export const useAnalytics = () => {
@@ -118,17 +133,22 @@ export const useAnalytics = () => {
       componentName?: string,
       additionalContext?: ErrorContext
     ) => {
-      Sentry.withScope((scope) => {
-        if (additionalContext) {
-          scope.setContext("additional_context", additionalContext);
-        }
-        scope.setTag("error_type", errorType || "runtime");
-        if (componentName) {
-          scope.setTag("component_name", componentName);
-        }
-        scope.setTag("app_version", APP_VERSION);
-        Sentry.captureMessage(errorMessage, "error");
-      });
+      void whenTelemetryReady()
+        .then(() => import("@sentry/react"))
+        .then((Sentry) => {
+          Sentry.withScope((scope) => {
+            if (additionalContext) {
+              scope.setContext("additional_context", additionalContext);
+            }
+            scope.setTag("error_type", errorType || "runtime");
+            if (componentName) {
+              scope.setTag("component_name", componentName);
+            }
+            scope.setTag("app_version", APP_VERSION);
+            Sentry.captureMessage(errorMessage, "error");
+          });
+        })
+        .catch(() => undefined);
 
       if (!ENABLE_SUPABASE_ANALYTICS) return;
 
@@ -193,10 +213,15 @@ export const setupGlobalErrorTracking = () => {
     const msgStr = String(message);
     if (isAbortError(msgStr, error)) return;
 
-    Sentry.captureException(error ?? new Error(msgStr), {
-      tags: { error_type: "uncaught", app_version: APP_VERSION },
-      extra: { source, lineno, colno },
-    });
+    void whenTelemetryReady()
+      .then(() => import("@sentry/react"))
+      .then((Sentry) => {
+        Sentry.captureException(error ?? new Error(msgStr), {
+          tags: { error_type: "uncaught", app_version: APP_VERSION },
+          extra: { source, lineno, colno },
+        });
+      })
+      .catch(() => undefined);
   };
 
   window.onunhandledrejection = (event) => {

@@ -7,7 +7,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SplashScreen } from "@/components/SplashScreen";
 import { useAppResume } from "@/hooks/useAppResume";
 import { lazy, Suspense, useEffect } from "react";
-import { onboardingQuickStartEnabled } from "@/lib/featureFlags";
+import { formationCircuitsEnabled, formationCompletionEnabled, onboardingQuickStartEnabled } from "@/lib/featureFlags";
 import { LifeOSLayout } from "@/components/layout/LifeOSLayout";
 import { APP_ROUTES } from "@/lib/appRoutes";
 import { applyStoredThemePreference } from "@/lib/theme";
@@ -18,10 +18,9 @@ declare global {
   }
 }
 
-// Eagerly load Landing for fastest FCP
-import Landing from "./pages/Landing";
-
-// Lazy load other routes
+// Route-split every page so authenticated formation routes do not download the
+// marketing experience before rendering their primary action.
+const Landing = lazy(() => import("./pages/Landing"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Home = lazy(() => import("./pages/Home"));
 const MyControllables = lazy(() => import("./pages/MyControllables"));
@@ -42,6 +41,9 @@ const Integrations = lazy(() => import("./pages/Integrations"));
 const ReadAlong = lazy(() => import("./pages/ReadAlong"));
 const Goal = lazy(() => import("./pages/Goal"));
 const Timeline = lazy(() => import("./pages/Timeline"));
+const FormationToday = lazy(() => import("./pages/FormationToday"));
+const FormationCircuit = lazy(() => import("./pages/FormationCircuit"));
+const FormationCompletion = lazy(() => import("./pages/FormationCompletion"));
 
 // Production-hardened query client configuration
 const queryClient = new QueryClient({
@@ -87,6 +89,18 @@ const AppContent = () => {
           {/* Life OS pages - persistent layout, only content swaps */}
           <Route element={<LifeOSLayout />}>
             <Route path={APP_ROUTES.home} element={<Home />} />
+            <Route
+              path={APP_ROUTES.formationToday}
+              element={formationCircuitsEnabled() ? <FormationToday /> : <Navigate to={APP_ROUTES.home} replace />}
+            />
+            <Route
+              path={APP_ROUTES.formationCircuit}
+              element={formationCircuitsEnabled() ? <FormationCircuit /> : <Navigate to={APP_ROUTES.home} replace />}
+            />
+            <Route
+              path={APP_ROUTES.formationCompletion}
+              element={formationCircuitsEnabled() && formationCompletionEnabled() ? <FormationCompletion /> : <Navigate to={APP_ROUTES.home} replace />}
+            />
             <Route path={APP_ROUTES.timeline} element={<Timeline />} />
             <Route path={APP_ROUTES.readAlong} element={<ReadAlong />} />
             <Route path={APP_ROUTES.goal} element={<Goal />} />

@@ -41,7 +41,7 @@ export function FutureHero({
             </div>
           </div>
           {children ? <div className="max-w-2xl">{children}</div> : null}
-          {chips ? <div className="future-chip-row">{chips}</div> : null}
+          {chips ? <div className="future-chip-row" tabIndex={0} aria-label="Page context">{chips}</div> : null}
         </div>
         {side ? <div className="future-hero-side">{side}</div> : null}
       </div>

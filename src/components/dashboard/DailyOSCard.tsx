@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { toSafeInternalPath } from "@/lib/safeNavigation";
 import {
   Check,
   Clock,
@@ -116,7 +117,7 @@ function PriorityItem({
       {/* Content */}
       <div className="flex-1 min-w-0">
         <button
-          onClick={() => navigate(item.deep_link)}
+          onClick={() => navigate(toSafeInternalPath(item.deep_link))}
           className="text-left w-full"
         >
           <p

@@ -5,6 +5,9 @@ export const APP_ROUTES = {
   readAlong: "/read-along",
   goal: "/goal",
   home: "/home",
+  formationToday: "/formation/today",
+  formationCircuit: "/formation/today/:circuitId",
+  formationCompletion: "/formation/completion",
   timeline: "/timeline",
   myControllables: "/my-controllables",
   train: "/train",
@@ -26,6 +29,8 @@ export const APP_ROUTES = {
 
 export const LIFE_OS_ROUTE_PATHS = [
   APP_ROUTES.home,
+  APP_ROUTES.formationToday,
+  APP_ROUTES.formationCompletion,
   APP_ROUTES.timeline,
   APP_ROUTES.readAlong,
   APP_ROUTES.goal,
