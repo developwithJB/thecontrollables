@@ -16,10 +16,19 @@ describe("onboarding UI", () => {
   it("keeps quick start visually aligned with the Dashboard world", () => {
     const source = readSource("src/pages/QuickStart.tsx");
 
-    expect(source).toContain("Find your Starting Charge.");
     expect(source).toContain("Where are you with the book?");
-    expect(source).toContain("dashboard-os-surface");
-    expect(source).toContain("dashboard-primary-glow");
+    expect(source).toContain("What kind of formation fits this season?");
+    expect(source).toContain("Your first day is ready");
+    expect(source).toContain("Step {stepIndex + 1} of {STEPS.length}");
+  });
+
+  it("removes unexplained intake and discloses the strict path before signup", () => {
+    const source = readSource("src/pages/QuickStart.tsx");
+
+    expect(source).not.toContain("BirthdayOnboardingStep");
+    expect(source).toContain("No birthday, public score, or private reflection is required.");
+    expect(source).toContain("I understand this is the strict path.");
+    expect(source).toContain("optional proof never completes a requirement");
   });
 
   it("sets dark mode before React renders unless light is explicitly saved", () => {

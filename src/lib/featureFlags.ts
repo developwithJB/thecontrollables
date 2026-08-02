@@ -2,6 +2,10 @@ import { PRICE_IDS, type PlanType } from "@/lib/pricing";
 
 export const FEATURE_FLAG_KEYS = [
   "onboarding_quick_start_enabled",
+  "formation_circuits_enabled",
+  "formation_completion_enabled",
+  "formation_content_admin_enabled",
+  "formation_analytics_enabled",
   "free_tier_snapshot_count",
   "trial_type",
   "paywall_placement",
@@ -15,6 +19,10 @@ export type PricingTierModel = "yearly_default" | "monthly_default";
 
 export interface FeatureFlags {
   onboarding_quick_start_enabled: boolean;
+  formation_circuits_enabled: boolean;
+  formation_completion_enabled: boolean;
+  formation_content_admin_enabled: boolean;
+  formation_analytics_enabled: boolean;
   free_tier_snapshot_count: number;
   trial_type: TrialType;
   paywall_placement: PaywallPlacement;
@@ -25,6 +33,10 @@ export type FeatureFlagOverrides = Partial<Record<FeatureFlagKey, unknown>>;
 
 export const DEFAULT_FEATURE_FLAGS: Readonly<FeatureFlags> = Object.freeze({
   onboarding_quick_start_enabled: true,
+  formation_circuits_enabled: true,
+  formation_completion_enabled: true,
+  formation_content_admin_enabled: true,
+  formation_analytics_enabled: true,
   free_tier_snapshot_count: 1,
   trial_type: "snapshot_count",
   paywall_placement: "overlay",
@@ -165,6 +177,10 @@ const normalizeFlagValue = <K extends FeatureFlagKey>(
 ): FeatureFlags[K] => {
   switch (key) {
     case "onboarding_quick_start_enabled":
+    case "formation_circuits_enabled":
+    case "formation_completion_enabled":
+    case "formation_content_admin_enabled":
+    case "formation_analytics_enabled":
       return parseBoolean(value, fallback as boolean) as FeatureFlags[K];
     case "free_tier_snapshot_count":
       return parsePositiveInt(value, fallback as number) as FeatureFlags[K];
@@ -283,6 +299,22 @@ export const isOnboardingQuickStartEnabled = (overrides: FeatureFlagOverrides = 
 
 // Backward-compatible helper used by existing callers.
 export const onboardingQuickStartEnabled = isOnboardingQuickStartEnabled;
+
+export const formationCircuitsEnabled = (overrides: FeatureFlagOverrides = {}): boolean => {
+  return getFeatureFlag("formation_circuits_enabled", overrides);
+};
+
+export const formationCompletionEnabled = (overrides: FeatureFlagOverrides = {}): boolean => {
+  return getFeatureFlag("formation_completion_enabled", overrides);
+};
+
+export const formationContentAdminEnabled = (overrides: FeatureFlagOverrides = {}): boolean => {
+  return getFeatureFlag("formation_content_admin_enabled", overrides);
+};
+
+export const formationAnalyticsEnabled = (overrides: FeatureFlagOverrides = {}): boolean => {
+  return getFeatureFlag("formation_analytics_enabled", overrides);
+};
 
 export const getDefaultCheckoutPlan = (overrides: FeatureFlagOverrides = {}): PlanType => {
   const model = getFeatureFlag("pricing_tier_model", overrides);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEntitlements, getPricing } from "@/hooks/useEntitlements";
 import { SplashScreen } from "@/components/SplashScreen";
@@ -21,11 +21,14 @@ import {
 import { format } from "date-fns";
 import type { User } from "@supabase/supabase-js";
 import { getFreeTrialOfferCopy } from "@/lib/entitlements";
+import { getAuthRedirectPath } from "@/lib/safeNavigation";
 
 export default function Billing() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
+  const authPath = getAuthRedirectPath(location);
   
   const { 
     isPaid, 
@@ -52,7 +55,7 @@ export default function Billing() {
         if (isMounted) {
           setUser(session?.user ?? null);
           if (!session) {
-            navigate("/auth");
+            navigate(authPath, { replace: true });
           }
           setIsAuthLoading(false);
         }
@@ -60,7 +63,7 @@ export default function Billing() {
         console.error("Auth init error:", error);
         if (isMounted) {
           setIsAuthLoading(false);
-          navigate("/auth");
+          navigate(authPath, { replace: true });
         }
       }
     };
@@ -71,7 +74,7 @@ export default function Billing() {
       if (isMounted) {
         setUser(session?.user ?? null);
         if (!session) {
-          navigate("/auth");
+          navigate(authPath, { replace: true });
         }
         setIsAuthLoading(false);
       }
@@ -81,7 +84,7 @@ export default function Billing() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [authPath, navigate]);
 
   if (isAuthLoading || isLoading) {
     return <SplashScreen />;

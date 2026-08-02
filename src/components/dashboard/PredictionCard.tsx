@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowRight, TrendingUp, Zap, Moon, Utensils, Calendar, D
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Prediction } from "@/hooks/usePredictions";
+import { toSafeInternalPath } from "@/lib/safeNavigation";
 
 const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   today_drift: AlertTriangle,
@@ -36,7 +37,7 @@ export function PredictionCard({ prediction, onInterventionTaken, compact = fals
   const handleIntervention = () => {
     onInterventionTaken?.(prediction.id);
     if (prediction.intervention_deep_link) {
-      navigate(prediction.intervention_deep_link);
+      navigate(toSafeInternalPath(prediction.intervention_deep_link));
     }
   };
 

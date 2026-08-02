@@ -9,6 +9,7 @@ import {
   shouldForceNewOnboardingExperience,
 } from "@/lib/onboardingReset";
 import type { DailyOperatorOnboardingAnswers } from "@/lib/operatorOnboarding";
+import type { Json } from "@/integrations/supabase/types";
 
 export type FirstActionType = "quest" | "operator" | "rep";
 export type OnboardingStep = "welcome_integrations" | "build_assessment" | "archetype_result" | "journey_selection" | "completed";
@@ -181,7 +182,7 @@ export const useOnboarding = (userId: string | null) => {
           first_action_completed_at: new Date().toISOString(),
           onboarding_step: "completed",
           operator_onboarding_completed: true,
-          operator_onboarding_answers: answers,
+          operator_onboarding_answers: answers as unknown as Json,
           operator_onboarding_completed_at: new Date().toISOString(),
         }, { onConflict: "user_id" })
         .select()

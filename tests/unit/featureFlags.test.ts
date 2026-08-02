@@ -38,6 +38,10 @@ describe("featureFlags", () => {
 
     expect(getFeatureFlags()).toEqual({
       onboarding_quick_start_enabled: false,
+      formation_circuits_enabled: true,
+      formation_completion_enabled: true,
+      formation_content_admin_enabled: true,
+      formation_analytics_enabled: true,
       free_tier_snapshot_count: 3,
       trial_type: "single_snapshot",
       paywall_placement: "promo",

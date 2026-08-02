@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { isDevMockAuthEnabled } from "@/lib/devMockAuth";
+import type { Json } from "@/integrations/supabase/types";
 import {
   getChicagoDayPrescription,
   getChicagoGoalWeek,
@@ -205,7 +206,7 @@ export function useDatedGoal(userId?: string) {
             fueling_completed: input.fuelingCompleted ?? null,
             pain_affecting_stride: input.painAffectingStride ?? false,
             body_feel: input.bodyFeel ?? null,
-            plan_snapshot: prescription,
+            plan_snapshot: prescription as unknown as Json,
           },
           { onConflict: "goal_id,log_date" },
         )

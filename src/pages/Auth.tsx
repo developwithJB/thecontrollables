@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Mail, Lock, ArrowLeft, User } from "lucide-react";
@@ -13,6 +13,9 @@ import { usePageViewTracking, useAnalytics } from "@/hooks/useAnalytics";
 import { useOnboardingAnalytics } from "@/hooks/useOnboardingAnalytics";
 import { getOnboardingQuickStartDraft, getQuickStartCompletionRoute } from "@/lib/onboardingQuickStartDraft";
 import { READING_STATUS_LABELS } from "@/lib/readAlong";
+import { TRACK_LABELS, type TrainingTrack } from "@/domain/formation/circuits";
+import { saveFormationTrackSelection } from "@/hooks/useFormationTrack";
+import { toSafeInternalPath } from "@/lib/safeNavigation";
 
 type AuthMode = "signin" | "signup" | "forgot" | "reset";
 
@@ -50,6 +53,22 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const selectedFormationTrack: TrainingTrack | null = quickStartDraft?.formationTrack ?? (mode === "signup" ? "read_along" : null);
+  const postAuthRoute = useMemo(() => {
+    const fallback = getQuickStartCompletionRoute(
+      quickStartDraft?.readingStatus,
+      selectedFormationTrack,
+    );
+    const requestedReturnTo = searchParams.get("returnTo");
+    return requestedReturnTo ? toSafeInternalPath(requestedReturnTo, fallback) : fallback;
+  }, [quickStartDraft, searchParams, selectedFormationTrack]);
+
+  const preparePostAuthDestination = useCallback((userId?: string) => {
+    if (userId && selectedFormationTrack) {
+      saveFormationTrackSelection(userId, selectedFormationTrack);
+    }
+    return postAuthRoute;
+  }, [postAuthRoute, selectedFormationTrack]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -57,7 +76,7 @@ export default function Auth() {
       if (event === "PASSWORD_RECOVERY") {
         setMode("reset");
       } else if (event === "SIGNED_IN" && mode !== "reset") {
-        navigate(getQuickStartCompletionRoute(quickStartDraft?.readingStatus));
+        navigate(preparePostAuthDestination(session?.user.id));
       }
     });
 
@@ -71,14 +90,14 @@ export default function Auth() {
       const checkSession = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session && mode !== "reset") {
-          navigate(getQuickStartCompletionRoute(quickStartDraft?.readingStatus));
+          navigate(preparePostAuthDestination(session.user.id));
         }
       };
       checkSession();
     }
 
     return () => subscription.unsubscribe();
-  }, [navigate, mode, quickStartDraft]);
+  }, [navigate, mode, preparePostAuthDestination]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +129,7 @@ export default function Auth() {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
       toast({ title: "Password updated", description: "Your password has been reset. Redirecting..." });
-      setTimeout(() => navigate(getQuickStartCompletionRoute(quickStartDraft?.readingStatus)), 1500);
+      setTimeout(() => navigate(postAuthRoute), 1500);
     } catch (error) {
       toast({ title: "Error", description: getErrorMessage(error, "Failed to update password."), variant: "destructive" });
     } finally {
@@ -138,7 +157,7 @@ export default function Auth() {
         const { data: signUpData, error } = await supabase.auth.signUp({
           email, password,
           options: {
-            emailRedirectTo: `${window.location.origin}${getQuickStartCompletionRoute(quickStartDraft?.readingStatus)}`,
+            emailRedirectTo: `${window.location.origin}${postAuthRoute}`,
             data: { display_name: displayName.trim() || null },
           },
         });
@@ -149,7 +168,7 @@ export default function Auth() {
         } else {
           trackAccountCreated("signup_form");
           if (signUpData?.session) {
-            toast({ title: "Welcome aboard!", description: "Your account has been created. Redirecting to your dashboard..." });
+            toast({ title: "Welcome", description: "Your account is ready. Opening your dashboard…" });
           } else {
             toast({ title: "Check your email", description: "We've sent you a confirmation link. Please check your email to activate your account." });
           }
@@ -183,6 +202,9 @@ export default function Auth() {
       case "forgot": return "Enter your email and we'll send you a reset link";
       case "reset": return "Enter your new password below";
       case "signup":
+        if (quickStartDraft?.formationTrack) {
+          return `Your ${TRACK_LABELS[quickStartDraft.formationTrack]} path is ready. Create an account to open today’s practice.`;
+        }
         if (quickStartDraft?.readingStatus) {
           return `Finish setup to keep your book path: ${READING_STATUS_LABELS[quickStartDraft.readingStatus]}`;
         }
@@ -192,8 +214,8 @@ export default function Auth() {
         if (quickStartDraft?.lifeSeasonLabel) {
           return `Finish setup to keep your ${quickStartDraft.lifeSeasonLabel.toLowerCase()} reflection`;
         }
-        return "Start building momentum today";
-      default: return "Sign in to access your dashboard";
+        return "Start with Read Along, our flexible path. Compare all three paths first if you prefer.";
+      default: return searchParams.get("returnTo") ? "Sign in to continue where you left off." : "Sign in to access your dashboard";
     }
   };
 
@@ -251,7 +273,7 @@ export default function Auth() {
       </div>
 
       {/* Right Panel - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 relative z-10">
+      <main className="flex-1 flex items-center justify-center p-6 lg:p-12 relative z-10">
         <motion.div
           className="w-full max-w-md"
           initial={{ opacity: 0, y: 20 }}
@@ -290,7 +312,7 @@ export default function Auth() {
                       className="pl-10 pr-10 bg-background/50"
                       autoComplete="new-password"
                     />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-0 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground">
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
@@ -319,7 +341,24 @@ export default function Auth() {
               </form>
             ) : (
               <>
-                <form onSubmit={handleSubmit} className="space-y-5">
+                {mode === "signup" ? (
+                  <div className="mb-5 space-y-3">
+                    <div className="grid grid-cols-3 gap-2 text-center text-[11px] leading-4 text-muted-foreground">
+                      {["Private by default", "No public rankings", "Change paths anytime"].map((benefit) => (
+                        <div key={benefit} className="rounded-lg border border-border/60 bg-background/40 px-2 py-2">
+                          {benefit}
+                        </div>
+                      ))}
+                    </div>
+                    {!quickStartDraft?.formationTrack ? (
+                      <p className="text-center text-xs text-muted-foreground">
+                        Want structure or strict accountability?{" "}
+                        <Link to="/quick-start" className="font-semibold text-primary hover:underline">Compare all three paths</Link>
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+                <form onSubmit={handleSubmit} className="space-y-5" data-testid="auth-form">
                   {mode === "signup" && (
                     <div className="space-y-2">
                       <Label htmlFor="displayName">Your Name</Label>
@@ -346,13 +385,13 @@ export default function Auth() {
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 pr-10 bg-background/50" autoComplete={mode === "signin" ? "current-password" : "new-password"} data-testid="auth-password-input" />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-0 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground">
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
                   <Button type="submit" variant="glow" className="w-full" disabled={isLoading} data-testid="auth-submit-button">
-                    {isLoading ? (mode === "signin" ? "Signing in..." : "Creating account...") : (mode === "signin" ? "Sign In" : "Create Account")}
+                    {isLoading ? (mode === "signin" ? "Signing in..." : "Creating account...") : (mode === "signin" ? "Sign In" : "Create account & open my first day")}
                   </Button>
                 </form>
 
@@ -368,11 +407,11 @@ export default function Auth() {
             )}
 
             <p className="mt-8 text-xs text-center text-muted-foreground/60">
-              Your data is private and secure. We never share your information.
+              Formation reflections stay private to your account and are excluded from formation analytics.
             </p>
           </div>
         </motion.div>
-      </div>
+      </main>
     </div>
   );
 }

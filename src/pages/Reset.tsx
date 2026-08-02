@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SplashScreen } from "@/components/SplashScreen";
 import { useReset } from "@/hooks/useReset";
 import { useEntitlements } from "@/hooks/useEntitlements";
@@ -13,9 +13,12 @@ import { ResetComplete } from "@/components/ResetComplete";
 import { getJourneyById } from "@/lib/guidedJourneys";
 import { supabase } from "@/integrations/supabase/client";
 import { useSeason } from "@/hooks/useSeason";
+import { getAuthRedirectPath } from "@/lib/safeNavigation";
 
 const Reset = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const authPath = getAuthRedirectPath(location);
   const [searchParams] = useSearchParams();
   
   const {
@@ -91,9 +94,9 @@ const Reset = () => {
   // Redirect to auth if not logged in
   useEffect(() => {
     if (!isLoading && !userId) {
-      navigate("/auth");
+      navigate(authPath, { replace: true });
     }
-  }, [userId, isLoading, navigate]);
+  }, [userId, isLoading, navigate, authPath]);
 
   // If user is logged in but has no active reset session, send them back to the dashboard
   // IMPORTANT: Don't redirect if we're showing the Day 7 celebration or historical celebration!

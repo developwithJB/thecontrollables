@@ -49,6 +49,7 @@ describe("onboarding quick start draft", () => {
     saveOnboardingQuickStartDraft({
       birthday: "1994-02-10",
       readingStatus: "reading_now",
+      formationTrack: "charge_40",
       mission: "Keep one honest promise",
       snapshotId: "rebuild-confidence-agb",
       snapshotName: "Rebuild Confidence",
@@ -58,6 +59,7 @@ describe("onboarding quick start draft", () => {
       version: ONBOARDING_QUICK_START_DRAFT_VERSION,
       birthday: "1994-02-10",
       readingStatus: "reading_now",
+      formationTrack: "charge_40",
       mission: "Keep one honest promise",
       snapshotId: "rebuild-confidence-agb",
     });
@@ -94,11 +96,28 @@ describe("onboarding quick start draft", () => {
     expect(getOnboardingQuickStartDraft()?.readingStatus).toBe("reading_now");
   });
 
+  it("drops an invalid formation path instead of trusting persisted input", () => {
+    storage.setItem(
+      "onboarding_quick_start_draft",
+      JSON.stringify({
+        version: ONBOARDING_QUICK_START_DRAFT_VERSION,
+        readingStatus: "reading_now",
+        formationTrack: "unlimited_streak",
+        updatedAt: "2026-08-01T00:00:00.000Z",
+      }),
+    );
+
+    expect(getOnboardingQuickStartDraft()?.formationTrack).toBeNull();
+  });
+
   it("routes quick-start completion by reading status", () => {
     expect(getQuickStartCompletionRoute("reading_now")).toBe(APP_ROUTES.readAlong);
     expect(getQuickStartCompletionRoute("rereading_or_leading")).toBe(APP_ROUTES.readAlong);
     expect(getQuickStartCompletionRoute("finished")).toBe(APP_ROUTES.home);
     expect(getQuickStartCompletionRoute("not_started")).toBe(APP_ROUTES.myControllables);
     expect(getQuickStartCompletionRoute(null)).toBe(APP_ROUTES.home);
+    expect(getQuickStartCompletionRoute("reading_now", "read_along")).toBe(APP_ROUTES.formationToday);
+    expect(getQuickStartCompletionRoute("finished", "charge_40")).toBe(APP_ROUTES.formationToday);
+    expect(getQuickStartCompletionRoute("not_started", "fully_charged_75")).toBe(APP_ROUTES.formationToday);
   });
 });

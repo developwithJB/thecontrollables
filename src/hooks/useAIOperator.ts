@@ -158,7 +158,7 @@ const normalizeAIOperatorResponse = (data: unknown): AIOperatorResponse => {
   const dailyPlan = response.daily_plan
     ? {
         ...response.daily_plan,
-        plan_data: normalizeAIDailyPlanData(response.daily_plan.plan_data as unknown as Record<string, unknown>) as AIDailyPlanData,
+        plan_data: normalizeAIDailyPlanData(response.daily_plan.plan_data as unknown as Record<string, unknown>) as unknown as AIDailyPlanData,
       }
     : null;
 

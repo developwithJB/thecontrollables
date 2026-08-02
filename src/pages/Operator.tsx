@@ -9,6 +9,7 @@ import { OperatorCommandInput } from "@/components/dashboard/OperatorCommandInpu
 import { usePageViewTracking } from "@/hooks/useAnalytics";
 import { Badge } from "@/components/ui/badge";
 import type { User } from "@supabase/supabase-js";
+import { toSafeInternalPath } from "@/lib/safeNavigation";
 
 const MODE_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   plan: { label: "Plan", color: "bg-primary/10 text-primary", icon: "📋" },
@@ -37,7 +38,7 @@ export default function Operator() {
 
   const handleAcceptAction = (action: OperatorAction) => {
     acceptAction(action.id);
-    if (action.deep_link) navigate(action.deep_link);
+    if (action.deep_link) navigate(toSafeInternalPath(action.deep_link));
   };
 
   return (
@@ -147,7 +148,7 @@ export default function Operator() {
               <button
                 onClick={() => {
                   if (suggestion.fallback_if_low_energy?.deep_link) {
-                    navigate(suggestion.fallback_if_low_energy.deep_link);
+                    navigate(toSafeInternalPath(suggestion.fallback_if_low_energy.deep_link));
                   }
                 }}
                 className="flex items-center gap-2 w-full px-4 py-3 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors text-left"

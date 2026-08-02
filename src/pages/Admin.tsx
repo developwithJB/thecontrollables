@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Shield, RefreshCw, BarChart3, Route, Mail,
-  User, AlertTriangle, Radar, DollarSign, HeartPulse, Zap, Sparkles, Megaphone, Bot
+  User, AlertTriangle, Radar, DollarSign, HeartPulse, Zap, Sparkles, Megaphone, Bot, BookOpenCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,9 @@ import ActionCenter from "@/components/admin/ActionCenter";
 import AIInsightsPanel from "@/components/admin/AIInsightsPanel";
 import CampaignComposer from "@/components/admin/CampaignComposer";
 import AIUsageDashboard from "@/components/admin/AIUsageDashboard";
+import FormationContentStudio from "@/components/admin/FormationContentStudio";
+import { formationContentAdminEnabled } from "@/lib/featureFlags";
+import { getAuthRedirectPath } from "@/lib/safeNavigation";
 
 export default function Admin() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -48,6 +51,8 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const authPath = getAuthRedirectPath(location);
 
   const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : "Unknown error";
 
@@ -67,7 +72,7 @@ export default function Admin() {
 
   const checkAuthAndLoad = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/auth"); return; }
+    if (!user) { navigate(authPath, { replace: true }); return; }
 
     try {
       const headers = await getAuthHeaders();
@@ -247,6 +252,10 @@ export default function Admin() {
               <Megaphone className="h-4 w-4" />
               <span className="hidden sm:inline">Campaigns</span>
             </TabsTrigger>
+            {formationContentAdminEnabled() ? <TabsTrigger value="formation-content" className="flex items-center gap-1">
+              <BookOpenCheck className="h-4 w-4" />
+              <span className="hidden sm:inline">Formation Content</span>
+            </TabsTrigger> : null}
           </TabsList>
 
           <TabsContent value="overview">
@@ -304,7 +313,7 @@ export default function Admin() {
           <TabsContent value="users">
             <UserManagement
               users={users}
-              onRefresh={() => loadResource("admin-users", "", (d) => setUsers(d.users || []))}
+              onRefresh={() => loadResource<{ users?: AdminUser[] }>("admin-users", "", (d) => setUsers(d.users || []))}
             />
           </TabsContent>
 
@@ -315,6 +324,10 @@ export default function Admin() {
           <TabsContent value="campaigns">
             <CampaignComposer />
           </TabsContent>
+
+          {formationContentAdminEnabled() ? <TabsContent value="formation-content">
+            <FormationContentStudio />
+          </TabsContent> : null}
 
         </Tabs>
       </div>

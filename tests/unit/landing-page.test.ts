@@ -5,37 +5,37 @@ import { describe, expect, it } from "vitest";
 const landingSource = () => readFileSync(resolve(process.cwd(), "src/pages/Landing.tsx"), "utf8");
 
 describe("landing page copy", () => {
-  it("renders the primary scan CTA and expected happy path", () => {
+  it("states the formation promise and makes the first-day path explicit", () => {
     const source = landingSource();
 
-    expect(source).toContain("Start Your Scan");
-    expect(source).toContain("How it works in 5 minutes a day");
-    expect(source).toContain("One read. One promise. One proof.");
-    expect(source).toContain("Get your read");
-    expect(source).toContain("Choose your Controllable");
-    expect(source).toContain("Add private proof");
-    expect(source).toContain("How The Dashboard Helps");
-    expect(source).toContain("Practice the book in real life.");
-    expect(source).toContain("find your starting point");
-    expect(source).toContain("Read Along Training");
-    expect(source).toContain("Daily Charge");
-    expect(source).toContain("Promise Ledger");
-    expect(source).toContain("Proof Loop");
-    expect(source).toContain("Start today grounded");
-    expect(source).toContain("Take Starting Charge");
-    expect(source).toContain("Get your focus");
-    expect(source).toContain("Do Daily Charge");
-    expect(source).toContain("Watch Self-Trust move");
+    expect(source).toContain("Put Jesus first. Train what you can control.");
+    expect(source).toContain("Choose your path");
+    expect(source).toContain("Know exactly what happens next.");
+    expect(source).toContain("Choose the right path");
+    expect(source).toContain("Create your private space");
+    expect(source).toContain("Open today’s practice");
+    expect(source).toContain("No birthday required");
   });
 
-  it("keeps proof and sharing privacy-first", () => {
+  it("advertises the three real paths with clear miss rules", () => {
+    const source = landingSource();
+
+    expect(source).toContain("Read Along");
+    expect(source).toContain("40-Day Charge");
+    expect(source).toContain("Fully Charged 75");
+    expect(source).toContain("If you miss:");
+    expect(source).toContain("75 consecutive days");
+    expect(source).toContain("history remains");
+  });
+
+  it("keeps formation private, adaptable, and free from public scoring", () => {
     const source = landingSource();
 
     expect(source).toContain("Private by default");
-    expect(source).toContain("One photo at a time");
-    expect(source).toContain("No background scanning");
-    expect(source).toContain("No exact location sharing");
-    expect(source).toContain("Share the proof, not the private work.");
+    expect(source).toContain("No public rankings");
+    expect(source).toContain("Recovery without shame");
+    expect(source).toContain("Adaptable movement");
+    expect(source).toContain("Optional proof never replaces a required practice.");
   });
 
   it("does not show old landing language", () => {
@@ -45,5 +45,7 @@ describe("landing page copy", () => {
     expect(source).not.toMatch(/\bevolution\b/i);
     expect(source).not.toMatch(/actually advertise/i);
     expect(source).not.toMatch(/sticky flows/i);
+    expect(source).not.toMatch(/Mission 001/i);
+    expect(source).not.toMatch(/Habit XP/i);
   });
 });

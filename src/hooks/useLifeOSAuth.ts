@@ -1,14 +1,17 @@
 import { useState, useEffect, createContext, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { getDevMockUser, isDevMockAuthEnabled } from "@/lib/devMockAuth";
+import { getAuthRedirectPath } from "@/lib/safeNavigation";
 
 export function useLifeOSAuth() {
   const devMockAuth = isDevMockAuthEnabled();
   const [user, setUser] = useState<User | null>(() => (devMockAuth ? getDevMockUser() : null));
   const [isLoading, setIsLoading] = useState(!devMockAuth);
   const navigate = useNavigate();
+  const location = useLocation();
+  const authPath = getAuthRedirectPath(location);
 
   useEffect(() => {
     if (devMockAuth) {
@@ -25,7 +28,7 @@ export function useLifeOSAuth() {
       if (!isMounted) return;
       setUser(session?.user ?? null);
       if (!session && event !== "INITIAL_SESSION") {
-        navigate("/auth");
+        navigate(authPath, { replace: true });
       }
     });
 
@@ -42,10 +45,10 @@ export function useLifeOSAuth() {
             if (!error && data.session) setUser(data.session.user);
           });
         } else {
-          navigate("/auth");
+          navigate(authPath, { replace: true });
         }
       } catch {
-        if (isMounted) navigate("/auth");
+        if (isMounted) navigate(authPath, { replace: true });
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -62,7 +65,7 @@ export function useLifeOSAuth() {
       subscription.unsubscribe();
       clearTimeout(timeout);
     };
-  }, [devMockAuth, navigate]);
+  }, [authPath, devMockAuth, navigate]);
 
   return { user, isLoading, isDevMockUser: devMockAuth };
 }

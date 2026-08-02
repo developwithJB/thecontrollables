@@ -19,6 +19,8 @@ import {
 } from "@/hooks/useOperatorConsole";
 import { OperatorCommandInput } from "./OperatorCommandInput";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { toSafeInternalPath } from "@/lib/safeNavigation";
+import type { UserBuildCurrent } from "@/lib/build";
 
 // Lazy import for chat drawer
 import { lazy, Suspense } from "react";
@@ -55,7 +57,7 @@ interface OperatorConsoleProps {
   activeQuest: { title: string; duration_days: number } | null;
   totalXp: number;
   integrityScore: number | null;
-  currentBuild?: any;
+  currentBuild?: UserBuildCurrent | null;
   onXpEarned?: () => void;
   isPaid?: boolean;
   isTrialing?: boolean;
@@ -95,7 +97,7 @@ function ActionChip({
       onClick={() => {
         onAccept(action.id, action.deep_link);
         if (action.deep_link) {
-          navigate(action.deep_link);
+          navigate(toSafeInternalPath(action.deep_link));
         }
       }}
       className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-card hover:bg-accent/5 hover:border-accent/30 transition-all text-left w-full group"
@@ -145,7 +147,7 @@ export function OperatorConsole({
     acceptAction(actionId);
     trackEvent("interaction", "operator_action_accepted", {
       action_id: actionId,
-      deep_link: deepLink,
+      deep_link: deepLink ? toSafeInternalPath(deepLink) : null,
     });
   };
 
@@ -299,7 +301,7 @@ export function OperatorConsole({
         <button
           onClick={() => {
             if (suggestion.fallback_if_low_energy?.deep_link) {
-              navigate(suggestion.fallback_if_low_energy.deep_link);
+              navigate(toSafeInternalPath(suggestion.fallback_if_low_energy.deep_link));
             }
           }}
           className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors text-left mb-3"
