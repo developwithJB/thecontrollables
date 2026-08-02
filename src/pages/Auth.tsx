@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Mail, Lock, ArrowLeft, User } from "lucide-react";
@@ -13,6 +13,9 @@ import { usePageViewTracking, useAnalytics } from "@/hooks/useAnalytics";
 import { useOnboardingAnalytics } from "@/hooks/useOnboardingAnalytics";
 import { getOnboardingQuickStartDraft, getQuickStartCompletionRoute } from "@/lib/onboardingQuickStartDraft";
 import { READING_STATUS_LABELS } from "@/lib/readAlong";
+import { TRACK_LABELS, type TrainingTrack } from "@/domain/formation/circuits";
+import { saveFormationTrackSelection } from "@/hooks/useFormationTrack";
+import { toSafeInternalPath } from "@/lib/safeNavigation";
 
 type AuthMode = "signin" | "signup" | "forgot" | "reset";
 
@@ -50,6 +53,22 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const selectedFormationTrack: TrainingTrack | null = quickStartDraft?.formationTrack ?? (mode === "signup" ? "read_along" : null);
+  const postAuthRoute = useMemo(() => {
+    const fallback = getQuickStartCompletionRoute(
+      quickStartDraft?.readingStatus,
+      selectedFormationTrack,
+    );
+    const requestedReturnTo = searchParams.get("returnTo");
+    return requestedReturnTo ? toSafeInternalPath(requestedReturnTo, fallback) : fallback;
+  }, [quickStartDraft, searchParams, selectedFormationTrack]);
+
+  const preparePostAuthDestination = useCallback((userId?: string) => {
+    if (userId && selectedFormationTrack) {
+      saveFormationTrackSelection(userId, selectedFormationTrack);
+    }
+    return postAuthRoute;
+  }, [postAuthRoute, selectedFormationTrack]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -57,7 +76,7 @@ export default function Auth() {
       if (event === "PASSWORD_RECOVERY") {
         setMode("reset");
       } else if (event === "SIGNED_IN" && mode !== "reset") {
-        navigate(getQuickStartCompletionRoute(quickStartDraft?.readingStatus));
+        navigate(preparePostAuthDestination(session?.user.id));
       }
     });
 
@@ -71,14 +90,14 @@ export default function Auth() {
       const checkSession = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session && mode !== "reset") {
-          navigate(getQuickStartCompletionRoute(quickStartDraft?.readingStatus));
+          navigate(preparePostAuthDestination(session.user.id));
         }
       };
       checkSession();
     }
 
     return () => subscription.unsubscribe();
-  }, [navigate, mode, quickStartDraft]);
+  }, [navigate, mode, preparePostAuthDestination]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +129,7 @@ export default function Auth() {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
       toast({ title: "Password updated", description: "Your password has been reset. Redirecting..." });
-      setTimeout(() => navigate(getQuickStartCompletionRoute(quickStartDraft?.readingStatus)), 1500);
+      setTimeout(() => navigate(postAuthRoute), 1500);
     } catch (error) {
       toast({ title: "Error", description: getErrorMessage(error, "Failed to update password."), variant: "destructive" });
     } finally {
@@ -138,7 +157,7 @@ export default function Auth() {
         const { data: signUpData, error } = await supabase.auth.signUp({
           email, password,
           options: {
-            emailRedirectTo: `${window.location.origin}${getQuickStartCompletionRoute(quickStartDraft?.readingStatus)}`,
+            emailRedirectTo: `${window.location.origin}${postAuthRoute}`,
             data: { display_name: displayName.trim() || null },
           },
         });
@@ -183,6 +202,9 @@ export default function Auth() {
       case "forgot": return "Enter your email and we'll send you a reset link";
       case "reset": return "Enter your new password below";
       case "signup":
+        if (quickStartDraft?.formationTrack) {
+          return `Your ${TRACK_LABELS[quickStartDraft.formationTrack]} path is ready. Create an account to open today’s practice.`;
+        }
         if (quickStartDraft?.readingStatus) {
           return `Finish setup to keep your book path: ${READING_STATUS_LABELS[quickStartDraft.readingStatus]}`;
         }
@@ -192,8 +214,8 @@ export default function Auth() {
         if (quickStartDraft?.lifeSeasonLabel) {
           return `Finish setup to keep your ${quickStartDraft.lifeSeasonLabel.toLowerCase()} reflection`;
         }
-        return "Put Jesus first. Train what you can control.";
-      default: return "Sign in to access your dashboard";
+        return "Start with Read Along, our flexible path. Compare all three paths first if you prefer.";
+      default: return searchParams.get("returnTo") ? "Sign in to continue where you left off." : "Sign in to access your dashboard";
     }
   };
 
@@ -319,7 +341,24 @@ export default function Auth() {
               </form>
             ) : (
               <>
-                <form onSubmit={handleSubmit} className="space-y-5">
+                {mode === "signup" ? (
+                  <div className="mb-5 space-y-3">
+                    <div className="grid grid-cols-3 gap-2 text-center text-[11px] leading-4 text-muted-foreground">
+                      {["Private by default", "No public rankings", "Change paths anytime"].map((benefit) => (
+                        <div key={benefit} className="rounded-lg border border-border/60 bg-background/40 px-2 py-2">
+                          {benefit}
+                        </div>
+                      ))}
+                    </div>
+                    {!quickStartDraft?.formationTrack ? (
+                      <p className="text-center text-xs text-muted-foreground">
+                        Want structure or strict accountability?{" "}
+                        <Link to="/quick-start" className="font-semibold text-primary hover:underline">Compare all three paths</Link>
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+                <form onSubmit={handleSubmit} className="space-y-5" data-testid="auth-form">
                   {mode === "signup" && (
                     <div className="space-y-2">
                       <Label htmlFor="displayName">Your Name</Label>
@@ -352,7 +391,7 @@ export default function Auth() {
                     </div>
                   </div>
                   <Button type="submit" variant="glow" className="w-full" disabled={isLoading} data-testid="auth-submit-button">
-                    {isLoading ? (mode === "signin" ? "Signing in..." : "Creating account...") : (mode === "signin" ? "Sign In" : "Create Account")}
+                    {isLoading ? (mode === "signin" ? "Signing in..." : "Creating account...") : (mode === "signin" ? "Sign In" : "Create account & open my first day")}
                   </Button>
                 </form>
 

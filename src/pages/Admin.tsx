@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Shield, RefreshCw, BarChart3, Route, Mail,
@@ -31,6 +31,7 @@ import CampaignComposer from "@/components/admin/CampaignComposer";
 import AIUsageDashboard from "@/components/admin/AIUsageDashboard";
 import FormationContentStudio from "@/components/admin/FormationContentStudio";
 import { formationContentAdminEnabled } from "@/lib/featureFlags";
+import { getAuthRedirectPath } from "@/lib/safeNavigation";
 
 export default function Admin() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -50,6 +51,8 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const authPath = getAuthRedirectPath(location);
 
   const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : "Unknown error";
 
@@ -69,7 +72,7 @@ export default function Admin() {
 
   const checkAuthAndLoad = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/auth"); return; }
+    if (!user) { navigate(authPath, { replace: true }); return; }
 
     try {
       const headers = await getAuthHeaders();

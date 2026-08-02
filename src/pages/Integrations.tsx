@@ -1,22 +1,26 @@
 import { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Plug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ProviderCard } from "@/components/integrations/ProviderCard";
 import {
   type Provider,
+  type IntegrationConnection,
   PROVIDER_META,
   useIntegrationConnections,
   useSyncLogs,
 } from "@/hooks/useIntegrations";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
+import { getAuthRedirectPath } from "@/lib/safeNavigation";
 
 const ALL_PROVIDERS: Provider[] = ["google_calendar", "gmail"];
 
 export default function Integrations() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const authPath = getAuthRedirectPath(location);
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { data: connections, isLoading } = useIntegrationConnections();
@@ -25,10 +29,10 @@ export default function Integrations() {
   // Auth check
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) navigate("/auth");
+      if (!user) navigate(authPath, { replace: true });
       else setUserId(user.id);
     });
-  }, [navigate]);
+  }, [authPath, navigate]);
 
   // Handle OAuth callback params
   useEffect(() => {
@@ -108,7 +112,7 @@ function ProviderCardWithLogs({
   connection,
 }: {
   provider: Provider;
-  connection?: any;
+  connection?: IntegrationConnection;
 }) {
   const { data: logs } = useSyncLogs(connection?.id);
   return (

@@ -11,7 +11,7 @@ const TRACK_ICONS = {
 export function TrackSelector({ track, onChange }: { track: TrainingTrack; onChange: (track: TrainingTrack) => void }) {
   return (
     <fieldset className="space-y-2">
-      <legend className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">Testing path</legend>
+      <legend className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">Formation path</legend>
       <div className="grid gap-2 sm:grid-cols-3">
         {TRAINING_TRACKS.map((candidate) => {
           const Icon = TRACK_ICONS[candidate];

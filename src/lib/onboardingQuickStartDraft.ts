@@ -2,11 +2,13 @@ import type { Controllable } from "./snapshots";
 import type { LifeSeasonKey } from "./lifePerspective";
 import { normalizeReadingStatus, type ReadingStatus } from "@/lib/readAlong";
 import { APP_ROUTES } from "@/lib/appRoutes";
+import { isTrainingTrack, type TrainingTrack } from "@/domain/formation/circuits";
 
 export interface OnboardingQuickStartDraft {
   version: string;
   currentStep?: string | null;
   readingStatus?: ReadingStatus | null;
+  formationTrack?: TrainingTrack | null;
   mission?: string;
   birthday?: string | null;
   ageLabel?: string | null;
@@ -22,7 +24,7 @@ export interface OnboardingQuickStartDraft {
   updatedAt: string;
 }
 
-export const ONBOARDING_QUICK_START_DRAFT_VERSION = "2026-06-18-controllables-relaunch";
+export const ONBOARDING_QUICK_START_DRAFT_VERSION = "2026-08-01-formation-entry-v1";
 const DRAFT_KEY = "onboarding_quick_start_draft";
 
 const getStorage = () => {
@@ -55,6 +57,7 @@ export const getOnboardingQuickStartDraft = (): OnboardingQuickStartDraft | null
         parsed.readingStatus === null || parsed.readingStatus === undefined
           ? null
           : normalizeReadingStatus(parsed.readingStatus),
+      formationTrack: isTrainingTrack(parsed.formationTrack) ? parsed.formationTrack : null,
       birthday: parsed.birthday ?? null,
       ageLabel: parsed.ageLabel ?? null,
       weeksLived: parsed.weeksLived ?? null,
@@ -93,6 +96,7 @@ export const saveOnboardingQuickStartDraft = (
     mission: pick("mission", ""),
     currentStep: pick("currentStep", null),
     readingStatus: pick("readingStatus", null),
+    formationTrack: pick("formationTrack", null),
     birthday: pick("birthday", null),
     ageLabel: pick("ageLabel", null),
     weeksLived: pick("weeksLived", null),
@@ -117,7 +121,13 @@ export const clearOnboardingQuickStartDraft = () => {
   storage?.removeItem(DRAFT_KEY);
 };
 
-export function getQuickStartCompletionRoute(readingStatus: ReadingStatus | null | undefined): string {
+export function getQuickStartCompletionRoute(
+  readingStatus: ReadingStatus | null | undefined,
+  formationTrack?: TrainingTrack | null,
+): string {
+  if (formationTrack && isTrainingTrack(formationTrack)) {
+    return APP_ROUTES.formationToday;
+  }
   if (readingStatus === "reading_now" || readingStatus === "rereading_or_leading") {
     return APP_ROUTES.readAlong;
   }

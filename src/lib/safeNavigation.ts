@@ -21,3 +21,8 @@ export function toSafeInternalPath(value: unknown, fallback = DEFAULT_FALLBACK):
     return fallback;
   }
 }
+
+export function getAuthRedirectPath(location: { pathname: string; search?: string; hash?: string }): string {
+  const returnTo = toSafeInternalPath(`${location.pathname}${location.search ?? ""}${location.hash ?? ""}`);
+  return `/auth?returnTo=${encodeURIComponent(returnTo)}`;
+}

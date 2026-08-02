@@ -4,7 +4,7 @@ import { isTrainingTrack, type TrainingTrack } from "@/domain/formation/circuits
 const DEFAULT_TRACK: TrainingTrack = "read_along";
 
 export function useFormationTrack(userId: string) {
-  const storageKey = `formation_selected_track_${userId}`;
+  const storageKey = getFormationTrackStorageKey(userId);
   const [track, setTrackState] = useState<TrainingTrack>(() => readTrack(storageKey));
 
   useEffect(() => {
@@ -13,14 +13,22 @@ export function useFormationTrack(userId: string) {
 
   const setTrack = (nextTrack: TrainingTrack) => {
     setTrackState(nextTrack);
-    try {
-      localStorage.setItem(storageKey, nextTrack);
-    } catch {
-      // The in-memory selection remains usable when storage is unavailable.
-    }
+    saveFormationTrackSelection(userId, nextTrack);
   };
 
   return { track, setTrack };
+}
+
+export function getFormationTrackStorageKey(userId: string): string {
+  return `formation_selected_track_${userId}`;
+}
+
+export function saveFormationTrackSelection(userId: string, track: TrainingTrack): void {
+  try {
+    localStorage.setItem(getFormationTrackStorageKey(userId), track);
+  } catch {
+    // Callers retain their in-memory selection when storage is unavailable.
+  }
 }
 
 function readTrack(storageKey: string): TrainingTrack {

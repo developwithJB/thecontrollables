@@ -41,8 +41,8 @@ export const READING_STATUS_LABELS: Record<ReadingStatus, string> = {
 
 export const READING_STATUS_DESCRIPTIONS: Record<ReadingStatus, string> = {
   reading_now: "Keep the app spoiler-safe and train what you have already met.",
-  finished: "Move from the book into the 7-Day Reset and Daily Charge.",
-  not_started: "Find your Starting Charge first, then use the book as the origin story.",
+  finished: "Move from the book into a structured daily formation path.",
+  not_started: "Begin with spoiler-safe practices; the book can become your companion when ready.",
   rereading_or_leading: "Use Read Along as a guided path for a second pass or group rhythm.",
 };
 
