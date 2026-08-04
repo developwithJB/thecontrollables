@@ -1536,6 +1536,83 @@ export type Database = {
         }
         Relationships: []
       }
+      formation_completion_records: {
+        Row: {
+          completed_on: string
+          completion_key: string
+          content_version: string
+          counts: Json
+          created_at: string
+          id: string
+          rule_version: string
+          source_journey_id: string | null
+          started_on: string | null
+          track: string
+          user_id: string
+        }
+        Insert: {
+          completed_on: string
+          completion_key: string
+          content_version: string
+          counts: Json
+          created_at?: string
+          id?: string
+          rule_version: string
+          source_journey_id?: string | null
+          started_on?: string | null
+          track: string
+          user_id: string
+        }
+        Update: {
+          completed_on?: string
+          completion_key?: string
+          content_version?: string
+          counts?: Json
+          created_at?: string
+          id?: string
+          rule_version?: string
+          source_journey_id?: string | null
+          started_on?: string | null
+          track?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      formation_completion_reflections: {
+        Row: {
+          answers: Json
+          completion_record_id: string
+          created_at: string
+          next_step: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          completion_record_id: string
+          created_at?: string
+          next_step?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          completion_record_id?: string
+          created_at?: string
+          next_step?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formation_completion_reflections_completion_record_id_fkey"
+            columns: ["completion_record_id"]
+            isOneToOne: true
+            referencedRelation: "formation_completion_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formation_proof_assets: {
         Row: {
           byte_size: number
@@ -4234,6 +4311,27 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "formation_circuit_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      save_formation_completion_reflection: {
+        Args: {
+          p_answers: Json
+          p_completion_record_id: string
+          p_next_step?: string
+        }
+        Returns: {
+          answers: Json
+          completion_record_id: string
+          created_at: string
+          next_step: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_completion_reflections"
           isOneToOne: true
           isSetofReturn: false
         }
