@@ -9,14 +9,18 @@ describe("app route registry", () => {
     expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.goal);
     expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.timeline);
     expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.train);
-    expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.proof);
+    expect(LIFE_OS_ROUTE_PATHS).toContain(APP_ROUTES.evidence);
   });
 
-  it("keeps Today, Train, and Proof as primary entry points", () => {
+  it("keeps Today, Train, and Evidence as primary entry points", () => {
     expect(PRIMARY_ENTRY_ROUTE_PATHS).toEqual([
       "/home",
       "/train",
-      "/proof",
+      "/evidence",
     ]);
+  });
+
+  it("keeps the old Proof URL as a back-compat route", () => {
+    expect(APP_ROUTES.proof).toBe("/proof");
   });
 });

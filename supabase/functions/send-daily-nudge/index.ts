@@ -200,6 +200,17 @@ interface UserContext {
   sessionId: string | null;
 }
 
+interface CovenantEmailContext {
+  title: string;
+  dayNumber: number;
+  durationDays: number;
+  totalPromisesKept: number;
+  covenantDaysKept: number;
+  todayComplete: boolean;
+  stats: Array<{ emoji: string; label: string; value: number | string }>;
+  opportunities: string[];
+}
+
 const DASHBOARD_URL = "https://thedashboard.agbcoaching.com/home";
 const DASHBOARD_TIMELINE_URL = "https://thedashboard.agbcoaching.com/timeline";
 const DATED_GOAL_URL = "https://thedashboard.agbcoaching.com/goal";
@@ -214,6 +225,153 @@ function shouldSendDashboardRelaunchEmail(localDate: string, request: NudgeReque
   return request.forceRelaunchEmail === true || localDate === getDashboardRelaunchEmailDate();
 }
 
+const COVENANT_RULES = [
+  "jesus_first",
+  "bible_read",
+  "alcohol_free",
+  "workout",
+  "nutrition",
+  "water",
+  "service",
+] as const;
+
+const COVENANT_RULE_META: Record<string, { emoji: string; label: string; opportunity: string }> = {
+  jesus_first: { emoji: "🙏", label: "Jesus First", opportunity: "+1 Jesus First morning" },
+  bible_read: { emoji: "📖", label: "Bible Reading", opportunity: "+1 Bible reading" },
+  alcohol_free: { emoji: "🚫", label: "Alcohol Free", opportunity: "+1 alcohol-free day" },
+  workout: { emoji: "💪", label: "Workouts", opportunity: "+1 workout" },
+  nutrition: { emoji: "🥗", label: "Nutrition Plan", opportunity: "+1 disciplined nutrition day" },
+  water: { emoji: "💧", label: "Water Goal", opportunity: "+1 water goal" },
+  service: { emoji: "🤝", label: "Acts of Service", opportunity: "+1 act of service" },
+};
+
+function isCovenantRuleComplete(row: Record<string, unknown> | null, rule: string): boolean {
+  if (!row) return false;
+  if (rule === "workout") return Number(row.workout_count || 0) > 0;
+  if (rule === "nutrition") return row.nutrition_kept === true;
+  if (rule === "water") return row.water_goal === true;
+  if (rule === "service") return Number(row.service_count || 0) > 0;
+  return row[rule] === true;
+}
+
+async function getCovenantEmailContext(
+  supabase: SupabaseClient,
+  userId: string,
+  localDate: string,
+): Promise<CovenantEmailContext | null> {
+  try {
+    const { data: challenge, error: challengeError } = await supabase
+      .from("covenant_challenges")
+      .select("id, title, duration_days, started_on, rules")
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .order("started_on", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (challengeError || !challenge) return null;
+
+    const [checkinsResult, integrityResult] = await Promise.all([
+      supabase
+        .from("covenant_daily_checkins")
+        .select("checkin_date, jesus_first, bible_read, alcohol_free, workout_count, miles, nutrition_kept, water_goal, service_count, day_complete")
+        .eq("user_id", userId),
+      supabase
+        .from("integrity_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("kept", true),
+    ]);
+
+    if (checkinsResult.error) return null;
+    const checkins = (checkinsResult.data || []) as Array<Record<string, unknown>>;
+    const rules = Array.isArray(challenge.rules)
+      ? challenge.rules.filter((rule): rule is string => typeof rule === "string" && rule in COVENANT_RULE_META)
+      : [...COVENANT_RULES];
+    const activeRules = rules.length > 0 ? rules : [...COVENANT_RULES];
+    const todayRow = checkins.find((row) => row.checkin_date === localDate) || null;
+    const startedAt = new Date(`${challenge.started_on}T12:00:00Z`).getTime();
+    const todayAt = new Date(`${localDate}T12:00:00Z`).getTime();
+    const elapsed = Math.floor((todayAt - startedAt) / 86_400_000);
+    const dayNumber = Math.min(Math.max(elapsed + 1, 1), challenge.duration_days);
+
+    const count = (rule: string) => checkins.filter((row) => isCovenantRuleComplete(row, rule)).length;
+    const workouts = checkins.reduce((sum, row) => sum + Math.max(0, Number(row.workout_count || 0)), 0);
+    const miles = checkins.reduce((sum, row) => sum + Math.max(0, Number(row.miles || 0)), 0);
+    const service = checkins.reduce((sum, row) => sum + Math.max(0, Number(row.service_count || 0)), 0);
+    const totalPromisesKept = (integrityResult.count || 0) + checkins.reduce(
+      (sum, row) => sum + COVENANT_RULES.filter((rule) => isCovenantRuleComplete(row, rule)).length,
+      0,
+    );
+
+    return {
+      title: challenge.title,
+      dayNumber,
+      durationDays: challenge.duration_days,
+      totalPromisesKept,
+      covenantDaysKept: checkins.filter((row) => row.day_complete === true).length,
+      todayComplete: todayRow?.day_complete === true,
+      stats: [
+        { emoji: "🙏", label: "Jesus First", value: count("jesus_first") },
+        { emoji: "📖", label: "Bible Reading", value: count("bible_read") },
+        { emoji: "🚫", label: "Alcohol Free", value: count("alcohol_free") },
+        { emoji: "💪", label: "Workouts", value: workouts },
+        { emoji: "🏃", label: "Miles", value: Number(miles.toFixed(1)) },
+        { emoji: "🤝", label: "Acts of Service", value: service },
+      ],
+      opportunities: activeRules
+        .filter((rule) => !isCovenantRuleComplete(todayRow, rule))
+        .map((rule) => COVENANT_RULE_META[rule].opportunity),
+    };
+  } catch (error) {
+    console.warn(`[NUDGE] Covenant context unavailable for ${userId}:`, error);
+    return null;
+  }
+}
+
+function renderCovenantEmailHeader(context: CovenantEmailContext): string {
+  const rows = context.stats
+    .map((stat) => `
+      <tr>
+        <td style="padding:7px 0;font-size:14px;color:#4b5563;">${stat.emoji} ${stat.label}</td>
+        <td style="padding:7px 0;font-size:15px;font-weight:700;color:#111827;text-align:right;">${stat.value}</td>
+      </tr>
+    `)
+    .join("");
+
+  return `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:440px;margin:0 auto;padding:28px 20px 0;background:#fafafa;">
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-top:3px solid #4f46e5;border-radius:12px;padding:22px;">
+        <p style="font-size:11px;font-weight:700;letter-spacing:1.8px;color:#4f46e5;margin:0 0 10px;text-transform:uppercase;">Your Covenant · Day ${context.dayNumber} of ${context.durationDays}</p>
+        <p style="font-size:34px;line-height:1;font-weight:800;color:#111827;margin:0;">${context.totalPromisesKept}</p>
+        <p style="font-size:13px;font-weight:600;color:#6b7280;margin:6px 0 14px;">PROMISES KEPT</p>
+        <p style="font-size:15px;font-weight:600;color:#1f2937;margin:0 0 16px;">“Confidence comes from kept promises.”</p>
+        <table style="width:100%;border-collapse:collapse;border-top:1px solid #e5e7eb;">${rows}</table>
+        <p style="font-size:12px;color:#6b7280;line-height:1.5;margin:14px 0 0;">Faithfulness does not earn grace. It becomes evidence of how grace is changing you.</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderCovenantEmailFooter(context: CovenantEmailContext): string {
+  const opportunityLines = context.opportunities.length > 0
+    ? context.opportunities.slice(0, 5).map((line) => `<li style="margin:6px 0;">${line}</li>`).join("")
+    : '<li style="margin:6px 0;">Today\'s covenant is kept. Let gratitude have the last word.</li>';
+
+  return `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:440px;margin:0 auto;padding:0 20px 32px;background:#fafafa;">
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:20px;">
+        <p style="font-size:11px;font-weight:700;letter-spacing:1.6px;color:#b45309;margin:0 0 8px;text-transform:uppercase;">Today's Opportunity</p>
+        <p style="font-size:14px;font-weight:600;color:#1f2937;line-height:1.5;margin:0;">Every promise you keep today becomes evidence you’ll carry forever.</p>
+        <ul style="font-size:13px;color:#4b5563;line-height:1.5;margin:12px 0 18px;padding-left:20px;">${opportunityLines}</ul>
+        <div style="text-align:center;">
+          <a href="https://thedashboard.agbcoaching.com/home" style="display:inline-block;background:#4f46e5;color:white;padding:13px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Open Today's Covenant →</a>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function getMissionDayModeForContext(context: UserContext): MissionDayMode {
   if (context.currentDay <= 1) return "Reset Day";
   if (context.focusArea === "Wellness") return "Recovery Day";
@@ -225,6 +383,7 @@ function getMissionDayModeForContext(context: UserContext): MissionDayMode {
 function generateMissionOfTheDayEmailContent(
   context: UserContext,
   localDate: string,
+  covenant: CovenantEmailContext | null = null,
 ): { subject: string; body: string; previewText: string; text: string } {
   const mission = buildMissionOfTheDay({
     date: localDate,
@@ -237,9 +396,15 @@ function generateMissionOfTheDayEmailContent(
   const payload = buildMissionEmailPayload(mission);
 
   return {
-    subject: payload.subject,
-    body: payload.html,
-    previewText: payload.previewText,
+    subject: covenant
+      ? `${covenant.totalPromisesKept} promises kept. Day ${covenant.dayNumber} is here.`
+      : payload.subject,
+    body: covenant
+      ? `${renderCovenantEmailHeader(covenant)}${payload.html}${renderCovenantEmailFooter(covenant)}`
+      : payload.html,
+    previewText: covenant
+      ? `Your covenant comes before today's work. ${payload.previewText}`
+      : payload.previewText,
     text: payload.text,
   };
 }
@@ -1787,6 +1952,15 @@ Deno.serve(async (req) => {
 
           // Fetch user context for personalization
           const context = await getUserContext(supabase, userId, localDate);
+          const covenantContext = isWeekly
+            ? null
+            : await getCovenantEmailContext(supabase, userId, localDate);
+          if (covenantContext && !context.sessionId) {
+            context.snapshotName = covenantContext.title;
+            context.snapshotTagline = "Confidence comes from kept promises";
+            context.focusArea = "Faithfulness";
+            context.currentDay = covenantContext.dayNumber;
+          }
           console.log(`[NUDGE] Context for ${userId}:`, JSON.stringify(context));
 
           if (emailKind === "relaunch") {
@@ -1880,7 +2054,7 @@ Deno.serve(async (req) => {
           }
 
           // SUPPRESSION: Skip daily nudges if Today's Actions already completed
-          if (!isWeekly && context.todayActionsCompleted) {
+          if (!isWeekly && context.todayActionsCompleted && (!covenantContext || covenantContext.todayComplete)) {
             console.log(`[NUDGE] User ${userId} already completed Today's Actions, marking as skipped`);
             await supabase
               .from("email_nudge_logs")
@@ -1892,7 +2066,7 @@ Deno.serve(async (req) => {
           }
 
           // RE-ENGAGEMENT: If no active session, still send a sticky training drop instead of skipping.
-          if (!isWeekly && !context.sessionId) {
+          if (!isWeekly && !context.sessionId && !covenantContext) {
             console.log(`[NUDGE] User ${userId} has no active session, sending re-engagement nudge`);
             
             // Get user email for re-engagement
@@ -1972,7 +2146,7 @@ Deno.serve(async (req) => {
             subject = result.subject;
             body = result.body;
           } else {
-            const result = generateMissionOfTheDayEmailContent(context, localDate);
+            const result = generateMissionOfTheDayEmailContent(context, localDate, covenantContext);
             subject = result.subject;
             body = result.body;
             text = result.text;

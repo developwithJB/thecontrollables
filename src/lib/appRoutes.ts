@@ -11,6 +11,7 @@ export const APP_ROUTES = {
   timeline: "/timeline",
   myControllables: "/my-controllables",
   train: "/train",
+  evidence: "/evidence",
   proof: "/proof",
   proofDex: "/proof/dex",
   dex: "/dex",
@@ -36,7 +37,7 @@ export const LIFE_OS_ROUTE_PATHS = [
   APP_ROUTES.goal,
   APP_ROUTES.myControllables,
   APP_ROUTES.train,
-  APP_ROUTES.proof,
+  APP_ROUTES.evidence,
   APP_ROUTES.proofDex,
   APP_ROUTES.dex,
   APP_ROUTES.wellness,
@@ -49,5 +50,5 @@ export const LIFE_OS_ROUTE_PATHS = [
 export const PRIMARY_ENTRY_ROUTE_PATHS = [
   APP_ROUTES.home,
   APP_ROUTES.train,
-  APP_ROUTES.proof,
+  APP_ROUTES.evidence,
 ] as const;

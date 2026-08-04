@@ -47,6 +47,8 @@ You cannot control everything, but you can learn to respond well to what is actu
 
 The current product language centers on:
 
+- `Today's Covenant`: the day begins with identity and remembered faithfulness before tasks
+- `Lifetime Evidence`: kept promises and evidence of grace accumulate into a record the user can carry for years
 - `Life perspective`: onboarding uses age and season-of-life framing to make the app feel personal from the start
 - `Starter team`: the 5 Controllables are presented as a team you can lean on
 - `Moves`: daily actions are framed as meaningful moves, not chores
@@ -105,24 +107,30 @@ This is not a dopamine trap. It is meant to feel premium, useful, and steady.
 For a user, the app usually works like this:
 
 1. Open the home dashboard.
-2. See the daily read:
+2. Remember the Covenant:
+   see the promises already kept and the person daily faithfulness is forming.
+3. See the daily read:
    what kind of day it is, what matters most, what needs protecting.
-3. Choose one main quest.
-4. Complete one or more daily moves with the starter team.
-5. Use planner, wellness, money, or vault surfaces as needed.
-6. Return later for re-alignment rather than perfection.
+4. Keep today's Covenant or choose one main quest.
+5. Complete one or more daily moves with the starter team.
+6. Use planner, wellness, money, or reflection surfaces as needed.
+7. Return later for re-alignment rather than perfection.
 
 ## Main Product Surfaces
 
 The app already contains a broad set of “life portal” surfaces. Depending on your fork and environment, these can include:
 
 - `Home dashboard`
-  Daily game-state read, main quest, support move, drift/alignment, and return-from-drift support.
+  Identity-first Covenant evidence, daily game-state read, main quest, support move, drift/alignment, and return-from-drift support.
+- `75-Day Covenant`
+  A focused Christian challenge built around Jesus first, Scripture, sobriety, physical training, nutrition, hydration, and service.
+- `Evidence`
+  Lifetime totals for faithful actions plus a grace-centered archive of answered prayer, shaping Scripture, milestones, testimonies, and people impacted.
 - `Onboarding`
   Life perspective, season-of-life framing, starter team reveal, and chapter recommendation.
 - `Planner`
   Time blocks, tasks, routines, and calendar-aware planning.
-- `Vault`
+- `Reflect`
   Notes, reflections, captured context, and longer-term memory.
 - `Wellness`
   Recovery, sleep, health sync, and body-aware guidance.

@@ -21,17 +21,18 @@
 - [ ] "Get Started" navigates to /auth
 - [ ] Can toggle between Sign In and Sign Up
 - [ ] Sign in with valid credentials works
-- [ ] Redirects to /dashboard after auth
+- [ ] Redirects through /dashboard to /home after auth
 
 ---
 
-## Dashboard Core (3 min)
+## Covenant & Today Core (3 min)
 
-- [ ] Dashboard loads without infinite spinner
-- [ ] Tab navigation works: Dashboard → Experience → Guide
-- [ ] Main Quest module visible
-- [ ] Reset Progress module visible
-- [ ] Can tap "Start Reset" or "Continue" button
+- [ ] Home loads without infinite spinner
+- [ ] "Your Covenant" appears before the daily work
+- [ ] New user can open the 75-Day Covenant setup
+- [ ] Active user can save today's Covenant evidence
+- [ ] Tab navigation works: Today → Train → Reflect → Evidence → My
+- [ ] Evidence shows both "Evidence You Kept" and "Evidence God Changed"
 
 ---
 
