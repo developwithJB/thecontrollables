@@ -118,7 +118,7 @@ export function useIGProof(userId?: string) {
           created_at: new Date().toISOString(),
         };
         setEntries((current) => [entry, ...current]);
-        toast({ title: params.attachToRing ? "Proof charged" : "Proof saved", description: "Dev QA proof saved locally." });
+        toast({ title: params.attachToRing ? "Evidence charged" : "Evidence saved", description: "Dev QA evidence saved locally." });
         return { id: entry.id };
       }
 
@@ -138,7 +138,7 @@ export function useIGProof(userId?: string) {
         .single();
 
       if (error) throw error;
-      toast({ title: params.attachToRing ? "Ring filled from proof" : "Proof saved", description: params.attachToRing ? `Your ${params.ringKey} ring is complete.` : "Saved to your proof history." });
+      toast({ title: params.attachToRing ? "Ring filled from evidence" : "Evidence saved", description: params.attachToRing ? `Your ${params.ringKey} ring is complete.` : "Saved to your evidence journal." });
       return data;
     } catch (err: unknown) {
       console.error("Save IG proof failed:", err);

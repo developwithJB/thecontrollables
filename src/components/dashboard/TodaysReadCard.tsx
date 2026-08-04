@@ -11,10 +11,6 @@ interface TodaysReadCardProps {
 }
 
 function getEgoSignal(signals: GameSignals | null): string {
-  if (signals?.bossBattle) {
-    return signals.bossBattle.summary;
-  }
-
   if (signals?.supportMode === "recover") {
     return "Ego may try to call recovery weakness. The honest move is to protect the vessel and keep one promise you can actually finish.";
   }

@@ -34,6 +34,7 @@ import { MyControllablesDailyTrainingCard } from "@/components/dashboard/MyContr
 import { LocalMissionDropCard } from "@/components/dashboard/LocalMissionDropCard";
 import { ActiveDatedGoalCard } from "@/components/dashboard/ActiveDatedGoalCard";
 import { DailyChargeTimelinePreview } from "@/components/dashboard/DailyChargeTimelinePreview";
+import { CovenantCard } from "@/components/covenant/CovenantCard";
 import { DailyOperatorOnboardingFlow, OnboardingFlow, OnboardingQuickStartFlow } from "@/components/onboarding";
 
 export default function Home() {
@@ -252,6 +253,8 @@ export default function Home() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-4 pb-24">
+      <CovenantCard userId={user.id} />
+
       <TodayHeader
         userId={user.id}
         health={healthLatest}

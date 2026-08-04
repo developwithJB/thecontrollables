@@ -36,8 +36,8 @@ export const ProofHistory = ({ userId }: ProofHistoryProps) => {
             <Camera className="h-4 w-4" />
           </span>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Proof History</p>
-            <h3 className="text-sm font-semibold text-foreground">Charge receipts</h3>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Evidence Journal</p>
+            <h3 className="text-sm font-semibold text-foreground">Kept moments</h3>
           </div>
         </div>
         <Filter className="w-3.5 h-3.5 text-muted-foreground" />
@@ -78,7 +78,7 @@ export const ProofHistory = ({ userId }: ProofHistoryProps) => {
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <CheckCircle2 className="h-5 w-5" />
           </span>
-          <p className="mt-3 text-sm font-semibold text-foreground">Proof ready when you are.</p>
+          <p className="mt-3 text-sm font-semibold text-foreground">Your first kept moment can begin here.</p>
         </div>
       ) : (
         <div className="space-y-2">

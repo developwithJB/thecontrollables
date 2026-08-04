@@ -773,6 +773,128 @@ export type Database = {
         }
         Relationships: []
       }
+      covenant_challenges: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          duration_days: number
+          ends_on: string
+          id: string
+          mission: string | null
+          rules: Json
+          started_on: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          duration_days?: number
+          ends_on: string
+          id?: string
+          mission?: string | null
+          rules?: Json
+          started_on?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          duration_days?: number
+          ends_on?: string
+          id?: string
+          mission?: string | null
+          rules?: Json
+          started_on?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      covenant_daily_checkins: {
+        Row: {
+          alcohol_free: boolean
+          bible_read: boolean
+          challenge_id: string
+          checkin_date: string
+          completed_at: string | null
+          created_at: string
+          day_complete: boolean
+          id: string
+          jesus_first: boolean
+          journal_entry: boolean
+          miles: number
+          nutrition_kept: boolean
+          people_encouraged: number
+          reflection: string | null
+          scripture_memorized_count: number
+          service_count: number
+          updated_at: string
+          user_id: string
+          water_goal: boolean
+          workout_count: number
+        }
+        Insert: {
+          alcohol_free?: boolean
+          bible_read?: boolean
+          challenge_id: string
+          checkin_date?: string
+          completed_at?: string | null
+          created_at?: string
+          day_complete?: boolean
+          id?: string
+          jesus_first?: boolean
+          journal_entry?: boolean
+          miles?: number
+          nutrition_kept?: boolean
+          people_encouraged?: number
+          reflection?: string | null
+          scripture_memorized_count?: number
+          service_count?: number
+          updated_at?: string
+          user_id: string
+          water_goal?: boolean
+          workout_count?: number
+        }
+        Update: {
+          alcohol_free?: boolean
+          bible_read?: boolean
+          challenge_id?: string
+          checkin_date?: string
+          completed_at?: string | null
+          created_at?: string
+          day_complete?: boolean
+          id?: string
+          jesus_first?: boolean
+          journal_entry?: boolean
+          miles?: number
+          nutrition_kept?: boolean
+          people_encouraged?: number
+          reflection?: string | null
+          scripture_memorized_count?: number
+          service_count?: number
+          updated_at?: string
+          user_id?: string
+          water_goal?: boolean
+          workout_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "covenant_daily_checkins_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "covenant_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_alignment_logs: {
         Row: {
           created_at: string
@@ -1723,6 +1845,56 @@ export type Database = {
           visibility?: string
         }
         Relationships: []
+      }
+      grace_evidence_entries: {
+        Row: {
+          category: string
+          challenge_id: string | null
+          created_at: string
+          id: string
+          is_favorite: boolean
+          occurred_on: string
+          scripture_reference: string | null
+          story: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          challenge_id?: string | null
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          occurred_on?: string
+          scripture_reference?: string | null
+          story?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          challenge_id?: string | null
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          occurred_on?: string
+          scripture_reference?: string | null
+          story?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grace_evidence_entries_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "covenant_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       guide_sessions: {
         Row: {

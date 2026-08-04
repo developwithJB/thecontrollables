@@ -12,6 +12,16 @@ import { APP_VERSION } from "@/lib/version";
 
 // Changelog entries - update this with each version
 const CHANGELOG: Record<string, { title: string; items: string[] }> = {
+  "2.1.0": {
+    title: "Today's Covenant & Lifetime Evidence",
+    items: [
+      "Your Covenant now leads the day with the promises you have already kept",
+      "Begin a complete 75-day Christian challenge built around prayer, Scripture, discipline, training, and service",
+      "Proof is now Evidence — a lifetime museum of faithful obedience instead of another streak screen",
+      "Evidence of Grace records answered prayer, shaping Scripture, milestones, testimony, and people impacted",
+      "Daily emails celebrate identity before presenting today's mission",
+    ],
+  },
   "2.0.0": {
     title: "Predictive Intelligence, Adaptive Modes & Automations",
     items: [
