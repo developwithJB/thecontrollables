@@ -1485,6 +1485,99 @@ export type Database = {
           },
         ]
       }
+      formation_circuit_entries: {
+        Row: {
+          circuit_type: string
+          completed_action_ids: string[]
+          completed_at: string | null
+          completion_state: string
+          created_at: string
+          id: string
+          idempotency_key: string
+          local_date: string
+          missing_required_action_ids: string[]
+          payload: Json
+          rule_version: string
+          track: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          circuit_type: string
+          completed_action_ids?: string[]
+          completed_at?: string | null
+          completion_state: string
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          local_date: string
+          missing_required_action_ids?: string[]
+          payload?: Json
+          rule_version: string
+          track: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          circuit_type?: string
+          completed_action_ids?: string[]
+          completed_at?: string | null
+          completion_state?: string
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          local_date?: string
+          missing_required_action_ids?: string[]
+          payload?: Json
+          rule_version?: string
+          track?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      formation_proof_assets: {
+        Row: {
+          byte_size: number
+          circuit_type: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          local_date: string
+          mime_type: string
+          storage_path: string
+          track: string
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          byte_size: number
+          circuit_type: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          local_date: string
+          mime_type: string
+          storage_path: string
+          track: string
+          user_id: string
+          visibility?: string
+        }
+        Update: {
+          byte_size?: number
+          circuit_type?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          local_date?: string
+          mime_type?: string
+          storage_path?: string
+          track?: string
+          user_id?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
       grace_evidence_entries: {
         Row: {
           category: string
@@ -4109,6 +4202,41 @@ export type Database = {
       refresh_daily_charge_snapshot: {
         Args: { target_date: string; target_user_id: string }
         Returns: undefined
+      }
+      save_formation_circuit: {
+        Args: {
+          p_circuit_type: string
+          p_completed_action_ids: string[]
+          p_completion_state: string
+          p_idempotency_key: string
+          p_local_date: string
+          p_missing_required_action_ids: string[]
+          p_payload: Json
+          p_rule_version: string
+          p_track: string
+        }
+        Returns: {
+          circuit_type: string
+          completed_action_ids: string[]
+          completed_at: string | null
+          completion_state: string
+          created_at: string
+          id: string
+          idempotency_key: string
+          local_date: string
+          missing_required_action_ids: string[]
+          payload: Json
+          rule_version: string
+          track: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_circuit_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       timeline_user_timezone: {
         Args: { target_user_id: string }
