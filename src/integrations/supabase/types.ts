@@ -1485,6 +1485,367 @@ export type Database = {
           },
         ]
       }
+      formation_circuit_entries: {
+        Row: {
+          circuit_type: string
+          completed_action_ids: string[]
+          completed_at: string | null
+          completion_state: string
+          content_version_id: string | null
+          created_at: string
+          id: string
+          idempotency_key: string
+          local_date: string
+          missing_required_action_ids: string[]
+          payload: Json
+          rule_version: string
+          track: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          circuit_type: string
+          completed_action_ids?: string[]
+          completed_at?: string | null
+          completion_state: string
+          content_version_id?: string | null
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          local_date: string
+          missing_required_action_ids?: string[]
+          payload?: Json
+          rule_version: string
+          track: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          circuit_type?: string
+          completed_action_ids?: string[]
+          completed_at?: string | null
+          completion_state?: string
+          content_version_id?: string | null
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          local_date?: string
+          missing_required_action_ids?: string[]
+          payload?: Json
+          rule_version?: string
+          track?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formation_circuit_entries_content_version_id_fkey"
+            columns: ["content_version_id"]
+            isOneToOne: false
+            referencedRelation: "formation_content_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formation_completion_records: {
+        Row: {
+          completed_on: string
+          completion_key: string
+          content_version: string
+          content_version_ids: string[]
+          counts: Json
+          created_at: string
+          id: string
+          rule_version: string
+          source_journey_id: string | null
+          started_on: string | null
+          track: string
+          user_id: string
+        }
+        Insert: {
+          completed_on: string
+          completion_key: string
+          content_version: string
+          content_version_ids?: string[]
+          counts: Json
+          created_at?: string
+          id?: string
+          rule_version: string
+          source_journey_id?: string | null
+          started_on?: string | null
+          track: string
+          user_id: string
+        }
+        Update: {
+          completed_on?: string
+          completion_key?: string
+          content_version?: string
+          content_version_ids?: string[]
+          counts?: Json
+          created_at?: string
+          id?: string
+          rule_version?: string
+          source_journey_id?: string | null
+          started_on?: string | null
+          track?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      formation_completion_reflections: {
+        Row: {
+          answers: Json
+          completion_record_id: string
+          created_at: string
+          next_step: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          completion_record_id: string
+          created_at?: string
+          next_step?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          completion_record_id?: string
+          created_at?: string
+          next_step?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formation_completion_reflections_completion_record_id_fkey"
+            columns: ["completion_record_id"]
+            isOneToOne: true
+            referencedRelation: "formation_completion_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formation_content_items: {
+        Row: {
+          content_type: string
+          created_at: string
+          created_by: string | null
+          current_published_version_id: string | null
+          id: string
+          stable_id: string
+        }
+        Insert: {
+          content_type: string
+          created_at?: string
+          created_by?: string | null
+          current_published_version_id?: string | null
+          id?: string
+          stable_id: string
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          created_by?: string | null
+          current_published_version_id?: string | null
+          id?: string
+          stable_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formation_content_items_current_version_fkey"
+            columns: ["current_published_version_id"]
+            isOneToOne: false
+            referencedRelation: "formation_content_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formation_content_review_events: {
+        Row: {
+          actor_user_id: string | null
+          content_version_id: string
+          created_at: string
+          event_type: string
+          historical_review_status: string | null
+          id: string
+          note: string | null
+          theological_review_status: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          content_version_id: string
+          created_at?: string
+          event_type: string
+          historical_review_status?: string | null
+          id?: string
+          note?: string | null
+          theological_review_status?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          content_version_id?: string
+          created_at?: string
+          event_type?: string
+          historical_review_status?: string | null
+          id?: string
+          note?: string | null
+          theological_review_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formation_content_review_events_content_version_id_fkey"
+            columns: ["content_version_id"]
+            isOneToOne: false
+            referencedRelation: "formation_content_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formation_content_versions: {
+        Row: {
+          ai_assisted: boolean
+          author: string
+          author_user_id: string | null
+          bible_translation: string | null
+          body: string
+          book_chapter: string | null
+          created_at: string
+          day_end: number | null
+          day_start: number | null
+          effective_date: string | null
+          evidence_classification: string | null
+          formation_season: string | null
+          formation_track: string
+          historical_review_status: string
+          id: string
+          item_id: string
+          last_reviewed_date: string | null
+          publication_status: string
+          published_at: string | null
+          reviewer: string | null
+          reviewer_user_id: string | null
+          scripture_reference: string | null
+          slug: string
+          source_citations: string[]
+          spoiler_level: number
+          theological_review_status: string
+          title: string
+          version: number
+        }
+        Insert: {
+          ai_assisted?: boolean
+          author: string
+          author_user_id?: string | null
+          bible_translation?: string | null
+          body: string
+          book_chapter?: string | null
+          created_at?: string
+          day_end?: number | null
+          day_start?: number | null
+          effective_date?: string | null
+          evidence_classification?: string | null
+          formation_season?: string | null
+          formation_track?: string
+          historical_review_status?: string
+          id?: string
+          item_id: string
+          last_reviewed_date?: string | null
+          publication_status?: string
+          published_at?: string | null
+          reviewer?: string | null
+          reviewer_user_id?: string | null
+          scripture_reference?: string | null
+          slug: string
+          source_citations?: string[]
+          spoiler_level?: number
+          theological_review_status?: string
+          title: string
+          version: number
+        }
+        Update: {
+          ai_assisted?: boolean
+          author?: string
+          author_user_id?: string | null
+          bible_translation?: string | null
+          body?: string
+          book_chapter?: string | null
+          created_at?: string
+          day_end?: number | null
+          day_start?: number | null
+          effective_date?: string | null
+          evidence_classification?: string | null
+          formation_season?: string | null
+          formation_track?: string
+          historical_review_status?: string
+          id?: string
+          item_id?: string
+          last_reviewed_date?: string | null
+          publication_status?: string
+          published_at?: string | null
+          reviewer?: string | null
+          reviewer_user_id?: string | null
+          scripture_reference?: string | null
+          slug?: string
+          source_citations?: string[]
+          spoiler_level?: number
+          theological_review_status?: string
+          title?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formation_content_versions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "formation_content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formation_proof_assets: {
+        Row: {
+          byte_size: number
+          circuit_type: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          local_date: string
+          mime_type: string
+          storage_path: string
+          track: string
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          byte_size: number
+          circuit_type: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          local_date: string
+          mime_type: string
+          storage_path: string
+          track: string
+          user_id: string
+          visibility?: string
+        }
+        Update: {
+          byte_size?: number
+          circuit_type?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          local_date?: string
+          mime_type?: string
+          storage_path?: string
+          track?: string
+          user_id?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
       grace_evidence_entries: {
         Row: {
           category: string
@@ -4106,9 +4467,233 @@ export type Database = {
         Args: { _challenge_id: string; _user_id: string }
         Returns: boolean
       }
+      is_valid_scripture_reference: {
+        Args: { reference: string }
+        Returns: boolean
+      }
+      publish_formation_content_version: {
+        Args: { p_effective_date: string; p_version_id: string }
+        Returns: {
+          ai_assisted: boolean
+          author: string
+          author_user_id: string | null
+          bible_translation: string | null
+          body: string
+          book_chapter: string | null
+          created_at: string
+          day_end: number | null
+          day_start: number | null
+          effective_date: string | null
+          evidence_classification: string | null
+          formation_season: string | null
+          formation_track: string
+          historical_review_status: string
+          id: string
+          item_id: string
+          last_reviewed_date: string | null
+          publication_status: string
+          published_at: string | null
+          reviewer: string | null
+          reviewer_user_id: string | null
+          scripture_reference: string | null
+          slug: string
+          source_citations: string[]
+          spoiler_level: number
+          theological_review_status: string
+          title: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_content_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       refresh_daily_charge_snapshot: {
         Args: { target_date: string; target_user_id: string }
         Returns: undefined
+      }
+      review_formation_content_version: {
+        Args: {
+          p_historical_status: string
+          p_note?: string
+          p_reviewer: string
+          p_theological_status: string
+          p_version_id: string
+        }
+        Returns: {
+          ai_assisted: boolean
+          author: string
+          author_user_id: string | null
+          bible_translation: string | null
+          body: string
+          book_chapter: string | null
+          created_at: string
+          day_end: number | null
+          day_start: number | null
+          effective_date: string | null
+          evidence_classification: string | null
+          formation_season: string | null
+          formation_track: string
+          historical_review_status: string
+          id: string
+          item_id: string
+          last_reviewed_date: string | null
+          publication_status: string
+          published_at: string | null
+          reviewer: string | null
+          reviewer_user_id: string | null
+          scripture_reference: string | null
+          slug: string
+          source_citations: string[]
+          spoiler_level: number
+          theological_review_status: string
+          title: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_content_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      save_formation_circuit: {
+        Args: {
+          p_circuit_type: string
+          p_completed_action_ids: string[]
+          p_completion_state: string
+          p_content_version_id?: string
+          p_idempotency_key: string
+          p_local_date: string
+          p_missing_required_action_ids: string[]
+          p_payload: Json
+          p_rule_version: string
+          p_track: string
+        }
+        Returns: {
+          circuit_type: string
+          completed_action_ids: string[]
+          completed_at: string | null
+          completion_state: string
+          content_version_id: string | null
+          created_at: string
+          id: string
+          idempotency_key: string
+          local_date: string
+          missing_required_action_ids: string[]
+          payload: Json
+          rule_version: string
+          track: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_circuit_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      save_formation_completion_reflection: {
+        Args: {
+          p_answers: Json
+          p_completion_record_id: string
+          p_next_step?: string
+        }
+        Returns: {
+          answers: Json
+          completion_record_id: string
+          created_at: string
+          next_step: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_completion_reflections"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      save_formation_content_draft: {
+        Args: { p_payload: Json }
+        Returns: {
+          ai_assisted: boolean
+          author: string
+          author_user_id: string | null
+          bible_translation: string | null
+          body: string
+          book_chapter: string | null
+          created_at: string
+          day_end: number | null
+          day_start: number | null
+          effective_date: string | null
+          evidence_classification: string | null
+          formation_season: string | null
+          formation_track: string
+          historical_review_status: string
+          id: string
+          item_id: string
+          last_reviewed_date: string | null
+          publication_status: string
+          published_at: string | null
+          reviewer: string | null
+          reviewer_user_id: string | null
+          scripture_reference: string | null
+          slug: string
+          source_citations: string[]
+          spoiler_level: number
+          theological_review_status: string
+          title: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_content_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      submit_formation_content_for_review: {
+        Args: { p_version_id: string }
+        Returns: {
+          ai_assisted: boolean
+          author: string
+          author_user_id: string | null
+          bible_translation: string | null
+          body: string
+          book_chapter: string | null
+          created_at: string
+          day_end: number | null
+          day_start: number | null
+          effective_date: string | null
+          evidence_classification: string | null
+          formation_season: string | null
+          formation_track: string
+          historical_review_status: string
+          id: string
+          item_id: string
+          last_reviewed_date: string | null
+          publication_status: string
+          published_at: string | null
+          reviewer: string | null
+          reviewer_user_id: string | null
+          scripture_reference: string | null
+          slug: string
+          source_citations: string[]
+          spoiler_level: number
+          theological_review_status: string
+          title: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_content_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       timeline_user_timezone: {
         Args: { target_user_id: string }
