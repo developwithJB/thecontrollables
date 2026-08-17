@@ -17,8 +17,10 @@ describe("onboarding UI", () => {
     const source = readSource("src/pages/QuickStart.tsx");
 
     expect(source).toContain("Where are you with the book?");
-    expect(source).toContain("What kind of formation fits this season?");
+    expect(source).toContain("How deeply do you want to train right now?");
     expect(source).toContain("Your first day is ready");
+    expect(source).toContain("Bring my path to my inbox.");
+    expect(source).toContain("Daily formation email");
     expect(source).toContain("Step {stepIndex + 1} of {STEPS.length}");
   });
 
@@ -26,9 +28,10 @@ describe("onboarding UI", () => {
     const source = readSource("src/pages/QuickStart.tsx");
 
     expect(source).not.toContain("BirthdayOnboardingStep");
-    expect(source).toContain("No birthday, public score, or private reflection is required.");
+    expect(source).toContain("No birthday or private reflection required.");
     expect(source).toContain("I understand this is the strict path.");
     expect(source).toContain("optional proof never completes a requirement");
+    expect(source).toContain("Turn it off anytime");
   });
 
   it("sets dark mode before React renders unless light is explicitly saved", () => {

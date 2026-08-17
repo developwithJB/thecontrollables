@@ -31,4 +31,15 @@ describe("daily nudge privileged test path", () => {
     expect(source).toContain("DASHBOARD_TIMELINE_URL");
     expect(source).toContain('shiftLocalDate(localDate, -1)');
   });
+
+  it("uses a selected formation path as the primary morning email", () => {
+    expect(source).toContain("getFormationEmailContext");
+    expect(source).toContain("buildFormationDailyEmailPayload");
+    expect(source.indexOf("if (formationContext)")).toBeLessThan(
+      source.indexOf("const datedGoalEmail = await getActiveDatedGoalEmail"),
+    );
+    expect(source).toContain('.select("circuit_type, completion_state")');
+    expect(source).toContain("const formationContext = await getFormationEmailContext");
+    expect(source).toContain("FORMATION_TODAY_URL");
+  });
 });

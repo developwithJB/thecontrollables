@@ -9,6 +9,7 @@ import {
   Compass,
   HeartHandshake,
   LockKeyhole,
+  Mail,
   RotateCcw,
   ShieldCheck,
   Sparkles,
@@ -90,9 +91,9 @@ const firstDaySteps = [
     copy: "Tell us where you are with the book, then compare pace and miss rules before deciding.",
   },
   {
-    icon: ShieldCheck,
-    title: "Create your private space",
-    copy: "Your choice carries through signup. Prayer, reflection, and proof content stay private.",
+    icon: Mail,
+    title: "Start your morning loop",
+    copy: "Creating your account turns on a 7:00 AM email with your path, five circuits, and first move.",
   },
   {
     icon: CalendarDays,
@@ -249,7 +250,7 @@ export default function Landing() {
                   <a href="#how-it-works">See today’s practice</a>
                 </Button>
               </div>
-              <p className="mt-4 text-xs text-muted-foreground">75 days · Daily faith, discipline, service, and honest evidence</p>
+              <p className="mt-4 text-xs text-muted-foreground">75 days · Daily formation email · One clear practice</p>
               <div className="mt-7 flex flex-wrap gap-2 text-xs text-muted-foreground">
                 {["Private by default", "No public rankings", "Recovery without shame", "Movement can adapt"].map((promise) => (
                   <span key={promise} className="inline-flex items-center gap-1.5 rounded-full border border-border/65 bg-card/65 px-3 py-1.5">
@@ -270,7 +271,7 @@ export default function Landing() {
           <div className="mx-auto grid max-w-6xl gap-5 text-center sm:grid-cols-3">
             <div><p className="text-2xl font-semibold text-foreground">75 days</p><p className="mt-1 text-xs text-muted-foreground">A full Christian covenant</p></div>
             <div><p className="text-2xl font-semibold text-foreground">5 Controllables</p><p className="mt-1 text-xs text-muted-foreground">One practical system for daily life</p></div>
-            <div><p className="text-2xl font-semibold text-foreground">1 clear today</p><p className="mt-1 text-xs text-muted-foreground">Know exactly what to do next</p></div>
+            <div><p className="text-2xl font-semibold text-foreground">7:00 AM</p><p className="mt-1 text-xs text-muted-foreground">Your daily practice arrives by email</p></div>
           </div>
         </section>
 
@@ -336,6 +337,7 @@ export default function Landing() {
                     <p className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{path.bestFor}</span></p>
                     <p className="flex gap-2"><CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{path.commitment}</span></p>
                     <p className="flex gap-2"><RotateCcw className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>If you miss: {path.missRule}</span></p>
+                    <p className="flex gap-2"><Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>Morning formation email included</span></p>
                   </div>
                   <Button asChild variant={index === 1 ? "glow" : "outline"} className="mt-7 w-full">
                     <Link to={pathHref(path.id)} onClick={() => trackEvent("cta", "path_selected", { track: path.id, position: "landing" })}>
