@@ -50,6 +50,8 @@ describe("onboarding quick start draft", () => {
       birthday: "1994-02-10",
       readingStatus: "reading_now",
       formationTrack: "charge_40",
+      dailyEmailEnabled: true,
+      timezone: "America/Chicago",
       mission: "Keep one honest promise",
       snapshotId: "rebuild-confidence-agb",
       snapshotName: "Rebuild Confidence",
@@ -60,6 +62,8 @@ describe("onboarding quick start draft", () => {
       birthday: "1994-02-10",
       readingStatus: "reading_now",
       formationTrack: "charge_40",
+      dailyEmailEnabled: true,
+      timezone: "America/Chicago",
       mission: "Keep one honest promise",
       snapshotId: "rebuild-confidence-agb",
     });

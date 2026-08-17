@@ -31,6 +31,12 @@ export const LifeOSLayout = () => {
   const queryClient = useQueryClient();
   const [showProfileSettings, setShowProfileSettings] = useState(false);
 
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get("settings") === "email") {
+      setShowProfileSettings(true);
+    }
+  }, [location.search]);
+
   const { isPaid } = useEntitlements(user?.id || null);
 
   const {

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { isTrainingTrack, type TrainingTrack } from "@/domain/formation/circuits";
+import { supabase } from "@/integrations/supabase/client";
+import { updateFormationTrack } from "@/lib/formationEnrollment";
 
 const DEFAULT_TRACK: TrainingTrack = "read_along";
 
@@ -8,12 +10,38 @@ export function useFormationTrack(userId: string) {
   const [track, setTrackState] = useState<TrainingTrack>(() => readTrack(storageKey));
 
   useEffect(() => {
-    setTrackState(readTrack(storageKey));
-  }, [storageKey]);
+    const localTrack = readTrack(storageKey);
+    setTrackState(localTrack);
+    let active = true;
+
+    void supabase
+      .from("profiles")
+      .select("formation_track")
+      .eq("id", userId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!active || error) return;
+        if (isTrainingTrack(data?.formation_track)) {
+          setTrackState(data.formation_track);
+          saveFormationTrackSelection(userId, data.formation_track);
+          return;
+        }
+        void updateFormationTrack(localTrack).catch((syncError) => {
+          console.warn("Existing formation path could not be synchronized:", syncError);
+        });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [storageKey, userId]);
 
   const setTrack = (nextTrack: TrainingTrack) => {
     setTrackState(nextTrack);
     saveFormationTrackSelection(userId, nextTrack);
+    void updateFormationTrack(nextTrack).catch((error) => {
+      console.warn("Formation path could not be synchronized:", error);
+    });
   };
 
   return { track, setTrack };

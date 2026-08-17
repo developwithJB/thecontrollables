@@ -13,7 +13,8 @@ describe("landing page copy", () => {
     expect(source).toContain("A 75-Day Christian Covenant");
     expect(source).toContain("Know exactly what happens next.");
     expect(source).toContain("Choose the right path");
-    expect(source).toContain("Create your private space");
+    expect(source).toContain("Start your morning loop");
+    expect(source).toContain("7:00 AM email");
     expect(source).toContain("Open today’s practice");
   });
 
