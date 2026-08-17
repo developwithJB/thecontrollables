@@ -24,6 +24,11 @@ import {
   type TimelineEmailControllable,
   type TimelineEmailRecap,
 } from "../_shared/timeline-recap.ts";
+import {
+  buildFormationDailyEmailPayload,
+  type FormationEmailCircuit,
+  type FormationEmailTrack,
+} from "../_shared/formation-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -215,6 +220,8 @@ const DASHBOARD_URL = "https://thedashboard.agbcoaching.com/home";
 const DASHBOARD_TIMELINE_URL = "https://thedashboard.agbcoaching.com/timeline";
 const DATED_GOAL_URL = "https://thedashboard.agbcoaching.com/goal";
 const DASHBOARD_QUICK_START_URL = "https://thedashboard.agbcoaching.com/quick-start";
+const FORMATION_TODAY_URL = "https://thedashboard.agbcoaching.com/formation/today";
+const EMAIL_SETTINGS_URL = "https://thedashboard.agbcoaching.com/home?settings=email";
 const DEFAULT_DASHBOARD_RELAUNCH_EMAIL_DATE = "2026-06-23";
 
 function getDashboardRelaunchEmailDate(): string {
@@ -325,6 +332,79 @@ async function getCovenantEmailContext(
     };
   } catch (error) {
     console.warn(`[NUDGE] Covenant context unavailable for ${userId}:`, error);
+    return null;
+  }
+}
+
+interface FormationEmailContext {
+  track: FormationEmailTrack;
+  dayNumber: number;
+  completedCircuits: FormationEmailCircuit[];
+}
+
+const FORMATION_TRACKS = new Set<FormationEmailTrack>(["read_along", "charge_40", "fully_charged_75"]);
+const FORMATION_CIRCUITS = new Set<FormationEmailCircuit>(["awareness", "perspective", "habit", "wellness", "environment"]);
+
+function dateKeyInTimeZone(value: string, timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(value));
+  const year = parts.find((part) => part.type === "year")?.value || "1970";
+  const month = parts.find((part) => part.type === "month")?.value || "01";
+  const day = parts.find((part) => part.type === "day")?.value || "01";
+  return `${year}-${month}-${day}`;
+}
+
+function dateKeyDifference(later: string, earlier: string): number {
+  const laterAt = new Date(`${later}T12:00:00Z`).getTime();
+  const earlierAt = new Date(`${earlier}T12:00:00Z`).getTime();
+  return Math.floor((laterAt - earlierAt) / 86_400_000);
+}
+
+async function getFormationEmailContext(
+  supabase: SupabaseClient,
+  userId: string,
+  localDate: string,
+  timezone: string,
+): Promise<FormationEmailContext | null> {
+  try {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("formation_track, formation_started_at")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (profileError || !profile || !FORMATION_TRACKS.has(profile.formation_track as FormationEmailTrack)) {
+      return null;
+    }
+
+    const track = profile.formation_track as FormationEmailTrack;
+    const startedDate = profile.formation_started_at
+      ? dateKeyInTimeZone(profile.formation_started_at, timezone)
+      : localDate;
+    const dayNumber = Math.max(1, dateKeyDifference(localDate, startedDate) + 1);
+    const { data: entries, error: entriesError } = await supabase
+      .from("formation_circuit_entries")
+      .select("circuit_type, completion_state")
+      .eq("user_id", userId)
+      .eq("track", track)
+      .eq("local_date", localDate);
+
+    if (entriesError) {
+      console.warn(`[NUDGE] Formation circuit status unavailable for ${userId}:`, entriesError);
+    }
+
+    const completedCircuits = (entries || [])
+      .filter((entry) => entry.completion_state === "recorded" || entry.completion_state === "complete")
+      .map((entry) => entry.circuit_type)
+      .filter((circuit): circuit is FormationEmailCircuit => FORMATION_CIRCUITS.has(circuit as FormationEmailCircuit));
+
+    return { track, dayNumber, completedCircuits };
+  } catch (error) {
+    console.warn(`[NUDGE] Formation email context unavailable for ${userId}:`, error);
     return null;
   }
 }
@@ -1926,7 +2006,7 @@ Deno.serve(async (req) => {
     for (let i = 0; i < usersToNudge.length; i += 10) {
       const batch = usersToNudge.slice(i, i + 10);
 
-      await Promise.all(batch.map(async ({ userId, localDate, isWeekly, emailKind }) => {
+      await Promise.all(batch.map(async ({ userId, timezone, localDate, isWeekly, emailKind }) => {
         try {
           // ATOMIC DEDUPLICATION: Insert with unique constraint — only the first invocation wins
           const claim = {
@@ -1955,6 +2035,7 @@ Deno.serve(async (req) => {
           const covenantContext = isWeekly
             ? null
             : await getCovenantEmailContext(supabase, userId, localDate);
+          const formationContext = await getFormationEmailContext(supabase, userId, localDate, timezone);
           if (covenantContext && !context.sessionId) {
             context.snapshotName = covenantContext.title;
             context.snapshotTagline = "Confidence comes from kept promises";
@@ -1999,6 +2080,50 @@ Deno.serve(async (req) => {
             console.log(`[NUDGE] Sent Dashboard relaunch email to ${userData.user.email}`);
             sentCount++;
             relaunchCount++;
+            return;
+          }
+
+          // A path selected during onboarding is the primary daily loop. It takes
+          // precedence over legacy mission, dated-goal, and re-engagement emails.
+          if (formationContext) {
+            const { data: formationUser, error: formationUserError } = await supabase.auth.admin.getUserById(userId);
+            if (formationUserError || !formationUser?.user?.email) {
+              console.warn(`[NUDGE] Could not get email for formation user ${userId}:`, formationUserError);
+              await supabase
+                .from("email_nudge_logs")
+                .update({ status: "skipped" })
+                .eq("user_id", userId)
+                .eq("nudge_date", localDate);
+              skippedCount++;
+              return;
+            }
+
+            const formationPayload = buildFormationDailyEmailPayload({
+              displayName: context.displayName,
+              track: formationContext.track,
+              dayNumber: formationContext.dayNumber,
+              completedCircuits: formationContext.completedCircuits,
+              appUrl: FORMATION_TODAY_URL,
+              settingsUrl: EMAIL_SETTINGS_URL,
+            });
+
+            await resend.emails.send({
+              from: "The Dashboard <noreply@thedashboard.agbcoaching.com>",
+              to: [formationUser.user.email],
+              subject: formationPayload.subject,
+              html: formationPayload.html,
+              text: formationPayload.text,
+            });
+
+            await supabase
+              .from("email_nudge_logs")
+              .update({ status: "sent", sent_at: new Date().toISOString() })
+              .eq("user_id", userId)
+              .eq("nudge_date", localDate);
+
+            console.log(`[NUDGE] Sent ${formationContext.track} formation email to ${formationUser.user.email}`);
+            sentCount++;
+            missionCount++;
             return;
           }
 

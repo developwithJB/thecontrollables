@@ -12,6 +12,15 @@ import { APP_VERSION } from "@/lib/version";
 
 // Changelog entries - update this with each version
 const CHANGELOG: Record<string, { title: string; items: string[] }> = {
+  "2.2.0": {
+    title: "Your Formation Path, Every Morning",
+    items: [
+      "Choose Read Along, 40-Day Charge, or Fully Charged 75 during a faster first-time setup",
+      "Turn on a 7:00 AM formation email as you choose your path",
+      "Open each morning to your day, season, Five Circuits, and first honest move",
+      "Change your path or morning email rhythm anytime without losing private progress",
+    ],
+  },
   "2.1.0": {
     title: "Today's Covenant & Lifetime Evidence",
     items: [

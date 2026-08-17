@@ -9,6 +9,8 @@ export interface OnboardingQuickStartDraft {
   currentStep?: string | null;
   readingStatus?: ReadingStatus | null;
   formationTrack?: TrainingTrack | null;
+  dailyEmailEnabled?: boolean;
+  timezone?: string | null;
   mission?: string;
   birthday?: string | null;
   ageLabel?: string | null;
@@ -58,6 +60,8 @@ export const getOnboardingQuickStartDraft = (): OnboardingQuickStartDraft | null
           ? null
           : normalizeReadingStatus(parsed.readingStatus),
       formationTrack: isTrainingTrack(parsed.formationTrack) ? parsed.formationTrack : null,
+      dailyEmailEnabled: typeof parsed.dailyEmailEnabled === "boolean" ? parsed.dailyEmailEnabled : true,
+      timezone: typeof parsed.timezone === "string" ? parsed.timezone : null,
       birthday: parsed.birthday ?? null,
       ageLabel: parsed.ageLabel ?? null,
       weeksLived: parsed.weeksLived ?? null,
@@ -97,6 +101,8 @@ export const saveOnboardingQuickStartDraft = (
     currentStep: pick("currentStep", null),
     readingStatus: pick("readingStatus", null),
     formationTrack: pick("formationTrack", null),
+    dailyEmailEnabled: pick("dailyEmailEnabled", true),
+    timezone: pick("timezone", null),
     birthday: pick("birthday", null),
     ageLabel: pick("ageLabel", null),
     weeksLived: pick("weeksLived", null),

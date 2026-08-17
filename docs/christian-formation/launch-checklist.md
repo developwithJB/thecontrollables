@@ -1,6 +1,6 @@
 # Christian Formation Launch Checklist
 
-Updated: 2026-08-01.
+Updated: 2026-08-16.
 
 ## Executive summary
 
@@ -45,7 +45,8 @@ The five daily circuit experiences, private proof, completion preview, versioned
 - [ ] Quarantine/rotate legacy public proof according to approved retention policy.
 - [ ] Complete account-level export/deletion and retention jobs.
 - [ ] Produce/review/publish curriculum through the content OS; never bulk-publish AI drafts.
-- [ ] Add formation-specific opt-in email templates, quiet hours, timezone scheduling, delivery monitoring, and deep-link tests.
+- [x] Add formation-specific opt-in email templates, timezone scheduling, one-click Settings access, and deep-link tests.
+- [ ] Add provider-level delivery monitoring and user-configurable send time beyond the current 7:00 AM local default.
 - [ ] Resolve the ten open product decisions in `product-spec.md`.
 
 ## Rollout recommendation

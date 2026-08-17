@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Mail, Lock, ArrowLeft, User } from "lucide-react";
+import { BellRing, Clock3, Eye, EyeOff, Mail, Lock, ArrowLeft, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,11 +11,19 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageViewTracking, useAnalytics } from "@/hooks/useAnalytics";
 import { useOnboardingAnalytics } from "@/hooks/useOnboardingAnalytics";
-import { getOnboardingQuickStartDraft, getQuickStartCompletionRoute } from "@/lib/onboardingQuickStartDraft";
+import { clearOnboardingQuickStartDraft, getOnboardingQuickStartDraft, getQuickStartCompletionRoute } from "@/lib/onboardingQuickStartDraft";
 import { READING_STATUS_LABELS } from "@/lib/readAlong";
 import { TRACK_LABELS, type TrainingTrack } from "@/domain/formation/circuits";
 import { saveFormationTrackSelection } from "@/hooks/useFormationTrack";
 import { toSafeInternalPath } from "@/lib/safeNavigation";
+import {
+  activateFormationEnrollment,
+} from "@/lib/formationEnrollment";
+import {
+  buildFormationSignupMetadata,
+  formatFormationEmailSchedule,
+  getDeviceTimezone,
+} from "@/lib/formationEnrollmentConfig";
 
 type AuthMode = "signin" | "signup" | "forgot" | "reset";
 
@@ -54,6 +62,13 @@ export default function Auth() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const selectedFormationTrack: TrainingTrack | null = quickStartDraft?.formationTrack ?? (mode === "signup" ? "read_along" : null);
+  const selectedEnrollment = useMemo(() => quickStartDraft?.formationTrack
+    ? {
+        track: quickStartDraft.formationTrack,
+        dailyEmailEnabled: quickStartDraft.dailyEmailEnabled ?? true,
+        timezone: quickStartDraft.timezone || getDeviceTimezone(),
+      }
+    : null, [quickStartDraft]);
   const postAuthRoute = useMemo(() => {
     const fallback = getQuickStartCompletionRoute(
       quickStartDraft?.readingStatus,
@@ -67,8 +82,13 @@ export default function Auth() {
     if (userId && selectedFormationTrack) {
       saveFormationTrackSelection(userId, selectedFormationTrack);
     }
+    if (userId && selectedEnrollment) {
+      void activateFormationEnrollment(selectedEnrollment)
+        .then(() => clearOnboardingQuickStartDraft())
+        .catch((error) => console.warn("Formation enrollment could not be synchronized after sign-in:", error));
+    }
     return postAuthRoute;
-  }, [postAuthRoute, selectedFormationTrack]);
+  }, [postAuthRoute, selectedEnrollment, selectedFormationTrack]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -154,11 +174,12 @@ export default function Auth() {
     setIsLoading(true);
     try {
       if (mode === "signup") {
+        const signupMetadata = selectedEnrollment ? buildFormationSignupMetadata(selectedEnrollment) : {};
         const { data: signUpData, error } = await supabase.auth.signUp({
           email, password,
           options: {
             emailRedirectTo: `${window.location.origin}${postAuthRoute}`,
-            data: { display_name: displayName.trim() || null },
+            data: { display_name: displayName.trim() || null, ...signupMetadata },
           },
         });
         if (error) {
@@ -344,12 +365,32 @@ export default function Auth() {
                 {mode === "signup" ? (
                   <div className="mb-5 space-y-3">
                     <div className="grid grid-cols-3 gap-2 text-center text-[11px] leading-4 text-muted-foreground">
-                      {["Private by default", "No public rankings", "Change paths anytime"].map((benefit) => (
+                      {["Private by default", "Morning loop", "Change paths anytime"].map((benefit) => (
                         <div key={benefit} className="rounded-lg border border-border/60 bg-background/40 px-2 py-2">
                           {benefit}
                         </div>
                       ))}
                     </div>
+                    {selectedEnrollment ? (
+                      <div className={`rounded-xl border p-3 ${selectedEnrollment.dailyEmailEnabled ? "border-cyan-400/30 bg-cyan-400/[0.07]" : "border-border/60 bg-background/35"}`}>
+                        <div className="flex items-start gap-3">
+                          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${selectedEnrollment.dailyEmailEnabled ? "bg-cyan-400/10 text-cyan-300" : "bg-muted text-muted-foreground"}`}>
+                            <BellRing className="h-4 w-4" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-foreground">
+                              {selectedEnrollment.dailyEmailEnabled ? "Your morning formation email is on." : "Your morning formation email is off."}
+                            </p>
+                            <p className="mt-1 flex items-center gap-1.5 text-xs leading-5 text-muted-foreground">
+                              <Clock3 className="h-3.5 w-3.5 shrink-0" />
+                              {selectedEnrollment.dailyEmailEnabled
+                                ? `Starts around ${formatFormationEmailSchedule(selectedEnrollment.timezone)} with your day, five circuits, and first move.`
+                                : "Your path still starts after signup. Email can be enabled later in Settings."}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                     {!quickStartDraft?.formationTrack ? (
                       <p className="text-center text-xs text-muted-foreground">
                         Want structure or strict accountability?{" "}
@@ -391,7 +432,7 @@ export default function Auth() {
                     </div>
                   </div>
                   <Button type="submit" variant="glow" className="w-full" disabled={isLoading} data-testid="auth-submit-button">
-                    {isLoading ? (mode === "signin" ? "Signing in..." : "Creating account...") : (mode === "signin" ? "Sign In" : "Create account & open my first day")}
+                    {isLoading ? (mode === "signin" ? "Signing in..." : "Creating account...") : (mode === "signin" ? "Sign In" : "Create account & start my daily loop")}
                   </Button>
                 </form>
 
