@@ -6,7 +6,6 @@ const corsHeaders = {
 };
 
 interface SnapshotInsightRequest {
-  userId: string;
   sessionId: string;
   journeyId?: string | null;
   journeyName?: string | null;
@@ -21,6 +20,31 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authHeader = req.headers.get("Authorization");
+
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: authData, error: authError } = await authClient.auth.getUser();
+
+    if (authError || !authData.user) {
+      console.warn("[SNAPSHOT-INSIGHT] Rejected an invalid authorization token");
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const userId = authData.user.id;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
     if (!lovableApiKey) {
@@ -31,17 +55,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     const body: SnapshotInsightRequest = await req.json();
-    const { userId, sessionId, journeyId, journeyName, journeyFocus } = body;
+    const { sessionId, journeyId, journeyName, journeyFocus } = body;
 
-    if (!userId || !sessionId) {
+    if (!sessionId) {
       return new Response(
-        JSON.stringify({ error: "userId and sessionId are required" }),
+        JSON.stringify({ error: "sessionId is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log(`[SNAPSHOT-INSIGHT] Generating for session ${sessionId}`);
 
@@ -50,6 +74,7 @@ Deno.serve(async (req) => {
       .from("reset_sessions")
       .select("*")
       .eq("id", sessionId)
+      .eq("user_id", userId)
       .single();
 
     if (sessionError || !session) {

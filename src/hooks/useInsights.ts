@@ -17,7 +17,7 @@ export function useInsights(userId: string | undefined, isPaid: boolean) {
       if (!userId) return null;
 
       const { data, error } = await supabase.functions.invoke("generate-insights", {
-        body: { userId },
+        body: {},
       });
 
       if (error) {

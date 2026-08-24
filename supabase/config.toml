@@ -13,10 +13,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.send-daily-nudge]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-insights]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-calendar-reminder]
 verify_jwt = false
@@ -31,7 +31,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.generate-snapshot-insight]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-users]
 verify_jwt = false
