@@ -2904,6 +2904,7 @@ export type Database = {
           id: string
           meal_preferences: Json | null
           nudge_frequency: string | null
+          plan_tier: string
           timezone: string | null
           updated_at: string
         }
@@ -2916,6 +2917,7 @@ export type Database = {
           id: string
           meal_preferences?: Json | null
           nudge_frequency?: string | null
+          plan_tier?: string
           timezone?: string | null
           updated_at?: string
         }
@@ -2928,6 +2930,7 @@ export type Database = {
           id?: string
           meal_preferences?: Json | null
           nudge_frequency?: string | null
+          plan_tier?: string
           timezone?: string | null
           updated_at?: string
         }
