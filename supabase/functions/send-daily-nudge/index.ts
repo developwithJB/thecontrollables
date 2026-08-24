@@ -1701,6 +1701,47 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Every invocation can scan the nudge audience and send email, so every
+    // invocation must be a trusted scheduler/service request or an admin action.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    let authorized = authHeader === `Bearer ${supabaseServiceKey}`;
+
+    if (!authorized) {
+      const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: { persistSession: false },
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: authData } = await anonClient.auth.getUser();
+      if (authData.user) {
+        const { data: adminRole } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", authData.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        authorized = Boolean(adminRole);
+      }
+    }
+
+    if (!authorized) {
+      return new Response(
+        JSON.stringify({ error: "Admin authorization required" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
       console.error("[NUDGE] RESEND_API_KEY not configured");
@@ -1712,11 +1753,6 @@ Deno.serve(async (req) => {
 
     const resend = new Resend(resendApiKey);
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     // Parse request body
     let requestBody: NudgeRequest = {};
     let testMode = false;
@@ -1727,11 +1763,6 @@ Deno.serve(async (req) => {
       // Default to production mode
     }
 
-    const privilegedRequest =
-      testMode ||
-      requestBody.forceRelaunchEmail === true ||
-      Boolean(requestBody.targetUserId) ||
-      requestBody.forceSend === true;
     const forceTargetedSend =
       requestBody.forceSend === true && Boolean(requestBody.targetUserId);
 
@@ -1740,35 +1771,6 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "forceSend requires targetUserId" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
-    }
-
-    if (privilegedRequest) {
-      const authHeader = req.headers.get("Authorization");
-      let authorized = authHeader === `Bearer ${supabaseServiceKey}`;
-
-      if (!authorized && authHeader) {
-        const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
-          auth: { persistSession: false },
-          global: { headers: { Authorization: authHeader } },
-        });
-        const { data: authData } = await anonClient.auth.getUser();
-        if (authData.user) {
-          const { data: adminRole } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", authData.user.id)
-            .eq("role", "admin")
-            .maybeSingle();
-          authorized = Boolean(adminRole);
-        }
-      }
-
-      if (!authorized) {
-        return new Response(
-          JSON.stringify({ error: "Admin authorization required" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
     }
 
     console.log(

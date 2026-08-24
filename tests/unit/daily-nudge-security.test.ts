@@ -3,12 +3,23 @@ import { describe, expect, it } from "vitest";
 
 const source = readFileSync("supabase/functions/send-daily-nudge/index.ts", "utf8");
 
-describe("daily nudge privileged test path", () => {
-  it("requires admin authorization for test and targeted sends", () => {
-    expect(source).toContain("const privilegedRequest =");
+describe("daily nudge invocation security", () => {
+  it("requires service-role or admin authorization for every send path", () => {
+    expect(source).not.toContain("const privilegedRequest =");
+    expect(source).toContain('JSON.stringify({ error: "Authentication required" })');
     expect(source).toContain('JSON.stringify({ error: "Admin authorization required" })');
     expect(source).toContain('authHeader === `Bearer ${supabaseServiceKey}`');
     expect(source).toContain('.eq("role", "admin")');
+  });
+
+  it("authorizes before audience lookup or email service setup", () => {
+    const authCheck = source.indexOf('const authHeader = req.headers.get("Authorization")');
+    const resendSetup = source.indexOf('const resend = new Resend(resendApiKey)');
+    const audienceLookup = source.indexOf('let profilesQuery = supabase');
+
+    expect(authCheck).toBeGreaterThan(-1);
+    expect(authCheck).toBeLessThan(resendSetup);
+    expect(authCheck).toBeLessThan(audienceLookup);
   });
 
   it("only permits forced dedupe bypass for a named user", () => {
