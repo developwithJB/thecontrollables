@@ -1485,14 +1485,106 @@ export type Database = {
           },
         ]
       }
+      formation_attempts: {
+        Row: {
+          aggregate_version: number
+          cancelled_at: string | null
+          completed_at: string | null
+          completed_day_count: number
+          content_bundle_version: string
+          created_at: string
+          current_day_number: number | null
+          end_reason_code: string | null
+          ended_at: string | null
+          id: string
+          planned_start_local_date: string
+          previous_attempt_id: string | null
+          rules_accepted_at: string
+          rules_version: string
+          sequence_number: number
+          start_idempotency_key: string
+          start_timezone: string
+          started_at: string | null
+          status: string
+          strict_opt_in_at: string
+          timezone_policy: string
+          track: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aggregate_version?: number
+          cancelled_at?: string | null
+          completed_at?: string | null
+          completed_day_count?: number
+          content_bundle_version: string
+          created_at?: string
+          current_day_number?: number | null
+          end_reason_code?: string | null
+          ended_at?: string | null
+          id?: string
+          planned_start_local_date: string
+          previous_attempt_id?: string | null
+          rules_accepted_at: string
+          rules_version: string
+          sequence_number: number
+          start_idempotency_key: string
+          start_timezone: string
+          started_at?: string | null
+          status: string
+          strict_opt_in_at: string
+          timezone_policy?: string
+          track?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aggregate_version?: number
+          cancelled_at?: string | null
+          completed_at?: string | null
+          completed_day_count?: number
+          content_bundle_version?: string
+          created_at?: string
+          current_day_number?: number | null
+          end_reason_code?: string | null
+          ended_at?: string | null
+          id?: string
+          planned_start_local_date?: string
+          previous_attempt_id?: string | null
+          rules_accepted_at?: string
+          rules_version?: string
+          sequence_number?: number
+          start_idempotency_key?: string
+          start_timezone?: string
+          started_at?: string | null
+          status?: string
+          strict_opt_in_at?: string
+          timezone_policy?: string
+          track?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formation_attempts_previous_attempt_id_fkey"
+            columns: ["previous_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "formation_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formation_circuit_entries: {
         Row: {
+          attempt_id: string | null
           circuit_type: string
           completed_action_ids: string[]
           completed_at: string | null
           completion_state: string
           content_version_id: string | null
           created_at: string
+          day_number: number | null
+          formation_day_id: string | null
           id: string
           idempotency_key: string
           local_date: string
@@ -1504,12 +1596,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attempt_id?: string | null
           circuit_type: string
           completed_action_ids?: string[]
           completed_at?: string | null
           completion_state: string
           content_version_id?: string | null
           created_at?: string
+          day_number?: number | null
+          formation_day_id?: string | null
           id?: string
           idempotency_key: string
           local_date: string
@@ -1521,12 +1616,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attempt_id?: string | null
           circuit_type?: string
           completed_action_ids?: string[]
           completed_at?: string | null
           completion_state?: string
           content_version_id?: string | null
           created_at?: string
+          day_number?: number | null
+          formation_day_id?: string | null
           id?: string
           idempotency_key?: string
           local_date?: string
@@ -1539,10 +1637,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "formation_circuit_entries_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "formation_attempts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "formation_circuit_entries_content_version_id_fkey"
             columns: ["content_version_id"]
             isOneToOne: false
             referencedRelation: "formation_content_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formation_circuit_entries_formation_day_id_fkey"
+            columns: ["formation_day_id"]
+            isOneToOne: false
+            referencedRelation: "formation_days"
             referencedColumns: ["id"]
           },
         ]
@@ -1590,7 +1702,15 @@ export type Database = {
           track?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "formation_completion_records_source_journey_fkey"
+            columns: ["source_journey_id"]
+            isOneToOne: false
+            referencedRelation: "formation_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       formation_completion_reflections: {
         Row: {
@@ -1804,6 +1924,77 @@ export type Database = {
           },
         ]
       }
+      formation_days: {
+        Row: {
+          attempt_id: string
+          closed_at: string | null
+          closeout_idempotency_key: string | null
+          closeout_summary: Json
+          created_at: string
+          day_number: number
+          formation_season: string
+          id: string
+          incomplete_at: string | null
+          local_date: string
+          opened_at: string | null
+          rules_version: string
+          status: string
+          timezone_used: string
+          updated_at: string
+          user_id: string
+          utc_close_at: string
+          utc_open_at: string
+        }
+        Insert: {
+          attempt_id: string
+          closed_at?: string | null
+          closeout_idempotency_key?: string | null
+          closeout_summary?: Json
+          created_at?: string
+          day_number: number
+          formation_season: string
+          id?: string
+          incomplete_at?: string | null
+          local_date: string
+          opened_at?: string | null
+          rules_version: string
+          status?: string
+          timezone_used: string
+          updated_at?: string
+          user_id: string
+          utc_close_at: string
+          utc_open_at: string
+        }
+        Update: {
+          attempt_id?: string
+          closed_at?: string | null
+          closeout_idempotency_key?: string | null
+          closeout_summary?: Json
+          created_at?: string
+          day_number?: number
+          formation_season?: string
+          id?: string
+          incomplete_at?: string | null
+          local_date?: string
+          opened_at?: string | null
+          rules_version?: string
+          status?: string
+          timezone_used?: string
+          updated_at?: string
+          user_id?: string
+          utc_close_at?: string
+          utc_open_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formation_days_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "formation_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formation_proof_assets: {
         Row: {
           byte_size: number
@@ -1845,6 +2036,44 @@ export type Database = {
           visibility?: string
         }
         Relationships: []
+      }
+      formation_strict_setups: {
+        Row: {
+          attempt_id: string
+          created_at: string
+          environment_prepared: boolean
+          main_promise: string
+          personal_covenant_accepted: boolean
+          privacy_safety_acknowledged: boolean
+          user_id: string
+        }
+        Insert: {
+          attempt_id: string
+          created_at?: string
+          environment_prepared: boolean
+          main_promise: string
+          personal_covenant_accepted: boolean
+          privacy_safety_acknowledged: boolean
+          user_id: string
+        }
+        Update: {
+          attempt_id?: string
+          created_at?: string
+          environment_prepared?: boolean
+          main_promise?: string
+          personal_covenant_accepted?: boolean
+          privacy_safety_acknowledged?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formation_strict_setups_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: true
+            referencedRelation: "formation_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       grace_evidence_entries: {
         Row: {
@@ -4422,6 +4651,45 @@ export type Database = {
         Returns: undefined
       }
       bootstrap_admin: { Args: { admin_user_id: string }; Returns: boolean }
+      cancel_fully_charged_attempt: {
+        Args: { p_attempt_id: string; p_reason_code?: string }
+        Returns: {
+          aggregate_version: number
+          cancelled_at: string | null
+          completed_at: string | null
+          completed_day_count: number
+          content_bundle_version: string
+          created_at: string
+          current_day_number: number | null
+          end_reason_code: string | null
+          ended_at: string | null
+          id: string
+          planned_start_local_date: string
+          previous_attempt_id: string | null
+          rules_accepted_at: string
+          rules_version: string
+          sequence_number: number
+          start_idempotency_key: string
+          start_timezone: string
+          started_at: string | null
+          status: string
+          strict_opt_in_at: string
+          timezone_policy: string
+          track: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_attempts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      close_fully_charged_day: {
+        Args: { p_attempt_id: string; p_idempotency_key: string }
+        Returns: Json
+      }
       compute_build_scores: {
         Args: { p_assessment_id: string }
         Returns: {
@@ -4455,6 +4723,7 @@ export type Database = {
         }
         Returns: string
       }
+      end_overdue_fully_charged_attempts: { Args: never; Returns: number }
       generate_invite_code: { Args: never; Returns: string }
       get_circle_wellness_streaks: {
         Args: { p_challenge_id: string }
@@ -4464,6 +4733,8 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_current_fully_charged_content: { Args: never; Returns: Json }
+      get_fully_charged_today: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4601,12 +4872,15 @@ export type Database = {
           p_track: string
         }
         Returns: {
+          attempt_id: string | null
           circuit_type: string
           completed_action_ids: string[]
           completed_at: string | null
           completion_state: string
           content_version_id: string | null
           created_at: string
+          day_number: number | null
+          formation_day_id: string | null
           id: string
           idempotency_key: string
           local_date: string
@@ -4680,6 +4954,54 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "formation_content_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      start_fully_charged_attempt: {
+        Args: {
+          p_content_bundle_version: string
+          p_environment_prepared: boolean
+          p_idempotency_key: string
+          p_main_promise: string
+          p_personal_covenant_accepted: boolean
+          p_previous_attempt_id?: string
+          p_privacy_safety_acknowledged: boolean
+          p_rules_accepted: boolean
+          p_rules_version: string
+          p_start_local_date: string
+          p_strict_opt_in: boolean
+          p_timezone: string
+        }
+        Returns: {
+          aggregate_version: number
+          cancelled_at: string | null
+          completed_at: string | null
+          completed_day_count: number
+          content_bundle_version: string
+          created_at: string
+          current_day_number: number | null
+          end_reason_code: string | null
+          ended_at: string | null
+          id: string
+          planned_start_local_date: string
+          previous_attempt_id: string | null
+          rules_accepted_at: string
+          rules_version: string
+          sequence_number: number
+          start_idempotency_key: string
+          start_timezone: string
+          started_at: string | null
+          status: string
+          strict_opt_in_at: string
+          timezone_policy: string
+          track: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_attempts"
           isOneToOne: true
           isSetofReturn: false
         }
