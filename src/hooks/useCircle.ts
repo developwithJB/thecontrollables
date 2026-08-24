@@ -23,6 +23,10 @@ interface Circle {
   start_date: string;
 }
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Please try again.";
+}
+
 export function useCircle(userId: string | undefined, activeSessionId?: string) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -58,7 +62,7 @@ export function useCircle(userId: string | undefined, activeSessionId?: string) 
         name: c.name,
         invite_code: c.invite_code,
         journey_id: c.journey_id,
-        max_members: (c as any).max_members ?? 5,
+        max_members: c.max_members ?? 5,
         duration_days: c.duration_days,
         creator_id: c.creator_id,
         start_date: c.start_date,
@@ -113,22 +117,24 @@ export function useCircle(userId: string | undefined, activeSessionId?: string) 
     enabled: !!myCircle,
   });
 
+  const circleId = myCircle?.id;
+
   // Realtime subscription for live showed-up dots
   useEffect(() => {
-    if (!myCircle) return;
+    if (!circleId) return;
 
     const channel = supabase
-      .channel(`circle-progress-${myCircle.id}`)
+      .channel(`circle-progress-${circleId}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "challenge_progress",
-          filter: `challenge_id=eq.${myCircle.id}`,
+          filter: `challenge_id=eq.${circleId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ["circle-members", myCircle.id] });
+          queryClient.invalidateQueries({ queryKey: ["circle-members", circleId] });
         }
       )
       .subscribe();
@@ -136,7 +142,7 @@ export function useCircle(userId: string | undefined, activeSessionId?: string) 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [myCircle?.id, queryClient]);
+  }, [circleId, queryClient]);
 
   // Create circle
   const createCircleMutation = useMutation({
@@ -182,8 +188,8 @@ export function useCircle(userId: string | undefined, activeSessionId?: string) 
       queryClient.invalidateQueries({ queryKey: ["my-circle"] });
       toast({ title: "Circle created!", description: "Share the invite code with your group." });
     },
-    onError: (err: any) => {
-      toast({ title: "Couldn't create circle", description: err.message, variant: "destructive" });
+    onError: (error: unknown) => {
+      toast({ title: "Couldn't create circle", description: getErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -192,63 +198,28 @@ export function useCircle(userId: string | undefined, activeSessionId?: string) 
     mutationFn: async ({ inviteCode, displayName }: { inviteCode: string; displayName: string }) => {
       if (!userId) throw new Error("Not authenticated");
 
-      // Look up challenge by invite code
-      const { data: challenges, error: lookupError } = await supabase
-        .from("challenges")
-        .select("*")
-        .eq("invite_code", inviteCode.toUpperCase())
-        .eq("is_solo", false)
-        .limit(1);
-
-      if (lookupError) throw lookupError;
-      if (!challenges?.length) throw new Error("Invalid invite code");
-
-      const challenge = challenges[0];
-      const maxMembers = (challenge as any).max_members ?? 5;
-
-      // Check member count
-      const { count, error: countError } = await supabase
-        .from("challenge_participants")
-        .select("id", { count: "exact", head: true })
-        .eq("challenge_id", challenge.id);
-
-      if (countError) throw countError;
-      if ((count ?? 0) >= maxMembers) throw new Error("This circle is full (max 5 members)");
-
-      // Check not already a member
-      const { data: existing } = await supabase
-        .from("challenge_participants")
-        .select("id")
-        .eq("challenge_id", challenge.id)
-        .eq("user_id", userId)
-        .limit(1);
-
-      if (existing?.length) throw new Error("You're already in this circle");
-
-      // Join
-      const { error: joinError } = await supabase.from("challenge_participants").insert({
-        challenge_id: challenge.id,
-        user_id: userId,
-        display_name: displayName,
-        covenant_accepted: true,
-        covenant_accepted_at: new Date().toISOString(),
-        start_date: new Date().toISOString().split("T")[0],
+      const { data, error } = await supabase.rpc("join_challenge_by_invite_code", {
+        p_invite_code: inviteCode,
+        p_display_name: displayName,
       });
 
-      if (joinError) throw joinError;
+      if (error) throw error;
+      if (!data?.length) throw new Error("Invalid invite code");
+
+      const joinedCircle = data[0];
 
       return {
-        circleName: challenge.name,
-        journeyId: challenge.journey_id,
-        memberCount: (count ?? 0) + 1,
+        circleName: joinedCircle.circle_name,
+        journeyId: joinedCircle.journey_id,
+        memberCount: joinedCircle.member_count,
       };
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-circle"] });
       toast({ title: "Joined circle!", description: `You're now part of the circle.` });
     },
-    onError: (err: any) => {
-      toast({ title: "Couldn't join circle", description: err.message, variant: "destructive" });
+    onError: (error: unknown) => {
+      toast({ title: "Couldn't join circle", description: getErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -269,8 +240,8 @@ export function useCircle(userId: string | undefined, activeSessionId?: string) 
       queryClient.invalidateQueries({ queryKey: ["my-circle"] });
       toast({ title: "Left circle" });
     },
-    onError: (err: any) => {
-      toast({ title: "Couldn't leave circle", description: err.message, variant: "destructive" });
+    onError: (error: unknown) => {
+      toast({ title: "Couldn't leave circle", description: getErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -308,27 +279,19 @@ export function useCircle(userId: string | undefined, activeSessionId?: string) 
 
   // Lookup circle info by invite code (for join preview)
   const lookupCircle = useCallback(async (inviteCode: string) => {
-    const { data: challenges } = await supabase
-      .from("challenges")
-      .select("id, name, journey_id, duration_days")
-      .eq("invite_code", inviteCode.toUpperCase())
-      .eq("is_solo", false)
-      .limit(1);
+    const { data, error } = await supabase.rpc("lookup_challenge_by_invite_code", {
+      p_invite_code: inviteCode,
+    });
 
-    if (!challenges?.length) return null;
+    if (error || !data?.length) return null;
 
-    const challenge = challenges[0];
-
-    const { count } = await supabase
-      .from("challenge_participants")
-      .select("id", { count: "exact", head: true })
-      .eq("challenge_id", challenge.id);
+    const challenge = data[0];
 
     return {
       id: challenge.id,
       name: challenge.name,
       journeyId: challenge.journey_id,
-      memberCount: count ?? 0,
+      memberCount: challenge.member_count,
     };
   }, []);
 

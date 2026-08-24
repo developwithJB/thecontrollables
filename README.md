@@ -286,6 +286,11 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/database/fully-charged-75-simul
 
 The database simulation is transaction-wrapped and ends in `ROLLBACK`; it does not retain synthetic users, days, circuits, or completion records.
 
+### Security-sensitive server boundaries
+
+- Circle previews and joins use the authenticated `lookup_challenge_by_invite_code` and `join_challenge_by_invite_code` RPCs. Do not restore a table-wide `invite_code IS NOT NULL` SELECT policy; it exposes every invite-coded challenge to every signed-in user.
+- `send-daily-nudge` keeps gateway JWT verification disabled so the trusted scheduler can use the service-role token, but its handler authorizes every non-OPTIONS invocation. Only a service-role bearer token or an authenticated user with the `admin` role may start a run.
+
 ### Fully Charged landing, SEO, and sharing assets
 
 The public landing roadmap reads directly from `src/domain/formation/fullyChargedJourney.ts`, so its 75 day titles, references, invitations, reflections, and service prompts stay synchronized with the governed product source. `src/components/landing/FullyCharged75Roadmap.tsx` owns the expandable public presentation.
