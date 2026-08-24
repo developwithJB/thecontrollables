@@ -23,6 +23,41 @@ export interface IGProofEntry {
   created_at: string;
 }
 
+const IG_PROOF_BUCKET = "ig-proof-images";
+const LEGACY_PUBLIC_PATH_MARKER = `/storage/v1/object/public/${IG_PROOF_BUCKET}/`;
+
+export const getOwnedIGProofStoragePath = (value: string, userId: string): string | null => {
+  let storagePath = value;
+
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    try {
+      const pathname = new URL(value).pathname;
+      const markerIndex = pathname.indexOf(LEGACY_PUBLIC_PATH_MARKER);
+      if (markerIndex === -1) return null;
+      storagePath = decodeURIComponent(pathname.slice(markerIndex + LEGACY_PUBLIC_PATH_MARKER.length));
+    } catch {
+      return null;
+    }
+  }
+
+  if (!storagePath.startsWith(`${userId}/`) || storagePath.includes("..") || storagePath.startsWith("/")) {
+    return null;
+  }
+
+  return storagePath;
+};
+
+const createPrivateIGProofUrl = async (value: string, userId: string): Promise<string | null> => {
+  const storagePath = getOwnedIGProofStoragePath(value, userId);
+  if (!storagePath) return null;
+
+  const { data, error } = await supabase.storage
+    .from(IG_PROOF_BUCKET)
+    .createSignedUrl(storagePath, 10 * 60);
+
+  return error ? null : data.signedUrl;
+};
+
 const getErrorMessage = (error: unknown, fallback: string): string => {
   return error instanceof Error && error.message.trim().length > 0 ? error.message : fallback;
 };
@@ -75,15 +110,14 @@ export function useIGProof(userId?: string) {
       const ext = file.name.split(".").pop() || "jpg";
       const path = `${userId}/${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage
-        .from("ig-proof-images")
+        .from(IG_PROOF_BUCKET)
         .upload(path, file, { contentType: file.type });
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from("ig-proof-images").getPublicUrl(path);
-
       // For MVP, ask user for a caption/description since we can't OCR client-side
-      // We'll return the image URL for saving, but we need text for analysis
-      return { imageUrl: urlData.publicUrl, storagePath: path };
+      // Persist only the owner-scoped object path. A short-lived preview URL is
+      // created when history is loaded, so screenshots never need public URLs.
+      return { imageUrl: path, storagePath: path };
     } catch (err: unknown) {
       console.error("Screenshot upload failed:", err);
       toast({ title: "Upload failed", description: getErrorMessage(err, "Could not upload screenshot."), variant: "destructive" });
@@ -171,7 +205,16 @@ export function useIGProof(userId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      setEntries((data || []) as unknown as IGProofEntry[]);
+      const storedEntries = (data || []) as unknown as IGProofEntry[];
+      const entriesWithPrivatePreviews = await Promise.all(
+        storedEntries.map(async (entry) => ({
+          ...entry,
+          image_url: entry.image_url
+            ? await createPrivateIGProofUrl(entry.image_url, userId)
+            : null,
+        })),
+      );
+      setEntries(entriesWithPrivatePreviews);
     } catch (err) {
       console.error("Failed to load IG proof entries:", err);
     } finally {

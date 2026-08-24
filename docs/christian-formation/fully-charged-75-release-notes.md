@@ -15,8 +15,11 @@ Status: public landing approved for production; authenticated strict-journey enr
 - Replaced the stale externally hosted share graphic with a project-owned 1200×630 Open Graph/Twitter card and synchronized title, description, canonical, robots, sitemap, PWA description, image alt text, and JSON-LD metadata.
 - Removed table-wide visibility for invite-coded challenges. Authenticated circle preview/join now use exact-code, least-privilege RPCs with atomic duplicate and capacity checks; direct participant inserts are limited to a circle creator adding themselves.
 - Closed the anonymous email-blast path in `send-daily-nudge`; every run now requires either the service-role bearer token or an authenticated admin before audience lookup or Resend initialization.
+- Bound `generate-insights` to the validated caller before any service-role behavioral query; request bodies can no longer select another account.
+- Made profile plan tiers server-managed at the database boundary while retaining owner-scoped profile edits.
+- Converted Instagram proof screenshots to a private, owner-folder bucket with short-lived signed previews, including compatibility for previously stored public-path values.
 
-Final local evidence: 50 Vitest files / 310 tests, production build and TypeScript pass, 12/12 formation Playwright scenarios, 12/12 desktop/mobile public-entry scenarios, focused changed-scope ESLint pass, and a persisted rollback simulation of 75 days / 375 circuits. The repository-wide ESLint command still reports pre-existing debt outside this release's changed scope.
+Final local evidence: 51 Vitest files / 313 tests, production build and both TypeScript compilers pass, 12/12 formation Playwright scenarios, 12/12 desktop/mobile public-entry scenarios, focused changed-scope ESLint pass, and a persisted rollback simulation of 75 days / 375 circuits. The repository-wide ESLint command still reports pre-existing debt outside this release's changed scope.
 
 ## Intentionally strict V1 behavior
 

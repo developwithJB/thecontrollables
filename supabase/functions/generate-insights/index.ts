@@ -5,10 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface InsightRequest {
-  userId: string;
-}
-
 interface DayOfWeekCount {
   [key: string]: number;
 }
@@ -21,6 +17,33 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authHeader = req.headers.get("Authorization");
+
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: authData, error: authError } = await authClient.auth.getUser();
+
+    if (authError || !authData.user) {
+      console.warn("[INSIGHTS] Rejected an invalid authorization token");
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // The authenticated caller is the only permitted analytics subject. Never
+    // trust a body-supplied user id when the service client bypasses RLS below.
+    const userId = authData.user.id;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
     if (!lovableApiKey) {
@@ -32,35 +55,6 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Get userId from auth header or request body
-    let userId: string | null = null;
-
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader) {
-      const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data: { user } } = await anonClient.auth.getUser();
-      userId = user?.id ?? null;
-    }
-
-    if (!userId) {
-      // Fallback: try request body
-      try {
-        const body = await req.json();
-        userId = body.userId || null;
-      } catch {
-        // no body
-      }
-    }
-
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ error: "userId is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     console.log(`[INSIGHTS] Generating insights for user ${userId}`);
 
