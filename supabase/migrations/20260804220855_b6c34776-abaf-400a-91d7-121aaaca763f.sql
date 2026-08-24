@@ -1,0 +1,3 @@
+-- Migration-history marker.
+-- Formation completion records are defined by 20260801100000_formation_completion_records.sql.
+-- Lovable generated this duplicate after applying that committed migration in production.

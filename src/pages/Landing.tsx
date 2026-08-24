@@ -65,6 +65,15 @@ const journeyPaths = [
     missRule: "Continue where you left off.",
   },
   {
+    id: "fully_charged_75",
+    title: "75-Day Covenant",
+    eyebrow: "The full challenge",
+    description: "Put Jesus first, keep exact daily promises, and build a visible record of faithful obedience.",
+    bestFor: "Best when you are ready for an all-in Christian commitment",
+    commitment: "75 consecutive days",
+    missRule: "An incomplete day ends that attempt; history remains.",
+  },
+  {
     id: "charge_40",
     title: "40-Day Charge",
     eyebrow: "Structured formation",
@@ -72,15 +81,6 @@ const journeyPaths = [
     bestFor: "Best for a sustainable daily rhythm",
     commitment: "40 days",
     missRule: "A missed circuit never deletes prior work.",
-  },
-  {
-    id: "fully_charged_75",
-    title: "Fully Charged 75",
-    eyebrow: "Strict accountability",
-    description: "An explicitly strict path for people freely choosing exact daily requirements.",
-    bestFor: "Best when you want an all-in commitment",
-    commitment: "75 consecutive days",
-    missRule: "An incomplete day ends that attempt; history remains.",
   },
 ] as const;
 
@@ -130,7 +130,7 @@ function TodayPreview() {
           </div>
           <div className="rounded-xl border border-primary/25 bg-primary/10 px-3 py-2 text-center">
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Path</p>
-            <p className="mt-0.5 text-xs font-semibold text-primary">Read Along</p>
+            <p className="mt-0.5 text-xs font-semibold text-primary">75-Day Covenant</p>
           </div>
         </div>
 
@@ -183,9 +183,9 @@ export default function Landing() {
   }, [navigate]);
 
   useEffect(() => {
-    document.title = "The Dashboard | Five Controllables. Fully Charged 75.";
+    document.title = "The Dashboard | Fully Charged 75-Day Christian Covenant";
     const description =
-      "Train Awareness, Perspective, Habit, Wellness, and Environment through private Christian formation—including the strict Fully Charged 75-day path.";
+      "Train Awareness, Perspective, Habit, Wellness, and Environment through a strict, private 75-day Christian formation covenant.";
     let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     if (!meta) {
       meta = document.createElement("meta");
@@ -196,8 +196,8 @@ export default function Landing() {
   }, []);
 
   const quickStartEnabled = onboardingQuickStartEnabled();
-  const ctaPath = quickStartEnabled ? "/quick-start" : "/auth?mode=signup";
   const pathHref = (path: string) => quickStartEnabled ? `/quick-start?path=${path}` : "/auth?mode=signup";
+  const covenantPath = pathHref("fully_charged_75");
 
   if (!authChecked) return null;
 
@@ -216,7 +216,7 @@ export default function Landing() {
             <Link to="/auth">Sign in</Link>
           </Button>
           <Button asChild size="sm" className="hidden sm:inline-flex">
-            <Link to={ctaPath}>Choose your path</Link>
+            <Link to={covenantPath}>Start 75 days</Link>
           </Button>
         </div>
       </nav>
@@ -228,22 +228,22 @@ export default function Landing() {
             <motion.div initial={{ y: 16 }} animate={{ y: 0 }} transition={{ duration: 0.45 }}>
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
                 <Sparkles className="h-3.5 w-3.5" />
-                The daily practice of The Controllables
+                A 75-Day Christian Covenant
               </div>
               <h1 className="mt-6 max-w-3xl font-display text-4xl font-bold leading-[1.08] text-balance sm:text-5xl md:text-6xl">
-                Put Jesus first. Train what you can control.
+                Become someone whose yes can be trusted.
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground text-balance md:text-lg">
-                Turn what you believe into a clear daily rhythm: Scripture-guided reflection, five practical Controllables, one faithful action, and honest recovery without shame.
+                Put Jesus first, keep the promises you make today, and build lifetime evidence of faithful obedience—without confusing discipline with earning grace.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button asChild variant="glow" size="lg" className="h-14 w-full px-8 text-base font-semibold sm:w-auto">
                   <Link
-                    to={ctaPath}
+                    to={covenantPath}
                     data-testid="cta-get-started"
-                    onClick={() => trackEvent("cta", "cta_click", { cta_label: "Choose Your Path", position: "hero" })}
+                    onClick={() => trackEvent("cta", "cta_click", { cta_label: "Begin 75-Day Covenant", position: "hero" })}
                   >
-                    Choose your path
+                    Begin my covenant
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
@@ -251,7 +251,7 @@ export default function Landing() {
                   <a href="#how-it-works">See today’s practice</a>
                 </Button>
               </div>
-              <p className="mt-4 text-xs text-muted-foreground">About 60 seconds to choose a path · No birthday required · Change paths anytime</p>
+              <p className="mt-4 text-xs text-muted-foreground">75 days · Daily faith, discipline, service, and honest evidence</p>
               <div className="mt-7 flex flex-wrap gap-2 text-xs text-muted-foreground">
                 {["Private by default", "No public rankings", "Recovery without shame", "Movement can adapt"].map((promise) => (
                   <span key={promise} className="inline-flex items-center gap-1.5 rounded-full border border-border/65 bg-card/65 px-3 py-1.5">
@@ -270,7 +270,7 @@ export default function Landing() {
 
         <section className="border-y border-border/50 bg-card/35 px-5 py-8 md:px-8">
           <div className="mx-auto grid max-w-6xl gap-5 text-center sm:grid-cols-3">
-            <div><p className="text-2xl font-semibold text-foreground">3 paths</p><p className="mt-1 text-xs text-muted-foreground">Flexible, structured, or strict</p></div>
+            <div><p className="text-2xl font-semibold text-foreground">75 days</p><p className="mt-1 text-xs text-muted-foreground">A full Christian covenant</p></div>
             <div><p className="text-2xl font-semibold text-foreground">5 Controllables</p><p className="mt-1 text-xs text-muted-foreground">One practical system for daily life</p></div>
             <div><p className="text-2xl font-semibold text-foreground">1 clear today</p><p className="mt-1 text-xs text-muted-foreground">Know exactly what to do next</p></div>
           </div>
@@ -331,7 +331,7 @@ export default function Landing() {
                       <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">{path.eyebrow}</p>
                       <h3 className="mt-2 text-2xl font-semibold">{path.title}</h3>
                     </div>
-                    {index === 1 ? <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold uppercase text-primary-foreground">Most flexible structure</span> : null}
+                    {index === 1 ? <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold uppercase text-primary-foreground">Full covenant</span> : null}
                   </div>
                   <p className="mt-4 text-sm leading-6 text-muted-foreground">{path.description}</p>
                   <div className="mt-6 space-y-3 border-t border-border/60 pt-5 text-sm">
@@ -403,12 +403,12 @@ export default function Landing() {
         <section className="px-5 py-20 md:px-8 md:py-28">
           <div className="mx-auto max-w-3xl rounded-3xl border border-primary/25 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.14),transparent_58%)] px-6 py-12 text-center sm:px-12">
             <Sparkles className="mx-auto h-6 w-6 text-primary" />
-            <h2 className="mt-4 font-display text-3xl font-semibold md:text-4xl">Choose your path. Open your first day.</h2>
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">Start where you are, see the rules before you commit, and take one faithful next step.</p>
+            <h2 className="mt-4 font-display text-3xl font-semibold md:text-4xl">Begin your 75-Day Covenant.</h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">Every promise you keep today becomes evidence you carry forward.</p>
             <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
               <Button asChild variant="glow" size="lg" className="h-14 px-9 text-base font-semibold">
-                <Link to={ctaPath} onClick={() => trackEvent("cta", "cta_click", { cta_label: "Choose Your Path", position: "bottom" })}>
-                  Choose your path<ArrowRight className="ml-2 h-4 w-4" />
+                <Link to={covenantPath} onClick={() => trackEvent("cta", "cta_click", { cta_label: "Begin 75-Day Covenant", position: "bottom" })}>
+                  Begin my 75 days<ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="h-14 px-8 text-base font-semibold">

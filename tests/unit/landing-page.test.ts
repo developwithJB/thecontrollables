@@ -5,16 +5,16 @@ import { describe, expect, it } from "vitest";
 const landingSource = () => readFileSync(resolve(process.cwd(), "src/pages/Landing.tsx"), "utf8");
 
 describe("landing page copy", () => {
-  it("states the formation promise and makes the first-day path explicit", () => {
+  it("states the covenant promise and makes the first-day path explicit", () => {
     const source = landingSource();
 
-    expect(source).toContain("Put Jesus first. Train what you can control.");
-    expect(source).toContain("Choose your path");
+    expect(source).toContain("Become someone whose yes can be trusted.");
+    expect(source).toContain("Begin my covenant");
+    expect(source).toContain("A 75-Day Christian Covenant");
     expect(source).toContain("Know exactly what happens next.");
     expect(source).toContain("Choose the right path");
     expect(source).toContain("Create your private space");
     expect(source).toContain("Open today’s practice");
-    expect(source).toContain("No birthday required");
   });
 
   it("advertises the three real paths with clear miss rules", () => {
@@ -22,7 +22,7 @@ describe("landing page copy", () => {
 
     expect(source).toContain("Read Along");
     expect(source).toContain("40-Day Charge");
-    expect(source).toContain("Fully Charged 75");
+    expect(source).toContain("75-Day Covenant");
     expect(source).toContain("If you miss:");
     expect(source).toContain("75 consecutive days");
     expect(source).toContain("history remains");

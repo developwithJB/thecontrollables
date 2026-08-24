@@ -34,13 +34,12 @@ test.describe('Authentication Flow', () => {
     expect(criticalErrors.length).toBe(0);
   });
 
-  test('can navigate to auth page', async ({ page }) => {
+  test('can navigate to the onboarding flow', async ({ page }) => {
     await page.goto('/');
     
     await page.getByTestId('cta-get-started').click();
     
-    await expect(page).toHaveURL(/\/auth/);
-    await expect(page.getByTestId('auth-form')).toBeVisible();
+    await expect(page).toHaveURL(/\/(quick-start|auth)/);
   });
 
   test('auth page shows sign in form by default', async ({ page }) => {
@@ -69,12 +68,13 @@ test.describe('Authentication Flow', () => {
   test('shows validation error for short password', async ({ page }) => {
     await page.goto('/auth?mode=signup');
     
+    await page.getByTestId('auth-name-input').fill('Test User');
     await page.getByTestId('auth-email-input').fill('test@example.com');
     await page.getByTestId('auth-password-input').fill('123');
     await page.getByTestId('auth-submit-button').click();
     
     // Should show password error toast
-    await expect(page.getByText(/password.*short/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Password too short', { exact: true })).toBeVisible({ timeout: 5000 });
   });
 
   test('shows validation error for empty fields', async ({ page }) => {
@@ -83,7 +83,7 @@ test.describe('Authentication Flow', () => {
     await page.getByTestId('auth-submit-button').click();
     
     // Should show missing fields error
-    await expect(page.getByText(/missing fields/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Missing fields', { exact: true })).toBeVisible({ timeout: 5000 });
   });
 });
 

@@ -12,7 +12,7 @@ The five daily circuits, private proof, versioned content OS, privacy-safe analy
 | --- | --- |
 | TypeScript | Pass |
 | Production Vite build | Pass |
-| Unit/contract/integration tests | Pass: 47 files, 298 tests, including all 75 possible missed-day positions and SEO/share contracts |
+| Unit/contract/integration tests | Pass: 49 files, 306 tests after reconciling current Covenant work, including all 75 possible missed-day positions and SEO/share contracts |
 | Formation E2E | Pass: 12/12 desktop/mobile |
 | Public entry E2E | Pass: 12/12 desktop/mobile, including the 75-day roadmap and Day 75 disclosure |
 | Legacy all-app E2E command | Not a release gate: stale selectors/auth assumptions plus formation tests run without their mock-auth server; interrupted after 13 pass, 18 fail, 5 interrupted, 2 skipped |

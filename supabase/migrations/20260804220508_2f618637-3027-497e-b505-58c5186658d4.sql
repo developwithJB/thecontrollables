@@ -1,0 +1,3 @@
+-- Migration-history marker.
+-- Covenant grants are defined by 20260804221500_covenant_table_grants.sql.
+-- Lovable generated this duplicate after applying that committed migration in production.

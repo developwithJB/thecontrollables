@@ -14,7 +14,7 @@ Status: ready for controlled local/staging QA; not approved for production rollo
 - Added a public landing roadmap with the refreshed five-Controllables/75-day visual, exact three-season overview, transparent strict rules, and expandable detail for every day from the governed source.
 - Replaced the stale externally hosted share graphic with a project-owned 1200×630 Open Graph/Twitter card and synchronized title, description, canonical, robots, sitemap, PWA description, image alt text, and JSON-LD metadata.
 
-Final local evidence: 47 Vitest files / 298 tests, production build and TypeScript pass, 12/12 formation Playwright scenarios, 12/12 desktop/mobile public-entry scenarios, focused changed-scope ESLint pass, and a persisted rollback simulation of 75 days / 375 circuits.
+Final local evidence: 49 Vitest files / 306 tests after reconciling the current Covenant release, production build and TypeScript pass, 12/12 formation Playwright scenarios, 12/12 desktop/mobile public-entry scenarios, focused changed-scope ESLint pass, and a persisted rollback simulation of 75 days / 375 circuits.
 
 ## Intentionally strict V1 behavior
 

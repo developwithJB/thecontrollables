@@ -1,0 +1,3 @@
+-- Migration-history marker.
+-- The Covenant schema is defined by 20260804090000_covenant_challenge_and_evidence.sql.
+-- Lovable generated this duplicate after applying that committed migration in production.

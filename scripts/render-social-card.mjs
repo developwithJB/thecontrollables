@@ -49,7 +49,7 @@ await page.setContent(`
         <div class="glow"></div>
         <div class="mark"><div><strong>75</strong><small>days</small></div></div>
         <div class="content">
-          <div class="eyebrow"><span class="eyebrow-dot"></span>The Dashboard · Fully Charged 75</div>
+          <div class="eyebrow"><span class="eyebrow-dot"></span>The Dashboard · Fully Charged 75-Day Covenant</div>
           <h1>Five Controllables.<br /><span>Seventy-five days.</span></h1>
           <p class="sub">A strict, private Christian formation path built around one honest daily rhythm.</p>
           <div class="guide-row">

@@ -1,0 +1,3 @@
+-- Migration-history marker.
+-- Formation content is defined by 20260801110000_formation_content_operating_system.sql.
+-- Lovable generated this duplicate after applying that committed migration in production.

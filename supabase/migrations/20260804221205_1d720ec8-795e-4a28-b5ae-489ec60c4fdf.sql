@@ -1,0 +1,3 @@
+-- Migration-history marker.
+-- Daily Operator onboarding is defined by 20260502002000_daily_operator_onboarding.sql.
+-- Lovable generated this duplicate after applying that committed migration in production.

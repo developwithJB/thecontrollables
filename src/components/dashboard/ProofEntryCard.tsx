@@ -85,7 +85,7 @@ export const ProofEntryCard = ({ userId, onRingFilled, onClose }: ProofEntryCard
             <CheckCircle2 className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Daily Proof</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Evidence Entry</p>
             <h3 className="text-sm font-semibold text-foreground">One kept promise</h3>
           </div>
         </div>
@@ -134,7 +134,7 @@ export const ProofEntryCard = ({ userId, onRingFilled, onClose }: ProofEntryCard
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value.slice(0, 280))}
-              placeholder="What proof are you keeping?"
+              placeholder="What evidence are you keeping?"
               className="min-h-[72px] resize-none border-primary/20 bg-background/65 text-sm"
               maxLength={280}
             />
@@ -171,7 +171,7 @@ export const ProofEntryCard = ({ userId, onRingFilled, onClose }: ProofEntryCard
             {analyzing && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                Reading proof...
+                  Reading evidence...
               </div>
             )}
 
@@ -187,7 +187,7 @@ export const ProofEntryCard = ({ userId, onRingFilled, onClose }: ProofEntryCard
                   Reading...
                 </>
               ) : (
-                "Save Proof"
+                "Keep Evidence"
               )}
             </Button>
 

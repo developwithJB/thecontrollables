@@ -773,6 +773,128 @@ export type Database = {
         }
         Relationships: []
       }
+      covenant_challenges: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          duration_days: number
+          ends_on: string
+          id: string
+          mission: string | null
+          rules: Json
+          started_on: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          duration_days?: number
+          ends_on: string
+          id?: string
+          mission?: string | null
+          rules?: Json
+          started_on?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          duration_days?: number
+          ends_on?: string
+          id?: string
+          mission?: string | null
+          rules?: Json
+          started_on?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      covenant_daily_checkins: {
+        Row: {
+          alcohol_free: boolean
+          bible_read: boolean
+          challenge_id: string
+          checkin_date: string
+          completed_at: string | null
+          created_at: string
+          day_complete: boolean
+          id: string
+          jesus_first: boolean
+          journal_entry: boolean
+          miles: number
+          nutrition_kept: boolean
+          people_encouraged: number
+          reflection: string | null
+          scripture_memorized_count: number
+          service_count: number
+          updated_at: string
+          user_id: string
+          water_goal: boolean
+          workout_count: number
+        }
+        Insert: {
+          alcohol_free?: boolean
+          bible_read?: boolean
+          challenge_id: string
+          checkin_date?: string
+          completed_at?: string | null
+          created_at?: string
+          day_complete?: boolean
+          id?: string
+          jesus_first?: boolean
+          journal_entry?: boolean
+          miles?: number
+          nutrition_kept?: boolean
+          people_encouraged?: number
+          reflection?: string | null
+          scripture_memorized_count?: number
+          service_count?: number
+          updated_at?: string
+          user_id: string
+          water_goal?: boolean
+          workout_count?: number
+        }
+        Update: {
+          alcohol_free?: boolean
+          bible_read?: boolean
+          challenge_id?: string
+          checkin_date?: string
+          completed_at?: string | null
+          created_at?: string
+          day_complete?: boolean
+          id?: string
+          jesus_first?: boolean
+          journal_entry?: boolean
+          miles?: number
+          nutrition_kept?: boolean
+          people_encouraged?: number
+          reflection?: string | null
+          scripture_memorized_count?: number
+          service_count?: number
+          updated_at?: string
+          user_id?: string
+          water_goal?: boolean
+          workout_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "covenant_daily_checkins_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "covenant_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_alignment_logs: {
         Row: {
           created_at: string
@@ -1927,12 +2049,12 @@ export type Database = {
         }
         Insert: {
           byte_size: number
-          circuit_type?: string
+          circuit_type: string
           created_at?: string
           deleted_at?: string | null
           id?: string
           local_date: string
-          mime_type?: string
+          mime_type: string
           storage_path: string
           track: string
           user_id: string
@@ -1952,6 +2074,56 @@ export type Database = {
           visibility?: string
         }
         Relationships: []
+      }
+      grace_evidence_entries: {
+        Row: {
+          category: string
+          challenge_id: string | null
+          created_at: string
+          id: string
+          is_favorite: boolean
+          occurred_on: string
+          scripture_reference: string | null
+          story: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          challenge_id?: string | null
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          occurred_on?: string
+          scripture_reference?: string | null
+          story?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          challenge_id?: string | null
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          occurred_on?: string
+          scripture_reference?: string | null
+          story?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grace_evidence_entries_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "covenant_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       guide_sessions: {
         Row: {
@@ -4533,16 +4705,104 @@ export type Database = {
         Args: { _challenge_id: string; _user_id: string }
         Returns: boolean
       }
+      is_valid_scripture_reference: {
+        Args: { reference: string }
+        Returns: boolean
+      }
+      publish_formation_content_version: {
+        Args: { p_effective_date: string; p_version_id: string }
+        Returns: {
+          ai_assisted: boolean
+          author: string
+          author_user_id: string | null
+          bible_translation: string | null
+          body: string
+          book_chapter: string | null
+          created_at: string
+          day_end: number | null
+          day_start: number | null
+          effective_date: string | null
+          evidence_classification: string | null
+          formation_season: string | null
+          formation_track: string
+          historical_review_status: string
+          id: string
+          item_id: string
+          last_reviewed_date: string | null
+          publication_status: string
+          published_at: string | null
+          reviewer: string | null
+          reviewer_user_id: string | null
+          scripture_reference: string | null
+          slug: string
+          source_citations: string[]
+          spoiler_level: number
+          theological_review_status: string
+          title: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_content_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       refresh_daily_charge_snapshot: {
         Args: { target_date: string; target_user_id: string }
         Returns: undefined
+      }
+      review_formation_content_version: {
+        Args: {
+          p_historical_status: string
+          p_note?: string
+          p_reviewer: string
+          p_theological_status: string
+          p_version_id: string
+        }
+        Returns: {
+          ai_assisted: boolean
+          author: string
+          author_user_id: string | null
+          bible_translation: string | null
+          body: string
+          book_chapter: string | null
+          created_at: string
+          day_end: number | null
+          day_start: number | null
+          effective_date: string | null
+          evidence_classification: string | null
+          formation_season: string | null
+          formation_track: string
+          historical_review_status: string
+          id: string
+          item_id: string
+          last_reviewed_date: string | null
+          publication_status: string
+          published_at: string | null
+          reviewer: string | null
+          reviewer_user_id: string | null
+          scripture_reference: string | null
+          slug: string
+          source_citations: string[]
+          spoiler_level: number
+          theological_review_status: string
+          title: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_content_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       save_formation_circuit: {
         Args: {
           p_circuit_type: string
           p_completed_action_ids: string[]
           p_completion_state: string
-          p_content_version_id?: string | null
+          p_content_version_id?: string
           p_idempotency_key: string
           p_local_date: string
           p_missing_required_action_ids: string[]
@@ -4550,7 +4810,29 @@ export type Database = {
           p_rule_version: string
           p_track: string
         }
-        Returns: Database["public"]["Tables"]["formation_circuit_entries"]["Row"]
+        Returns: {
+          circuit_type: string
+          completed_action_ids: string[]
+          completed_at: string | null
+          completion_state: string
+          content_version_id: string | null
+          created_at: string
+          id: string
+          idempotency_key: string
+          local_date: string
+          missing_required_action_ids: string[]
+          payload: Json
+          rule_version: string
+          track: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_circuit_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       cancel_fully_charged_attempt: {
         Args: { p_attempt_id: string; p_reason_code?: string }
@@ -4584,31 +4866,100 @@ export type Database = {
         Args: {
           p_answers: Json
           p_completion_record_id: string
-          p_next_step?: string | null
+          p_next_step?: string
         }
-        Returns: Database["public"]["Tables"]["formation_completion_reflections"]["Row"]
+        Returns: {
+          answers: Json
+          completion_record_id: string
+          created_at: string
+          next_step: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_completion_reflections"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       save_formation_content_draft: {
         Args: { p_payload: Json }
-        Returns: Database["public"]["Tables"]["formation_content_versions"]["Row"]
+        Returns: {
+          ai_assisted: boolean
+          author: string
+          author_user_id: string | null
+          bible_translation: string | null
+          body: string
+          book_chapter: string | null
+          created_at: string
+          day_end: number | null
+          day_start: number | null
+          effective_date: string | null
+          evidence_classification: string | null
+          formation_season: string | null
+          formation_track: string
+          historical_review_status: string
+          id: string
+          item_id: string
+          last_reviewed_date: string | null
+          publication_status: string
+          published_at: string | null
+          reviewer: string | null
+          reviewer_user_id: string | null
+          scripture_reference: string | null
+          slug: string
+          source_citations: string[]
+          spoiler_level: number
+          theological_review_status: string
+          title: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_content_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       submit_formation_content_for_review: {
         Args: { p_version_id: string }
-        Returns: Database["public"]["Tables"]["formation_content_versions"]["Row"]
-      }
-      review_formation_content_version: {
-        Args: {
-          p_historical_status: string
-          p_note?: string | null
-          p_reviewer: string
-          p_theological_status: string
-          p_version_id: string
+        Returns: {
+          ai_assisted: boolean
+          author: string
+          author_user_id: string | null
+          bible_translation: string | null
+          body: string
+          book_chapter: string | null
+          created_at: string
+          day_end: number | null
+          day_start: number | null
+          effective_date: string | null
+          evidence_classification: string | null
+          formation_season: string | null
+          formation_track: string
+          historical_review_status: string
+          id: string
+          item_id: string
+          last_reviewed_date: string | null
+          publication_status: string
+          published_at: string | null
+          reviewer: string | null
+          reviewer_user_id: string | null
+          scripture_reference: string | null
+          slug: string
+          source_citations: string[]
+          spoiler_level: number
+          theological_review_status: string
+          title: string
+          version: number
         }
-        Returns: Database["public"]["Tables"]["formation_content_versions"]["Row"]
-      }
-      publish_formation_content_version: {
-        Args: { p_effective_date: string; p_version_id: string }
-        Returns: Database["public"]["Tables"]["formation_content_versions"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "formation_content_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       timeline_user_timezone: {
         Args: { target_user_id: string }

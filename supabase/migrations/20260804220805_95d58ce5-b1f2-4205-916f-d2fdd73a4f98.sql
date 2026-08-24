@@ -1,0 +1,3 @@
+-- Migration-history marker.
+-- Daily formation circuits are defined by 20260801090000_formation_daily_circuits.sql.
+-- Lovable generated this duplicate after applying that committed migration in production.

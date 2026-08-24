@@ -25,7 +25,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const Home = lazy(() => import("./pages/Home"));
 const MyControllables = lazy(() => import("./pages/MyControllables"));
 const Train = lazy(() => import("./pages/Train"));
-const Proof = lazy(() => import("./pages/Proof"));
+const Evidence = lazy(() => import("./pages/Evidence"));
 const ControllablesDex = lazy(() => import("./pages/ControllablesDex"));
 const Wellness = lazy(() => import("./pages/Wellness"));
 const Growth = lazy(() => import("./pages/Growth"));
@@ -106,7 +106,7 @@ const AppContent = () => {
             <Route path={APP_ROUTES.goal} element={<Goal />} />
             <Route path={APP_ROUTES.myControllables} element={<MyControllables />} />
             <Route path={APP_ROUTES.train} element={<Train />} />
-            <Route path={APP_ROUTES.proof} element={<Proof />} />
+            <Route path={APP_ROUTES.evidence} element={<Evidence />} />
             <Route path={APP_ROUTES.proofDex} element={<ControllablesDex />} />
             <Route path={APP_ROUTES.dex} element={<ControllablesDex />} />
             <Route path={APP_ROUTES.wellness} element={<Wellness />} />
@@ -117,6 +117,7 @@ const AppContent = () => {
           </Route>
 
           <Route path={APP_ROUTES.money} element={<Navigate to={APP_ROUTES.wealth} replace />} />
+          <Route path={APP_ROUTES.proof} element={<Navigate to={APP_ROUTES.evidence} replace />} />
 
           {/* Back-compat redirect */}
           <Route path={APP_ROUTES.dashboard} element={<Navigate to={APP_ROUTES.home} replace />} />

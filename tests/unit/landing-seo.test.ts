@@ -9,13 +9,13 @@ const socialImagePath = resolve(process.cwd(), "public/og-image-fully-charged-75
 
 describe("landing SEO and social metadata", () => {
   it("uses one consistent canonical Fully Charged 75 narrative", () => {
-    expect(index).toContain("The Dashboard | Five Controllables. Fully Charged 75.");
+    expect(index).toContain("The Dashboard | Fully Charged 75-Day Christian Covenant");
     expect(index).toContain('rel="canonical" href="https://thedashboard.agbcoaching.com/"');
-    expect(index).toContain('property="og:title" content="Five Controllables. Seventy-five days. | The Dashboard"');
-    expect(index).toContain('name="twitter:title" content="Five Controllables. Seventy-five days. | The Dashboard"');
+    expect(index).toContain('property="og:title" content="Five Controllables. One 75-Day Christian Covenant."');
+    expect(index).toContain('name="twitter:title" content="Five Controllables. One 75-Day Christian Covenant."');
     expect(index).toContain('type="application/ld+json"');
     expect(index).not.toContain("storage.googleapis.com/gpt-engineer-file-uploads");
-    expect(manifest).toContain("Fully Charged 75-day path");
+    expect(manifest).toContain("Fully Charged 75-Day Christian Covenant");
     expect(robots).toContain("https://thedashboard.agbcoaching.com/sitemap.xml");
   });
 
