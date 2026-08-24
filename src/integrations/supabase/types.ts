@@ -4830,12 +4830,15 @@ export type Database = {
           p_track: string
         }
         Returns: {
+          attempt_id: string | null
           circuit_type: string
           completed_action_ids: string[]
           completed_at: string | null
           completion_state: string
           content_version_id: string | null
           created_at: string
+          day_number: number | null
+          formation_day_id: string | null
           id: string
           idempotency_key: string
           local_date: string

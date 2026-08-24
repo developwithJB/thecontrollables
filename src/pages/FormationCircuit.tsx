@@ -105,7 +105,11 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
       strictJourney.journey.localDate !== strictLocalToday);
 
   if (track === "fully_charged_75" && strictJourney.isLoadingJourney) {
-    return <FuturePanel className="mx-auto h-56 max-w-4xl animate-pulse" aria-label="Loading Fully Charged day" />;
+    return (
+      <FuturePanel className="mx-auto h-56 max-w-4xl animate-pulse" aria-label="Loading Fully Charged day">
+        <span className="sr-only">Loading Fully Charged day</span>
+      </FuturePanel>
+    );
   }
 
   if (strictDayUnavailable) {

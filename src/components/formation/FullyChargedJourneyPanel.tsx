@@ -50,7 +50,11 @@ interface FullyChargedJourneyPanelProps {
 
 export function FullyChargedJourneyPanel(props: FullyChargedJourneyPanelProps) {
   if (props.isLoading) {
-    return <FuturePanel className="h-48 animate-pulse" aria-label="Loading Fully Charged journey" />;
+    return (
+      <FuturePanel className="h-48 animate-pulse" aria-label="Loading Fully Charged journey">
+        <span className="sr-only">Loading Fully Charged journey</span>
+      </FuturePanel>
+    );
   }
 
   if (!props.journey || ["ended", "cancelled"].includes(props.journey.attemptStatus)) {
