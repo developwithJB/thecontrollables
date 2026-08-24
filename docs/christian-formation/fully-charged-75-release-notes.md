@@ -18,8 +18,9 @@ Status: public landing approved for production; authenticated strict-journey enr
 - Bound `generate-insights` to the validated caller before any service-role behavioral query; request bodies can no longer select another account.
 - Made profile plan tiers server-managed at the database boundary while retaining owner-scoped profile edits.
 - Converted Instagram proof screenshots to a private, owner-folder bucket with short-lived signed previews, including compatibility for previously stored public-path values.
+- Added gateway JWT enforcement to both insights functions and nudge dispatch, bound snapshot sessions to their authenticated owner, and replaced broad profile-write privileges with an explicit safe-column allowlist.
 
-Final local evidence: 51 Vitest files / 313 tests, production build and both TypeScript compilers pass, 12/12 formation Playwright scenarios, 12/12 desktop/mobile public-entry scenarios, focused changed-scope ESLint pass, and a persisted rollback simulation of 75 days / 375 circuits. The repository-wide ESLint command still reports pre-existing debt outside this release's changed scope.
+Final local evidence: 51 Vitest files / 315 tests, production build and both TypeScript compilers pass, 12/12 formation Playwright scenarios, 12/12 desktop/mobile public-entry scenarios, focused changed-scope ESLint pass, and a persisted rollback simulation of 75 days / 375 circuits. The repository-wide ESLint command still reports pre-existing debt outside this release's changed scope.
 
 ## Intentionally strict V1 behavior
 
