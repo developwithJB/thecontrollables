@@ -4480,6 +4480,25 @@ export type Database = {
         Args: { reference: string }
         Returns: boolean
       }
+      join_challenge_by_invite_code: {
+        Args: { p_display_name: string; p_invite_code: string }
+        Returns: {
+          circle_name: string
+          journey_id: string
+          member_count: number
+        }[]
+      }
+      lookup_challenge_by_invite_code: {
+        Args: { p_invite_code: string }
+        Returns: {
+          duration_days: number
+          id: string
+          journey_id: string
+          max_members: number
+          member_count: number
+          name: string
+        }[]
+      }
       publish_formation_content_version: {
         Args: { p_effective_date: string; p_version_id: string }
         Returns: {
