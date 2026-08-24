@@ -10,6 +10,16 @@ test("landing states the value, guardrails, and next action", async ({ page }) =
   await expect(page.getByText("Recovery without shame").first()).toBeVisible();
   await expect(page.getByText("Movement can adapt")).toBeVisible();
 
+  const roadmap = page.getByTestId("fully-charged-75-graphic");
+  await expect(roadmap).toBeVisible();
+  await page.getByRole("button", { name: "Explore all 75 days" }).click();
+  const seasonThree = page.locator("details").filter({ hasText: "Days 51–75" }).first();
+  await seasonThree.locator("summary").first().click();
+  const day75 = seasonThree.locator("details").filter({ hasText: "Day 75" }).first();
+  await expect(day75.getByText("Close with gratitude")).toBeVisible();
+  await day75.locator("summary").click();
+  await expect(day75.getByText(/Complete the final day honestly/)).toBeVisible();
+
   const results = await new AxeBuilder({ page }).include("main").analyze();
   expect(results.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical")).toEqual([]);
 

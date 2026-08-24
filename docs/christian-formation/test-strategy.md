@@ -1,6 +1,6 @@
 # Christian Formation Test Strategy
 
-Status: proposed release-quality strategy
+Status: active release strategy; Fully Charged V1 coverage updated 2026-08-04
 
 Primary risk: a user is shown an inaccurate strict-day/attempt result or private formation data is exposed
 
@@ -107,6 +107,8 @@ Use a Temporal-compatible library and frozen instants. Do not use the host test 
 - invalid timezone and timezone database update behavior.
 
 ### Offline synchronization
+
+Fully Charged V1 deliberately provides no offline grace: a strict circuit and closeout must be server-confirmed inside its canonical day. Late or queued writes are rejected and an overdue unclosed day ends the attempt. The scenarios below remain required before any future grace-window design or durable outbox is enabled.
 
 - event created in the valid day, persisted in the durable local outbox, received within approved grace;
 - valid event received after grace;
@@ -348,9 +350,7 @@ A malicious client cannot enable a server-disabled feature. Turning a flag off s
 - Restrict screenshots/videos/traces from failing tests because they may contain private fixture data; set retention and access.
 - Seed content with license-safe test text, not unlicensed book/translation excerpts.
 
-## Exact commands to establish in implementation PRs
-
-The repository currently exposes npm/Vitest/Playwright scripts; the first implementation PR should standardize and document commands equivalent to:
+## Exact commands
 
 ```bash
 npm ci
@@ -360,20 +360,13 @@ npm run build
 npm run test:e2e
 ```
 
-Baseline result at audited commit `7916775`: `npm ci` fails before dependency installation because `package-lock.json` lacks the declared `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`, and `@dnd-kit/accessibility` packages. Consequently lint, unit, build, and E2E were not run in this documentation audit. Reconcile and review the chosen lockfile in the first implementation PR; do not replace the frozen install with `npm install` in CI.
-
-Add dedicated commands rather than relying on tribal knowledge:
-
 ```bash
-npm run test:formation
-npm run test:formation:property
-npm run test:db
-npm run test:rls
-npm run test:content
+npm run test:unit -- tests/unit/fully-charged-journey.test.ts tests/unit/fully-charged-migration.test.ts
 npm run test:e2e:formation
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/database/fully-charged-75-simulation.sql
 ```
 
-The implementation PR must record the exact available script names and observed results. Documentation planning does not claim that the proposed commands exist yet.
+The SQL simulation always ends in `ROLLBACK`; it creates 75 canonical days and 375 strict circuit rows inside its transaction, validates both successful and ended attempts plus DST-length days, then persists none of the synthetic records. Live RLS/auth/concurrency remains a staging release gate.
 
 ## Exit criteria by rollout stage
 

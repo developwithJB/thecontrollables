@@ -1,5 +1,15 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+async function startStrictAttempt(page: Page) {
+  await page.getByRole("button", { name: /Fully Charged: 75 Days/ }).click();
+  const startPanel = page.getByTestId("fully-charged-start-panel");
+  await expect(startPanel).toBeVisible();
+  await startPanel.getByLabel("Main Promise", { exact: true }).fill("Practice one honest promise each day.");
+  for (const checkbox of await startPanel.getByRole("checkbox").all()) await checkbox.check();
+  await startPanel.getByRole("button", { name: "Start Fully Charged" }).click();
+  await expect(page.getByTestId("fully-charged-journey-panel")).toContainText("Day 1 of 75");
+}
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/formation/today");
@@ -12,7 +22,7 @@ test("shows five distinct circuit experiences across track policies", async ({ p
     await expect(page.getByRole("button", { name: `Open ${circuit}` })).toBeVisible();
   }
 
-  await page.getByRole("button", { name: /Fully Charged: 75 Days/ }).click();
+  await startStrictAttempt(page);
   await page.getByRole("button", { name: "Open Awareness" }).click();
   await expect(page.getByText("Still open today")).toBeVisible();
   await expect(page.getByText("Scripture opened", { exact: true })).toBeVisible();
@@ -40,7 +50,7 @@ test("keeps prayer private and allows partial 40-Day progress", async ({ page })
 });
 
 test("does not complete a promise from optional photo proof and supports deletion", async ({ page }) => {
-  await page.getByRole("button", { name: /Fully Charged: 75 Days/ }).click();
+  await startStrictAttempt(page);
   await page.getByRole("button", { name: "Open Habit" }).click();
   await page.getByLabel("One Main Promise").fill("Send the message I promised to send.");
 
@@ -55,6 +65,22 @@ test("does not complete a promise from optional photo proof and supports deletio
 
   await page.getByRole("button", { name: /Delete photo/ }).click();
   await expect(page.getByText("Choose a photo")).toBeVisible();
+});
+
+test("allows a user to cancel a scheduled strict attempt before Day 1", async ({ page }) => {
+  await page.getByRole("button", { name: /Fully Charged: 75 Days/ }).click();
+  const startPanel = page.getByTestId("fully-charged-start-panel");
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  await startPanel.getByLabel("Start date").fill(tomorrow);
+  await startPanel.getByLabel("Main Promise", { exact: true }).fill("Practice one honest promise each day.");
+  for (const checkbox of await startPanel.getByRole("checkbox").all()) await checkbox.check();
+  await startPanel.getByRole("button", { name: "Start Fully Charged" }).click();
+
+  const journeyPanel = page.getByTestId("fully-charged-journey-panel");
+  await expect(journeyPanel).toContainText(`scheduled for ${tomorrow}`);
+  page.once("dialog", (dialog) => dialog.accept());
+  await journeyPanel.getByRole("button", { name: "Cancel scheduled attempt" }).click();
+  await expect(page.getByTestId("fully-charged-start-panel")).toBeVisible();
 });
 
 test("has no serious automated accessibility violations and supports keyboard entry", async ({ page }) => {

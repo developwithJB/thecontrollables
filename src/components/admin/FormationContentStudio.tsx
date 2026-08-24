@@ -20,7 +20,7 @@ import {
   type FormationContentDraft,
   type FormationContentVersion,
 } from "@/domain/formation/content";
-import { REPRESENTATIVE_FORMATION_CONTENT_SEED } from "@/domain/formation/contentSeed";
+import { INITIAL_FORMATION_CONTENT_SEED } from "@/domain/formation/contentSeed";
 import {
   listFormationContentVersions,
   publishFormationContentVersion,
@@ -99,9 +99,9 @@ export default function FormationContentStudio() {
     for (const contentDraft of imported) await saveFormationContentDraft(contentDraft, true);
   }, "Content imported as drafts");
 
-  const seedRepresentativeSet = () => run(async () => {
-    for (const contentDraft of REPRESENTATIVE_FORMATION_CONTENT_SEED) await saveFormationContentDraft(contentDraft, true);
-  }, "Representative draft content seeded");
+  const seedInitialSet = () => run(async () => {
+    for (const contentDraft of INITIAL_FORMATION_CONTENT_SEED) await saveFormationContentDraft(contentDraft, true);
+  }, "75-day and representative draft content seeded");
 
   const exportVersions = () => {
     const blob = new Blob([serializeFormationContentExport(versions)], { type: "application/json" });
@@ -149,7 +149,7 @@ export default function FormationContentStudio() {
               ))}
               {!versions.length && !isLoading ? <p className="py-12 text-center text-sm text-muted-foreground">No content versions yet. Seed the reviewed-sample workflow or create a draft.</p> : null}
             </div>
-            <Button variant="outline" className="mt-4 w-full" onClick={seedRepresentativeSet} disabled={isWorking}><Upload className="mr-2 h-4 w-4" />Seed representative drafts</Button>
+            <Button variant="outline" className="mt-4 w-full" onClick={seedInitialSet} disabled={isWorking}><Upload className="mr-2 h-4 w-4" />Seed initial 75-day drafts</Button>
             <p className="mt-2 text-xs text-muted-foreground">Seed content remains draft and pending until named humans complete review.</p>
           </CardContent>
         </Card>

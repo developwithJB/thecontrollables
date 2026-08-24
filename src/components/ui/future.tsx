@@ -91,10 +91,11 @@ export function FutureMetric({
 export function FuturePanel({
   children,
   className,
+  ...props
 }: {
   children: React.ReactNode;
   className?: string;
-}) {
+} & HTMLMotionProps<"section">) {
   const reduceMotion = useReducedMotion();
 
   return (
@@ -103,6 +104,7 @@ export function FuturePanel({
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       className={cn("future-panel", className)}
+      {...props}
     >
       {children}
     </motion.section>

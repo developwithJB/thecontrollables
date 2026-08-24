@@ -28,6 +28,10 @@ import { evaluateCircuit, getActionLabel, getLocalDate } from "@/domain/formatio
 import { CONTROLLABLE_GUIDES } from "@/lib/controllables";
 import { APP_ROUTES } from "@/lib/appRoutes";
 import { useFormationAnalytics } from "@/hooks/useFormationAnalytics";
+import { useFullyChargedJourney } from "@/hooks/useFullyChargedJourney";
+import { useQuery } from "@tanstack/react-query";
+import { loadPublishedFormationContentForDay } from "@/data/formation/contentRepository";
+import { getLocalDateInTimezone } from "@/domain/formation/fullyChargedJourney";
 
 const CIRCUIT_EDITORS: Record<keyof typeof CIRCUIT_DEFINITIONS, (props: CircuitEditorProps) => JSX.Element> = {
   awareness: AwarenessCircuitEditor,
@@ -47,9 +51,28 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
   const user = useLifeOSUser();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const localDate = getLocalDate();
+  const today = getLocalDate();
   const { track } = useFormationTrack(user.id);
+  const strictJourney = useFullyChargedJourney(user.id, track === "fully_charged_75");
+  const strictLocalToday = strictJourney.journey
+    ? getLocalDateInTimezone(strictJourney.journey.startTimezone)
+    : today;
+  const localDate =
+    track === "fully_charged_75" && strictJourney.journey?.localDate
+      ? strictJourney.journey.localDate
+      : today;
   const { history, isLoading, error, saveCircuit, isSaving, localOnly } = useFormationCircuits(user.id, track);
+  const dayContent = useQuery({
+    queryKey: [
+      "formation-day-content",
+      "fully_charged_75",
+      strictJourney.journey?.attemptId,
+      strictJourney.journey?.dayNumber,
+    ],
+    queryFn: () => loadPublishedFormationContentForDay("fully_charged_75", strictJourney.journey!.dayNumber!),
+    enabled: track === "fully_charged_75" && !localOnly && Boolean(strictJourney.journey?.dayNumber),
+    staleTime: 0,
+  });
   const trackFormation = useFormationAnalytics();
   const trackedCompletion = useRef(false);
   const trackedRecovery = useRef(false);
@@ -74,9 +97,31 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
   const definition = CIRCUIT_DEFINITIONS[circuit];
   const guide = CONTROLLABLE_GUIDES[circuit];
   const Editor = CIRCUIT_EDITORS[circuit];
+  const strictDayUnavailable =
+    track === "fully_charged_75" &&
+    (!strictJourney.journey ||
+      strictJourney.journey.attemptStatus !== "active" ||
+      strictJourney.journey.dayStatus !== "open" ||
+      strictJourney.journey.localDate !== strictLocalToday);
+
+  if (track === "fully_charged_75" && strictJourney.isLoadingJourney) {
+    return <FuturePanel className="mx-auto h-56 max-w-4xl animate-pulse" aria-label="Loading Fully Charged day" />;
+  }
+
+  if (strictDayUnavailable) {
+    return <Navigate to={APP_ROUTES.formationToday} replace />;
+  }
 
   const persistDraft = async (nextDraft = draft, quiet = false) => {
-    const saved = await saveCircuit({ localDate, circuit, draft: nextDraft });
+    if (track === "fully_charged_75" && !localOnly && !dayContent.data?.id) {
+      throw new Error("Today's reviewed content version is unavailable. Progress was not changed.");
+    }
+    const saved = await saveCircuit({
+      localDate,
+      circuit,
+      draft: nextDraft,
+      contentVersionId: dayContent.data?.id ?? null,
+    });
     setDraft(saved.draft);
     if (!quiet) {
       const savedEvaluation = evaluateCircuit(track, circuit, saved.draft);
@@ -159,10 +204,13 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
       ) : null}
 
       {error ? <div role="alert" className="rounded-2xl border border-destructive/35 bg-destructive/8 p-4 text-sm">This circuit could not be loaded. Existing data has not been changed.</div> : null}
+      {dayContent.error ? <div role="alert" className="rounded-2xl border border-destructive/35 bg-destructive/8 p-4 text-sm">Today's reviewed assignment could not be loaded. Strict progress is temporarily read-only.</div> : null}
 
       <FuturePanel className="p-4 sm:p-5">
-        {isLoading ? (
+        {isLoading || (track === "fully_charged_75" && !localOnly && dayContent.isLoading) ? (
           <div className="space-y-3" aria-label="Loading circuit"><div className="h-20 animate-pulse rounded-2xl bg-muted" /><div className="h-28 animate-pulse rounded-2xl bg-muted" /></div>
+        ) : track === "fully_charged_75" && !localOnly && !dayContent.data ? (
+          <p className="text-sm text-muted-foreground">This strict circuit is read-only until today's reviewed content version is available.</p>
         ) : (
           <Editor
             userId={user.id}
@@ -204,7 +252,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
           </div>
           <div className="flex gap-2">
             <Button variant="ghost" onClick={() => navigate(APP_ROUTES.formationToday)}>Return to Today</Button>
-            <Button variant="future" onClick={handleSave} disabled={isSaving || isLoading} className="gap-2"><Save className="h-4 w-4" />{isSaving ? "Saving…" : "Save progress"}</Button>
+            <Button variant="future" onClick={handleSave} disabled={isSaving || isLoading || (track === "fully_charged_75" && !localOnly && !dayContent.data)} className="gap-2"><Save className="h-4 w-4" />{isSaving ? "Saving…" : "Save progress"}</Button>
           </div>
         </div>
       </div>

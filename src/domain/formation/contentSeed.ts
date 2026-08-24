@@ -1,5 +1,6 @@
 import { createNewContentDraft, type FormationContentDraft, type FormationContentType } from "./content";
 import type { TrainingTrack } from "./circuits";
+import { FULLY_CHARGED_75_DAY_GUIDES } from "./fullyChargedJourney";
 
 type SeedInput = {
   stableId: string;
@@ -37,6 +38,20 @@ const seed = (input: SeedInput): FormationContentDraft => ({
   publicationStatus: "draft",
 });
 
+export const FULLY_CHARGED_75_CONTENT_SEED: FormationContentDraft[] = FULLY_CHARGED_75_DAY_GUIDES.map((guide) =>
+  seed({
+    stableId: guide.stableId,
+    title: `Day ${guide.dayNumber}: ${guide.title}`,
+    contentType: "daily_scripture_assignment",
+    body: `${guide.invitation}\n\nReflection: ${guide.reflectionPrompt}\n\nEnvironment: ${guide.servicePrompt}`,
+    track: "fully_charged_75",
+    days: [guide.dayNumber, guide.dayNumber],
+    season: guide.season,
+    scripture: guide.scriptureReference,
+    classification: "Scripture",
+  }),
+);
+
 export const REPRESENTATIVE_FORMATION_CONTENT_SEED: FormationContentDraft[] = [
   seed({ stableId: "read-along.chapter-1", title: "Read Along: Chapter One Practice", contentType: "read_along_prompt", body: "Read the visible chapter section, note one honest application, and stop before later material.", track: "read_along", chapter: "1" }),
   seed({ stableId: "day.1.scripture", title: "Day 1 Scripture Assignment", contentType: "daily_scripture_assignment", body: "Open the passage before the day’s noise and observe what the text actually says.", days: [1, 1], season: "be_with_jesus", scripture: "Matthew 4:18-22", classification: "Scripture" }),
@@ -64,3 +79,7 @@ export const REPRESENTATIVE_FORMATION_CONTENT_SEED: FormationContentDraft[] = [
   seed({ stableId: "completion.sample", title: "Grace-Centered Completion", contentType: "completion_language", body: "Celebrate faithfulness, honesty, stewardship, recovery, service, kept promises, and time spent with Jesus—never earned love or comparative maturity." }),
 ];
 
+export const INITIAL_FORMATION_CONTENT_SEED: FormationContentDraft[] = [
+  ...FULLY_CHARGED_75_CONTENT_SEED,
+  ...REPRESENTATIVE_FORMATION_CONTENT_SEED,
+];
