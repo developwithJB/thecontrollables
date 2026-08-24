@@ -83,6 +83,7 @@ export interface FormationCircuitEntry {
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
+  contentVersionId?: string | null;
   localOnly: boolean;
 }
 

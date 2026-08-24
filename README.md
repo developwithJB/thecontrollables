@@ -272,6 +272,34 @@ supabase functions serve
 
 This is the best option if you want to work on schema or edge functions.
 
+### Fully Charged 75-day QA
+
+The Fully Charged V1 journey uses a fixed IANA timezone, 75 canonical local days, five server-derived circuits per day, and explicit server closeout. An incomplete or unclosed day ends the attempt; Begin Again creates a linked attempt without deleting history. V1 has no offline grace, so every strict write must be server-confirmed before the local-day boundary.
+
+The complete draft copy ledger is in [`docs/christian-formation/fully-charged-75-day-recap.md`](docs/christian-formation/fully-charged-75-day-recap.md). Authenticated starts intentionally fail until every day has a published, effective version approved by a reviewer other than its author.
+
+```bash
+npm run test:unit -- tests/unit/fully-charged-journey.test.ts tests/unit/fully-charged-migration.test.ts
+npm run test:e2e:formation
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/database/fully-charged-75-simulation.sql
+```
+
+The database simulation is transaction-wrapped and ends in `ROLLBACK`; it does not retain synthetic users, days, circuits, or completion records.
+
+### Fully Charged landing, SEO, and sharing assets
+
+The public landing roadmap reads directly from `src/domain/formation/fullyChargedJourney.ts`, so its 75 day titles, references, invitations, reflections, and service prompts stay synchronized with the governed product source. `src/components/landing/FullyCharged75Roadmap.tsx` owns the expandable public presentation.
+
+SEO and share discovery are defined in `index.html`, `public/manifest.webmanifest`, `public/robots.txt`, and `public/sitemap.xml`. The project-owned social card can be regenerated after visual/copy changes:
+
+```bash
+npm run render:social
+npm run test:unit -- tests/unit/landing-page.test.ts tests/unit/landing-seo.test.ts
+npm run test:e2e:entry
+```
+
+The rendered Open Graph/Twitter asset is `public/og-image-fully-charged-75-v1.png` at exactly 1200×630. Both networks use the same canonical HTTPS URL so the preview cannot drift between platforms.
+
 ## Onboarding Relaunch Reset
 
 The June 18, 2026 Controllables relaunch intentionally sends users through the new first-run experience again.

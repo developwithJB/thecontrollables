@@ -32,6 +32,7 @@ export interface SaveFormationCircuitInput {
   track: TrainingTrack;
   circuit: CircuitType;
   draft: FormationCircuitDraft;
+  contentVersionId?: string | null;
   localOnly: boolean;
 }
 
@@ -64,7 +65,9 @@ async function selectCircuitRows(userId: string, track: TrainingTrack) {
     .eq("track", track)
     .order("local_date", { ascending: false })
     .order("updated_at", { ascending: false })
-    .limit(120);
+    // One strict attempt contains 75 days × 5 circuits. Keep the whole active
+    // attempt available for closeout/history instead of truncating after Day 24.
+    .limit(500);
 
   if (error) throw error;
   return data ?? [];
@@ -101,6 +104,7 @@ export async function saveFormationCircuit(input: SaveFormationCircuitInput): Pr
         evaluation.state === "recorded" || evaluation.state === "complete"
           ? existing?.completedAt ?? now
           : null,
+      contentVersionId: input.contentVersionId ?? existing?.contentVersionId ?? null,
       localOnly: true,
     };
     const next = upsertFormationCircuitEntry(current, entry);
@@ -119,6 +123,7 @@ export async function saveFormationCircuit(input: SaveFormationCircuitInput): Pr
     p_missing_required_action_ids: evaluation.missingRequiredActionIds,
     p_payload: payload,
     p_idempotency_key: idempotencyKey,
+    p_content_version_id: input.contentVersionId ?? null,
   });
 
   if (error) throw error;
@@ -151,6 +156,7 @@ function mapCircuitRow(row: CircuitRow): FormationCircuitEntry {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     completedAt: row.completed_at,
+    contentVersionId: row.content_version_id,
     localOnly: false,
   };
 }
@@ -200,7 +206,9 @@ function writeLocalEntries(userId: string, entries: FormationCircuitEntry[]): vo
   if (typeof window === "undefined") return;
   const payload: StoredFormationCircuits = {
     version: LOCAL_STORAGE_VERSION,
-    entries: entries.slice(0, 360),
+    // 75 strict days require 375 distinct circuit rows. Leave room for retries,
+    // a prior ended attempt, and the other two formation tracks in local QA.
+    entries: entries.slice(0, 1000),
   };
   localStorage.setItem(getLocalStorageKey(userId), JSON.stringify(payload));
 }

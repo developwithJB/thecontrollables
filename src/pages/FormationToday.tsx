@@ -31,6 +31,9 @@ import { CONTROLLABLE_GUIDES, getControllableGuideClasses } from "@/lib/controll
 import { APP_ROUTES } from "@/lib/appRoutes";
 import { cn } from "@/lib/utils";
 import { useFormationAnalytics } from "@/hooks/useFormationAnalytics";
+import { useFullyChargedJourney } from "@/hooks/useFullyChargedJourney";
+import { FullyChargedJourneyPanel } from "@/components/formation/FullyChargedJourneyPanel";
+import { getLocalDateInTimezone } from "@/domain/formation/fullyChargedJourney";
 
 export default function FormationToday() {
   const user = useLifeOSUser();
@@ -38,7 +41,20 @@ export default function FormationToday() {
   const localDate = getLocalDate();
   const { track, setTrack } = useFormationTrack(user.id);
   const { history, isLoading, error, localOnly } = useFormationCircuits(user.id, track);
+  const strictJourney = useFullyChargedJourney(user.id, track === "fully_charged_75");
   const trackFormation = useFormationAnalytics();
+  const strictLocalToday = strictJourney.journey
+    ? getLocalDateInTimezone(strictJourney.journey.startTimezone)
+    : localDate;
+  const strictDayOpen =
+    track !== "fully_charged_75" ||
+    (strictJourney.journey?.attemptStatus === "active" &&
+      strictJourney.journey.dayStatus === "open" &&
+      strictJourney.journey.localDate === strictLocalToday);
+  const practiceLocalDate =
+    track === "fully_charged_75" && strictJourney.journey?.localDate
+      ? strictJourney.journey.localDate
+      : localDate;
 
   useEffect(() => {
     void trackFormation("formation_day_opened", { track, source: "formation_today" });
@@ -47,11 +63,11 @@ export default function FormationToday() {
   const circuits = useMemo(
     () =>
       CIRCUIT_TYPES.map((circuit) => {
-        const entry = history.find((candidate) => candidate.localDate === localDate && candidate.circuit === circuit);
+        const entry = history.find((candidate) => candidate.localDate === practiceLocalDate && candidate.circuit === circuit);
         const draft = entry?.draft ?? createEmptyCircuitDraft();
         return { circuit, entry, evaluation: evaluateCircuit(track, circuit, draft) };
       }),
-    [history, localDate, track],
+    [history, practiceLocalDate, track],
   );
 
   const satisfiedCount = circuits.filter(({ evaluation }) => evaluation.isSatisfiedForTrack).length;
@@ -74,10 +90,10 @@ export default function FormationToday() {
           <div className="space-y-3">
             <div className="flex items-end justify-between gap-3">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Today's practice</p>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">{strictDayOpen ? "Today's practice" : "Next practice"}</p>
                 <p className="mt-1 font-display text-3xl font-semibold text-foreground">{satisfiedCount}<span className="text-base text-muted-foreground"> / 5</span></p>
               </div>
-              <span className="text-xs font-medium text-muted-foreground">{formatDisplayDate(localDate)}</span>
+              <span className="text-xs font-medium text-muted-foreground">{formatDisplayDate(practiceLocalDate)}</span>
             </div>
             <Progress value={progress} className="h-2" aria-label={`${satisfiedCount} of 5 circuits recorded`} />
             <p className="text-xs leading-relaxed text-muted-foreground">
@@ -101,6 +117,22 @@ export default function FormationToday() {
         />
       </FuturePanel>
 
+      {track === "fully_charged_75" ? (
+        <FullyChargedJourneyPanel
+          userId={user.id}
+          journey={strictJourney.journey}
+          history={history}
+          isLoading={strictJourney.isLoadingJourney}
+          isStarting={strictJourney.isStartingAttempt}
+          isClosing={strictJourney.isClosingDay || strictJourney.isCancellingAttempt}
+          localOnly={localOnly}
+          error={strictJourney.journeyError ?? strictJourney.startError ?? strictJourney.closeError ?? strictJourney.cancelError}
+          onStart={strictJourney.startAttempt}
+          onClose={strictJourney.closeDay}
+          onCancel={strictJourney.cancelAttempt}
+        />
+      ) : null}
+
       {error ? (
         <div role="alert" className="rounded-2xl border border-destructive/35 bg-destructive/8 p-4 text-sm">
           <p className="font-semibold">Today's formation could not be loaded.</p>
@@ -123,6 +155,7 @@ export default function FormationToday() {
               key={circuit}
               circuit={circuit}
               evaluation={evaluation}
+              disabled={!strictDayOpen}
               onOpen={() => navigate(`${APP_ROUTES.formationToday}/${circuit}`)}
             />
           ))}
@@ -133,12 +166,20 @@ export default function FormationToday() {
         <div className="flex items-start gap-3">
           <Trophy className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
           <div>
-            <p className="text-sm font-semibold">Test the journey completion experience.</p>
-            <p className="mt-1 text-xs text-muted-foreground">Preview counts, private closing reflection, next steps, and a privacy-safe milestone. The preview never claims a real journey completion.</p>
+            <p className="text-sm font-semibold">
+              {track === "fully_charged_75" && strictJourney.journey?.attemptStatus === "completed"
+                ? "Your journey completion is ready."
+                : "Test the journey completion experience."}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {track === "fully_charged_75" && strictJourney.journey?.attemptStatus === "completed" && !localOnly
+                ? "View the immutable count record, add a private closing reflection, and create a privacy-safe milestone."
+                : "Preview counts, private closing reflection, next steps, and a privacy-safe milestone. The preview never claims a real journey completion."}
+            </p>
           </div>
         </div>
         <Button variant="futureOutline" onClick={() => navigate(APP_ROUTES.formationCompletion)} className="shrink-0 gap-2">
-          Preview completion <ArrowRight className="h-4 w-4" />
+          {track === "fully_charged_75" && strictJourney.journey?.attemptStatus === "completed" && !localOnly ? "View completion" : "Preview completion"} <ArrowRight className="h-4 w-4" />
         </Button>
       </FuturePanel>
 
@@ -162,10 +203,12 @@ function CircuitSummaryCard({
   circuit,
   evaluation,
   onOpen,
+  disabled,
 }: {
   circuit: CircuitType;
   evaluation: ReturnType<typeof evaluateCircuit>;
   onOpen: () => void;
+  disabled?: boolean;
 }) {
   const definition = CIRCUIT_DEFINITIONS[circuit];
   const guide = CONTROLLABLE_GUIDES[circuit];
@@ -214,8 +257,8 @@ function CircuitSummaryCard({
         </div>
       ) : null}
 
-      <Button variant="ghost" onClick={onOpen} className="mt-3 w-full justify-between rounded-xl bg-background/45 px-3">
-        Open {definition.name} <ChevronRight className="h-4 w-4" />
+      <Button variant="ghost" onClick={onOpen} disabled={disabled} className="mt-3 w-full justify-between rounded-xl bg-background/45 px-3">
+        {disabled ? "Available on the active day" : `Open ${definition.name}`} <ChevronRight className="h-4 w-4" />
       </Button>
     </article>
   );

@@ -1,6 +1,6 @@
 # Christian Formation Accessibility Review
 
-Review date: 2026-08-01.
+Review date: 2026-08-04.
 
 ## Result
 
@@ -19,7 +19,7 @@ The new formation routes pass automated serious/critical Axe checks on desktop a
 
 ## Evidence
 
-- Formation E2E: 10/10 across desktop and 390px mobile.
+- Formation E2E: 12/12 across desktop and 390px mobile.
 - Axe: no serious/critical violations on circuit and completion flows.
 - Production unauthenticated-shell Lighthouse: 100 Accessibility and 100 Best Practices; formation-specific automated Axe remains the authenticated release gate because the production audit cannot enter a user session.
 - Screenshots: `screenshots/formation-today-*`, five circuit examples, and `screenshots/formation-completion-*`.

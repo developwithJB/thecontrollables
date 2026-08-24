@@ -4,17 +4,27 @@ import { expect, test } from "@playwright/test";
 test("landing states the value, guardrails, and next action", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Put Jesus first. Train what you can control." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Become someone whose yes can be trusted." })).toBeVisible();
   await expect(page.getByText("Private by default").first()).toBeVisible();
   await expect(page.getByText("No public rankings").first()).toBeVisible();
   await expect(page.getByText("Recovery without shame").first()).toBeVisible();
   await expect(page.getByText("Movement can adapt")).toBeVisible();
 
+  const roadmap = page.getByTestId("fully-charged-75-graphic");
+  await expect(roadmap).toBeVisible();
+  await page.getByRole("button", { name: "Explore all 75 days" }).click();
+  const seasonThree = page.locator("details").filter({ hasText: "Days 51–75" }).first();
+  await seasonThree.locator("summary").first().click();
+  const day75 = seasonThree.locator("details").filter({ hasText: "Day 75" }).first();
+  await expect(day75.getByText("Close with gratitude")).toBeVisible();
+  await day75.locator("summary").click();
+  await expect(day75.getByText(/Complete the final day honestly/)).toBeVisible();
+
   const results = await new AxeBuilder({ page }).include("main").analyze();
   expect(results.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical")).toEqual([]);
 
   await page.getByTestId("cta-get-started").click();
-  await expect(page).toHaveURL(/\/quick-start$/);
+  await expect(page).toHaveURL(/\/quick-start\?path=fully_charged_75$/);
   await expect(page.getByRole("heading", { name: "Where are you with the book?" })).toBeVisible();
 });
 
@@ -87,7 +97,7 @@ test("every customer-facing protected entry returns through sign-in", async ({ p
     "/goal",
     "/my-controllables",
     "/train",
-    "/proof",
+    "/evidence",
     "/proof/dex",
     "/dex",
     "/wellness",
@@ -105,5 +115,15 @@ test("every customer-facing protected entry returns through sign-in", async ({ p
     await page.goto(route);
     const expected = `/auth?returnTo=${encodeURIComponent(route)}`;
     await expect(page, `direct entry ${route}`).toHaveURL(new RegExp(`${expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`));
+  }
+
+  const legacyRedirects = new Map([
+    ["/proof", "/evidence"],
+  ]);
+
+  for (const [legacyRoute, currentRoute] of legacyRedirects) {
+    await page.goto(legacyRoute);
+    const expected = `/auth?returnTo=${encodeURIComponent(currentRoute)}`;
+    await expect(page, `legacy entry ${legacyRoute}`).toHaveURL(new RegExp(`${expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`));
   }
 });

@@ -5,6 +5,15 @@ import {
   type FormationContentType,
   type FormationContentVersion,
 } from "@/domain/formation/content";
+import type { TrainingTrack } from "@/domain/formation/circuits";
+
+export interface FormationDayPublishedContent {
+  id: string;
+  dayNumber: number;
+  title: string;
+  body: string;
+  scriptureReference: string | null;
+}
 
 type ContentItemRow = { id: string; stable_id: string; content_type: string };
 type ContentVersionRow = {
@@ -83,6 +92,31 @@ export async function listFormationContentVersions(): Promise<FormationContentVe
   });
 }
 
+export async function loadPublishedFormationContentForDay(
+  track: TrainingTrack,
+  dayNumber: number,
+): Promise<FormationDayPublishedContent | null> {
+  if (track !== "fully_charged_75" || !Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > 75) return null;
+
+  const { data, error } = await supabase.rpc("get_current_fully_charged_content");
+  if (error) throw error;
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const value = data as Record<string, unknown>;
+  if (
+    typeof value.id !== "string" ||
+    value.dayNumber !== dayNumber ||
+    typeof value.title !== "string" ||
+    typeof value.body !== "string"
+  ) return null;
+  return {
+    id: value.id,
+    dayNumber,
+    title: value.title,
+    body: value.body,
+    scriptureReference: typeof value.scriptureReference === "string" ? value.scriptureReference : null,
+  };
+}
+
 export async function saveFormationContentDraft(draft: FormationContentDraft, imported = false): Promise<void> {
   const { error } = await supabase.rpc("save_formation_content_draft", {
     p_payload: { ...draft, imported },
@@ -119,4 +153,3 @@ export async function publishFormationContentVersion(versionId: string, effectiv
   });
   if (error) throw error;
 }
-

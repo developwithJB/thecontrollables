@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
+    "render:social": "node scripts/render-social-card.mjs",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:formation": "playwright test --config=playwright.formation.config.ts",

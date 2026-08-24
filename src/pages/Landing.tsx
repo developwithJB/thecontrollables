@@ -16,6 +16,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
+import { FullyCharged75Roadmap } from "@/components/landing/FullyCharged75Roadmap";
 import { usePageViewTracking, useAnalytics } from "@/hooks/useAnalytics";
 import { onboardingQuickStartEnabled } from "@/lib/featureFlags";
 import { supabase } from "@/integrations/supabase/client";
@@ -182,9 +183,9 @@ export default function Landing() {
   }, [navigate]);
 
   useEffect(() => {
-    document.title = "The Dashboard | A 75-Day Christian Covenant";
+    document.title = "The Dashboard | Fully Charged 75-Day Christian Covenant";
     const description =
-      "Put Jesus first, keep daily promises, and build a lifetime record of faithful obedience and evidence of grace.";
+      "Train Awareness, Perspective, Habit, Wellness, and Environment through a strict, private 75-day Christian formation covenant.";
     let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     if (!meta) {
       meta = document.createElement("meta");
@@ -207,6 +208,7 @@ export default function Landing() {
         <div className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
           <a href="#how-it-works" className="transition-colors hover:text-foreground">How it works</a>
           <a href="#paths" className="transition-colors hover:text-foreground">Paths</a>
+          <a href="#fully-charged-75" className="transition-colors hover:text-foreground">75 days</a>
           <a href="#privacy" className="transition-colors hover:text-foreground">Privacy & recovery</a>
         </div>
         <div className="flex items-center gap-2">
@@ -347,6 +349,11 @@ export default function Landing() {
             </div>
           </div>
         </section>
+
+        <FullyCharged75Roadmap
+          ctaHref={pathHref("fully_charged_75")}
+          onChoose={() => trackEvent("cta", "path_selected", { track: "fully_charged_75", position: "landing_75_roadmap" })}
+        />
 
         <section className="px-5 py-16 md:px-8 md:py-24">
           <div className="mx-auto max-w-7xl">

@@ -28,6 +28,21 @@ describe("landing page copy", () => {
     expect(source).toContain("history remains");
   });
 
+  it("explains the complete Fully Charged 75 roadmap with expandable day details", () => {
+    const source = landingSource();
+    const roadmap = readFileSync(
+      resolve(process.cwd(), "src/components/landing/FullyCharged75Roadmap.tsx"),
+      "utf8",
+    );
+
+    expect(source).toContain("FullyCharged75Roadmap");
+    expect(roadmap).toContain("Five Controllables. Seventy-five consecutive days.");
+    expect(roadmap).toContain("Explore all 75 days");
+    expect(roadmap).toContain("FULLY_CHARGED_75_DAY_GUIDES");
+    expect(roadmap).toContain("375");
+    expect(roadmap).toContain("independently reviewed and published copy");
+  });
+
   it("keeps formation private, adaptable, and free from public scoring", () => {
     const source = landingSource();
 
