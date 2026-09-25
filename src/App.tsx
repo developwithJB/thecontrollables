@@ -21,6 +21,8 @@ declare global {
 // Route-split every page so authenticated formation routes do not download the
 // marketing experience before rendering their primary action.
 const Landing = lazy(() => import("./pages/Landing"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Home = lazy(() => import("./pages/Home"));
 const MyControllables = lazy(() => import("./pages/MyControllables"));
@@ -80,6 +82,8 @@ const AppContent = () => {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path={APP_ROUTES.landing} element={<Landing />} />
+          <Route path={APP_ROUTES.privacy} element={<Privacy />} />
+          <Route path={APP_ROUTES.terms} element={<Terms />} />
           <Route path={APP_ROUTES.auth} element={<Auth />} />
           <Route
             path={APP_ROUTES.quickStart}

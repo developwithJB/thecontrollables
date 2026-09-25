@@ -6,7 +6,7 @@ Updated: 2026-08-16
 
 1. Open `/quick-start` while signed out.
 2. Answer `Where are you with the book?`.
-3. Answer `How deeply do you want to train right now?`.
+3. Answer `How deeply do you want to train right now?`. Fully Charged is primary, Read Along is secondary, and 40-Day Charge is visible as coming soon and cannot be selected.
 4. Confirm the morning formation email is on by default and the UI identifies the 7:00 AM local delivery window.
 5. Optionally turn the email off and confirm the review and signup screens preserve that choice.
 6. Create an account and confirm the app opens `/formation/today`.

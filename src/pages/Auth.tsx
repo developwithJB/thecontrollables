@@ -23,6 +23,7 @@ import {
   buildFormationSignupMetadata,
   formatFormationEmailSchedule,
   getDeviceTimezone,
+  isStartableFormationTrack,
 } from "@/lib/formationEnrollmentConfig";
 
 type AuthMode = "signin" | "signup" | "forgot" | "reset";
@@ -61,14 +62,15 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const selectedFormationTrack: TrainingTrack | null = quickStartDraft?.formationTrack ?? (mode === "signup" ? "read_along" : null);
-  const selectedEnrollment = useMemo(() => quickStartDraft?.formationTrack
+  const draftTrack = isStartableFormationTrack(quickStartDraft?.formationTrack) ? quickStartDraft.formationTrack : null;
+  const selectedFormationTrack: TrainingTrack | null = draftTrack ?? (mode === "signup" ? "read_along" : null);
+  const selectedEnrollment = useMemo(() => draftTrack
     ? {
-        track: quickStartDraft.formationTrack,
-        dailyEmailEnabled: quickStartDraft.dailyEmailEnabled ?? true,
-        timezone: quickStartDraft.timezone || getDeviceTimezone(),
+        track: draftTrack,
+        dailyEmailEnabled: quickStartDraft?.dailyEmailEnabled ?? true,
+        timezone: quickStartDraft?.timezone || getDeviceTimezone(),
       }
-    : null, [quickStartDraft]);
+    : null, [draftTrack, quickStartDraft]);
   const postAuthRoute = useMemo(() => {
     const fallback = getQuickStartCompletionRoute(
       quickStartDraft?.readingStatus,
@@ -235,7 +237,7 @@ export default function Auth() {
         if (quickStartDraft?.lifeSeasonLabel) {
           return `Finish setup to keep your ${quickStartDraft.lifeSeasonLabel.toLowerCase()} reflection`;
         }
-        return "Start with Read Along, our flexible path. Compare all three paths first if you prefer.";
+        return "Fully Charged is the primary path. Compare it with Read Along before you create an account.";
       default: return searchParams.get("returnTo") ? "Sign in to continue where you left off." : "Sign in to access your dashboard";
     }
   };
@@ -393,8 +395,8 @@ export default function Auth() {
                     ) : null}
                     {!quickStartDraft?.formationTrack ? (
                       <p className="text-center text-xs text-muted-foreground">
-                        Want structure or strict accountability?{" "}
-                        <Link to="/quick-start" className="font-semibold text-primary hover:underline">Compare all three paths</Link>
+                        Want the hard track or a flexible pace?{" "}
+                        <Link to="/quick-start" className="font-semibold text-primary hover:underline">Compare Fully Charged and Read Along</Link>
                       </p>
                     ) : null}
                   </div>
@@ -449,6 +451,10 @@ export default function Auth() {
 
             <p className="mt-8 text-xs text-center text-muted-foreground/60">
               Formation reflections stay private to your account and are excluded from formation analytics.
+              {" "}
+              <Link to="/privacy" className="underline hover:text-foreground">Privacy</Link>
+              {" · "}
+              <Link to="/terms" className="underline hover:text-foreground">Terms</Link>
             </p>
           </div>
         </motion.div>

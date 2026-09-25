@@ -1,8 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { TrainingTrack } from "@/domain/formation/circuits";
-import { getDeviceTimezone, type FormationEnrollmentInput } from "@/lib/formationEnrollmentConfig";
+import { getDeviceTimezone, isStartableFormationTrack, type FormationEnrollmentInput } from "@/lib/formationEnrollmentConfig";
 
 export async function activateFormationEnrollment(input: FormationEnrollmentInput): Promise<void> {
+  if (!isStartableFormationTrack(input.track)) {
+    throw new Error("This formation path is not open yet.");
+  }
+
   const { error } = await supabase.rpc("activate_formation_path", {
     p_track: input.track,
     p_email_enabled: input.dailyEmailEnabled,
@@ -13,6 +17,10 @@ export async function activateFormationEnrollment(input: FormationEnrollmentInpu
 }
 
 export async function updateFormationTrack(track: TrainingTrack, timezone = getDeviceTimezone()): Promise<void> {
+  if (!isStartableFormationTrack(track)) {
+    throw new Error("This formation path is not open yet.");
+  }
+
   const { error } = await supabase.rpc("activate_formation_path", {
     p_track: track,
     p_email_enabled: null,

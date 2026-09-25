@@ -50,6 +50,8 @@ describe("daily nudge invocation security", () => {
       source.indexOf("const datedGoalEmail = await getActiveDatedGoalEmail"),
     );
     expect(source).toContain('.select("circuit_type, completion_state")');
+    expect(source).toContain('.select("current_day_number, status")');
+    expect(source).not.toContain('.select("payload"');
     expect(source).toContain("const formationContext = await getFormationEmailContext");
     expect(source).toContain("FORMATION_TODAY_URL");
   });

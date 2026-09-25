@@ -27,6 +27,9 @@ describe("landing page copy", () => {
     expect(source).toContain("If you miss:");
     expect(source).toContain("75 consecutive days");
     expect(source).toContain("history remains");
+    expect(source).toContain("Coming soon");
+    expect(source).toContain('to="/privacy"');
+    expect(source).toContain('to="/terms"');
   });
 
   it("explains the complete Fully Charged 75 roadmap with expandable day details", () => {

@@ -34,17 +34,18 @@ test("book context and path choice survive into account creation", async ({ page
   await page.getByRole("button", { name: /Reading now/ }).click();
   await page.getByRole("button", { name: "Choose my formation path" }).click();
   await expect(page.getByRole("heading", { name: "How deeply do you want to train right now?" })).toBeVisible();
-  await page.getByRole("button", { name: /40-Day Charge/ }).click();
+  await expect(page.getByRole("button", { name: /40-Day Charge/ })).toBeDisabled();
+  await page.getByRole("button", { name: /^Read Along/ }).click();
   await expect(page.getByText("Bring my path to my inbox.")).toBeVisible();
   await expect(page.getByRole("switch", { name: "Daily formation email" })).toBeChecked();
   await page.getByRole("button", { name: "Review my first day" }).click();
 
-  await expect(page.getByRole("heading", { name: "40-Day Charge" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Read Along" })).toBeVisible();
   await expect(page.getByText("Morning email on")).toBeVisible();
   await page.getByRole("link", { name: /Create account & start my daily loop/ }).click();
 
   await expect(page).toHaveURL(/\/auth\?mode=signup$/);
-  await expect(page.getByText("Your 40-Day Charge path is ready.")).toBeVisible();
+  await expect(page.getByText("Your Read Along path is ready.")).toBeVisible();
   await expect(page.getByText("Your morning formation email is on.")).toBeVisible();
   await expect(page.getByTestId("auth-form")).toBeVisible();
   await expect(page.getByTestId("auth-submit-button")).toHaveText("Create account & start my daily loop");
@@ -74,8 +75,10 @@ test("protected entry points preserve where a returning user intended to go", as
 test("direct account, recovery, and unknown-link entries explain the next move", async ({ page }) => {
   await page.goto("/auth?mode=signup");
   await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
-  await expect(page.getByText("Start with Read Along, our flexible path.")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Compare all three paths" })).toHaveAttribute("href", "/quick-start");
+  await expect(page.getByText("Fully Charged is the primary path.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Compare Fully Charged and Read Along" })).toHaveAttribute("href", "/quick-start");
+  await expect(page.getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
+  await expect(page.getByRole("link", { name: "Terms" })).toHaveAttribute("href", "/terms");
   await expect(page.getByTestId("auth-submit-button")).toHaveText("Create account & start my daily loop");
 
   await page.goto("/auth?mode=forgot");

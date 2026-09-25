@@ -23,7 +23,8 @@ DECLARE
   selected_timezone text := COALESCE(NULLIF(new.raw_user_meta_data ->> 'formation_timezone', ''), 'America/New_York');
   formation_email_enabled boolean := lower(COALESCE(new.raw_user_meta_data ->> 'formation_email_enabled', 'false')) IN ('true', '1', 'yes', 'on');
 BEGIN
-  IF selected_track NOT IN ('read_along', 'charge_40', 'fully_charged_75') THEN
+  -- 40-Day Charge stays in the column check for older rows, but it is not startable.
+  IF selected_track NOT IN ('read_along', 'fully_charged_75') THEN
     selected_track := NULL;
     formation_email_enabled := false;
   END IF;
@@ -77,6 +78,10 @@ BEGIN
     RAISE EXCEPTION 'invalid_formation_track' USING ERRCODE = '22023';
   END IF;
 
+  IF p_track = 'charge_40' THEN
+    RAISE EXCEPTION 'formation_track_not_open' USING ERRCODE = '22023';
+  END IF;
+
   INSERT INTO public.profiles (
     id,
     formation_track,
@@ -120,3 +125,7 @@ $$;
 
 REVOKE ALL ON FUNCTION public.activate_formation_path(text, boolean, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.activate_formation_path(text, boolean, text) TO authenticated;
+
+-- Profile updates were narrowed to named columns after this enrollment was first drafted.
+-- Settings must be able to persist and clear the consent timestamp when the user opts out.
+GRANT UPDATE (formation_email_opt_in_at) ON TABLE public.profiles TO authenticated;

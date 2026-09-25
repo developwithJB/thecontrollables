@@ -1,5 +1,7 @@
 export const APP_ROUTES = {
   landing: "/",
+  privacy: "/privacy",
+  terms: "/terms",
   auth: "/auth",
   quickStart: "/quick-start",
   readAlong: "/read-along",

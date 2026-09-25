@@ -385,7 +385,21 @@ async function getFormationEmailContext(
     const startedDate = profile.formation_started_at
       ? dateKeyInTimeZone(profile.formation_started_at, timezone)
       : localDate;
-    const dayNumber = Math.max(1, dateKeyDifference(localDate, startedDate) + 1);
+    let dayNumber = Math.max(1, dateKeyDifference(localDate, startedDate) + 1);
+    if (track === "fully_charged_75") {
+      const { data: attempt, error: attemptError } = await supabase
+        .from("formation_attempts")
+        .select("current_day_number, status")
+        .eq("user_id", userId)
+        .eq("track", "fully_charged_75")
+        .in("status", ["active", "scheduled"])
+        .maybeSingle();
+      if (attemptError) {
+        console.warn(`[NUDGE] Fully Charged day unavailable for ${userId}:`, attemptError);
+      } else if (typeof attempt?.current_day_number === "number") {
+        dayNumber = attempt.current_day_number;
+      }
+    }
     const { data: entries, error: entriesError } = await supabase
       .from("formation_circuit_entries")
       .select("circuit_type, completion_state")

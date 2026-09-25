@@ -57,6 +57,16 @@ const dailyPractice = [
 
 const journeyPaths = [
   {
+    id: "fully_charged_75",
+    title: "75-Day Covenant",
+    eyebrow: "Primary path",
+    description: "Put Jesus first, keep exact daily promises, and build a visible record of faithful obedience.",
+    bestFor: "Best when you are ready for an all-in Christian commitment",
+    commitment: "75 consecutive days",
+    missRule: "An incomplete day ends that attempt; history remains.",
+    startable: true,
+  },
+  {
     id: "read_along",
     title: "Read Along",
     eyebrow: "Flexible pace",
@@ -64,24 +74,17 @@ const journeyPaths = [
     bestFor: "Best if you are in the book now",
     commitment: "No deadline",
     missRule: "Continue where you left off.",
-  },
-  {
-    id: "fully_charged_75",
-    title: "75-Day Covenant",
-    eyebrow: "The full challenge",
-    description: "Put Jesus first, keep exact daily promises, and build a visible record of faithful obedience.",
-    bestFor: "Best when you are ready for an all-in Christian commitment",
-    commitment: "75 consecutive days",
-    missRule: "An incomplete day ends that attempt; history remains.",
+    startable: true,
   },
   {
     id: "charge_40",
     title: "40-Day Charge",
-    eyebrow: "Structured formation",
-    description: "A focused season of daily practice with honest progress and room to recover.",
-    bestFor: "Best for a sustainable daily rhythm",
+    eyebrow: "Coming soon",
+    description: "A focused season of daily practice. This path is not open for testers yet.",
+    bestFor: "Not startable in this release",
     commitment: "40 days",
-    missRule: "A missed circuit never deletes prior work.",
+    missRule: "This path cannot be started yet.",
+    startable: false,
   },
 ] as const;
 
@@ -325,27 +328,33 @@ export default function Landing() {
               <p className="mt-3 text-sm leading-6 text-muted-foreground">Compare the commitment and miss rule before you create an account. You can change paths later.</p>
             </div>
             <div className="mt-10 grid gap-4 lg:grid-cols-3">
-              {journeyPaths.map((path, index) => (
-                <article key={path.id} className={`flex flex-col rounded-2xl border p-6 ${index === 1 ? "border-primary/45 bg-primary/5 shadow-[0_18px_60px_rgba(34,211,238,0.08)]" : "border-border/65 bg-background/55"}`}>
+              {journeyPaths.map((path) => (
+                <article key={path.id} className={`flex flex-col rounded-2xl border p-6 ${path.id === "fully_charged_75" ? "border-primary/45 bg-primary/5 shadow-[0_18px_60px_rgba(34,211,238,0.08)]" : "border-border/65 bg-background/55"}`}>
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">{path.eyebrow}</p>
                       <h3 className="mt-2 text-2xl font-semibold">{path.title}</h3>
                     </div>
-                    {index === 1 ? <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold uppercase text-primary-foreground">Full covenant</span> : null}
+                    {path.id === "fully_charged_75" ? <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold uppercase text-primary-foreground">Full covenant</span> : null}
                   </div>
                   <p className="mt-4 text-sm leading-6 text-muted-foreground">{path.description}</p>
                   <div className="mt-6 space-y-3 border-t border-border/60 pt-5 text-sm">
                     <p className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{path.bestFor}</span></p>
                     <p className="flex gap-2"><CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{path.commitment}</span></p>
                     <p className="flex gap-2"><RotateCcw className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>If you miss: {path.missRule}</span></p>
-                    <p className="flex gap-2"><Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>Morning formation email included</span></p>
+                    <p className="flex gap-2"><Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{path.startable ? "Morning formation email included" : "Morning email opens with the path"}</span></p>
                   </div>
-                  <Button asChild variant={index === 1 ? "glow" : "outline"} className="mt-7 w-full">
-                    <Link to={pathHref(path.id)} onClick={() => trackEvent("cta", "path_selected", { track: path.id, position: "landing" })}>
-                      Choose {path.title}<ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
+                  {path.startable ? (
+                    <Button asChild variant={path.id === "fully_charged_75" ? "glow" : "outline"} className="mt-7 w-full">
+                      <Link to={pathHref(path.id)} onClick={() => trackEvent("cta", "path_selected", { track: path.id, position: "landing" })}>
+                        Choose {path.title}<ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button type="button" variant="outline" className="mt-7 w-full" disabled>
+                      Coming soon
+                    </Button>
+                  )}
                 </article>
               ))}
             </div>
@@ -424,6 +433,10 @@ export default function Landing() {
       <footer className="border-t border-border/50 px-5 py-8 text-center">
         <p className="text-xs text-muted-foreground">The Dashboard from The Controllables · Private daily formation</p>
         <p className="mt-2 text-xs text-muted-foreground/70">
+          <Link to="/privacy" className="hover:text-foreground hover:underline">Privacy</Link>
+          {" · "}
+          <Link to="/terms" className="hover:text-foreground hover:underline">Terms</Link>
+          {" · "}
           Questions?{" "}<a href="https://instagram.com/agbcoaching" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">@agbcoaching</a>
           {" · "}© {new Date().getFullYear()} AGB Coaching
         </p>

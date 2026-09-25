@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const source = readFileSync("supabase/migrations/20260816090000_formation_email_enrollment.sql", "utf8");
+const source = readFileSync("supabase/migrations/20260925120000_formation_email_enrollment.sql", "utf8");
 
 describe("formation email enrollment migration", () => {
   it("persists a validated path and explicit email enrollment from signup metadata", () => {
@@ -15,5 +15,7 @@ describe("formation email enrollment migration", () => {
     expect(source).toContain("current_user_id uuid := auth.uid()");
     expect(source).toContain("REVOKE ALL ON FUNCTION public.activate_formation_path(text, boolean, text) FROM PUBLIC, anon");
     expect(source).toContain("GRANT EXECUTE ON FUNCTION public.activate_formation_path(text, boolean, text) TO authenticated");
+    expect(source).toContain("formation_track_not_open");
+    expect(source).toContain("GRANT UPDATE (formation_email_opt_in_at) ON TABLE public.profiles TO authenticated");
   });
 });

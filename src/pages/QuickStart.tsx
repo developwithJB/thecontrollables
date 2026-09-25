@@ -26,15 +26,13 @@ import {
   type ReadingStatus,
 } from "@/lib/readAlong";
 import {
-  isTrainingTrack,
   TRACK_DESCRIPTIONS,
   TRACK_LABELS,
-  TRAINING_TRACKS,
   type TrainingTrack,
 } from "@/domain/formation/circuits";
 import { useAnalytics, usePageViewTracking } from "@/hooks/useAnalytics";
 import { cn } from "@/lib/utils";
-import { formatFormationEmailSchedule, getDeviceTimezone } from "@/lib/formationEnrollmentConfig";
+import { formatFormationEmailSchedule, getDeviceTimezone, isStartableFormationTrack } from "@/lib/formationEnrollmentConfig";
 
 type QuickStartStep = "book" | "path" | "account";
 
@@ -72,8 +70,10 @@ const TRACK_META: Record<TrainingTrack, {
   },
 };
 
+const PATH_CHOICES: TrainingTrack[] = ["fully_charged_75", "read_along", "charge_40"];
+
 function recommendedTrackFor(status: ReadingStatus | null): TrainingTrack {
-  if (status === "finished") return "charge_40";
+  if (status === "finished") return "fully_charged_75";
   return "read_along";
 }
 
@@ -159,8 +159,9 @@ function PathStep({
       </div>
 
       <div className="grid gap-3">
-        {TRAINING_TRACKS.map((candidate) => {
-          const selected = candidate === track;
+        {PATH_CHOICES.map((candidate) => {
+          const comingSoon = candidate === "charge_40";
+          const selected = !comingSoon && candidate === track;
           const meta = TRACK_META[candidate];
           const Icon = meta.icon;
           return (
@@ -168,10 +169,17 @@ function PathStep({
               key={candidate}
               type="button"
               aria-pressed={selected}
-              onClick={() => onChange(candidate)}
+              disabled={comingSoon}
+              onClick={() => {
+                if (!comingSoon) onChange(candidate);
+              }}
               className={cn(
                 "rounded-2xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                selected ? "border-primary/60 bg-primary/10" : "border-border/65 bg-background/55 hover:border-primary/35 hover:bg-muted/35",
+                comingSoon
+                  ? "cursor-not-allowed border-border/55 bg-muted/20 opacity-80"
+                  : selected
+                    ? "border-primary/60 bg-primary/10"
+                    : "border-border/65 bg-background/55 hover:border-primary/35 hover:bg-muted/35",
               )}
             >
               <span className="flex items-start gap-3">
@@ -181,13 +189,21 @@ function PathStep({
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-2">
                     <span className="text-base font-semibold text-foreground">{TRACK_LABELS[candidate]}</span>
-                    {candidate === recommended ? (
+                    {comingSoon ? (
+                      <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Coming soon</span>
+                    ) : candidate === recommended ? (
                       <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground">Recommended</span>
                     ) : null}
                   </span>
-                  <span className="mt-1 block text-sm leading-5 text-muted-foreground">{meta.bestFor}</span>
-                  <span className="mt-3 block text-xs font-semibold text-foreground">{meta.commitment}</span>
-                  <span className="mt-1 block text-xs leading-5 text-muted-foreground">If you miss: {meta.missPolicy}</span>
+                  <span className="mt-1 block text-sm leading-5 text-muted-foreground">
+                    {comingSoon ? "Not startable yet." : meta.bestFor}
+                  </span>
+                  {comingSoon ? null : (
+                    <>
+                      <span className="mt-3 block text-xs font-semibold text-foreground">{meta.commitment}</span>
+                      <span className="mt-1 block text-xs leading-5 text-muted-foreground">If you miss: {meta.missPolicy}</span>
+                    </>
+                  )}
                 </span>
                 {selected ? <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-primary" /> : null}
               </span>
@@ -337,15 +353,16 @@ export default function QuickStart() {
   const [searchParams] = useSearchParams();
   const draft = useMemo(() => getOnboardingQuickStartDraft(), []);
   const queryTrack = searchParams.get("path");
-  const requestedTrack = isTrainingTrack(queryTrack) ? queryTrack : null;
+  const requestedTrack = isStartableFormationTrack(queryTrack) ? queryTrack : null;
   const initialStep = draft?.currentStep === "path" || draft?.currentStep === "account" ? draft.currentStep : "book";
   const [step, setStep] = useState<QuickStartStep>(initialStep);
   const [readingStatus, setReadingStatus] = useState<ReadingStatus | null>(draft?.readingStatus ?? null);
-  const [track, setTrack] = useState<TrainingTrack>(requestedTrack ?? draft?.formationTrack ?? recommendedTrackFor(draft?.readingStatus ?? null));
+  const draftTrack = isStartableFormationTrack(draft?.formationTrack) ? draft.formationTrack : null;
+  const [track, setTrack] = useState<TrainingTrack>(requestedTrack ?? draftTrack ?? recommendedTrackFor(draft?.readingStatus ?? null));
   const [dailyEmailEnabled, setDailyEmailEnabled] = useState(draft?.dailyEmailEnabled ?? true);
   const [timezone] = useState(() => draft?.timezone || getDeviceTimezone());
   const [strictAcknowledged, setStrictAcknowledged] = useState(false);
-  const [trackWasChosen, setTrackWasChosen] = useState(Boolean(requestedTrack ?? draft?.formationTrack));
+  const [trackWasChosen, setTrackWasChosen] = useState(Boolean(requestedTrack ?? draftTrack));
   const stepCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -378,6 +395,7 @@ export default function QuickStart() {
   };
 
   const chooseTrack = (nextTrack: TrainingTrack) => {
+    if (!isStartableFormationTrack(nextTrack)) return;
     setTrack(nextTrack);
     setTrackWasChosen(true);
     if (nextTrack !== "fully_charged_75") setStrictAcknowledged(false);

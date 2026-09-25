@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { isTrainingTrack, type TrainingTrack } from "@/domain/formation/circuits";
 import { supabase } from "@/integrations/supabase/client";
 import { updateFormationTrack } from "@/lib/formationEnrollment";
+import { isStartableFormationTrack } from "@/lib/formationEnrollmentConfig";
 
 const DEFAULT_TRACK: TrainingTrack = "read_along";
 
@@ -26,9 +27,11 @@ export function useFormationTrack(userId: string) {
           saveFormationTrackSelection(userId, data.formation_track);
           return;
         }
-        void updateFormationTrack(localTrack).catch((syncError) => {
-          console.warn("Existing formation path could not be synchronized:", syncError);
-        });
+        if (isStartableFormationTrack(localTrack)) {
+          void updateFormationTrack(localTrack).catch((syncError) => {
+            console.warn("Existing formation path could not be synchronized:", syncError);
+          });
+        }
       });
 
     return () => {
@@ -39,6 +42,7 @@ export function useFormationTrack(userId: string) {
   const setTrack = (nextTrack: TrainingTrack) => {
     setTrackState(nextTrack);
     saveFormationTrackSelection(userId, nextTrack);
+    if (!isStartableFormationTrack(nextTrack)) return;
     void updateFormationTrack(nextTrack).catch((error) => {
       console.warn("Formation path could not be synchronized:", error);
     });
