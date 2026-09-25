@@ -2901,6 +2901,9 @@ export type Database = {
           display_name: string | null
           email_nudge_enabled: boolean | null
           email_nudge_time: string | null
+          formation_email_opt_in_at: string | null
+          formation_started_at: string | null
+          formation_track: string | null
           id: string
           meal_preferences: Json | null
           nudge_frequency: string | null
@@ -2914,6 +2917,9 @@ export type Database = {
           display_name?: string | null
           email_nudge_enabled?: boolean | null
           email_nudge_time?: string | null
+          formation_email_opt_in_at?: string | null
+          formation_started_at?: string | null
+          formation_track?: string | null
           id: string
           meal_preferences?: Json | null
           nudge_frequency?: string | null
@@ -2927,6 +2933,9 @@ export type Database = {
           display_name?: string | null
           email_nudge_enabled?: boolean | null
           email_nudge_time?: string | null
+          formation_email_opt_in_at?: string | null
+          formation_started_at?: string | null
+          formation_track?: string | null
           id?: string
           meal_preferences?: Json | null
           nudge_frequency?: string | null
@@ -4649,6 +4658,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_formation_path: {
+        Args: {
+          p_email_enabled?: boolean | null
+          p_timezone?: string | null
+          p_track: string
+        }
+        Returns: Database["public"]["Tables"]["profiles"]["Row"]
+      }
       assess_timeline_event: {
         Args: { assessment: string; target_event_id: string }
         Returns: undefined

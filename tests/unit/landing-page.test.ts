@@ -13,7 +13,8 @@ describe("landing page copy", () => {
     expect(source).toContain("A 75-Day Christian Covenant");
     expect(source).toContain("Know exactly what happens next.");
     expect(source).toContain("Choose the right path");
-    expect(source).toContain("Create your private space");
+    expect(source).toContain("Start your morning loop");
+    expect(source).toContain("7:00 AM email");
     expect(source).toContain("Open today’s practice");
   });
 
@@ -26,6 +27,9 @@ describe("landing page copy", () => {
     expect(source).toContain("If you miss:");
     expect(source).toContain("75 consecutive days");
     expect(source).toContain("history remains");
+    expect(source).toContain("Coming soon");
+    expect(source).toContain('to="/privacy"');
+    expect(source).toContain('to="/terms"');
   });
 
   it("explains the complete Fully Charged 75 roadmap with expandable day details", () => {

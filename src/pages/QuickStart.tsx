@@ -8,11 +8,12 @@ import {
   Check,
   CheckCircle2,
   HeartHandshake,
-  LockKeyhole,
+  Mail,
   RotateCcw,
   ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Logo } from "@/components/Logo";
 import { onboardingQuickStartEnabled } from "@/lib/featureFlags";
 import {
@@ -25,14 +26,13 @@ import {
   type ReadingStatus,
 } from "@/lib/readAlong";
 import {
-  isTrainingTrack,
   TRACK_DESCRIPTIONS,
   TRACK_LABELS,
-  TRAINING_TRACKS,
   type TrainingTrack,
 } from "@/domain/formation/circuits";
 import { useAnalytics, usePageViewTracking } from "@/hooks/useAnalytics";
 import { cn } from "@/lib/utils";
+import { formatFormationEmailSchedule, getDeviceTimezone, isStartableFormationTrack } from "@/lib/formationEnrollmentConfig";
 
 type QuickStartStep = "book" | "path" | "account";
 
@@ -70,8 +70,10 @@ const TRACK_META: Record<TrainingTrack, {
   },
 };
 
+const PATH_CHOICES: TrainingTrack[] = ["fully_charged_75", "read_along", "charge_40"];
+
 function recommendedTrackFor(status: ReadingStatus | null): TrainingTrack {
-  if (status === "finished") return "charge_40";
+  if (status === "finished") return "fully_charged_75";
   return "read_along";
 }
 
@@ -127,14 +129,20 @@ function PathStep({
   track,
   readingStatus,
   strictAcknowledged,
+  dailyEmailEnabled,
+  timezone,
   onChange,
   onStrictAcknowledged,
+  onDailyEmailEnabled,
 }: {
   track: TrainingTrack;
   readingStatus: ReadingStatus | null;
   strictAcknowledged: boolean;
+  dailyEmailEnabled: boolean;
+  timezone: string;
   onChange: (track: TrainingTrack) => void;
   onStrictAcknowledged: (checked: boolean) => void;
+  onDailyEmailEnabled: (enabled: boolean) => void;
 }) {
   const recommended = recommendedTrackFor(readingStatus);
 
@@ -143,16 +151,17 @@ function PathStep({
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Choose your path</p>
         <h1 id="quick-start-path-heading" className="mt-2 font-display text-3xl font-semibold leading-tight text-foreground">
-          What kind of formation fits this season?
+          How deeply do you want to train right now?
         </h1>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          The paths share the same five Controllables. What changes is the pace and the rule for a missed day.
+          Choose the pace you can enter honestly. Your choice starts the path and its morning email.
         </p>
       </div>
 
       <div className="grid gap-3">
-        {TRAINING_TRACKS.map((candidate) => {
-          const selected = candidate === track;
+        {PATH_CHOICES.map((candidate) => {
+          const comingSoon = candidate === "charge_40";
+          const selected = !comingSoon && candidate === track;
           const meta = TRACK_META[candidate];
           const Icon = meta.icon;
           return (
@@ -160,10 +169,17 @@ function PathStep({
               key={candidate}
               type="button"
               aria-pressed={selected}
-              onClick={() => onChange(candidate)}
+              disabled={comingSoon}
+              onClick={() => {
+                if (!comingSoon) onChange(candidate);
+              }}
               className={cn(
                 "rounded-2xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                selected ? "border-primary/60 bg-primary/10" : "border-border/65 bg-background/55 hover:border-primary/35 hover:bg-muted/35",
+                comingSoon
+                  ? "cursor-not-allowed border-border/55 bg-muted/20 opacity-80"
+                  : selected
+                    ? "border-primary/60 bg-primary/10"
+                    : "border-border/65 bg-background/55 hover:border-primary/35 hover:bg-muted/35",
               )}
             >
               <span className="flex items-start gap-3">
@@ -173,13 +189,21 @@ function PathStep({
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-2">
                     <span className="text-base font-semibold text-foreground">{TRACK_LABELS[candidate]}</span>
-                    {candidate === recommended ? (
+                    {comingSoon ? (
+                      <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Coming soon</span>
+                    ) : candidate === recommended ? (
                       <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground">Recommended</span>
                     ) : null}
                   </span>
-                  <span className="mt-1 block text-sm leading-5 text-muted-foreground">{meta.bestFor}</span>
-                  <span className="mt-3 block text-xs font-semibold text-foreground">{meta.commitment}</span>
-                  <span className="mt-1 block text-xs leading-5 text-muted-foreground">If you miss: {meta.missPolicy}</span>
+                  <span className="mt-1 block text-sm leading-5 text-muted-foreground">
+                    {comingSoon ? "Not startable yet." : meta.bestFor}
+                  </span>
+                  {comingSoon ? null : (
+                    <>
+                      <span className="mt-3 block text-xs font-semibold text-foreground">{meta.commitment}</span>
+                      <span className="mt-1 block text-xs leading-5 text-muted-foreground">If you miss: {meta.missPolicy}</span>
+                    </>
+                  )}
                 </span>
                 {selected ? <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-primary" /> : null}
               </span>
@@ -202,11 +226,81 @@ function PathStep({
           </span>
         </label>
       ) : null}
+
+      <MorningEmailCard
+        enabled={dailyEmailEnabled}
+        timezone={timezone}
+        track={track}
+        onEnabledChange={onDailyEmailEnabled}
+      />
     </section>
   );
 }
 
-function AccountStep({ readingStatus, track }: { readingStatus: ReadingStatus; track: TrainingTrack }) {
+function MorningEmailCard({
+  enabled,
+  timezone,
+  track,
+  onEnabledChange,
+}: {
+  enabled: boolean;
+  timezone: string;
+  track: TrainingTrack;
+  onEnabledChange: (enabled: boolean) => void;
+}) {
+  return (
+    <div className={cn(
+      "overflow-hidden rounded-2xl border transition-colors",
+      enabled ? "border-cyan-400/35 bg-cyan-400/[0.07]" : "border-border/65 bg-background/45",
+    )}>
+      <div className="flex items-start gap-3 p-4 sm:p-5">
+        <span className={cn(
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border",
+          enabled ? "border-cyan-400/35 bg-cyan-400/10 text-cyan-300" : "border-border/65 bg-muted/30 text-muted-foreground",
+        )}>
+          <Mail className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-300">Your daily loop</p>
+              <h2 className="mt-1 text-base font-semibold text-foreground">Bring my path to my inbox.</h2>
+            </div>
+            <Switch
+              checked={enabled}
+              onCheckedChange={onEnabledChange}
+              aria-label="Daily formation email"
+            />
+          </div>
+          <p className="mt-2 text-sm leading-5 text-muted-foreground">
+            {enabled
+              ? `Every morning around ${formatFormationEmailSchedule(timezone)}, get your ${TRACK_LABELS[track]} day, five circuits, and first honest move.`
+              : "No daily email. Your formation path will still be ready inside The Dashboard."}
+          </p>
+        </div>
+      </div>
+      {enabled ? (
+        <div className="grid grid-cols-3 border-t border-cyan-400/15 bg-background/30 text-center text-[10px] font-semibold text-muted-foreground">
+          <span className="px-2 py-3">Day + season</span>
+          <span className="border-x border-cyan-400/15 px-2 py-3">Five circuits</span>
+          <span className="px-2 py-3">One clear CTA</span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AccountStep({
+  readingStatus,
+  track,
+  dailyEmailEnabled,
+  timezone,
+}: {
+  readingStatus: ReadingStatus;
+  track: TrainingTrack;
+  dailyEmailEnabled: boolean;
+  timezone: string;
+}) {
   const meta = TRACK_META[track];
 
   return (
@@ -225,8 +319,12 @@ function AccountStep({ readingStatus, track }: { readingStatus: ReadingStatus; t
 
       <div className="grid gap-3 sm:grid-cols-3">
         <ValueCard icon={BookOpen} title="Clear today" copy="Open one place and see the five practices for this path." />
+        <ValueCard
+          icon={Mail}
+          title={dailyEmailEnabled ? "Morning email on" : "Morning email off"}
+          copy={dailyEmailEnabled ? `Arrives around ${formatFormationEmailSchedule(timezone)}. Turn it off anytime.` : "You can enable it later in Settings."}
+        />
         <ValueCard icon={RotateCcw} title="Honest recovery" copy={meta.missPolicy} />
-        <ValueCard icon={LockKeyhole} title="Private by default" copy="Prayer, reflection, wellness, and proof content stay out of formation analytics." />
       </div>
 
       <div className="flex items-start gap-3 rounded-2xl border border-border/65 bg-muted/20 p-4">
@@ -255,13 +353,16 @@ export default function QuickStart() {
   const [searchParams] = useSearchParams();
   const draft = useMemo(() => getOnboardingQuickStartDraft(), []);
   const queryTrack = searchParams.get("path");
-  const requestedTrack = isTrainingTrack(queryTrack) ? queryTrack : null;
+  const requestedTrack = isStartableFormationTrack(queryTrack) ? queryTrack : null;
   const initialStep = draft?.currentStep === "path" || draft?.currentStep === "account" ? draft.currentStep : "book";
   const [step, setStep] = useState<QuickStartStep>(initialStep);
   const [readingStatus, setReadingStatus] = useState<ReadingStatus | null>(draft?.readingStatus ?? null);
-  const [track, setTrack] = useState<TrainingTrack>(requestedTrack ?? draft?.formationTrack ?? recommendedTrackFor(draft?.readingStatus ?? null));
+  const draftTrack = isStartableFormationTrack(draft?.formationTrack) ? draft.formationTrack : null;
+  const [track, setTrack] = useState<TrainingTrack>(requestedTrack ?? draftTrack ?? recommendedTrackFor(draft?.readingStatus ?? null));
+  const [dailyEmailEnabled, setDailyEmailEnabled] = useState(draft?.dailyEmailEnabled ?? true);
+  const [timezone] = useState(() => draft?.timezone || getDeviceTimezone());
   const [strictAcknowledged, setStrictAcknowledged] = useState(false);
-  const [trackWasChosen, setTrackWasChosen] = useState(Boolean(requestedTrack ?? draft?.formationTrack));
+  const [trackWasChosen, setTrackWasChosen] = useState(Boolean(requestedTrack ?? draftTrack));
   const stepCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -269,10 +370,12 @@ export default function QuickStart() {
       currentStep: step,
       readingStatus,
       formationTrack: track,
+      dailyEmailEnabled,
+      timezone,
       snapshotId: null,
       snapshotName: null,
     });
-  }, [readingStatus, step, track]);
+  }, [dailyEmailEnabled, readingStatus, step, timezone, track]);
 
   if (!onboardingQuickStartEnabled()) {
     return <Navigate to="/auth?mode=signup" replace />;
@@ -292,6 +395,7 @@ export default function QuickStart() {
   };
 
   const chooseTrack = (nextTrack: TrainingTrack) => {
+    if (!isStartableFormationTrack(nextTrack)) return;
     setTrack(nextTrack);
     setTrackWasChosen(true);
     if (nextTrack !== "fully_charged_75") setStrictAcknowledged(false);
@@ -327,32 +431,50 @@ export default function QuickStart() {
         </Button>
       </header>
 
-      <main className="relative z-10 mx-auto grid w-full max-w-6xl gap-6 px-4 pb-10 pt-3 sm:px-6 md:pt-8 lg:grid-cols-[0.62fr_1fr] lg:items-start lg:px-8">
-        <aside className="min-w-0 rounded-3xl border border-border/60 bg-card/65 p-5 backdrop-blur-xl lg:sticky lg:top-6 lg:p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Three-minute setup</p>
-          <h2 className="mt-3 font-display text-3xl font-semibold leading-tight">Know what to do today.</h2>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Choose a path before creating an account. No birthday, public score, or private reflection is required.
-          </p>
+      <main className="relative z-10 mx-auto grid w-full max-w-6xl gap-3 px-4 pb-10 pt-1 sm:gap-6 sm:px-6 md:pt-8 lg:grid-cols-[0.62fr_1fr] lg:items-start lg:px-8">
+        <aside className="min-w-0 rounded-2xl border border-border/60 bg-card/65 p-4 backdrop-blur-xl lg:sticky lg:top-6 lg:rounded-3xl lg:p-6">
+          <div className="lg:hidden">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Two-minute start</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">{STEPS[stepIndex].label}</p>
+              </div>
+              <span className="text-xs font-semibold text-muted-foreground">{stepIndex + 1} / {STEPS.length}</span>
+            </div>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted/55" aria-hidden="true">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none"
+                style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }}
+              />
+            </div>
+          </div>
 
-          <ol className="mt-6 space-y-2" aria-label="Quick start progress">
-            {STEPS.map((candidate, index) => {
-              const active = index === stepIndex;
-              const complete = index < stepIndex;
-              return (
-                <li key={candidate.id} className={cn("flex items-center gap-3 rounded-2xl border px-4 py-3", active ? "border-primary/45 bg-primary/10" : "border-border/55 bg-background/35")}>
-                  <span className={cn("flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold", active || complete ? "border-primary/40 bg-primary text-primary-foreground" : "border-border text-muted-foreground")}>
-                    {complete ? <Check className="h-4 w-4" /> : index + 1}
-                  </span>
-                  <span className={cn("text-sm font-semibold", active ? "text-foreground" : "text-muted-foreground")}>{candidate.label}</span>
-                </li>
-              );
-            })}
-          </ol>
+          <div className="hidden lg:block">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Two-minute start</p>
+            <h2 className="mt-3 font-display text-3xl font-semibold leading-tight">Know what to do today.</h2>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              Choose your path, know what arrives each morning, and open your first day. No birthday or private reflection required.
+            </p>
 
-          <div className="mt-6 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-xs leading-5 text-muted-foreground">
-            <strong className="block text-foreground">The Controllables + Christian formation</strong>
-            Put Jesus first. Train what you can control. Keep your word. Steward your body. Serve others.
+            <ol className="mt-6 space-y-2" aria-label="Quick start progress">
+              {STEPS.map((candidate, index) => {
+                const active = index === stepIndex;
+                const complete = index < stepIndex;
+                return (
+                  <li key={candidate.id} className={cn("flex items-center gap-3 rounded-2xl border px-4 py-3", active ? "border-primary/45 bg-primary/10" : "border-border/55 bg-background/35")}>
+                    <span className={cn("flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold", active || complete ? "border-primary/40 bg-primary text-primary-foreground" : "border-border text-muted-foreground")}>
+                      {complete ? <Check className="h-4 w-4" /> : index + 1}
+                    </span>
+                    <span className={cn("text-sm font-semibold", active ? "text-foreground" : "text-muted-foreground")}>{candidate.label}</span>
+                  </li>
+                );
+              })}
+            </ol>
+
+            <div className="mt-6 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-xs leading-5 text-muted-foreground">
+              <strong className="block text-foreground">The Controllables + Christian formation</strong>
+              Put Jesus first. Train what you can control. Keep your word. Steward your body. Serve others.
+            </div>
           </div>
         </aside>
 
@@ -376,11 +498,21 @@ export default function QuickStart() {
               track={track}
               readingStatus={readingStatus}
               strictAcknowledged={strictAcknowledged}
+              dailyEmailEnabled={dailyEmailEnabled}
+              timezone={timezone}
               onChange={chooseTrack}
               onStrictAcknowledged={setStrictAcknowledged}
+              onDailyEmailEnabled={setDailyEmailEnabled}
             />
           ) : null}
-          {step === "account" && readingStatus ? <AccountStep readingStatus={readingStatus} track={track} /> : null}
+          {step === "account" && readingStatus ? (
+            <AccountStep
+              readingStatus={readingStatus}
+              track={track}
+              dailyEmailEnabled={dailyEmailEnabled}
+              timezone={timezone}
+            />
+          ) : null}
 
           <div className="mt-7">
             {step === "account" ? (
@@ -389,7 +521,7 @@ export default function QuickStart() {
                   to="/auth?mode=signup"
                   onClick={() => void trackEvent("cta", "quick_start_create_account_clicked", { reading_status: readingStatus, track })}
                 >
-                  Create account & open today <ArrowRight className="ml-2 h-4 w-4" />
+                  Create account & start my daily loop <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             ) : (
