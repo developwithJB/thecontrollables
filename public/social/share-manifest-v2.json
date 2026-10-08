@@ -1,0 +1,58 @@
+{
+  "campaign": "Fully Charged 75",
+  "message": "Put Jesus first. Five Controllables. One honest next step.",
+  "callToAction": "Start the 75-Day Covenant",
+  "destination": "https://thedashboard.agbcoaching.com/",
+  "altText": "Dark navy Fully Charged 75 graphic showing five glowing guide icons—an owl, turtle, shark, satellite, and rocket—representing Awareness, Perspective, Habit, Wellness, and Environment.",
+  "files": [
+    {
+      "id": "og",
+      "label": "Open Graph · Facebook · LinkedIn · WhatsApp · Slack · Discord · iMessage · Bluesky · Mastodon",
+      "filename": "fully-charged-75-share-og-1200x630-v2.png",
+      "width": 1200,
+      "height": 630
+    },
+    {
+      "id": "x",
+      "label": "X / Twitter",
+      "filename": "fully-charged-75-share-x-1200x675-v2.png",
+      "width": 1200,
+      "height": 675
+    },
+    {
+      "id": "youtube",
+      "label": "YouTube · Video community",
+      "filename": "fully-charged-75-share-youtube-1280x720-v2.png",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "id": "square",
+      "label": "Instagram · Threads · Facebook square",
+      "filename": "fully-charged-75-share-square-1080x1080-v2.png",
+      "width": 1080,
+      "height": 1080
+    },
+    {
+      "id": "feed",
+      "label": "Instagram · Threads portrait feed",
+      "filename": "fully-charged-75-share-feed-1080x1350-v2.png",
+      "width": 1080,
+      "height": 1350
+    },
+    {
+      "id": "pinterest",
+      "label": "Pinterest",
+      "filename": "fully-charged-75-share-pinterest-1000x1500-v2.png",
+      "width": 1000,
+      "height": 1500
+    },
+    {
+      "id": "story",
+      "label": "Instagram Stories · Facebook Stories · Reels · TikTok",
+      "filename": "fully-charged-75-share-story-1080x1920-v2.png",
+      "width": 1080,
+      "height": 1920
+    }
+  ]
+}
