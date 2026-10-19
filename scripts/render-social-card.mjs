@@ -311,7 +311,7 @@ for (const variant of variants) {
           <div class="vignette"></div>
           <div class="brand"><span class="brand-dot"></span>The Dashboard</div>
           <div class="badge"><div><strong>75</strong><small>days</small></div></div>
-          <h1 class="headline">Put Jesus <span>first.</span></h1>
+          <h1 class="headline">Put The Controllables <span>first.</span></h1>
           <p class="sub">Five Controllables. One honest next step.</p>
           <div class="cta">Start the 75-Day Covenant <b>→</b></div>
           <div class="guides">${guideMarkup}</div>
@@ -332,7 +332,7 @@ writeFileSync(
   `${JSON.stringify(
     {
       campaign: "Fully Charged 75",
-      message: "Put Jesus first. Five Controllables. One honest next step.",
+      message: "Put The Controllables first. Five Controllables. One honest next step.",
       callToAction: "Start the 75-Day Covenant",
       destination: "https://thedashboard.agbcoaching.com/",
       altText:
