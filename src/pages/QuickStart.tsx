@@ -1,3 +1,4 @@
+import { BookLink } from "@/components/BookLink";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import {
@@ -119,6 +120,7 @@ function BookContextStep({
           );
         })}
       </div>
+      {readingStatus === "not_started" ? <BookLink placement="quick_start" data-testid="quick-start-book-link" className="inline-block rounded text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Get the book →</BookLink> : null}
     </section>
   );
 }

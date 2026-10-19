@@ -1,3 +1,4 @@
+import { BookLink } from "@/components/BookLink";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -212,6 +213,7 @@ export default function Landing() {
           <a href="#privacy" className="transition-colors hover:text-foreground">Privacy & recovery</a>
         </div>
         <div className="flex items-center gap-2">
+          <BookLink placement="landing_nav" data-testid="landing-book-nav" className="whitespace-nowrap rounded text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm">Get the book</BookLink>
           <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
             <Link to="/auth">Sign in</Link>
           </Button>
@@ -251,6 +253,7 @@ export default function Landing() {
                   <a href="#how-it-works">See today’s practice</a>
                 </Button>
               </div>
+              <p className="mt-4 text-sm text-muted-foreground"><BookLink placement="landing_hero" data-testid="landing-book-hero" className="rounded hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">New to The Controllables? Start with the book →</BookLink></p>
               <p className="mt-4 text-xs text-muted-foreground">75 days · Daily faith, discipline, service, and honest evidence</p>
               <div className="mt-7 flex flex-wrap gap-2 text-xs text-muted-foreground">
                 {["Private by default", "No public rankings", "Recovery without shame", "Movement can adapt"].map((promise) => (
@@ -362,6 +365,7 @@ export default function Landing() {
                 <BookOpen className="h-6 w-6 text-primary" />
                 <h2 className="mt-4 font-display text-3xl font-semibold md:text-4xl">The book gives you the language. The app gives you the reps.</h2>
                 <p className="mt-4 text-sm leading-7 text-muted-foreground">The Dashboard turns the ideas in The Controllables into a daily formation practice that works whether you are reading now, finished, returning, or starting without the book.</p>
+                <Button asChild variant="outline" className="mt-5"><BookLink placement="landing_book_section" data-testid="landing-book-section">Get The Controllables on Amazon</BookLink></Button>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 {ORDERED_CONTROLLABLE_GUIDES.map((guide) => {
