@@ -13,7 +13,7 @@ const reading = buildGospelAwarenessReading('John 13:1-17');
 describe('Gospel Awareness presentation', () => {
   it('shows the assigned passage, ordered prompts, and explicit draft label', () => {
     render(createElement(GospelAwarenessPrompts, { reading, draft: true }));
-    expect(screen.getByText('John 13:1-17')).toBeTruthy();
+    expect(screen.getByText('John 13:1-17 (NLT)')).toBeTruthy();
     const items = within(screen.getByRole('list')).getAllByRole('listitem');
     expect(items.map(item => item.textContent)).toEqual([`Observe: ${reading.observe}`, `Understand: ${reading.understand}`, `Respond: ${reading.respond}`]);
     expect(screen.getByText(/pending independent theological review/)).toBeTruthy();

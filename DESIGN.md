@@ -19,3 +19,7 @@ All links need descriptive text, visible keyboard focus and adequate contrast us
 ## Gospel-first Awareness
 
 Keep the existing circuit card and semantic tokens. A compact ordered list shows Observe, Understand, Respond beside the assigned Gospel reference. Use visible labels and descriptive section names; stack on mobile without horizontal overflow. Draft previews must say pending independent theological review. Authenticated journeys render only prompts from the reviewed server content body, never substitute the bundled draft. Keep the existing One honest truth response and completion rules; do not add required writing fields or analytics of private responses.
+
+## Sources and feedback
+
+Use a readable note from JB and one clearly labeled GitHub feedback link in the landing footer. Gospel Awareness cards repeat a compact correction link beside the NLT source context. Preserve semantic colors, underlined links, visible keyboard focus and mobile wrapping. State that GitHub reports are public; never prefill private content, account identity or current-page query strings. Keep translation credit distinct from product guidance and retain all draft-review labels.

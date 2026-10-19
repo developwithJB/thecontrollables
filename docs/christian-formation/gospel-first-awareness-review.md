@@ -16,7 +16,7 @@ Existing Gospel readings are retained where appropriate. Epistle/Acts assignment
 
 Day 2 expands Mark 1:35 to 1:35–39 to retain prayer and mission context. Day 38 includes Mark 12:38–44 so the widow's offering is not detached from the preceding warning about exploitation. Day 70 becomes Protect the vulnerable (Luke 20:45–47); it does not use the widow's offering to require giving beyond capacity. Review these decisions and all accompanying invitations/reflections together.
 
-Primary reading sources are reference links in each content draft, for example [Mark 1:35–39](https://www.biblegateway.com/passage/?search=Mark%201%3A35-39&version=WEB) and [John 13:1–17](https://www.biblegateway.com/passage/?search=John%2013%3A1-17&version=WEB). No copyrighted translation text is copied. A reference is not a claim that a reviewer has approved its application.
+Primary reading sources are reference links in each content draft, for example [Mark 1:35–39](https://www.biblegateway.com/passage/?search=Mark%201%3A35-39&version=NLT) and [John 13:1–17](https://www.biblegateway.com/passage/?search=John%2013%3A1-17&version=NLT). No copyrighted translation text is copied. A reference is not a claim that a reviewer has approved its application.
 
 ## Publication and versioning
 
@@ -25,3 +25,7 @@ The frontend can be deployed with these changes. Public roadmap and local QA sho
 The editorial seeds are version 2, AI-assisted, draft and theological-review pending. The active content-bundle constant is deliberately unchanged: changing it in client code would not publish or approve the new content and could disrupt new attempts. Existing attempts and published content are not edited. No database migration or production data update is part of this change.
 
 Before activating the new 75-day assignments, the responsible human editor must import/create the 75 draft versions using the existing governed editor, arrange an independent qualified theological review, resolve requested changes and source-context checks, and publish the approved versions through the existing bundle workflow. Do not bulk-approve, fabricate reviewer identities, change review flags in code, or treat approval of the product direction as theological review of all 75 entries.
+
+## Study attribution and corrections
+
+JB identifies the New Living Translation (NLT) as his study Bible. All Gospel reading links and the new draft metadata now identify NLT; the app reproduces no NLT passage text. Product reflections remain distinguished from Scripture and pending review. NLT publication/quotation guidance is available from [Tyndale](https://www.tyndale.com/permissions). JB’s note welcomes corrections, and the app links to the public GitHub feedback form without prefilled personal data or page queries. The repository is public; this change does not add or claim a software license. Feedback does not automatically approve or publish content.

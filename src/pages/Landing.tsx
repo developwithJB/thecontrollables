@@ -1,3 +1,4 @@
+import { ProjectFeedbackNote } from "@/components/ProjectFeedback";
 import { trackGrowthEvent } from "@/lib/growthEvents";
 import { BookLink } from "@/components/BookLink";
 import { useEffect, useState } from "react";
@@ -426,6 +427,7 @@ export default function Landing() {
       </main>
 
       <footer className="border-t border-border/50 px-5 py-8 text-center">
+        <div className="mx-auto mb-6 max-w-2xl"><ProjectFeedbackNote /></div>
         <p className="text-xs text-muted-foreground">The Dashboard from The Controllables · Private daily formation</p>
         <p className="mt-2 text-xs text-muted-foreground/70">
           Questions?{" "}<a href="https://instagram.com/agbcoaching" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">@agbcoaching</a>
