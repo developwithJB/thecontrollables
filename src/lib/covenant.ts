@@ -25,10 +25,10 @@ export const COVENANT_PROMISE_DEFINITIONS: CovenantPromiseDefinition[] = [
   {
     key: "jesus_first",
     emoji: "🙏",
-    label: "Jesus First",
-    shortLabel: "Jesus First",
+    label: "The Controllables First",
+    shortLabel: "The Controllables First",
     description: "Begin with prayer before the noise gets a vote.",
-    opportunityLabel: "+1 Jesus First morning",
+    opportunityLabel: "+1 Controllables-first morning",
   },
   {
     key: "bible_read",

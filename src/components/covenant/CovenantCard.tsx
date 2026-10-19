@@ -29,7 +29,7 @@ interface CovenantCardProps {
 }
 
 const EVIDENCE_PREVIEW = [
-  { key: "jesusFirst", emoji: "🙏", label: "Jesus First" },
+  { key: "jesusFirst", emoji: "🙏", label: "The Controllables First" },
   { key: "bibleRead", emoji: "📖", label: "Bible Read" },
   { key: "alcoholFree", emoji: "🚫", label: "Alcohol Free" },
   { key: "workouts", emoji: "💪", label: "Workouts" },

@@ -275,7 +275,7 @@ for (const variant of variants) {
           }
           .square .brand { top: 54px; left: 58px; }
           .square .badge { top: 48px; right: 52px; }
-          .square .headline { top: 118px; left: 58px; width: 820px; font-size: 76px; }
+          .square .headline { top: 118px; left: 58px; width: 820px; font-size: 68px; }
           .square .sub { top: 207px; left: 62px; width: 720px; font-size: 23px; }
           .square .cta { left: 50%; bottom: 142px; transform: translateX(-50%); }
           .square .guides { left: 50%; bottom: 62px; width: 930px; justify-content: center; transform: translateX(-50%); }
@@ -288,7 +288,7 @@ for (const variant of variants) {
           }
           .portrait .brand { top: 62px; left: 58px; }
           .portrait .badge { top: 48px; right: 52px; }
-          .portrait .headline { top: 128px; left: 58px; width: calc(100% - 116px); font-size: 78px; }
+          .portrait .headline { top: 128px; left: 58px; width: calc(100% - 116px); font-size: 74px; }
           .portrait .sub { top: 219px; left: 62px; width: calc(100% - 124px); font-size: 23px; }
           .portrait .cta { left: 50%; bottom: 128px; transform: translateX(-50%); white-space: nowrap; }
           .portrait .guides { left: 50%; bottom: 51px; width: 92%; justify-content: center; transform: translateX(-50%); }
@@ -297,7 +297,7 @@ for (const variant of variants) {
           .story .brand { top: 106px; left: 74px; font-size: 16px; }
           .story .badge { top: 84px; right: 68px; width: 126px; height: 126px; }
           .story .badge strong { font-size: 52px; }
-          .story .headline { top: 196px; left: 72px; width: 820px; font-size: 92px; }
+          .story .headline { top: 196px; left: 72px; width: 936px; font-size: 76px; }
           .story .sub { top: 350px; left: 77px; width: 760px; font-size: 27px; }
           .story .cta { left: 50%; bottom: 177px; padding: 20px 27px; font-size: 17px; transform: translateX(-50%); white-space: nowrap; }
           .story .guides { left: 50%; bottom: 82px; width: 930px; justify-content: center; transform: translateX(-50%); }
@@ -311,7 +311,7 @@ for (const variant of variants) {
           <div class="vignette"></div>
           <div class="brand"><span class="brand-dot"></span>The Dashboard</div>
           <div class="badge"><div><strong>75</strong><small>days</small></div></div>
-          <h1 class="headline">Put Jesus <span>first.</span></h1>
+          <h1 class="headline">Put The Controllables <span>first.</span></h1>
           <p class="sub">Five Controllables. One honest next step.</p>
           <div class="cta">Start the 75-Day Covenant <b>→</b></div>
           <div class="guides">${guideMarkup}</div>
@@ -332,7 +332,7 @@ writeFileSync(
   `${JSON.stringify(
     {
       campaign: "Fully Charged 75",
-      message: "Put Jesus first. Five Controllables. One honest next step.",
+      message: "Put The Controllables first. Five Controllables. One honest next step.",
       callToAction: "Start the 75-Day Covenant",
       destination: "https://thedashboard.agbcoaching.com/",
       altText:

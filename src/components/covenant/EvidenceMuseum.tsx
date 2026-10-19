@@ -20,7 +20,7 @@ interface EvidenceMuseumProps {
 }
 
 const FAITHFUL_EVIDENCE = [
-  { key: "jesusFirst", emoji: "🙏", label: "Jesus First", unit: "mornings" },
+  { key: "jesusFirst", emoji: "🙏", label: "The Controllables First", unit: "mornings" },
   { key: "bibleRead", emoji: "📖", label: "Bible", unit: "sessions" },
   { key: "alcoholFree", emoji: "🚫", label: "Alcohol Free", unit: "days" },
   { key: "workouts", emoji: "💪", label: "Training", unit: "workouts" },
