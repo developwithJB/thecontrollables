@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -19,6 +20,9 @@ describe('per-day editorial groundwork', () => {
   it('starts all 75 mappings as empty placeholders and validates filled chapters', () => {
     expect(mapping.validateBookDayMapping()).toEqual([]);
     expect(mapping.BOOK_DAY_MAPPING).toHaveLength(75);
+    const worksheet = readFileSync('docs/christian-formation/book-day-mapping.md', 'utf8');
+    expect(worksheet.match(/^\| \d+ \|/gm)).toHaveLength(75);
+    for (const guide of FULLY_CHARGED_75_DAY_GUIDES) expect(worksheet.split('\n').find(line => line.startsWith(`| ${guide.dayNumber} |`))).toContain(`| ${guide.scriptureReference} |`);
     expect(mapping.BOOK_DAY_MAPPING.every(e => e.status === 'placeholder' && e.chapter === null && e.concept === null && e.controllableFocus === null)).toBe(true);
     expect(mapping.getBookMappingForDay(0)).toBeUndefined();
     expect(mapping.getBookMappingForDay(76)).toBeUndefined();
