@@ -478,7 +478,7 @@ export default function QuickStart() {
 
             <div className="mt-6 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-xs leading-5 text-muted-foreground">
               <strong className="block text-foreground">The Controllables + Christian formation</strong>
-              Put Jesus first. Train what you can control. Keep your word. Steward your body. Serve others.
+              Put The Controllables first. Train what you can control. Keep your word. Steward your body. Serve others.
             </div>
           </div>
         </aside>

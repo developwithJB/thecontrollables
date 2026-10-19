@@ -243,7 +243,7 @@ const COVENANT_RULES = [
 ] as const;
 
 const COVENANT_RULE_META: Record<string, { emoji: string; label: string; opportunity: string }> = {
-  jesus_first: { emoji: "🙏", label: "Jesus First", opportunity: "+1 Jesus First morning" },
+  jesus_first: { emoji: "🙏", label: "The Controllables First", opportunity: "+1 Controllables-first morning" },
   bible_read: { emoji: "📖", label: "Bible Reading", opportunity: "+1 Bible reading" },
   alcohol_free: { emoji: "🚫", label: "Alcohol Free", opportunity: "+1 alcohol-free day" },
   workout: { emoji: "💪", label: "Workouts", opportunity: "+1 workout" },
@@ -319,7 +319,7 @@ async function getCovenantEmailContext(
       covenantDaysKept: checkins.filter((row) => row.day_complete === true).length,
       todayComplete: todayRow?.day_complete === true,
       stats: [
-        { emoji: "🙏", label: "Jesus First", value: count("jesus_first") },
+        { emoji: "🙏", label: "The Controllables First", value: count("jesus_first") },
         { emoji: "📖", label: "Bible Reading", value: count("bible_read") },
         { emoji: "🚫", label: "Alcohol Free", value: count("alcohol_free") },
         { emoji: "💪", label: "Workouts", value: workouts },

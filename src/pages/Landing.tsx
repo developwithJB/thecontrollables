@@ -63,7 +63,7 @@ const journeyPaths = [
     id: "fully_charged_75",
     title: "75-Day Covenant",
     eyebrow: "Primary path",
-    description: "Put Jesus first, keep exact daily promises, and build a visible record of faithful obedience.",
+    description: "Put The Controllables first, keep exact daily promises, and build a visible record of faithful obedience.",
     bestFor: "Best when you are ready for an all-in Christian commitment",
     commitment: "75 consecutive days",
     missRule: "An incomplete day ends that attempt; history remains.",
@@ -132,7 +132,7 @@ function TodayPreview() {
         <div className="flex items-start justify-between gap-4 border-b border-border/60 pb-5">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">Today’s formation</p>
-            <h2 className="mt-2 font-display text-2xl font-semibold text-foreground">Put Jesus first</h2>
+            <h2 className="mt-2 font-display text-2xl font-semibold text-foreground">Put The Controllables first</h2>
             <p className="mt-1 text-sm text-muted-foreground">Five practical circuits. One honest next step.</p>
           </div>
           <div className="rounded-xl border border-primary/25 bg-primary/10 px-3 py-2 text-center">
@@ -243,7 +243,7 @@ export default function Landing() {
                 Become someone whose yes can be trusted.
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground text-balance md:text-lg">
-                Put Jesus first, keep the promises you make today, and build lifetime evidence of faithful obedience—without confusing discipline with earning grace.
+                Put The Controllables first, keep the promises you make today, and build lifetime evidence of faithful obedience—without confusing discipline with earning grace.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button asChild variant="glow" size="lg" className="h-14 w-full px-8 text-base font-semibold sm:w-auto">
