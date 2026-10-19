@@ -95,7 +95,8 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
     void trackFormation("circuit_started", { track, circuit, source: "formation_today" });
   }, [circuit, track, trackFormation]);
 
-  const evaluation = useMemo(() => evaluateCircuit(track, circuit, draft), [track, circuit, draft]);
+  const ruleContext = strictJourney.journey ? { rulesVersion: strictJourney.journey.rulesVersion, isRestDay: strictJourney.journey.isRestDay === true } : null;
+  const evaluation = evaluateCircuit(track, circuit, draft, ruleContext);
   const definition = CIRCUIT_DEFINITIONS[circuit];
   const guide = CONTROLLABLE_GUIDES[circuit];
   const Editor = CIRCUIT_EDITORS[circuit];
@@ -130,7 +131,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
     });
     setDraft(saved.draft);
     if (!quiet) {
-      const savedEvaluation = evaluateCircuit(track, circuit, saved.draft);
+      const savedEvaluation = evaluateCircuit(track, circuit, saved.draft, ruleContext);
       if (savedEvaluation.isSatisfiedForTrack && !trackedCompletion.current) {
         trackedCompletion.current = true;
         void trackFormation("circuit_completed", { track, circuit, outcome: savedEvaluation.state });

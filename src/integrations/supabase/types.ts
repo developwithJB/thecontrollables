@@ -1555,6 +1555,7 @@ export type Database = {
           planned_start_local_date: string
           previous_attempt_id: string | null
           rules_accepted_at: string
+          rest_weekday: number | null
           rules_version: string
           sequence_number: number
           start_idempotency_key: string
@@ -1581,6 +1582,7 @@ export type Database = {
           planned_start_local_date: string
           previous_attempt_id?: string | null
           rules_accepted_at: string
+          rest_weekday?: number | null
           rules_version: string
           sequence_number: number
           start_idempotency_key: string
@@ -1607,6 +1609,7 @@ export type Database = {
           planned_start_local_date?: string
           previous_attempt_id?: string | null
           rules_accepted_at?: string
+          rest_weekday?: number | null
           rules_version?: string
           sequence_number?: number
           start_idempotency_key?: string
@@ -5063,6 +5066,56 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "formation_content_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      start_fully_charged_sabbath_attempt: {
+        Args: {
+          p_rest_weekday: number
+          p_content_bundle_version: string
+          p_environment_prepared: boolean
+          p_idempotency_key: string
+          p_main_promise: string
+          p_personal_covenant_accepted: boolean
+          p_previous_attempt_id?: string
+          p_privacy_safety_acknowledged: boolean
+          p_rules_accepted: boolean
+          p_rules_version: string
+          p_start_local_date: string
+          p_strict_opt_in: boolean
+          p_timezone: string
+        }
+        Returns: {
+          aggregate_version: number
+          cancelled_at: string | null
+          completed_at: string | null
+          completed_day_count: number
+          content_bundle_version: string
+          created_at: string
+          current_day_number: number | null
+          end_reason_code: string | null
+          ended_at: string | null
+          id: string
+          planned_start_local_date: string
+          previous_attempt_id: string | null
+          rules_accepted_at: string
+          rest_weekday: number | null
+          rules_version: string
+          sequence_number: number
+          start_idempotency_key: string
+          start_timezone: string
+          started_at: string | null
+          status: string
+          strict_opt_in_at: string
+          timezone_policy: string
+          track: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_attempts"
           isOneToOne: true
           isSetofReturn: false
         }

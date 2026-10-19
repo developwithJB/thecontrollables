@@ -16,6 +16,8 @@ import { createCircuitIdempotencyKey, evaluateCircuit } from "@/domain/formation
 import { normalizeCircuitDraft, upsertFormationCircuitEntry } from "@/domain/formation/circuitSerialization";
 import { refreshFormationProofPreview } from "./formationProof";
 
+import { loadFullyChargedToday } from "./fullyChargedRepository";
+
 const LOCAL_STORAGE_VERSION = 1;
 const VALID_COMPLETION_STATES: CircuitCompletionState[] = ["not_started", "in_progress", "recorded", "complete"];
 
@@ -74,7 +76,9 @@ async function selectCircuitRows(userId: string, track: TrainingTrack) {
 }
 
 export async function saveFormationCircuit(input: SaveFormationCircuitInput): Promise<FormationCircuitEntry> {
-  const evaluation = evaluateCircuit(input.track, input.circuit, input.draft);
+  const context = input.track === "fully_charged_75" ? await loadFullyChargedToday(input.userId, input.localOnly) : null;
+  const evaluation = evaluateCircuit(input.track, input.circuit, input.draft, context ? { rulesVersion: context.rulesVersion, isRestDay: context.isRestDay === true } : null);
+  const ruleVersion = context?.rulesVersion ?? FORMATION_RULE_VERSION;
   const idempotencyKey = createCircuitIdempotencyKey(input.userId, input.localDate, input.track, input.circuit);
   const now = new Date().toISOString();
 
@@ -92,7 +96,7 @@ export async function saveFormationCircuit(input: SaveFormationCircuitInput): Pr
       localDate: input.localDate,
       track: input.track,
       circuit: input.circuit,
-      ruleVersion: FORMATION_RULE_VERSION,
+      ruleVersion,
       completionState: evaluation.state,
       completedActionIds: evaluation.completedActionIds,
       missingRequiredActionIds: evaluation.missingRequiredActionIds,
@@ -117,7 +121,7 @@ export async function saveFormationCircuit(input: SaveFormationCircuitInput): Pr
     p_local_date: input.localDate,
     p_track: input.track,
     p_circuit_type: input.circuit,
-    p_rule_version: FORMATION_RULE_VERSION,
+    p_rule_version: ruleVersion,
     p_completion_state: evaluation.state,
     p_completed_action_ids: evaluation.completedActionIds,
     p_missing_required_action_ids: evaluation.missingRequiredActionIds,
