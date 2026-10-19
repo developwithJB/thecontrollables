@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useBookLoopState } from "@/hooks/useBookLoopState";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,48 +33,40 @@ function getTodayKey(): string {
 }
 
 export function ControlReleaseMoveCard({ userId, mainMission, onSaved }: ControlReleaseMoveCardProps) {
+  const dateKey = getTodayKey();
+  const { state: storedRitual, persist, isSaving } = useBookLoopState("crm", userId, dateKey);
   const [ritual, setRitual] = useState<RitualState>(EMPTY_RITUAL);
+  const editSaver = useRef<typeof persist | null>(null);
   const [saved, setSaved] = useState(false);
-  const storageKey = useMemo(
-    () => `control_release_move_${userId}_${getTodayKey()}`,
-    [userId],
-  );
-
+  const storageKey = `control_release_move_${userId}_${dateKey}`;
+  // Keep unsaved editing separate from the confirmed server state.
+  const previousKey = useRef(storageKey);
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (!raw) {
-        setRitual(EMPTY_RITUAL);
-        return;
-      }
-      setRitual({ ...EMPTY_RITUAL, ...JSON.parse(raw) });
-    } catch {
-      setRitual(EMPTY_RITUAL);
-    }
-  }, [storageKey]);
+    if (previousKey.current !== storageKey) { editSaver.current = null; previousKey.current = storageKey; }
+    if (!editSaver.current) setRitual(storedRitual);
+  }, [storedRitual, storageKey]);
 
-  const saveRitual = useCallback((nextRitual: RitualState = ritual) => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(nextRitual));
-      setSaved(true);
+  const saveRitual = useCallback(async (nextRitual: RitualState = ritual) => {
+    const success = await (editSaver.current ?? persist)(() => nextRitual);
+    setSaved(success);
+    if (success) {
+      editSaver.current = null;
       onSaved?.();
       window.setTimeout(() => setSaved(false), 1600);
-    } catch {
-      setSaved(false);
     }
-  }, [onSaved, ritual, storageKey]);
+  }, [onSaved, ritual, persist]);
 
   const updateField = (field: keyof Pick<RitualState, "control" | "release" | "move">, value: string) => {
+    editSaver.current ??= persist;
     setSaved(false);
     setRitual((current) => ({ ...current, [field]: value }));
   };
 
   const toggleKeptPromise = () => {
-    setRitual((current) => {
-      const next = { ...current, keptPromise: !current.keptPromise };
-      saveRitual(next);
-      return next;
-    });
+    editSaver.current ??= persist;
+    const next = { ...ritual, keptPromise: !ritual.keptPromise };
+    setRitual(next);
+    void saveRitual(next);
   };
 
   const hasAnyEntry = ritual.control.trim() || ritual.release.trim() || ritual.move.trim();
@@ -157,7 +150,7 @@ export function ControlReleaseMoveCard({ userId, mainMission, onSaved }: Control
           variant="future"
           className="flex-1"
           onClick={() => saveRitual()}
-          disabled={!hasAnyEntry && !ritual.keptPromise}
+          disabled={isSaving || (!hasAnyEntry && !ritual.keptPromise)}
         >
           <Save className="mr-2 h-4 w-4" />
           {saved ? "Saved" : "Save note"}
@@ -167,6 +160,7 @@ export function ControlReleaseMoveCard({ userId, mainMission, onSaved }: Control
           variant={ritual.keptPromise ? "default" : "outline"}
           className={cn("flex-1", ritual.keptPromise && "bg-primary text-primary-foreground")}
           onClick={toggleKeptPromise}
+          disabled={isSaving}
         >
           <CheckCircle2 className="mr-2 h-4 w-4" />
           {ritual.keptPromise ? "Move done" : "I did the move"}

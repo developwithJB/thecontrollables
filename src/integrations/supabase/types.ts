@@ -14,6 +14,18 @@ export type Database = {
   }
   public: {
     Tables: {
+      controllables_book_records: {
+        Row: { user_id: string; kind: string; record_key: string; payload: Json; revision: number; created_at: string; updated_at: string }
+        Insert: { user_id?: string; kind: string; record_key: string; payload: Json }
+        Update: { payload?: Json }
+        Relationships: []
+      }
+      controllables_book_imports: {
+        Row: { user_id: string; import_id: string; created_at: string }
+        Insert: { user_id?: string; import_id: string }
+        Update: { never?: never }
+        Relationships: []
+      }
       admin_broadcasts: {
         Row: {
           body_html: string
@@ -4649,6 +4661,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      save_book_loop_changes: { Args: { p_user_id: string; p_changes: Json }; Returns: undefined }
+      import_book_loop: { Args: { p_user_id: string; p_import_id: string; p_records: Json }; Returns: undefined }
       assess_timeline_event: {
         Args: { assessment: string; target_event_id: string }
         Returns: undefined

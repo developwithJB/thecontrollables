@@ -1,3 +1,4 @@
+import { useBookLoopState } from "@/hooks/useBookLoopState";
 import { isValidElement, useMemo, useState } from "react";
 import type React from "react";
 import { motion } from "framer-motion";
@@ -39,7 +40,6 @@ import { getControllableChargeVisual, getControllableVisualColor } from "@/lib/c
 import {
   buildStartingChargeProofCard,
   isPrivacySafeStartingChargeProofCard,
-  saveStartingChargeResult,
   scoreStartingCharge,
   STARTING_CHARGE_CURRENT_STATE_LABELS,
   STARTING_CHARGE_EGO_SIGNAL_LABELS,
@@ -130,6 +130,7 @@ const ORBIT_LAYOUT: Record<ControllableType, string> = {
 };
 
 export function StartingChargeFlow({ userId, initialResult = null, onSaved }: StartingChargeFlowProps) {
+  const { persist: persistStartingCharge } = useBookLoopState("startingCharge", userId);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [step, setStep] = useState<FlowStep>(initialResult ? "result" : "entry");
@@ -151,9 +152,10 @@ export function StartingChargeFlow({ userId, initialResult = null, onSaved }: St
     setIncludeCustomInShare(false);
   };
 
-  const saveResult = (nextResult: StartingChargeResult) => {
-    saveStartingChargeResult(userId, nextResult);
-    onSaved?.(nextResult);
+  const saveResult = async (nextResult: StartingChargeResult) => {
+    const saved = await persistStartingCharge(() => ({ result: nextResult }));
+    if (saved) onSaved?.(nextResult);
+    return saved;
   };
 
   const completeFlow = (nextAnswers: StartingChargeAnswers) => {
@@ -184,15 +186,15 @@ export function StartingChargeFlow({ userId, initialResult = null, onSaved }: St
     if (nextStep) setStep(nextStep);
   };
 
-  const handleSaveDashboard = () => {
+  const handleSaveDashboard = async () => {
     if (!result) return;
-    saveResult(result);
+    if (!await saveResult(result)) return;
     toast({ title: "Starting Charge saved", description: "My Controllables are ready." });
   };
 
-  const handleStartMission = () => {
+  const handleStartMission = async () => {
     if (!result) return;
-    saveResult(result);
+    if (!await saveResult(result)) return;
     navigate(`${APP_ROUTES.train}?controllable=${result.chargingControllable}`);
   };
 

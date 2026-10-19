@@ -58,14 +58,15 @@ export function MyControllablesDailyTrainingCard({ userId }: MyControllablesDail
     );
   }
 
-  const handleLog = (kind: "kept_promise" | "recovery_win") => {
+  const handleLog = async (kind: "kept_promise" | "recovery_win") => {
     const finalPromise = promise.trim() || dailyPlan.promise;
-    const entry = logDailyTraining({
+    const entry = await logDailyTraining({
       controllable: dailyPlan.controllable,
       promise: finalPromise,
       kind,
     });
 
+    if (!entry) return;
     toast({
       title: kind === "recovery_win" ? "Recovery win logged" : "Kept promise logged",
       description: `+${entry.xp} Self-Trust through ${guide.name}.`,

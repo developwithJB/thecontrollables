@@ -117,12 +117,13 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
               variant="future"
               className="w-full gap-2"
               disabled={!canEnable}
-              onClick={() => {
-                enableLocalMissions({
+              onClick={async () => {
+                const saved = await enableLocalMissions({
                   city: city.trim(),
                   state: state.trim(),
                   localMissionVisibility: visibility,
                 });
+                if (!saved) return;
                 toast({
                   title: "Local Missions enabled",
                   description: "City/state only. No exact location.",
@@ -144,9 +145,9 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
   const locationLabel = [mission.city, mission.state].filter(Boolean).join(", ") || "City/state level";
   const showCityToggleDisabled = preferences.localMissionVisibility !== "public";
 
-  const handleMissionCta = () => {
+  const handleMissionCta = async () => {
     if (!isMissionStarted) {
-      startMission(mission.id);
+      if (!await startMission(mission.id)) return;
       toast({
         title: "Local Mission started",
         description: mission.instruction,
@@ -154,7 +155,8 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
       return;
     }
 
-    const result = completeMission(mission);
+    const result = await completeMission(mission);
+    if (!result) return;
     toast({
       title: result.alreadyCompleted ? "Local Mission already complete" : "Local Mission complete",
       description: result.alreadyCompleted

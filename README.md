@@ -505,3 +505,7 @@ That makes review easier because this app blends UX, product semantics, and back
 If you want others to reuse this repo clearly, add a root `LICENSE` file.
 
 A public repository without a license is visible, but reuse rights are not automatically clear.
+
+## Optional server storage for the book loop
+
+The OFF-by-default `server_book_loop_enabled` flag adds per-user Supabase storage for the private profile/Promise Ledger, Dex, local Mission Drops, Control / Release / Move notes, Read Along, Starting Charge, and track choice. Browser import requires confirmation and never overwrites existing server records. See [the schema, import behavior, and local verification guide](docs/SERVER_BOOK_LOOP.md). The migration has not been applied to production.
