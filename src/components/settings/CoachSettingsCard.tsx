@@ -101,6 +101,7 @@ function CoachSettingsEditor({
           ? `${settings.provider === "anthropic" ? "Anthropic" : settings.base_url?.includes("openrouter") ? "OpenRouter" : "OpenAI"} · key ending ${settings.last4}`
           : "Existing app coach · no personal key"}
       </p>
+      {settings?.last4 ? <p className="text-xs text-muted-foreground">Current model: {settings.model}</p> : null}
       <div className="space-y-2">
         <Label htmlFor="coach-provider">Provider</Label>
         <select
@@ -199,14 +200,14 @@ function CoachSettingsEditor({
       </div>
       <div className="flex flex-wrap gap-2">
         <Button
-          variant="outline"
+          variant="futureOutline"
           disabled={busy}
           onClick={() =>
             void run(() =>
               saveCoachPreferences(
                 userId,
                 settings?.last4
-                  ? model || settings.model
+                  ? destination === settings.base_url ? model || settings.model : settings.model
                   : "google/gemini-2.5-flash",
                 tone,
                 depth,
@@ -218,7 +219,7 @@ function CoachSettingsEditor({
         </Button>
         {settings?.last4 ? (
           <Button
-            variant="outline"
+            variant="futureOutline"
             disabled={busy}
             onClick={() => void run(() => removeCoachKey(userId), true)}
           >

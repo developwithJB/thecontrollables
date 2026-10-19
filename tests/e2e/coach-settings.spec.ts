@@ -55,6 +55,11 @@ test("writes, masks, changes preferences and removes a BYO key", async ({
     path: `artifacts/sequence-preview/d-${test.info().project.name}.png`,
     fullPage: true,
   });
+  await page.getByLabel("Provider", { exact: true }).selectOption("https://api.anthropic.com");
+  await page.getByLabel("Model ID").fill("different-provider-model");
+  await page.getByRole("button", { name: "Save preferences" }).click();
+  await expect(card.getByRole("status")).toHaveText("Saved.");
+  await expect(card).toContainText("Current model: test-model");
   await page.getByRole("button", { name: "Remove key" }).click();
   await expect(card).toContainText("Existing app coach · no personal key");
 });

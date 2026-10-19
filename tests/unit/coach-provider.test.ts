@@ -229,3 +229,17 @@ describe("coach provider boundary", () => {
     expect(card).not.toContain("trackGrowthEvent");
   });
 });
+
+import { readCoachPlanTier } from "../../supabase/functions/_shared/coachPlan";
+describe("server-owned coach plan", () => {
+  it.each(["free", "plus", "pro", null, "invalid"])("uses only the billing profile for %s", async (plan) => {
+    expect(await readCoachPlanTier(async () => ({ data: { plan_tier: plan }, error: null }))).toBe(plan === "plus" || plan === "pro" ? plan : "free");
+  });
+  it("fails closed on lookup failure and treats a missing profile as free", async () => {
+    await expect(readCoachPlanTier(async () => ({ data: null, error: new Error("unavailable") }))).rejects.toThrow("coach_entitlement_unavailable");
+    expect(await readCoachPlanTier(async () => ({ data: null, error: null }))).toBe("free");
+    const source = readFileSync("supabase/functions/ai-chat/index.ts", "utf8");
+    expect(source).not.toContain("user_metadata?.plan_tier");
+    expect(source).not.toContain("fallbackTier");
+  });
+});

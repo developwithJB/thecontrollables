@@ -1,3 +1,4 @@
+import { readCoachPlanTier } from "../_shared/coachPlan.ts";
 import { assembleCoachPrompt, createCoachProvider } from "../_shared/coachProvider.ts";
 import { loadCoachCredential } from "../_shared/coachCredentials.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
@@ -405,31 +406,8 @@ function getTodayDateKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function normalizePlanTier(rawTier: unknown): PlanTier {
-  if (rawTier === 'plus' || rawTier === 'pro') {
-    return rawTier;
-  }
-  return 'free';
-}
-
-async function getPlanTier(
-  supabaseClient: any,
-  userId: string,
-  fallbackTier: unknown
-): Promise<PlanTier> {
-  const fallback = normalizePlanTier(fallbackTier);
-  const { data: profileData, error } = await supabaseClient
-    .from('profiles')
-    .select('plan_tier')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Error fetching plan tier from profiles:', error);
-    return fallback;
-  }
-
-  return normalizePlanTier(profileData?.plan_tier ?? fallbackTier);
+async function getPlanTier(supabaseClient: any, userId: string): Promise<PlanTier> {
+  return readCoachPlanTier(() => supabaseClient.from('profiles').select('plan_tier').eq('id', userId).maybeSingle());
 }
 
 // Check and update daily usage using the real ai_usage_logs schema (usage_date + message_count)
@@ -642,7 +620,7 @@ Deno.serve(async (req) => {
     // A failed configured-key resolution must not silently spend hosted quota.
     if (personaSettings?.last4 && !credential) throw new Error('coach_credential_unavailable');
     const provider = createCoachProvider(credential, Deno.env.get('LOVABLE_API_KEY') ?? '');
-    const planTier = await getPlanTier(serviceClient, userId, userData.user.user_metadata?.plan_tier);
+    const planTier = await getPlanTier(serviceClient, userId);
     
     // Check if free user is in active trial (has active snapshot within 7 days)
     let isTrialUser = false;

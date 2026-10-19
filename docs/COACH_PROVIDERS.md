@@ -34,3 +34,7 @@ JB selected existing **Pro** for future hosted coaching, with price **TBD**. PR-
 - [OpenRouter Chat Completions](https://openrouter.ai/docs/api/api-reference/chat/create-a-chat-completion)
 - [Anthropic Messages](https://platform.claude.com/docs/en/api/messages/create)
 - [Supabase Vault](https://supabase.com/docs/guides/database/vault)
+
+## Release review corrections
+
+The server reads paid access only from the protected billing profile, never editable auth user_metadata. Billing lookup errors fail closed. Saving persona preferences while a different provider is selected preserves the currently connected provider model until a new key is saved. Settings show the currently connected model explicitly; secondary controls retain readable hover contrast.

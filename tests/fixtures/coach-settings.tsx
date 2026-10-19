@@ -44,6 +44,7 @@ Object.assign(supabase, {
       settings = {
         ...settings,
         user_id: owner,
+        model: args.p_model,
         persona_tone: args.p_tone,
         depth: args.p_depth,
       };
