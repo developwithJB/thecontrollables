@@ -103,7 +103,9 @@ export function evaluateCircuit(
   context?: SabbathContext | null,
 ): CircuitEvaluation {
   const completedActionIds = deriveCompletedActions(circuit, draft, context);
-  const allActionIds = CIRCUIT_DEFINITIONS[circuit].actions.map((action) => action.id);
+  const allActionIds: CircuitActionId[] = circuit === "wellness" && track === "fully_charged_75" && isSabbath(context)
+    ? ["nutrition_covenant_honored", "hydration_covenant_honored", "rest_or_walk", "sleep_preparation"]
+    : CIRCUIT_DEFINITIONS[circuit].actions.map((action) => action.id);
   const requiredActionIds = getRequiredActionIds(track, circuit, context);
   const missingRequiredActionIds = requiredActionIds.filter((id) => !completedActionIds.includes(id));
   const hasActivity = completedActionIds.length > 0 || Boolean(draft.reflection.trim()) || Boolean(draft.proof);

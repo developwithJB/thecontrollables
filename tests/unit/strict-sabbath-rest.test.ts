@@ -11,7 +11,10 @@ describe("versioned Sabbath Wellness", () => {
     return draft;
   };
   it("completes only with v2 and a server-projected rest day", () => {
-    expect(evaluateCircuit("fully_charged_75", "wellness", restDraft(), { rulesVersion: "v2_sabbath", isRestDay: true }).state).toBe("complete");
+    const evaluation = evaluateCircuit("fully_charged_75", "wellness", restDraft(), { rulesVersion: "v2_sabbath", isRestDay: true });
+    expect(evaluation.state).toBe("complete");
+    expect(evaluation.totalCount).toBe(4);
+    expect(evaluation.recommendedActionIds).toEqual(["sleep_preparation"]);
     for (const context of [undefined, { rulesVersion: "formation-circuits-v1", isRestDay: true }, { rulesVersion: "v2_sabbath", isRestDay: false }]) {
       const result = evaluateCircuit("fully_charged_75", "wellness", restDraft(), context);
       expect(result.state).toBe("in_progress");

@@ -143,4 +143,7 @@ test("locks the chosen Sabbath weekday and records the rest-day minimum", async 
   await expect(page.getByText("Circuit complete").first()).toBeVisible();
   await expect(page.getByLabel("Movement type or adaptation")).toHaveCount(0);
   await page.screenshot({ path: `artifacts/sequence-preview/c-${test.info().project.name}.png`, fullPage: true });
+  await page.getByRole("button", { name: /Return to Today/ }).first().click();
+  const wellnessCard = page.getByRole("button", { name: "Open Wellness" }).locator("..");
+  await expect(wellnessCard).toContainText("Circuit complete");
 });
