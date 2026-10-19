@@ -2207,14 +2207,17 @@ export type Database = {
       }
       formation_rule_rollouts: {
         Row: {
+          formation_email_verified: boolean
           id: boolean
           sabbath_new_attempts_enabled: boolean
         }
         Insert: {
+          formation_email_verified?: boolean
           id?: boolean
           sabbath_new_attempts_enabled?: boolean
         }
         Update: {
+          formation_email_verified?: boolean
           id?: boolean
           sabbath_new_attempts_enabled?: boolean
         }
@@ -4960,8 +4963,11 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_formation_entry_status: { Args: { p_start_date?: string }; Returns: Json }
       get_current_fully_charged_content: { Args: never; Returns: Json }
+      get_formation_entry_status: {
+        Args: { p_start_date?: string }
+        Returns: Json
+      }
       get_fully_charged_today: { Args: never; Returns: Json }
       get_hosted_coach_status: { Args: never; Returns: Json }
       has_role: {
