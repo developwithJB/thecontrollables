@@ -14,6 +14,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      wellness_private_checkins: {
+        Row: { user_id: string; local_date: string; sleep_rating: number | null; sleep_hours: number | null; mood: string | null; note: string | null; created_at: string }
+        Insert: { user_id?: string; local_date: string; sleep_rating?: number | null; sleep_hours?: number | null; mood?: string | null; note?: string | null }
+        Update: { sleep_rating?: number | null; sleep_hours?: number | null; mood?: string | null; note?: string | null }
+        Relationships: []
+      }
       admin_broadcasts: {
         Row: {
           body_html: string
@@ -4706,6 +4712,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      save_private_wellness_checkin: {
+        Args: { p_user_id: string; p_local_date: string; p_sleep_rating?: number | null; p_sleep_hours?: number | null; p_mood?: string | null; p_note?: string | null }
+        Returns: undefined
+      }
       activate_formation_path: {
         Args: {
           p_email_enabled?: boolean
