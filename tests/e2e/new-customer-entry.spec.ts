@@ -122,6 +122,8 @@ test("every customer-facing protected entry returns through sign-in", async ({ p
   };
 
   for (const route of protectedRoutes) {
+    // Fully unmount the previous route before starting another direct-entry test.
+    await page.goto("about:blank");
     await page.goto(route);
     const expectedRoute = canonicalRoutes[route] ?? route;
     const expected = `/auth?returnTo=${encodeURIComponent(expectedRoute)}`;

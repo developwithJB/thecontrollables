@@ -37,8 +37,9 @@ test("shows five distinct circuit experiences across track policies", async ({ p
   await expect(page.getByRole("button", { name: "Open Awareness" })).toBeVisible();
 });
 
-test("keeps prayer private and allows partial 40-Day progress", async ({ page }) => {
-  await page.getByRole("button", { name: /40-Day Charge/ }).click();
+test("keeps prayer private and allows partial Read Along progress", async ({ page }) => {
+  await expect(page.getByRole("button", { name: /40-Day Charge/ })).toBeDisabled();
+  await page.getByRole("button", { name: /Read Along One meaningful/ }).click();
   await page.getByRole("button", { name: "Open Perspective" }).click();
   await expect(page.getByText("Prayer text is never required")).toBeVisible();
 
@@ -46,7 +47,7 @@ test("keeps prayer private and allows partial 40-Day progress", async ({ page })
   await page.getByLabel("One concrete gratitude").fill("A quiet morning.");
   await page.getByRole("button", { name: /Save progress/ }).click();
   await expect(page.getByText("Practice recorded").first()).toBeVisible();
-  await expect(page.getByText(/Partial progress remains honest progress/)).toBeVisible();
+  await expect(page.getByText(/saved this practice without creating a streak or deadline/)).toBeVisible();
 });
 
 test("does not complete a promise from optional photo proof and supports deletion", async ({ page }) => {

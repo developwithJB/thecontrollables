@@ -24,7 +24,7 @@ DECLARE
   formation_email_enabled boolean := lower(COALESCE(new.raw_user_meta_data ->> 'formation_email_enabled', 'false')) IN ('true', '1', 'yes', 'on');
 BEGIN
   -- 40-Day Charge stays in the column check for older rows, but it is not startable.
-  IF selected_track NOT IN ('read_along', 'fully_charged_75') THEN
+  IF selected_track IS NULL OR selected_track NOT IN ('read_along', 'fully_charged_75') THEN
     selected_track := NULL;
     formation_email_enabled := false;
   END IF;
@@ -52,6 +52,12 @@ BEGIN
     CASE WHEN formation_email_enabled THEN now() ELSE NULL END
   );
 
+  IF selected_track IS NOT NULL AND to_regclass('public.controllables_book_records') IS NOT NULL THEN
+    INSERT INTO public.controllables_book_records (user_id, kind, record_key, payload)
+      VALUES (new.id, 'track', 'current', to_jsonb(selected_track))
+      ON CONFLICT (user_id, kind, record_key) DO NOTHING;
+  END IF;
+
   RETURN new;
 END;
 $$;
@@ -74,7 +80,7 @@ BEGIN
     RAISE EXCEPTION 'authentication_required' USING ERRCODE = '42501';
   END IF;
 
-  IF p_track NOT IN ('read_along', 'charge_40', 'fully_charged_75') THEN
+  IF p_track IS NULL OR p_track NOT IN ('read_along', 'charge_40', 'fully_charged_75') THEN
     RAISE EXCEPTION 'invalid_formation_track' USING ERRCODE = '22023';
   END IF;
 
@@ -118,6 +124,13 @@ BEGIN
       ELSE profiles.formation_email_opt_in_at
     END
   RETURNING * INTO saved_profile;
+
+  -- Keep email enrollment and cross-device path selection in one transaction.
+  IF to_regclass('public.controllables_book_records') IS NOT NULL THEN
+    INSERT INTO public.controllables_book_records (user_id, kind, record_key, payload)
+      VALUES (current_user_id, 'track', 'current', to_jsonb(p_track))
+      ON CONFLICT (user_id, kind, record_key) DO UPDATE SET payload = EXCLUDED.payload;
+  END IF;
 
   RETURN saved_profile;
 END;

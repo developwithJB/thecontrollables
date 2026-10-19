@@ -177,3 +177,23 @@ node scripts/run-book-loop-local.mjs /tmp/dashboard-local-status.json
 The runner refuses a non-local API hostname. Its status file includes local credentials and must remain outside the repository. The service role is passed only to the Node test runner, never to Vite or the browser. The fixture is a dev-only HTML entry and is not part of the production build. This is a targeted integration stack, not a claim that the repository's full historical migration chain was replayed.
 
 Updated verification: 62 unit files / 377 tests passed; both TypeScript checks and production build passed; dedicated formation Playwright 12/12 passed; local book-loop Playwright 2/2 passed; SQL suite ends in ROLLBACK. Backend production deployment and flag enablement are separate steps authorized by JB's October 19 request.
+
+### Formation email enrollment integration
+
+`profiles.formation_track` is the durable enrollment source. `activate_formation_path`
+updates that profile and the book-loop `track/current` record in one transaction;
+changing paths preserves email consent unless the user explicitly changes it.
+The signup trigger mirrors an explicitly selected, startable path too. Null paths
+and the closed 40-Day Charge cannot activate enrollment. The profile billing
+column remains server-owned.
+
+After applying both migrations to a disposable local Supabase with the existing
+profile grants and billing-protection trigger, run:
+
+```sh
+docker exec -i YOUR_LOCAL_DB psql -U postgres -d postgres -v ON_ERROR_STOP=1 < tests/database/formation-enrollment-security.sql
+```
+
+The rollback-only check covers signup metadata, atomic path mirroring, consent
+preservation/opt-out, owner isolation, billing escalation denial, closed/null
+paths, and anonymous RPC denial. It must never target production.
