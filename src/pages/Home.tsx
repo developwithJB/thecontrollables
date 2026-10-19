@@ -306,7 +306,7 @@ export default function Home() {
       ) : null}
 
       <footer className="pt-6 pb-4 text-center">
-        <p className="text-xs text-muted-foreground/50">© {new Date().getFullYear()} AGB Coaching</p>
+        <p className="text-xs text-muted-foreground/50">© {new Date().getFullYear()} The Controllables</p>
       </footer>
     </div>
   );

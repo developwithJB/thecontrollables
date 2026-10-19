@@ -446,7 +446,7 @@ export default function Landing() {
           <Link to="/terms" className="hover:text-foreground hover:underline">Terms</Link>
           {" · "}
           Questions?{" "}<a href="https://instagram.com/agbcoaching" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">@agbcoaching</a>
-          {" · "}© {new Date().getFullYear()} AGB Coaching
+          {" · "}© {new Date().getFullYear()} The Controllables
         </p>
       </footer>
     </div>
