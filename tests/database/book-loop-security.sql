@@ -1,5 +1,10 @@
 -- Disposable local database only, after the migration. Always rolls back.
 BEGIN;
+DO $$ BEGIN
+ IF has_sequence_privilege('authenticated','public.book_record_revision_seq','UPDATE') OR has_sequence_privilege('authenticated','public.book_record_revision_seq','SELECT') THEN RAISE EXCEPTION 'revision sequence grants too broad'; END IF;
+ IF NOT has_sequence_privilege('authenticated','public.book_record_revision_seq','USAGE') THEN RAISE EXCEPTION 'revision sequence usage missing'; END IF;
+ IF has_function_privilege('authenticated','public.bump_book_record_revision()','EXECUTE') THEN RAISE EXCEPTION 'trigger exposed as client RPC'; END IF;
+END $$;
 INSERT INTO auth.users (id, email) VALUES
  ('10000000-0000-0000-0000-000000000001', 'book-loop-a@example.invalid'),
  ('10000000-0000-0000-0000-000000000002', 'book-loop-b@example.invalid');
