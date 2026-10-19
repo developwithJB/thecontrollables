@@ -1,3 +1,4 @@
+import { trackGrowthEvent } from "@/lib/growthEvents";
 import { BookLink } from "@/components/BookLink";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -178,6 +179,7 @@ export default function Landing() {
       if (session) {
         navigate(`/home${window.location.search}`, { replace: true });
       } else {
+        trackGrowthEvent("landing_view");
         setAuthChecked(true);
       }
     });
