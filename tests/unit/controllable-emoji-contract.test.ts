@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { extname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { ORDERED_CONTROLLABLE_GUIDES } from "@/lib/controllables";
 import { CONTROLLABLE_VISUAL_ICONS } from "@/lib/controllableVisuals";
 
 const CANONICAL_CONTROLLABLE_EMOJIS = {
@@ -25,6 +26,12 @@ function sourceFiles(root: string): string[] {
 describe("canonical Controllable emoji contract", () => {
   it("uses the approved five-character mapping", () => {
     expect(CONTROLLABLE_VISUAL_ICONS).toEqual(CANONICAL_CONTROLLABLE_EMOJIS);
+  });
+
+  it("preserves canonical guide names and order", () => {
+    expect(ORDERED_CONTROLLABLE_GUIDES.map(({ name, emoji }) => [name, emoji])).toEqual([
+      ["Awareness", "🦉"], ["Perspective", "🐢"], ["Habit", "🦈"], ["Wellness", "🛰️"], ["Environment", "🚀"],
+    ]);
   });
 
   it("does not reintroduce retired Perspective or Wellness mascots", () => {
