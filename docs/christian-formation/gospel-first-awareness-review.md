@@ -16,7 +16,7 @@ Existing Gospel readings are retained where appropriate. Epistle/Acts assignment
 
 Day 2 expands Mark 1:35 to 1:35–39 to retain prayer and mission context. Day 38 includes Mark 12:38–44 so the widow's offering is not detached from the preceding warning about exploitation. Day 70 becomes Protect the vulnerable (Luke 20:45–47); it does not use the widow's offering to require giving beyond capacity. Review these decisions and all accompanying invitations/reflections together.
 
-Primary reading sources are reference links in each content draft, for example [Mark 1:35–39](https://www.biblegateway.com/passage/?search=Mark%201%3A35-39&version=NLT) and [John 13:1–17](https://www.biblegateway.com/passage/?search=John%2013%3A1-17&version=NLT). No copyrighted translation text is copied. A reference is not a claim that a reviewer has approved its application.
+Primary reading sources are reference links in each content draft, for example [Mark 1:35–39](https://www.bible.com/bible/116/MRK.1.35-39) and [John 13:1–17](https://www.bible.com/bible/116/JHN.13.1-17) on Bible.com (NLT). No copyrighted translation text is copied. A reference is not a claim that a reviewer has approved its application.
 
 ## Publication and versioning
 
