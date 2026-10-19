@@ -1,3 +1,5 @@
+import { assembleCoachPrompt, createCoachProvider } from "../_shared/coachProvider.ts";
+import { loadCoachCredential } from "../_shared/coachCredentials.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import {
   CORE_PHILOSOPHY,
@@ -628,6 +630,18 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
+    const { data: providerRollout, error: rolloutError } = await serviceClient
+      .from('coach_provider_rollout').select('coach_providers_enabled').eq('id', true).maybeSingle();
+    // Missing/unapplied table or flag-off never reads Vault; retain existing gateway.
+    const settingsResult = !rolloutError && providerRollout?.coach_providers_enabled === true
+      ? await serviceClient.from('coach_provider_settings').select('provider,last4,persona_tone,depth').eq('user_id',userId).maybeSingle()
+      : { data: null, error: null };
+    if (settingsResult.error) throw new Error('coach_settings_unavailable');
+    const personaSettings = settingsResult.data;
+    const credential = personaSettings?.last4 ? await loadCoachCredential(userId) : null;
+    // A failed configured-key resolution must not silently spend hosted quota.
+    if (personaSettings?.last4 && !credential) throw new Error('coach_credential_unavailable');
+    const provider = createCoachProvider(credential, Deno.env.get('LOVABLE_API_KEY') ?? '');
     const planTier = await getPlanTier(serviceClient, userId, userData.user.user_metadata?.plan_tier);
     
     // Check if free user is in active trial (has active snapshot within 7 days)
@@ -650,10 +664,16 @@ Deno.serve(async (req) => {
       }
     }
     
-    const usageResult = await checkAndUpdateDailyUsage(serviceClient, userId, planTier, isTrialUser);
+    const usageResult = credential
+      ? await (async () => {
+          const { data, error } = await serviceClient.rpc('reserve_coach_byo_usage', { p_user_id: userId });
+          if (error || !data) throw new Error('coach_usage_unavailable');
+          return data as { allowed: boolean; remaining: number; used: number; dailyLimit: number };
+        })()
+      : await checkAndUpdateDailyUsage(serviceClient, userId, planTier, isTrialUser);
     
     if (!usageResult.allowed) {
-      const isPlusLocked = planTier === 'plus';
+      const isPlusLocked = !credential && planTier === 'plus';
       return new Response(
         JSON.stringify({ 
           error: isPlusLocked
@@ -737,7 +757,7 @@ Deno.serve(async (req) => {
     });
 
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!apiKey) {
+    if (!credential && !apiKey) {
       console.error('LOVABLE_API_KEY not found');
       return new Response(
         JSON.stringify({ error: 'AI service not configured' }),
@@ -809,28 +829,13 @@ You can perform actions in the app when the user asks. Available actions:
 When the user asks you to do something actionable (like "clear my lunches", "remove my planned meals", "add chicken salad for lunch tomorrow"), USE the appropriate tool. Still respond in your character voice after performing the action.
 Today's date is ${getTodayDateKey()}.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: toolAwarePrompt },
-          ...conversationMessages,
-        ],
-        max_tokens: 600,
-        temperature: 0.7,
-        tools,
-        stream: false,
-      }),
-    });
+    const response = await provider.complete([
+      { role: 'system', content: assembleCoachPrompt(credential ? systemPrompt : toolAwarePrompt, personaSettings?.persona_tone, personaSettings?.depth) },
+      ...conversationMessages,
+    ], { maxTokens: 600, ...(credential ? {} : { tools }) });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
+      console.error('AI API error status:', response.status);
       
       if (response.status === 429) {
         return new Response(
@@ -853,7 +858,7 @@ Today's date is ${getTodayDateKey()}.`;
 
     const data = await response.json();
     const firstChoice = data.choices?.[0];
-    const toolCalls = firstChoice?.message?.tool_calls;
+    const toolCalls = credential ? undefined : firstChoice?.message?.tool_calls;
     const actionsTaken: string[] = [];
     const toolResults: Array<{ role: string; tool_call_id: string; content: string }> = [];
 
@@ -946,24 +951,10 @@ Today's date is ${getTodayDateKey()}.`;
       }
 
       // ============ SECOND PASS: Get natural confirmation ============
-      const secondResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            { role: 'system', content: toolAwarePrompt },
-            ...conversationMessages,
-            firstChoice.message,
-            ...toolResults,
-          ],
-          max_tokens: 300,
-          temperature: 0.7,
-        }),
-      });
+      const secondResponse = await provider.complete([
+        { role: 'system', content: assembleCoachPrompt(toolAwarePrompt, personaSettings?.persona_tone, personaSettings?.depth) },
+        ...conversationMessages, firstChoice.message, ...toolResults,
+      ], { maxTokens: 300 });
 
       if (secondResponse.ok) {
         const secondData = await secondResponse.json();
@@ -981,8 +972,7 @@ Today's date is ${getTodayDateKey()}.`;
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } else {
-        const errText = await secondResponse.text();
-        console.error('Second pass error:', secondResponse.status, errText);
+        console.error('Second pass error status:', secondResponse.status);
       }
     }
 
@@ -1007,7 +997,7 @@ Today's date is ${getTodayDateKey()}.`;
     );
 
   } catch (error) {
-    console.error('Error in ai-chat function:', error);
+    console.error('AI chat request failed');
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -1,3 +1,4 @@
+import { CoachSettingsCard } from "@/components/settings/CoachSettingsCard";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut, Moon, Sun, CreditCard, Mail, Calendar, Bell, Plug } from "lucide-react";
@@ -387,6 +388,7 @@ export function ProfileSettingsModal({
               {isSaving ? "Saving..." : "Save Changes"}
             </Button>
 
+            <CoachSettingsCard userId={userId} />
             {/* Daily Operator AI Settings */}
             <AISettingsCard userId={userId} onRevisitStart={() => onOpenChange(false)} />
 

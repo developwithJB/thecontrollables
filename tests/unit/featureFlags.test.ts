@@ -37,6 +37,7 @@ describe("featureFlags", () => {
     );
 
     expect(getFeatureFlags()).toEqual({
+      coach_providers_enabled: false,
       server_book_loop_enabled: true,
       onboarding_quick_start_enabled: false,
       formation_circuits_enabled: true,

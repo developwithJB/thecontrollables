@@ -23,3 +23,6 @@ Keep the existing circuit card and semantic tokens. A compact ordered list shows
 ## Sources and feedback
 
 Use a readable note from JB and one clearly labeled GitHub feedback link in the landing footer. Gospel Awareness cards repeat a compact correction link beside the NLT source context. Preserve semantic colors, underlined links, visible keyboard focus and mobile wrapping. State that GitHub reports are public; never prefill private content, account identity or current-page query strings. Keep translation credit distinct from product guidance and retain all draft-review labels.
+
+## Coach settings (provider rollout off)
+Reuse the settings card, Input, Label, Button and native select conventions. Stack fields on mobile, with visible labels and focus rings. The entire card is excluded from replay/autocapture; API keys use a write-only password input and are cleared after any save attempt or account switch. Show only provider and last four characters after save, never the stored key. Inline loading, generic error and saved states must not echo entered values. Hide the card unless both client visibility and server rollout are enabled. No new colors, icons or animation.

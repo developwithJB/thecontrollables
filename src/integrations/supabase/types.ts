@@ -14,6 +14,13 @@ export type Database = {
   }
   public: {
     Tables: {
+      coach_provider_settings: {
+        Row: { user_id: string; provider: string; base_url: string | null; model: string; persona_tone: string; depth: string; last4: string | null; updated_at: string }
+        Insert: never
+        Update: { model?: string; persona_tone?: string; depth?: string }
+        Relationships: []
+      }
+
       admin_broadcasts: {
         Row: {
           body_html: string
@@ -4706,6 +4713,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      coach_providers_available: { Args: Record<PropertyKey, never>; Returns: boolean }
+      set_coach_api_key: { Args: {p_provider: string; p_key: string; p_base_url: string; p_model: string}; Returns: Json }
+      clear_coach_api_key: { Args: Record<PropertyKey, never>; Returns: Json }
+      save_coach_preferences: { Args: {p_model: string; p_tone: string; p_depth: string}; Returns: undefined }
+
       activate_formation_path: {
         Args: {
           p_email_enabled?: boolean
