@@ -4,13 +4,13 @@ CREATE TABLE public.coach_provider_rollout (
   id boolean PRIMARY KEY DEFAULT true CHECK (id),
   coach_providers_enabled boolean NOT NULL DEFAULT false
 );
-ALTER TABLE public.coach_provider_rollout ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.coach_provider_rollout FROM PUBLIC, anon, authenticated;
 GRANT SELECT, UPDATE ON public.coach_provider_rollout TO service_role;
+ALTER TABLE public.coach_provider_rollout ENABLE ROW LEVEL SECURITY;
 INSERT INTO public.coach_provider_rollout (id) VALUES (true);
 
 CREATE TABLE public.coach_provider_settings (
-  user_id uuid PRIMARY KEY DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id uuid PRIMARY KEY DEFAULT auth.uid() REFERENCES public.profiles(id) ON DELETE CASCADE,
   provider text NOT NULL DEFAULT 'lovable_gateway' CHECK (provider IN ('lovable_gateway','openai_compatible','anthropic')),
   base_url text CHECK (base_url IN ('https://api.openai.com/v1','https://openrouter.ai/api/v1','https://api.anthropic.com')),
   model text NOT NULL DEFAULT 'google/gemini-2.5-flash' CHECK (length(model) BETWEEN 1 AND 120 AND model ~ '^[A-Za-z0-9._:/-]+$'),
@@ -25,13 +25,13 @@ CREATE TABLE public.coach_provider_settings (
 );
 CREATE TRIGGER coach_settings_updated_at BEFORE UPDATE ON public.coach_provider_settings
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-ALTER TABLE public.coach_provider_settings ENABLE ROW LEVEL SECURITY;
-CREATE POLICY coach_settings_owner_select ON public.coach_provider_settings FOR SELECT TO authenticated USING (user_id = auth.uid());
-CREATE POLICY coach_settings_owner_update ON public.coach_provider_settings FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 REVOKE ALL ON public.coach_provider_settings FROM PUBLIC, anon, authenticated;
 GRANT SELECT (user_id, provider, base_url, model, persona_tone, depth, last4, updated_at) ON public.coach_provider_settings TO authenticated;
 GRANT UPDATE (model, persona_tone, depth) ON public.coach_provider_settings TO authenticated;
 GRANT SELECT ON public.coach_provider_settings TO service_role;
+ALTER TABLE public.coach_provider_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY coach_settings_owner_select ON public.coach_provider_settings FOR SELECT TO authenticated USING (user_id = auth.uid());
+CREATE POLICY coach_settings_owner_update ON public.coach_provider_settings FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 CREATE FUNCTION public.coach_providers_available() RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
@@ -96,13 +96,14 @@ CREATE TRIGGER delete_coach_secret BEFORE DELETE ON public.coach_provider_settin
 
 -- Race-safe independent BYO cap. Reserve before a provider call; failures still count.
 CREATE TABLE public.coach_byo_usage (
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   usage_date date NOT NULL,
   message_count integer NOT NULL CHECK (message_count BETWEEN 1 AND 100),
   PRIMARY KEY (user_id, usage_date)
 );
-ALTER TABLE public.coach_byo_usage ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.coach_byo_usage FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.coach_byo_usage TO service_role;
+ALTER TABLE public.coach_byo_usage ENABLE ROW LEVEL SECURITY;
 CREATE FUNCTION public.reserve_coach_byo_usage(p_user_id uuid) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE used_count integer;

@@ -17,7 +17,8 @@ Deno.test(
     const other = "50000000-0000-4000-8000-000000000002";
     try {
       await sql`INSERT INTO auth.users (id,aud,role,email,created_at,updated_at) VALUES (${owner},'authenticated','authenticated','coach-edge@example.test',now(),now())`;
-      if ((await loadCoachCredential(owner)) !== null)
+      await sql`INSERT INTO public.profiles (id,plan_tier) VALUES (${owner},'free') ON CONFLICT (id) DO NOTHING`;
+    if ((await loadCoachCredential(owner)) !== null)
         throw new Error("default_off_resolver_not_null");
       await sql`UPDATE public.coach_provider_rollout SET coach_providers_enabled=true WHERE id`;
       await sql.begin(async (tx) => {

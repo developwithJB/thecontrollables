@@ -38,3 +38,7 @@ JB selected existing **Pro** for future hosted coaching, with price **TBD**. PR-
 ## Release review corrections
 
 The server reads paid access only from the protected billing profile, never editable auth user_metadata. Billing lookup errors fail closed. Saving persona preferences while a different provider is selected preserves the currently connected provider model until a new key is saved. Settings show the currently connected model explicitly; secondary controls retain readable hover contrast.
+
+## Lovable schema compatibility
+
+Before production installation, Lovable confirmed the three release migrations were absent and required its platform schema conventions: new application tables reference `public.profiles(id)` rather than `auth.users`, and explicit intended grants precede RLS/policies. The existing `profiles_id_fkey` cascades from auth.users, so coach rows and Vault cleanup still cascade on account deletion. The three unapplied release migrations were corrected in GitHub and clean-reset tested before installation. Named client column grants and server-only counters remain restricted; no Vault pointer or mode-write grant was added. Explicit service-role SELECT on protected usage counters documents intended server access. These are platform conventions, not PostgreSQL requirements.

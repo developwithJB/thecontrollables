@@ -71,13 +71,14 @@ GRANT EXECUTE ON FUNCTION public.set_coach_api_key(text,text,text,text) TO authe
 
 -- Quota authority must not use the legacy client-writable aggregate log.
 CREATE TABLE public.coach_hosted_usage (
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   usage_date date NOT NULL,
   message_count integer NOT NULL CHECK (message_count BETWEEN 1 AND 25),
   PRIMARY KEY (user_id,usage_date)
 );
-ALTER TABLE public.coach_hosted_usage ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.coach_hosted_usage FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.coach_hosted_usage TO service_role;
+ALTER TABLE public.coach_hosted_usage ENABLE ROW LEVEL SECURITY;
 
 -- Serialize BYO/hosted reservations together, preserving the existing BYO cap.
 CREATE OR REPLACE FUNCTION public.reserve_coach_byo_usage(p_user_id uuid) RETURNS jsonb
