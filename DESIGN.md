@@ -23,3 +23,7 @@ Keep the existing circuit card and semantic tokens. A compact ordered list shows
 ## Sources and feedback
 
 Use a readable note from JB and one clearly labeled GitHub feedback link in the landing footer. Gospel Awareness cards repeat a compact correction link beside the NLT source context. Preserve semantic colors, underlined links, visible keyboard focus and mobile wrapping. State that GitHub reports are public; never prefill private content, account identity or current-page query strings. Keep translation credit distinct from product guidance and retain all draft-review labels.
+
+## Optional private check-ins and review-day invitation
+
+Reuse existing Wellness cards, labels, inputs and semantic tokens. A Private check-in card uses a stacked mobile form and compact desktop grid: optional sleep rating/hours, one fixed feeling choice and a 280-character note. Explain optional/private/not graded before inputs. Mark the entire form as excluded from analytics capture and replay. Use explicit loading, saved, error and delete states; never show private data in toasts. No streak, score or completion effect. Keyboard labels, visible focus and readable errors are required. A review-day invitation uses an existing panel/button outside circuit and closeout controls; clipboard failures remain retryable. At 375px and desktop widths, forms, safety links and status copy must wrap without overflow. No new tokens, animation, rankings or health advice.

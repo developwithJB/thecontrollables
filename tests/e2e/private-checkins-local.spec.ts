@@ -1,0 +1,25 @@
+import { expect, test } from '@playwright/test';
+import { createClient } from '@supabase/supabase-js';
+const url=process.env.LOCAL_SUPABASE_URL!;
+if(!['127.0.0.1','localhost'].includes(new URL(url).hostname)) throw new Error('Local test only');
+const anon=process.env.LOCAL_SUPABASE_ANON_KEY!;
+const admin=createClient(url,process.env.LOCAL_SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false,autoRefreshToken:false}});
+const password='PrivateCheckin-Local-Only!';
+const users:{id:string;email:string}[]=[];
+test.beforeAll(async()=>{for(let i=0;i<2;i++) {const email=`checkin-${i}-${Date.now()}@example.invalid`;const {data,error}=await admin.auth.admin.createUser({email,password,email_confirm:true});if(error)throw error;users.push({id:data.user.id,email});}});
+test.afterAll(async()=>{for(const user of users)await admin.auth.admin.deleteUser(user.id);});
+for(const [index,width] of [375,1280].entries()) test(`private save/reload/delete and layout at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:1000});await page.goto('/tests/fixtures/private-checkins-local.html');
+ await page.getByLabel('Email',{exact:true}).fill(users[index].email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ await expect(page.getByText('Loading private check-in…')).toHaveCount(0);
+ await page.getByLabel('How did you sleep?').selectOption('4');await page.getByLabel('Hours slept (optional)').fill('7.5');await page.getByLabel('How are you, honestly?').selectOption('anxious');await page.getByLabel(/Private note/).fill('Disposable local check-in fixture');
+ await expect(page.getByRole('link',{name:'988'})).toBeVisible();await page.getByRole('button',{name:'Save private check-in',exact:true}).click();await expect(page.getByText('Private check-in saved.',{exact:true})).toBeVisible();
+ await page.reload();await expect(page.getByLabel(/Private note/)).toHaveValue('Disposable local check-in fixture');
+ const other=createClient(url,anon,{auth:{persistSession:false}});await other.auth.signInWithPassword({email:users[1-index].email,password});
+ expect((await other.from('wellness_private_checkins').select('*').eq('user_id',users[index].id)).data).toEqual([]);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+ await expect(page.getByRole('heading',{name:'Share this week with someone you trust'})).toBeVisible();
+ await page.screenshot({path:`artifacts/sequence-preview/b-${width}.png`,fullPage:true});
+ page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'Delete all private check-ins',exact:true}).click();await expect(page.getByText('All private check-ins deleted.',{exact:true})).toBeVisible();
+ await page.reload();await expect(page.getByLabel(/Private note/)).toHaveValue('');
+});

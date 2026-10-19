@@ -1,3 +1,4 @@
+import { PrivateCheckinCard } from "@/components/wellness/PrivateCheckinCard";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -105,6 +106,8 @@ export default function Wellness() {
         </div>
         <p className="text-muted-foreground text-sm">How your body is doing — recovery, sleep, strain, and trends.</p>
       </div>
+
+      <PrivateCheckinCard userId={user.id} />
 
       {/* 1. Wearable Integration (primary) */}
       <WearableSummaryCard userId={user.id} isPaid={isPaid} onUpgrade={() => startCheckout("wearable_summary")} />

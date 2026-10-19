@@ -65,3 +65,8 @@ describe('growth measurement', () => {
     expect(readFileSync('src/pages/Auth.tsx', 'utf8')).toContain('data: { display_name: displayName.trim() || null, ...getSignupAttribution(), ...signupMetadata }');
   });
 });
+
+it('drops sleep, mood, emotion and feeling properties from growth events', async () => {
+  const { sanitizeGrowthProps } = await import('@/lib/growthEvents');
+  expect(sanitizeGrowthProps({sleep: 4, mood: 'heavy', emotion: 'anxious', feeling: 'okay', sleep_hours: 7.5, note: 'private'})).toEqual({});
+});

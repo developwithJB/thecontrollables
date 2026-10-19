@@ -1,3 +1,4 @@
+import { ReviewDayInvite } from "@/components/formation/ReviewDayInvite";
 import {
   ArrowRight,
   BookOpen,
@@ -132,6 +133,8 @@ export default function FormationToday() {
           onCancel={strictJourney.cancelAttempt}
         />
       ) : null}
+
+      {track === "fully_charged_75" && strictDayOpen ? <ReviewDayInvite dayNumber={strictJourney.journey?.dayNumber ?? null} /> : null}
 
       {error ? (
         <div role="alert" className="rounded-2xl border border-destructive/35 bg-destructive/8 p-4 text-sm">
