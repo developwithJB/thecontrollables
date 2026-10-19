@@ -1,3 +1,4 @@
+import { validFormationSchedulerToken, isFormationSchedulerPayload } from "../_shared/formation-scheduler-auth.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import {
@@ -1810,7 +1811,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    let authorized = authHeader === `Bearer ${supabaseServiceKey}`;
+    const schedulerAuthorized = req.method === "POST" && validFormationSchedulerToken(
+      req.headers.get("x-formation-scheduler-token"), Deno.env.get("FORMATION_SCHEDULER_TOKEN"),
+    );
+    let authorized = authHeader === `Bearer ${supabaseServiceKey}` || schedulerAuthorized;
 
     if (!authorized) {
       const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -1836,26 +1840,24 @@ Deno.serve(async (req) => {
       );
     }
 
+    let requestBody: NudgeRequest & { scheduled?: boolean; schedulerHealthCheck?: boolean } = {};
+    try { requestBody = await req.json(); } catch { /* Existing admin default retained. */ }
+    if (schedulerAuthorized && !isFormationSchedulerPayload(requestBody)) {
+      return new Response(JSON.stringify({ error: "Scheduled requests cannot target users or override delivery rules" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (schedulerAuthorized && requestBody.schedulerHealthCheck === true) {
+      // No audience scan, message send or provider call. Allows safe install verification.
+      return new Response(JSON.stringify({ schedulerAuthenticated: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const testMode = requestBody.testMode === true;
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
-      console.error("[NUDGE] RESEND_API_KEY not configured");
-      return new Response(
-        JSON.stringify({ error: "Email service not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Email service not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-
     const resend = new Resend(resendApiKey);
-
-    // Parse request body
-    let requestBody: NudgeRequest = {};
-    let testMode = false;
-    try {
-      requestBody = await req.json();
-      testMode = requestBody.testMode === true;
-    } catch {
-      // Default to production mode
-    }
 
     const forceTargetedSend =
       requestBody.forceSend === true && Boolean(requestBody.targetUserId);
