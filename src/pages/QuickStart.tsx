@@ -1,3 +1,4 @@
+import { trackGrowthEvent } from "@/lib/growthEvents";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import {
@@ -273,6 +274,8 @@ export default function QuickStart() {
       snapshotName: null,
     });
   }, [readingStatus, step, track]);
+
+  useEffect(() => { trackGrowthEvent("quick_start_step_viewed", { step }); }, [step]);
 
   if (!onboardingQuickStartEnabled()) {
     return <Navigate to="/auth?mode=signup" replace />;
