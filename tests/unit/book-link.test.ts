@@ -3,8 +3,8 @@ import { createElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-const mocks = vi.hoisted(() => ({ trackEvent: vi.fn() }));
-vi.mock('@/hooks/useAnalytics', () => ({ usePageViewTracking: () => undefined }));
+const mocks = vi.hoisted(() => ({ trackEvent: vi.fn(), optionalEvent: vi.fn() }));
+vi.mock('@/hooks/useAnalytics', () => ({ useAnalytics: () => ({ trackEvent: mocks.optionalEvent }), usePageViewTracking: () => undefined }));
 vi.mock('@/lib/growthEvents', () => ({ trackGrowthEvent: mocks.trackEvent }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { auth: { getSession: () => Promise.resolve({ data: { session: null } }) } } }));
 vi.mock('@/lib/featureFlags', () => ({ onboardingQuickStartEnabled: () => true }));
@@ -28,6 +28,8 @@ describe('shared book links', () => {
     expect(link.getAttribute('target')).toBe('_blank'); expect(link.getAttribute('rel')).toBe('noopener noreferrer');
     expect(fireEvent.click(link)).toBe(true);
     expect(mocks.trackEvent).toHaveBeenCalledWith('book_link_click', { placement: 'landing_nav' });
+    expect(mocks.trackEvent).toHaveBeenCalledTimes(1);
+    expect(mocks.optionalEvent).not.toHaveBeenCalled();
   });
   it('keeps navigation usable when analytics throws or rejects', async () => {
     render(createElement(BookLink, { placement: 'quick_start', children: 'Book' }));
