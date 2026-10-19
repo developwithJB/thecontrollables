@@ -276,7 +276,7 @@ for (const variant of variants) {
           .square .brand { top: 54px; left: 58px; }
           .square .badge { top: 48px; right: 52px; }
           .square .headline { top: 118px; left: 58px; width: 820px; font-size: 76px; }
-          .square .sub { top: 207px; left: 62px; width: 720px; font-size: 23px; }
+          .square .sub { top: 292px; left: 62px; width: 720px; font-size: 23px; }
           .square .cta { left: 50%; bottom: 142px; transform: translateX(-50%); }
           .square .guides { left: 50%; bottom: 62px; width: 930px; justify-content: center; transform: translateX(-50%); }
           .square .url { display: none; }
@@ -289,7 +289,7 @@ for (const variant of variants) {
           .portrait .brand { top: 62px; left: 58px; }
           .portrait .badge { top: 48px; right: 52px; }
           .portrait .headline { top: 128px; left: 58px; width: calc(100% - 116px); font-size: 78px; }
-          .portrait .sub { top: 219px; left: 62px; width: calc(100% - 124px); font-size: 23px; }
+          .portrait .sub { top: 302px; left: 62px; width: calc(100% - 124px); font-size: 23px; }
           .portrait .cta { left: 50%; bottom: 128px; transform: translateX(-50%); white-space: nowrap; }
           .portrait .guides { left: 50%; bottom: 51px; width: 92%; justify-content: center; transform: translateX(-50%); }
           .portrait .url { display: none; }
