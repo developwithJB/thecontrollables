@@ -8,7 +8,7 @@ export function GospelAwarenessPrompts({ reading, draft = false }: { reading: Go
     <section aria-label="Gospel-first Awareness" className="space-y-3 rounded-2xl border border-primary/15 bg-primary/5 p-4" data-testid="gospel-awareness-prompts">
       <div>
         <p className="font-semibold text-foreground">Awareness 🦉 · Notice Jesus first</p>
-        <a href={gospelReadingUrl(reading.scriptureReference)} target="_blank" rel="noopener noreferrer" aria-label={`Read ${reading.scriptureReference} in the NLT on Bible Gateway (opens in a new tab)`} className="mt-1 inline-block rounded text-sm font-medium text-primary underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{reading.scriptureReference} (NLT)</a>
+        <a href={gospelReadingUrl(reading.scriptureReference)} target="_blank" rel="noopener noreferrer" aria-label={`Read ${reading.scriptureReference} in the NLT on Bible.com (opens in a new tab)`} className="mt-1 inline-block rounded text-sm font-medium text-primary underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{reading.scriptureReference} (NLT)</a>
         {draft ? <p className="mt-1 text-xs text-muted-foreground">Draft guidance · pending independent theological review</p> : null}
       </div>
       <ol className="space-y-3 text-sm leading-6">

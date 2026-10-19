@@ -14,9 +14,14 @@ export interface GospelAwarenessReading {
 export function isGospelReference(reference: string): boolean {
   return /^(Matthew|Mark|Luke|John) [1-9]\d?:[1-9]\d?(?:-[1-9]\d?)?$/.test(reference);
 }
+/** Awareness is the faith character: its Bible reference is Bible.com (YouVersion). Bible ID 116 = New Living Translation (NLT). */
+const GOSPEL_BOOK_USFM = { Matthew: 'MAT', Mark: 'MRK', Luke: 'LUK', John: 'JHN' } as const;
 export function gospelReadingUrl(scriptureReference: string): string {
-  if (!isGospelReference(scriptureReference)) throw new Error('Awareness requires a Gospel passage.');
-  return `https://www.biblegateway.com/passage/?search=${encodeURIComponent(scriptureReference)}&version=NLT`;
+  const match = scriptureReference.match(/^(Matthew|Mark|Luke|John) ([1-9]\d?):([1-9]\d?)(?:-([1-9]\d?))?$/);
+  if (!match) throw new Error('Awareness requires a Gospel passage.');
+  const book = GOSPEL_BOOK_USFM[match[1] as keyof typeof GOSPEL_BOOK_USFM];
+  const passage = `${book}.${match[2]}.${match[3]}${match[4] ? `-${match[4]}` : ''}`;
+  return `https://www.bible.com/bible/116/${passage}`;
 }
 export function buildGospelAwarenessReading(scriptureReference: string): GospelAwarenessReading {
   if (!isGospelReference(scriptureReference)) throw new Error('Awareness requires a Gospel passage.');
