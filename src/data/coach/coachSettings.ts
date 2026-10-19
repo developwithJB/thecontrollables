@@ -62,3 +62,22 @@ export async function removeCoachKey(userId: string) {
   const { error } = await supabase.rpc("clear_coach_api_key");
   if (error) throw new Error("coach_key_remove_failed");
 }
+
+export async function loadHostedCoachStatus(userId: string) {
+  await requireOwner(userId);
+  const { data, error } = await supabase.rpc("get_hosted_coach_status");
+  if (error || !data || typeof data !== "object" || Array.isArray(data))
+    throw new Error("hosted_coach_status_unavailable");
+  return {
+    enabled: data.enabled === true,
+    entitled: data.entitled === true,
+    selected: data.selected === true,
+  };
+}
+export async function selectHostedCoach(userId: string, selected: boolean) {
+  await requireOwner(userId);
+  const { error } = await supabase.rpc("select_hosted_coach", {
+    p_selected: selected,
+  });
+  if (error) throw new Error("hosted_coach_selection_failed");
+}

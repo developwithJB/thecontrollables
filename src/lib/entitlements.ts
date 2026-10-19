@@ -39,6 +39,7 @@ export const PAID_FEATURES = {
   badgesEarned: "plus",
   momentumDecay: "plus",
   aiCompanions: "plus",
+  hostedCoach: "pro",
   certificateDownload: "plus",
   mealPlanning: "plus",
   multipleResets: "pro",

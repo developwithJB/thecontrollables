@@ -1,6 +1,7 @@
 import { PRICE_IDS, type PlanType } from "@/lib/pricing";
 
 export const FEATURE_FLAG_KEYS = [
+  "hosted_coach_enabled",
   "coach_providers_enabled",
   "server_book_loop_enabled",
   "onboarding_quick_start_enabled",
@@ -20,6 +21,7 @@ export type PaywallPlacement = "overlay" | "inline" | "promo";
 export type PricingTierModel = "yearly_default" | "monthly_default";
 
 export interface FeatureFlags {
+  hosted_coach_enabled: boolean;
   coach_providers_enabled: boolean;
   server_book_loop_enabled: boolean;
   onboarding_quick_start_enabled: boolean;
@@ -36,6 +38,7 @@ export interface FeatureFlags {
 export type FeatureFlagOverrides = Partial<Record<FeatureFlagKey, unknown>>;
 
 export const DEFAULT_FEATURE_FLAGS: Readonly<FeatureFlags> = Object.freeze({
+  hosted_coach_enabled: false,
   coach_providers_enabled: false,
   server_book_loop_enabled: true,
   onboarding_quick_start_enabled: true,
@@ -182,6 +185,7 @@ const normalizeFlagValue = <K extends FeatureFlagKey>(
   fallback: FeatureFlags[K]
 ): FeatureFlags[K] => {
   switch (key) {
+    case "hosted_coach_enabled":
     case "coach_providers_enabled":
     case "server_book_loop_enabled":
     case "onboarding_quick_start_enabled":

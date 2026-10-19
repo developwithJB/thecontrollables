@@ -4716,6 +4716,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_hosted_coach_status: { Args: Record<PropertyKey, never>; Returns: Json }
+      select_hosted_coach: { Args: {p_selected: boolean}; Returns: undefined }
       coach_providers_available: { Args: Record<PropertyKey, never>; Returns: boolean }
       set_coach_api_key: { Args: {p_provider: string; p_key: string; p_base_url: string; p_model: string}; Returns: Json }
       clear_coach_api_key: { Args: Record<PropertyKey, never>; Returns: Json }

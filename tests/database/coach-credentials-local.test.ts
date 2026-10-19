@@ -61,3 +61,50 @@ Deno.test(
     }
   },
 );
+
+Deno.test(
+  "local hosted quota accepts exactly 25 of 30 concurrent requests",
+  async () => {
+    const connection = Deno.env.get("SUPABASE_DB_URL");
+    if (!connection) throw new Error("local_database_required");
+    const target = new URL(connection);
+    if (
+      !["127.0.0.1", "localhost"].includes(target.hostname) ||
+      target.port !== "55322"
+    )
+      throw new Error("isolated_local_database_required");
+    const sql = postgres(connection, { max: 10, prepare: false });
+    const owner = "50000000-0000-4000-8000-000000000003";
+    try {
+      await sql`INSERT INTO auth.users (id,aud,role,email,created_at,updated_at) VALUES (${owner},'authenticated','authenticated','hosted-concurrency@example.test',now(),now())`;
+      await sql`INSERT INTO public.profiles (id,plan_tier) VALUES (${owner},'pro')`;
+      await sql`UPDATE public.coach_provider_rollout SET hosted_coach_enabled=true WHERE id`;
+      await sql.begin(async (tx) => {
+        await tx`SET LOCAL ROLE authenticated`;
+        await tx`SELECT set_config('request.jwt.claim.sub',${owner},true)`;
+        await tx`SELECT public.select_hosted_coach(true)`;
+      });
+      const reservations = await Promise.all(
+        Array.from({ length: 30 }, () =>
+          sql.begin(async (tx) => {
+            await tx`SET LOCAL ROLE service_role`;
+            const rows =
+              await tx`SELECT public.reserve_hosted_coach_usage(${owner}::uuid) AS result`;
+            return rows[0].result.allowed;
+          }),
+        ),
+      );
+      if (reservations.filter(Boolean).length !== 25)
+        throw new Error("hosted_concurrent_quota_not_exactly_25");
+      const rows =
+        await sql`SELECT message_count FROM public.ai_usage_logs WHERE user_id=${owner}::uuid`;
+      if (rows[0]?.message_count !== 25)
+        throw new Error("hosted_aggregate_count_wrong");
+    } finally {
+      await sql`DELETE FROM auth.users WHERE id=${owner}::uuid`;
+      await sql`DELETE FROM public.ai_usage_logs WHERE user_id=${owner}::uuid`;
+      await sql`UPDATE public.coach_provider_rollout SET hosted_coach_enabled=false WHERE id`;
+      await sql.end();
+    }
+  },
+);

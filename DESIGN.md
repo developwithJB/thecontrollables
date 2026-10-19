@@ -30,3 +30,6 @@ Reuse the settings card, Input, Label, Button and native select conventions. Sta
 Reuse the existing readiness panel, labels, native select and semantic tokens. The weekday choice is made before start and shown as locked afterward; mobile controls stack. Rest-day Wellness keeps nutrition/hydration, then one description and explicit rest-or-walk attestation. No celebratory animation or competitive language. Preserve all loading, error and reviewed-content gates. Check 375px and 1280px without overflow.
 
 Coach secondary actions use futureOutline so hover retains readable foreground contrast instead of interpolating light text to dark text while the background also changes.
+
+## Pro hosted coach
+Reuse the private settings card and futureOutline secondary actions. Show the hosted card only when its client flag and server rollout are on. Use the server-returned entitlement for selection controls; non-entitled users get the existing /billing link. Price TBD is omitted from UI. Hosted selection preserves a saved BYO key; saving a new BYO key switches back explicitly. Busy, success and generic error states stay within the card, with no private data in telemetry. Check free/Plus/Pro, flag-off, keyboard focus and mobile wrapping.
