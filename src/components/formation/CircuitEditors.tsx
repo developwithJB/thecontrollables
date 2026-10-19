@@ -1,6 +1,6 @@
 import { GospelAwarenessPrompts } from "./GospelAwarenessPrompts";
 import type { GospelAwarenessReading } from "@/domain/formation/gospelAwareness";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Camera,
   HeartHandshake,
@@ -50,6 +50,7 @@ export function AwarenessCircuitEditor(props: CircuitEditorProps) {
   const { draft, evaluation, onChange } = props;
   return (
     <div className="space-y-5">
+      {props.track === "read_along" ? <section className="space-y-3 rounded-2xl border border-primary/20 p-4" aria-label="Read Along faith practice"><h2 className="text-sm font-semibold">Awareness 🦉 · Scripture and private prayer</h2><a className="inline-flex min-h-11 items-center rounded text-sm text-primary underline focus-visible:ring-2 focus-visible:ring-ring" href="https://www.bible.com/bible/116/MAT.4.NLT" target="_blank" rel="noopener noreferrer">Open the NLT on Bible.com (new tab)</a><p className="text-sm text-muted-foreground">Choose a passage or continue your reading. Observe what the text says; understand what you learn about Jesus; respond with one honest action. This flexible practice is not an assigned 75-day lesson. Prayer can remain private.</p></section> : null}
       {props.track === "fully_charged_75" && props.gospelAwareness ? <GospelAwarenessPrompts reading={props.gospelAwareness} draft={props.localOnly} /> : null}
       <PracticeToggle
         pressed={draft.actions.scripture_opened === true}
@@ -181,6 +182,8 @@ export function PerspectiveCircuitEditor(props: CircuitEditorProps) {
 }
 
 export function HabitCircuitEditor(props: CircuitEditorProps) {
+  const latestDraft = useRef(props.draft);
+  latestDraft.current = props.draft;
   const { userId, localDate, track, draft, evaluation, history, localOnly, onChange, onPersist } = props;
   return (
     <div className="space-y-5">
@@ -212,7 +215,7 @@ export function HabitCircuitEditor(props: CircuitEditorProps) {
         proof={draft.proof}
         localOnly={localOnly}
         onChange={async (proof) => {
-          const nextDraft = { ...draft, proof };
+          const nextDraft = { ...latestDraft.current, proof };
           onChange(nextDraft);
           await onPersist?.(nextDraft);
         }}
