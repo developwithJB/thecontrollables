@@ -773,6 +773,54 @@ export type Database = {
         }
         Relationships: []
       }
+      controllables_book_imports: {
+        Row: {
+          created_at: string
+          import_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          import_id: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          import_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      controllables_book_records: {
+        Row: {
+          created_at: string
+          kind: string
+          payload: Json
+          record_key: string
+          revision: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          kind: string
+          payload: Json
+          record_key: string
+          revision?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          kind?: string
+          payload?: Json
+          record_key?: string
+          revision?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       covenant_challenges: {
         Row: {
           completed_at: string | null
@@ -4745,6 +4793,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      import_book_loop: {
+        Args: { p_import_id: string; p_records: Json; p_user_id: string }
+        Returns: undefined
+      }
       is_admin: { Args: never; Returns: boolean }
       is_challenge_participant: {
         Args: { _challenge_id: string; _user_id: string }
@@ -4860,6 +4912,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      save_book_loop_changes: {
+        Args: { p_changes: Json; p_user_id: string }
+        Returns: undefined
       }
       save_formation_circuit: {
         Args: {
