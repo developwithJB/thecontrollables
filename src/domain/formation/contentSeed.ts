@@ -1,4 +1,4 @@
-import { formatGospelAwarenessReading } from "./gospelAwareness";
+import { formatGospelAwarenessReading, gospelReadingUrl } from "./gospelAwareness";
 import { createNewContentDraft, type FormationContentDraft, type FormationContentType } from "./content";
 import type { TrainingTrack } from "./circuits";
 import { FULLY_CHARGED_75_DAY_GUIDES } from "./fullyChargedJourney";
@@ -50,8 +50,9 @@ export const FULLY_CHARGED_75_CONTENT_SEED: FormationContentDraft[] = FULLY_CHAR
     season: guide.season,
     scripture: guide.scriptureReference,
     classification: "Scholarly Interpretation",
-    citations: [`https://www.biblegateway.com/passage/?search=${encodeURIComponent(guide.scriptureReference)}&version=WEB`],
+    citations: [gospelReadingUrl(guide.scriptureReference)],
   }),
+  bibleTranslation: "New Living Translation (NLT); reference links only",
   version: 2,
   aiAssisted: true,
 }));

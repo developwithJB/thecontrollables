@@ -14,6 +14,10 @@ export interface GospelAwarenessReading {
 export function isGospelReference(reference: string): boolean {
   return /^(Matthew|Mark|Luke|John) [1-9]\d?:[1-9]\d?(?:-[1-9]\d?)?$/.test(reference);
 }
+export function gospelReadingUrl(scriptureReference: string): string {
+  if (!isGospelReference(scriptureReference)) throw new Error('Awareness requires a Gospel passage.');
+  return `https://www.biblegateway.com/passage/?search=${encodeURIComponent(scriptureReference)}&version=NLT`;
+}
 export function buildGospelAwarenessReading(scriptureReference: string): GospelAwarenessReading {
   if (!isGospelReference(scriptureReference)) throw new Error('Awareness requires a Gospel passage.');
   return { scriptureReference, ...GOSPEL_AWARENESS_PROMPTS };
