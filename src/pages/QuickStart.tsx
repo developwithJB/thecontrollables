@@ -1,3 +1,6 @@
+import { ScripturePractice } from "@/components/onboarding/ScripturePractice";
+import { FormationAvailability } from "@/components/onboarding/FormationAvailability";
+import { useFormationEntryStatus } from "@/hooks/useFormationEntryStatus";
 import { trackGrowthEvent } from "@/lib/growthEvents";
 import { BookLink } from "@/components/BookLink";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -147,7 +150,8 @@ function PathStep({
   onStrictAcknowledged: (checked: boolean) => void;
   onDailyEmailEnabled: (enabled: boolean) => void;
 }) {
-  const recommended = recommendedTrackFor(readingStatus);
+  const availability = useFormationEntryStatus();
+  const recommended = availability.data?.strictReady ? recommendedTrackFor(readingStatus) : "read_along";
 
   return (
     <section aria-labelledby="quick-start-path-heading" className="space-y-5">
@@ -157,12 +161,12 @@ function PathStep({
           How deeply do you want to train right now?
         </h1>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Choose the pace you can enter honestly. Your choice starts the path and its morning email.
+          Choose the pace you can enter honestly. Five circuits are required on Fully Charged; Read Along records one meaningful practice without a deadline.
         </p>
       </div>
 
       <div className="grid gap-3">
-        {PATH_CHOICES.map((candidate) => {
+        {PATH_CHOICES.filter(candidate => String(candidate) !== "charge_40").map((candidate) => {
           const comingSoon = candidate === "charge_40";
           const selected = !comingSoon && candidate === track;
           const meta = TRACK_META[candidate];
@@ -215,6 +219,7 @@ function PathStep({
         })}
       </div>
 
+      <FormationAvailability />
       {track === "fully_charged_75" ? (
         <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm leading-6">
           <input
@@ -230,6 +235,7 @@ function PathStep({
         </label>
       ) : null}
 
+      <p className="text-xs text-muted-foreground">40-Day Charge is coming soon and cannot be started.</p>
       <MorningEmailCard
         enabled={dailyEmailEnabled}
         timezone={timezone}
@@ -251,6 +257,7 @@ function MorningEmailCard({
   track: TrainingTrack;
   onEnabledChange: (enabled: boolean) => void;
 }) {
+  const availability = useFormationEntryStatus();
   return (
     <div className={cn(
       "overflow-hidden rounded-2xl border transition-colors",
@@ -277,9 +284,10 @@ function MorningEmailCard({
           </div>
           <p className="mt-2 text-sm leading-5 text-muted-foreground">
             {enabled
-              ? `Every morning around ${formatFormationEmailSchedule(timezone)}, get your ${TRACK_LABELS[track]} day, five circuits, and first honest move.`
+              ? `Request a morning reminder around ${formatFormationEmailSchedule(timezone)} for ${TRACK_LABELS[track]}. This preference is saved after account confirmation.`
               : "No daily email. Your formation path will still be ready inside The Dashboard."}
           </p>
+          {!availability.data?.emailDeliveryReady ? <p className="mt-2 text-xs text-muted-foreground">Email delivery is being verified. Use Today in the app; a reminder is not guaranteed.</p> : null}
         </div>
       </div>
       {enabled ? (
@@ -309,7 +317,7 @@ function AccountStep({
   return (
     <section aria-labelledby="quick-start-account-heading" className="space-y-5">
       <div className="rounded-2xl border border-primary/25 bg-primary/10 p-5">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Your first day is ready</p>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Your first practice preview</p>
         <h1 id="quick-start-account-heading" className="mt-2 font-display text-3xl font-semibold leading-tight text-foreground">
           {TRACK_LABELS[track]}
         </h1>
@@ -324,12 +332,13 @@ function AccountStep({
         <ValueCard icon={BookOpen} title="Clear today" copy="Open one place and see the five practices for this path." />
         <ValueCard
           icon={Mail}
-          title={dailyEmailEnabled ? "Morning email on" : "Morning email off"}
-          copy={dailyEmailEnabled ? `Arrives around ${formatFormationEmailSchedule(timezone)}. Turn it off anytime.` : "You can enable it later in Settings."}
+          title={dailyEmailEnabled ? "Morning email requested" : "Morning email off"}
+          copy={dailyEmailEnabled ? `Requested for ${formatFormationEmailSchedule(timezone)}, after account confirmation and enrollment. Turn it off anytime.` : "You can enable it later in Settings."}
         />
         <ValueCard icon={RotateCcw} title="Honest recovery" copy={meta.missPolicy} />
       </div>
 
+      <ScripturePractice />
       <div className="flex items-start gap-3 rounded-2xl border border-border/65 bg-muted/20 p-4">
         <HeartHandshake className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
         <p className="text-sm leading-6 text-muted-foreground">
@@ -362,10 +371,11 @@ export default function QuickStart() {
   const [readingStatus, setReadingStatus] = useState<ReadingStatus | null>(draft?.readingStatus ?? null);
   const draftTrack = isStartableFormationTrack(draft?.formationTrack) ? draft.formationTrack : null;
   const [track, setTrack] = useState<TrainingTrack>(requestedTrack ?? draftTrack ?? recommendedTrackFor(draft?.readingStatus ?? null));
-  const [dailyEmailEnabled, setDailyEmailEnabled] = useState(draft?.dailyEmailEnabled ?? true);
+  const [dailyEmailEnabled, setDailyEmailEnabled] = useState(draft?.dailyEmailEnabled ?? false);
   const [timezone] = useState(() => draft?.timezone || getDeviceTimezone());
   const [strictAcknowledged, setStrictAcknowledged] = useState(false);
   const [trackWasChosen, setTrackWasChosen] = useState(Boolean(requestedTrack ?? draftTrack));
+  const availability = useFormationEntryStatus();
   const stepCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -390,7 +400,7 @@ export default function QuickStart() {
   const canContinue = step === "book"
     ? Boolean(readingStatus)
     : step === "path"
-      ? track !== "fully_charged_75" || strictAcknowledged
+      ? track !== "fully_charged_75" || (strictAcknowledged && availability.data?.strictReady === true)
       : true;
 
   const chooseReadingStatus = (status: ReadingStatus) => {
@@ -520,7 +530,7 @@ export default function QuickStart() {
           ) : null}
 
           <div className="mt-7">
-            {step === "account" ? (
+            {step === "account" && (track !== "fully_charged_75" || availability.data?.strictReady) ? (
               <Button asChild variant="glow" size="lg" className="h-14 w-full px-3 text-sm font-semibold sm:px-8 sm:text-base">
                 <Link
                   to="/auth?mode=signup"
@@ -529,7 +539,7 @@ export default function QuickStart() {
                   Create account & start my daily loop <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-            ) : (
+            ) : step === "account" ? <FormationAvailability /> : (
               <Button variant="glow" size="lg" className="h-14 w-full text-base font-semibold" onClick={goForward} disabled={!canContinue}>
                 {step === "book" ? "Choose my formation path" : "Review my first day"}
                 <ArrowRight className="ml-2 h-4 w-4" />

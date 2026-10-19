@@ -1,3 +1,4 @@
+import { FirstWeekPanel } from "@/components/formation/FirstWeekPanel";
 import {
   ArrowRight,
   BookOpen,
@@ -133,6 +134,9 @@ export default function FormationToday() {
         />
       ) : null}
 
+      <FirstWeekPanel history={history} journey={strictJourney.journey} track={track} today={strictLocalToday} canPractice={strictDayOpen}
+        nextCircuit={circuits.find(item => !item.evaluation.isSatisfiedForTrack)?.circuit ?? (track === "read_along" ? "awareness" : null)} />
+
       {error ? (
         <div role="alert" className="rounded-2xl border border-destructive/35 bg-destructive/8 p-4 text-sm">
           <p className="font-semibold">Today's formation could not be loaded.</p>
@@ -162,7 +166,7 @@ export default function FormationToday() {
         </div>
       </section>
 
-      <FuturePanel className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+      {(localOnly || strictJourney.journey?.attemptStatus === "completed") ? <FuturePanel className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <Trophy className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
           <div>
@@ -181,18 +185,18 @@ export default function FormationToday() {
         <Button variant="futureOutline" onClick={() => navigate(APP_ROUTES.formationCompletion)} className="shrink-0 gap-2">
           {track === "fully_charged_75" && strictJourney.journey?.attemptStatus === "completed" && !localOnly ? "View completion" : "Preview completion"} <ArrowRight className="h-4 w-4" />
         </Button>
-      </FuturePanel>
+      </FuturePanel> : null}
 
       <FuturePanel className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <History className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div>
             <p className="text-sm font-semibold">Your Life OS history remains available.</p>
-            <p className="mt-1 text-xs text-muted-foreground">Existing reflections, proof, snapshots, promises, and activities are not converted or deleted by this test experience.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Your reflections, proof, promises and other tools remain available. Keep Today as your starting point.</p>
           </div>
         </div>
         <Button variant="futureOutline" onClick={() => navigate(APP_ROUTES.home)} className="shrink-0 gap-2">
-          Legacy dashboard <ArrowRight className="h-4 w-4" />
+          More tools <ArrowRight className="h-4 w-4" />
         </Button>
       </FuturePanel>
     </div>

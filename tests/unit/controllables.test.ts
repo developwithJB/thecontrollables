@@ -38,8 +38,8 @@ describe("controllables taxonomy", () => {
     expect(getControllableGuide("awareness")).toMatchObject({
       name: "Awareness",
       emoji: "🦉",
-      role: "See clearly",
-      domain: "clarity / signals / patterns",
+      role: "Notice Jesus first",
+      domain: "faith / Scripture / spirituality",
     });
     expect(getControllableGuide("environment")).toMatchObject({
       name: "Environment",

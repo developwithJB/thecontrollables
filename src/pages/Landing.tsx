@@ -1,3 +1,5 @@
+import { ScripturePractice } from "@/components/onboarding/ScripturePractice";
+import { FormationAvailability } from "@/components/onboarding/FormationAvailability";
 import { ProjectFeedbackNote } from "@/components/ProjectFeedback";
 import { trackGrowthEvent } from "@/lib/growthEvents";
 import { BookLink } from "@/components/BookLink";
@@ -34,12 +36,12 @@ const dailyPractice = [
   {
     step: "01",
     title: "Awareness",
-    copy: "Notice what is true before reaction takes over.",
+    copy: "Faith and spirituality: read Scripture, pray privately, and notice the character of Jesus.",
   },
   {
     step: "02",
     title: "Perspective",
-    copy: "Bring the story you are telling back under truth.",
+    copy: "Bring your interpretation and response back under truth.",
   },
   {
     step: "03",
@@ -61,7 +63,7 @@ const dailyPractice = [
 const journeyPaths = [
   {
     id: "fully_charged_75",
-    title: "75-Day Covenant",
+    title: "Fully Charged: 75 Days",
     eyebrow: "Primary path",
     description: "Put The Controllables first, keep exact daily promises, and build a visible record of faithful obedience.",
     bestFor: "Best when you are ready for an all-in Christian commitment",
@@ -100,7 +102,7 @@ const firstDaySteps = [
   {
     icon: Mail,
     title: "Start your morning loop",
-    copy: "Creating your account turns on a 7:00 AM email with your path, five circuits, and first move.",
+    copy: "Choose an optional morning email during setup. Today always keeps your practices available in the app.",
   },
   {
     icon: CalendarDays,
@@ -117,7 +119,7 @@ const trustPromises = [
 ];
 
 const starterPhrases: Record<ControllableGuideId, string> = {
-  awareness: "Notice what is true.",
+  awareness: "Faith, Scripture and spirituality.",
   perspective: "Bring the story under truth.",
   habit: "Keep one faithful promise.",
   wellness: "Steward the vessel.",
@@ -214,7 +216,7 @@ export default function Landing() {
       <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 md:px-8" aria-label="Primary navigation">
         <Logo />
         <div className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
-          <a href="#how-it-works" className="transition-colors hover:text-foreground">How it works</a>
+          <a href="#try-a-practice" className="transition-colors hover:text-foreground">How it works</a>
           <a href="#paths" className="transition-colors hover:text-foreground">Paths</a>
           <a href="#fully-charged-75" className="transition-colors hover:text-foreground">75 days</a>
           <a href="#privacy" className="transition-colors hover:text-foreground">Privacy & recovery</a>
@@ -257,11 +259,11 @@ export default function Landing() {
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="h-14 w-full px-8 text-base font-semibold sm:w-auto">
-                  <a href="#how-it-works">See today’s practice</a>
+                  <a href="#try-a-practice">See today’s practice</a>
                 </Button>
               </div>
               <p className="mt-4 text-sm text-muted-foreground"><BookLink placement="landing_hero" data-testid="landing-book-hero" className="rounded hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">New to The Controllables? Start with the book →</BookLink></p>
-              <p className="mt-4 text-xs text-muted-foreground">75 days · Daily formation email · One clear practice</p>
+              <p className="mt-4 text-xs text-muted-foreground">75 days · Five daily circuits · One clear next action</p>
               <div className="mt-7 flex flex-wrap gap-2 text-xs text-muted-foreground">
                 {["Private by default", "No public rankings", "Recovery without shame", "Movement can adapt"].map((promise) => (
                   <span key={promise} className="inline-flex items-center gap-1.5 rounded-full border border-border/65 bg-card/65 px-3 py-1.5">
@@ -282,7 +284,7 @@ export default function Landing() {
           <div className="mx-auto grid max-w-6xl gap-5 text-center sm:grid-cols-3">
             <div><p className="text-2xl font-semibold text-foreground">75 days</p><p className="mt-1 text-xs text-muted-foreground">A full Christian covenant</p></div>
             <div><p className="text-2xl font-semibold text-foreground">5 Controllables</p><p className="mt-1 text-xs text-muted-foreground">One practical system for daily life</p></div>
-            <div><p className="text-2xl font-semibold text-foreground">7:00 AM</p><p className="mt-1 text-xs text-muted-foreground">Your daily practice arrives by email</p></div>
+            <div><p className="text-2xl font-semibold text-foreground">7:00 AM</p><p className="mt-1 text-xs text-muted-foreground">Optional morning email · availability checked in setup</p></div>
           </div>
         </section>
 
@@ -326,11 +328,13 @@ export default function Landing() {
           </div>
         </section>
 
+        <section id="try-a-practice" className="mx-auto max-w-3xl space-y-5 px-5 py-12"><ScripturePractice /><FormationAvailability /></section>
+
         <section id="paths" className="scroll-mt-8 border-y border-border/50 bg-card/30 px-5 py-16 md:px-8 md:py-24">
           <div className="mx-auto max-w-7xl">
             <div className="mx-auto max-w-2xl text-center">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Choose for this season</p>
-              <h2 className="mt-3 font-display text-3xl font-semibold md:text-4xl">Three paths. Clear expectations.</h2>
+              <h2 className="mt-3 font-display text-3xl font-semibold md:text-4xl">Choose a path with clear expectations.</h2>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">Compare the commitment and miss rule before you create an account. You can change paths later.</p>
             </div>
             <div className="mt-10 grid gap-4 lg:grid-cols-3">
@@ -348,7 +352,7 @@ export default function Landing() {
                     <p className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{path.bestFor}</span></p>
                     <p className="flex gap-2"><CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{path.commitment}</span></p>
                     <p className="flex gap-2"><RotateCcw className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>If you miss: {path.missRule}</span></p>
-                    <p className="flex gap-2"><Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{path.startable ? "Morning formation email included" : "Morning email opens with the path"}</span></p>
+                    <p className="flex gap-2"><Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span>{path.startable ? "Optional morning email preference" : "Morning email opens with the path"}</span></p>
                   </div>
                   {path.startable ? (
                     <Button asChild variant={path.id === "fully_charged_75" ? "glow" : "outline"} className="mt-7 w-full">

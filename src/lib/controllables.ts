@@ -28,8 +28,8 @@ export const CONTROLLABLE_GUIDES: Record<ControllableGuideId, ControllableGuide>
     id: "awareness",
     name: "Awareness",
     emoji: "🦉",
-    role: "See clearly",
-    domain: "clarity / signals / patterns",
+    role: "Notice Jesus first",
+    domain: "faith / Scripture / spirituality",
   },
   perspective: {
     id: "perspective",

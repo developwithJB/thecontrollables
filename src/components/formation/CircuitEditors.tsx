@@ -33,6 +33,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export interface CircuitEditorProps {
+  weekOneReview?: boolean;
   gospelAwareness?: GospelAwarenessReading | null;
   userId: string;
   localDate: string;
@@ -68,14 +69,14 @@ export function AwarenessCircuitEditor(props: CircuitEditorProps) {
       <FieldGroup
         id="honest-truth"
         label="One honest truth"
-        description="This saves when you write it. Keep names and identifying details out."
+        description="Choose Save progress to keep this privately. Keep names and identifying details out."
         required={evaluation.requiredActionIds.includes("honest_truth_saved")}
       >
         <Textarea
           id="honest-truth"
           value={draft.fields.honestTruth ?? ""}
           onChange={(event) => setField(draft, onChange, "honestTruth", event.target.value, 1000)}
-          placeholder="What is true right now?"
+          placeholder="For example: I can pause before reacting today."
           className="min-h-[96px]"
         />
       </FieldGroup>
@@ -317,6 +318,10 @@ export function EnvironmentCircuitEditor(props: CircuitEditorProps) {
         />
       </div>
 
+      {props.weekOneReview ? <fieldset className="space-y-3 rounded-2xl border border-primary/20 p-4"><legend className="px-2 text-sm font-semibold">Private week-one reflection · optional</legend>
+        <FieldGroup id="week-learning" label="One thing I learned" description="Your learning stays in your private Environment record."><Textarea id="week-learning" value={draft.fields.weekOneLearning ?? ""} maxLength={1000} onChange={event => setField(draft, onChange, "weekOneLearning", event.target.value, 1000)} /></FieldGroup>
+        <FieldGroup id="week-intention" label="One intention for next week" description="Choose Save progress below. These answers are excluded from the share preview."><Textarea id="week-intention" value={draft.fields.weekOneIntention ?? ""} maxLength={1000} onChange={event => setField(draft, onChange, "weekOneIntention", event.target.value, 1000)} /></FieldGroup>
+      </fieldset> : null}
       <FieldGroup id="service-note" label="Optional private note" description="Describe your own learning, not the recipient's personal situation.">
         <Textarea id="service-note" value={draft.fields.serviceNote ?? ""} onChange={(event) => setField(draft, onChange, "serviceNote", event.target.value, 1000)} placeholder="What did serving ask of me?" />
       </FieldGroup>

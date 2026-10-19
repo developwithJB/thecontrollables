@@ -33,7 +33,7 @@ import { useFormationAnalytics } from "@/hooks/useFormationAnalytics";
 import { useFullyChargedJourney } from "@/hooks/useFullyChargedJourney";
 import { useQuery } from "@tanstack/react-query";
 import { loadPublishedFormationContentForDay } from "@/data/formation/contentRepository";
-import { getFullyChargedDayGuide, getLocalDateInTimezone } from "@/domain/formation/fullyChargedJourney";
+import { addLocalCalendarDays, getFullyChargedDayGuide, getLocalDateInTimezone } from "@/domain/formation/fullyChargedJourney";
 
 const CIRCUIT_EDITORS: Record<keyof typeof CIRCUIT_DEFINITIONS, (props: CircuitEditorProps) => JSX.Element> = {
   awareness: AwarenessCircuitEditor,
@@ -214,6 +214,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
       {error ? <div role="alert" className="rounded-2xl border border-destructive/35 bg-destructive/8 p-4 text-sm">This circuit could not be loaded. Existing data has not been changed.</div> : null}
       {dayContent.error ? <div role="alert" className="rounded-2xl border border-destructive/35 bg-destructive/8 p-4 text-sm">Today's reviewed assignment could not be loaded. Strict progress is temporarily read-only.</div> : null}
 
+      <details className="rounded-2xl border p-4"><summary className="min-h-11 cursor-pointer py-2 text-sm font-semibold">What does a small, honest response look like?</summary><p className="text-sm text-muted-foreground">Name what you can actually do today. An honest truth could be “I can pause before reacting.” A promise could be “Make the call I agreed to.” Keep prayer and other people’s details private. Writing does not save automatically; use Save progress, then return to Today.</p></details>
       <FuturePanel className="p-4 sm:p-5">
         {isLoading || (track === "fully_charged_75" && !localOnly && dayContent.isLoading) ? (
           <div className="space-y-3" aria-label="Loading circuit"><div className="h-20 animate-pulse rounded-2xl bg-muted" /><div className="h-28 animate-pulse rounded-2xl bg-muted" /></div>
@@ -221,6 +222,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
           <p className="text-sm text-muted-foreground">This strict circuit is read-only until today's reviewed content version is available.</p>
         ) : (
           <Editor
+            weekOneReview={track === "fully_charged_75" ? (strictJourney.journey?.dayNumber ?? 0) >= 7 : Boolean(history.length && localDate >= addLocalCalendarDays(history.map(entry => entry.localDate).sort()[0], 6))}
             gospelAwareness={track === "fully_charged_75"
               ? localOnly
                 ? getFullyChargedDayGuide(strictJourney.journey?.dayNumber ?? 0)?.awareness
@@ -261,7 +263,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="flex items-center gap-2 text-sm font-semibold"><CheckCircle2 className="h-4 w-4 text-primary" />{evaluation.statusLabel}</p>
-            <p className="mt-1 truncate text-xs text-muted-foreground">{localOnly ? "Local QA data only" : "Saved privately to your account"} · idempotent daily record</p>
+            <p className="mt-1 truncate text-xs text-muted-foreground">{localOnly ? "Local QA data only" : "Use Save progress to keep changes"} · idempotent daily record</p>
           </div>
           <div className="flex gap-2">
             <Button variant="ghost" onClick={() => navigate(APP_ROUTES.formationToday)}>Return to Today</Button>

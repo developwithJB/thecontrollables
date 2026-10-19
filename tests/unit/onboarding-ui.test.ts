@@ -18,7 +18,7 @@ describe("onboarding UI", () => {
 
     expect(source).toContain("Where are you with the book?");
     expect(source).toContain("How deeply do you want to train right now?");
-    expect(source).toContain("Your first day is ready");
+    expect(source).toContain("Your first practice preview");
     expect(source).toContain("Bring my path to my inbox.");
     expect(source).toContain("Daily formation email");
     expect(source).toContain("Step {stepIndex + 1} of {STEPS.length}");

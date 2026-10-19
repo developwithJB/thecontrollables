@@ -1,5 +1,8 @@
+import { Link } from "react-router-dom";
+import { useFormationEntryStatus } from "@/hooks/useFormationEntryStatus";
+import { formationErrorMessage, formatCloseoutDeadline } from "@/domain/formation/firstWeek";
 import { GospelAwarenessPrompts } from "./GospelAwarenessPrompts";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, CheckCircle2, Flag, LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -111,6 +114,7 @@ function ActiveJourneyPanel(
     journey.localDate === getLocalDateInTimezone(journey.startTimezone);
   const canClose = canPracticeToday && completedCircuits === 5;
   const canCancel = journey.attemptStatus === "scheduled" || canPracticeToday;
+  const dayClosed = journey.completedDays > 0 && (journey.dayStatus === "complete" || (journey.localDate ?? "") > getLocalDateInTimezone(journey.startTimezone));
   const title = localOnly ? guide?.title : publishedContent.data?.title.replace(/^Day \d+:\s*/i, "");
   const scriptureReference = localOnly ? guide?.scriptureReference : publishedContent.data?.scriptureReference;
 
@@ -134,6 +138,8 @@ function ActiveJourneyPanel(
         </div>
       </div>
 
+      {dayClosed ? <div role="status" className="space-y-2 rounded-2xl border border-primary/30 bg-primary/5 p-4" data-testid="day-closeout-receipt"><h3 className="font-semibold">Day {journey.completedDays} closed · {localOnly ? "Local QA confirmation" : "Confirmed by the server"}</h3><p className="text-sm">Your five circuits and explicit closeout are recorded. {journey.localDate ? `Next practice opens ${journey.localDate} at midnight in ${journey.startTimezone}.` : "Your journey is complete."}</p><p className="text-xs text-muted-foreground">This records practice, not your standing with God.</p></div> : null}
+      {canPracticeToday ? <p className="text-sm text-muted-foreground">Close all five circuits and choose Close today by {formatCloseoutDeadline(journey.closesAt, journey.startTimezone)}. Saving a circuit alone does not close the day.</p> : null}
       {canPracticeToday ? (
         <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
           {localOnly && guide ? (
@@ -161,6 +167,7 @@ function ActiveJourneyPanel(
         </div>
       )}
 
+      {canClose ? <p role="status" className="rounded-xl border border-primary/30 p-3 text-sm font-semibold">All five circuits are ready. Choose Close today to finish this day.</p> : null}
       <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-semibold">{completedCircuits} of 5 circuits server-ready</p>
@@ -200,7 +207,7 @@ function ActiveJourneyPanel(
           </Button>
         </div>
       </div>
-      {props.error ? <p role="alert" className="text-sm text-destructive">{errorMessage(props.error)}</p> : null}
+      {props.error ? <p role="alert" className="text-sm text-destructive">{formationErrorMessage(props.error)}</p> : null}
     </FuturePanel>
   );
 }
@@ -220,7 +227,11 @@ function StrictStartPanel(
     environmentPrepared: false,
     privacySafetyAcknowledged: false,
   });
-  const ready = mainPromise.trim().length > 0 && Object.values(checks).every(Boolean);
+  const availability = useFormationEntryStatus(startLocalDate);
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => { const timer = window.setInterval(() => setNow(new Date()), 60_000); return () => window.clearInterval(timer); }, []);
+  const hoursLeft = 24 - now.getHours() - now.getMinutes() / 60;
+  const ready = availability.data?.strictReady === true && mainPromise.trim().length > 0 && Object.values(checks).every(Boolean);
   const previousEnded = props.journey?.attemptStatus === "ended";
 
   const toggle = (key: keyof typeof checks, value: boolean) => setChecks((current) => ({ ...current, [key]: value }));
@@ -238,6 +249,8 @@ function StrictStartPanel(
         </div>
       </div>
 
+      {!availability.data?.strictReady ? <div className="space-y-2 rounded-2xl border p-4 text-sm" role="status"><p>{availability.isPending ? "Checking reviewed content for your start date…" : "Fully Charged is not open for this start date. All 75 assignments must complete review first."}</p><Link to="/quick-start?path=read_along" className="inline-flex min-h-11 items-center text-primary underline">Choose Read Along to practice today</Link>{availability.isError ? <Button variant="futureOutline" onClick={() => void availability.refetch()}>Retry availability check</Button> : null}</div> : null}
+      {startLocalDate === today ? <div className="space-y-2 rounded-2xl border p-4 text-sm" data-testid="start-deadline"><p>Starting today leaves about {Math.max(0, hoursLeft).toFixed(1)} hours for all five circuits and Close today, before midnight in {timezone}.</p>{hoursLeft < 6 ? <p className="font-semibold">It is late in your local day. Tomorrow gives you a full first day.</p> : null}<Button variant="futureOutline" onClick={() => setStartLocalDate(addLocalCalendarDays(today, 1))}>Start tomorrow instead</Button></div> : <p className="text-sm text-muted-foreground">Day 1 opens at midnight on {startLocalDate} in {timezone}. It closes at the following midnight.</p>}
       {previousEnded ? (
         <div className="rounded-2xl border bg-muted/35 p-4 text-sm">
           <p className="font-semibold">Your previous attempt ended honestly.</p>
@@ -268,7 +281,7 @@ function StrictStartPanel(
         <p className="text-xs text-muted-foreground">Locked for this attempt in {timezone}. Counts toward 75 days. Wellness requires nutrition, hydration and described rest or a gentle walk; all other circuits stay required.</p>
       </div>
       <div className="space-y-3 rounded-2xl border p-4">
-        <ReadinessCheck checked={checks.strictOptIn} onChange={(value) => toggle("strictOptIn", value)} label="I freely choose the strict 75-day path; it is not required or the default." />
+        <ReadinessCheck checked={checks.strictOptIn} onChange={(value) => toggle("strictOptIn", value)} label="I freely choose the strict 75-day path; it is optional and requires this separate start." />
         <ReadinessCheck checked={checks.rulesAccepted} onChange={(value) => toggle("rulesAccepted", value)} label="I understand that all five circuits and explicit closeout are required each local day." />
         <ReadinessCheck checked={checks.personalCovenantAccepted} onChange={(value) => toggle("personalCovenantAccepted", value)} label="My nutrition, hydration, and movement covenant is personal, safe, and consistent with relevant clinical guidance." />
         <ReadinessCheck checked={checks.environmentPrepared} onChange={(value) => toggle("environmentPrepared", value)} label="I prepared one physical, digital, calendar, or relational condition for Day 1." />
@@ -295,7 +308,7 @@ function StrictStartPanel(
           {props.isStarting ? "Creating 75 days…" : previousEnded ? "Begin a new attempt" : "Start Fully Charged"}
         </Button>
       </div>
-      {props.error ? <p role="alert" className="text-sm text-destructive">{errorMessage(props.error)}</p> : null}
+      {props.error ? <p role="alert" className="text-sm text-destructive">{formationErrorMessage(props.error)}</p> : null}
     </FuturePanel>
   );
 }
@@ -307,10 +320,4 @@ function ReadinessCheck({ checked, onChange, label }: { checked: boolean; onChan
       <span>{label}</span>
     </label>
   );
-}
-
-function errorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") return error.message;
-  return "The Fully Charged journey could not be updated. Try again.";
 }
