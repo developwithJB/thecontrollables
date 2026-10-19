@@ -1,3 +1,4 @@
+import { BookLink } from "@/components/BookLink";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -570,14 +571,12 @@ export const Day7Complete = ({
             <p className="text-muted-foreground text-sm mb-3">
               Want to go deeper?
             </p>
-            <a
-              href="https://a.co/d/1DGPGEV"
-              target="_blank"
-              rel="noopener noreferrer"
+            <BookLink
+              placement="day7_complete"
               className="text-primary hover:underline text-sm"
             >
               📖 The Controllables (Amazon)
-            </a>
+            </BookLink>
           </motion.div>
 
           {/* Return to Dashboard */}

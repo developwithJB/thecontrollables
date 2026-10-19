@@ -25,7 +25,8 @@ describe("read along UI wiring", () => {
   it("keeps the external book link inside the Read Along page", () => {
     const source = readSource("src/pages/ReadAlong.tsx");
 
-    expect(source).toContain("https://a.co/d/1DGPGEV");
+    expect(source).toContain("BookLink");
+    expect(readSource("src/lib/bookLinks.ts")).toContain("https://a.co/d/1DGPGEV");
     expect(source).toContain("Spoiler-safe path");
     expect(source).toContain("Do today's rep");
   });

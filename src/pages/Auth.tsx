@@ -1,3 +1,5 @@
+import { getSignupAttribution } from "@/lib/growthAttribution";
+import { trackGrowthEvent, signupFailureCategory } from "@/lib/growthEvents";
 import { useCallback, useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -44,6 +46,7 @@ export default function Auth() {
     if (urlMode === "forgot") return "forgot";
     return "signin";
   });
+  useEffect(() => { if (mode === "signup") trackGrowthEvent("signup_form_viewed"); }, [mode]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -158,15 +161,17 @@ export default function Auth() {
           email, password,
           options: {
             emailRedirectTo: `${window.location.origin}${postAuthRoute}`,
-            data: { display_name: displayName.trim() || null },
+            data: { display_name: displayName.trim() || null, ...getSignupAttribution() },
           },
         });
         if (error) {
           if (error.message.includes("already registered")) {
+            trackGrowthEvent("signup_failed", { reason_category: "exists" });
             toast({ title: "Account exists", description: "This email is already registered. Try signing in instead.", variant: "destructive" });
           } else throw error;
         } else {
           trackAccountCreated("signup_form");
+          trackGrowthEvent("signup_submitted");
           if (signUpData?.session) {
             toast({ title: "Welcome", description: "Your account is ready. Opening your dashboard…" });
           } else {
@@ -182,6 +187,7 @@ export default function Auth() {
         }
       }
     } catch (error) {
+      if (mode === "signup") trackGrowthEvent("signup_failed", { reason_category: signupFailureCategory(error) });
       toast({ title: "Error", description: getErrorMessage(error, "Something went wrong. Please try again."), variant: "destructive" });
     } finally {
       setIsLoading(false);

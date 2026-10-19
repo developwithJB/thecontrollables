@@ -1,3 +1,4 @@
+import { BookLink } from "@/components/BookLink";
 import { Link } from "react-router-dom";
 import { ArrowRight, BookOpen, CheckCircle2, ExternalLink, LockKeyhole, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +20,7 @@ import { APP_ROUTES } from "@/lib/appRoutes";
 import { cn } from "@/lib/utils";
 
 const readingStatusOptions = Object.keys(READING_STATUS_LABELS) as ReadingStatus[];
-const bookLink = "https://a.co/d/1DGPGEV";
+
 
 export default function ReadAlong() {
   usePageViewTracking("Read Along Training");
@@ -62,10 +63,10 @@ export default function ReadAlong() {
                 </Link>
               </Button>
               <Button asChild variant="outline" size="sm" className="w-full gap-2">
-                <a href={bookLink} target="_blank" rel="noopener noreferrer">
+                <BookLink placement="read_along">
                   Book
                   <ExternalLink className="h-3.5 w-3.5" />
-                </a>
+                </BookLink>
               </Button>
             </div>
           </div>

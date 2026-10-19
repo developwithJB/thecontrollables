@@ -1,0 +1,40 @@
+name: Feedback or correction
+description: Suggest an improvement, correct a reading or reflection, or report an app problem.
+title: "[Feedback] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve The Dashboard. JB studies with the New Living Translation (NLT), and mistakes can happen.
+
+        **This issue will be public.** Leave out names, email addresses, account details, private prayers or reflections, health information, screenshots containing personal data, and login or preview links.
+  - type: dropdown
+    id: category
+    attributes:
+      label: What kind of feedback is this?
+      options:
+        - Scripture reference or context
+        - Reflection or formation guidance
+        - Wording or accessibility
+        - App problem
+        - Improvement idea
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: Where did you notice it?
+      description: A day number, page name, or Bible reference is enough. Do not paste a private or signed-in URL.
+      placeholder: "For example: Day 26, Awareness, John 13:1–17"
+  - type: textarea
+    id: feedback
+    attributes:
+      label: What should we improve?
+      description: Describe the issue or idea without sharing private content. For app problems, include the steps and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested correction or supporting source
+      description: Optional. Include a Bible reference or a public source, and explain how it helps. Please avoid copying long passages or copyrighted commentary.
