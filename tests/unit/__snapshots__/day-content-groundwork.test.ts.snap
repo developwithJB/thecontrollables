@@ -1,0 +1,167 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`per-day editorial groundwork > records every duplicate and overlapping range without invalidating the guides 1`] = `
+[
+  {
+    "days": [
+      4,
+      35,
+      66,
+    ],
+    "kind": "exact",
+    "references": [
+      "Mark 10:46-52",
+    ],
+  },
+  {
+    "days": [
+      5,
+      25,
+    ],
+    "kind": "exact",
+    "references": [
+      "Matthew 11:28-30",
+    ],
+  },
+  {
+    "days": [
+      26,
+      30,
+      39,
+    ],
+    "kind": "exact",
+    "references": [
+      "John 13:1-17",
+    ],
+  },
+  {
+    "days": [
+      28,
+      49,
+    ],
+    "kind": "exact",
+    "references": [
+      "Matthew 6:1-6",
+    ],
+  },
+  {
+    "days": [
+      32,
+      37,
+    ],
+    "kind": "exact",
+    "references": [
+      "Luke 16:10-13",
+    ],
+  },
+  {
+    "days": [
+      33,
+      61,
+    ],
+    "kind": "exact",
+    "references": [
+      "Matthew 18:15-20",
+    ],
+  },
+  {
+    "days": [
+      50,
+      74,
+    ],
+    "kind": "exact",
+    "references": [
+      "John 15:9-17",
+    ],
+  },
+  {
+    "days": [
+      59,
+      63,
+    ],
+    "kind": "exact",
+    "references": [
+      "Matthew 25:31-40",
+    ],
+  },
+  {
+    "days": [
+      67,
+      69,
+    ],
+    "kind": "exact",
+    "references": [
+      "John 4:4-26",
+    ],
+  },
+  {
+    "days": [
+      11,
+      23,
+    ],
+    "kind": "overlap",
+    "references": [
+      "Mark 5:25-34",
+      "Mark 5:21-43",
+    ],
+  },
+  {
+    "days": [
+      18,
+      57,
+    ],
+    "kind": "overlap",
+    "references": [
+      "Mark 9:33-37",
+      "Mark 9:35-37",
+    ],
+  },
+  {
+    "days": [
+      26,
+      30,
+      39,
+      73,
+    ],
+    "kind": "overlap",
+    "references": [
+      "John 13:1-17",
+      "John 13:12-17",
+    ],
+  },
+  {
+    "days": [
+      28,
+      49,
+      52,
+    ],
+    "kind": "overlap",
+    "references": [
+      "Matthew 6:1-6",
+      "Matthew 6:1-4",
+    ],
+  },
+  {
+    "days": [
+      36,
+      68,
+    ],
+    "kind": "overlap",
+    "references": [
+      "Matthew 5:38-48",
+      "Matthew 5:43-48",
+    ],
+  },
+  {
+    "days": [
+      54,
+      60,
+    ],
+    "kind": "overlap",
+    "references": [
+      "Luke 14:12-14",
+      "Luke 14:7-14",
+    ],
+  },
+]
+`;

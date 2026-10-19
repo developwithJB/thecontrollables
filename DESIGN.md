@@ -23,3 +23,7 @@ Keep the existing circuit card and semantic tokens. A compact ordered list shows
 ## Sources and feedback
 
 Use a readable note from JB and one clearly labeled GitHub feedback link in the landing footer. Gospel Awareness cards repeat a compact correction link beside the NLT source context. Preserve semantic colors, underlined links, visible keyboard focus and mobile wrapping. State that GitHub reports are public; never prefill private content, account identity or current-page query strings. Keep translation credit distinct from product guidance and retain all draft-review labels.
+
+## Per-day book mapping
+
+Reuse the journey day header and existing BookLink. A filled mapping adds a small underlined link below the reference; placeholder mappings leave no empty state. Keep it outside editors and closeout controls. At 375px and desktop widths, the day title, reference and link wrap without clipping; keyboard focus stays visible. No new visual tokens or animation.

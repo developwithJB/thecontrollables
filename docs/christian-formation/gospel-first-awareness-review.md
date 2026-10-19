@@ -29,3 +29,25 @@ Before activating the new 75-day assignments, the responsible human editor must 
 ## Study attribution and corrections
 
 JB identifies the New Living Translation (NLT) as his study Bible. All Gospel reading links and the new draft metadata now identify NLT; the app reproduces no NLT passage text. Product reflections remain distinguished from Scripture and pending review. NLT publication/quotation guidance is available from [Tyndale](https://www.tyndale.com/permissions). JB’s note welcomes corrections, and the app links to the public GitHub feedback form without prefilled personal data or page queries. The repository is public; this change does not add or claim a software license. Feedback does not automatically approve or publish content.
+
+## Review flags: repeated readings
+
+Editorial decision pending: keep (intentional repetition) or replace. No automatic change. These flags concern bundled drafts, not an assertion about published database assignments. Nine exact duplicate groups plus six overlap groups are flagged (15 flags total). The range audit found four additional overlaps beyond the handoff's two examples.
+
+| Type | Passage | Days |
+|---|---|---|
+| Exact | John 13:1-17 | 26, 30, 39 |
+| Exact | Mark 10:46-52 | 4, 35, 66 |
+| Exact | Matthew 6:1-6 | 28, 49 |
+| Exact | John 4:4-26 | 67, 69 |
+| Exact | Matthew 25:31-40 | 59, 63 |
+| Exact | Matthew 11:28-30 | 5, 25 |
+| Exact | Luke 16:10-13 | 32, 37 |
+| Exact | Matthew 18:15-20 | 33, 61 |
+| Exact | John 15:9-17 | 50, 74 |
+| Overlap | John 13:1-17 and John 13:12-17 | 26, 30, 39, 73 |
+| Overlap | Matthew 6:1-6 and Matthew 6:1-4 | 28, 49, 52 |
+| Overlap | Mark 5:25-34 and Mark 5:21-43 | 11, 23 |
+| Overlap | Mark 9:33-37 and Mark 9:35-37 | 18, 57 |
+| Overlap | Matthew 5:38-48 and Matthew 5:43-48 | 36, 68 |
+| Overlap | Luke 14:12-14 and Luke 14:7-14 | 54, 60 |
