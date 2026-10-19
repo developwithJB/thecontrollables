@@ -161,3 +161,19 @@ integration run remains unverified. PGlite is not an application dependency.
 - Unverified: full local Supabase/PostgREST, real two-device concurrent UI operation,
   remote schema/deployment, and live integrations. Docker's daemon was unavailable.
   No Stripe production E2E or plain all-app E2E was run.
+
+
+## Completed local integration verification (October 19, 2026)
+
+Docker is available. The book-loop migration was applied to an isolated local Supabase stack on ports 55321/55322, with real Auth and PostgREST. The rollback-only `tests/database/book-loop-security.sql` passed against that PostgreSQL instance. The actual BookLoopProvider/useBookLoopState UI then passed two Playwright integration scenarios using real local-only auth users, two browser sessions for one account and a third session for a second account. These verify confirmation-before-import, retained browser backup, cross-device refresh, account isolation, anonymous denial, stale revision rejection and mismatched-account rejection. Test-created local users are deleted afterward. No production users are created by these tests.
+
+Reproduce against an intentionally local stack with the migration applied:
+
+```bash
+supabase status --workdir /path/to/local-stack --output json > /tmp/dashboard-local-status.json
+node scripts/run-book-loop-local.mjs /tmp/dashboard-local-status.json
+```
+
+The runner refuses a non-local API hostname. Its status file includes local credentials and must remain outside the repository. The service role is passed only to the Node test runner, never to Vite or the browser. The fixture is a dev-only HTML entry and is not part of the production build. This is a targeted integration stack, not a claim that the repository's full historical migration chain was replayed.
+
+Updated verification: 62 unit files / 377 tests passed; both TypeScript checks and production build passed; dedicated formation Playwright 12/12 passed; local book-loop Playwright 2/2 passed; SQL suite ends in ROLLBACK. Backend production deployment and flag enablement are separate steps authorized by JB's October 19 request.
