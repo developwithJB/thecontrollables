@@ -84,7 +84,15 @@ export const REPRESENTATIVE_FORMATION_CONTENT_SEED: FormationContentDraft[] = [
   seed({ stableId: "completion.sample", title: "Grace-Centered Completion", contentType: "completion_language", body: "Celebrate faithfulness, honesty, stewardship, recovery, service, kept promises, and time spent with Jesus—never earned love or comparative maturity." }),
 ];
 
+export const GOSPEL_FRAMING_DRAFT_SEED: FormationContentDraft[] = [
+  { ...seed({ stableId: "fully-charged-75.gospel-frame.day-1", title: "Day 1 Gospel framing draft", contentType: "formation_season_introduction", track: "fully_charged_75", days: [1, 1], season: "be_with_jesus", scripture: "John 3:16-17", classification: "Scholarly Interpretation", body: "[JB/REVIEWER TO EDIT] DRAFT — pending independent theological review. Receive grace before making promises. Jesus gives himself for the world; these practices respond to his love and do not earn it." }), aiAssisted: true },
+  { ...seed({ stableId: "fully-charged-75.gospel-frame.day-25", title: "Day 25 Gospel framing draft", contentType: "formation_season_introduction", track: "fully_charged_75", days: [25, 25], season: "be_with_jesus", scripture: "Mark 15:33-39", classification: "Scholarly Interpretation", body: "[JB/REVIEWER TO EDIT] DRAFT — pending independent theological review. Bring the season to the cross. Name what needs repentance and receive mercy; a completed practice record cannot save you." }), aiAssisted: true },
+  { ...seed({ stableId: "fully-charged-75.gospel-frame.day-50", title: "Day 50 Gospel framing draft", contentType: "formation_season_introduction", track: "fully_charged_75", days: [50, 50], season: "become_like_jesus", scripture: "Luke 24:1-12", classification: "Scholarly Interpretation", body: "[JB/REVIEWER TO EDIT] DRAFT — pending independent theological review. Let the resurrection shape the next season. Christian hope rests in the risen Jesus, not a perfect record; return to faithful practice with humility." }), aiAssisted: true },
+  { ...seed({ stableId: "fully-charged-75.gospel-frame.day-75", title: "Day 75 Gospel framing draft", contentType: "formation_season_introduction", track: "fully_charged_75", days: [75, 75], season: "do_what_jesus_did", scripture: "Matthew 28:1-10", classification: "Scholarly Interpretation", body: "[JB/REVIEWER TO EDIT] DRAFT — pending independent theological review. Finish with gratitude for the crucified and risen Jesus. Carry his grace into service beyond these 75 days; completion is not a measure of your worth." }), aiAssisted: true },
+];
+
 export const INITIAL_FORMATION_CONTENT_SEED: FormationContentDraft[] = [
   ...FULLY_CHARGED_75_CONTENT_SEED,
   ...REPRESENTATIVE_FORMATION_CONTENT_SEED,
+  ...GOSPEL_FRAMING_DRAFT_SEED,
 ];

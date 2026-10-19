@@ -1,3 +1,5 @@
+import { BookLink } from "@/components/BookLink";
+import { getBookMappingForDay, isBookMappingFilled } from "@/domain/formation/bookDayMapping";
 import { GospelAwarenessPrompts } from "./GospelAwarenessPrompts";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -111,6 +113,7 @@ function ActiveJourneyPanel(
   const canClose = canPracticeToday && completedCircuits === 5;
   const canCancel = journey.attemptStatus === "scheduled" || canPracticeToday;
   const title = localOnly ? guide?.title : publishedContent.data?.title.replace(/^Day \d+:\s*/i, "");
+  const bookMapping = journey.dayNumber ? getBookMappingForDay(journey.dayNumber) : undefined;
   const scriptureReference = localOnly ? guide?.scriptureReference : publishedContent.data?.scriptureReference;
 
   return (
@@ -124,6 +127,7 @@ function ActiveJourneyPanel(
           </div>
           <h2 className="mt-3 font-display text-2xl font-semibold">{title ?? "Today's formation"}</h2>
           {scriptureReference ? <p className="mt-1 text-sm font-semibold text-primary">{scriptureReference}</p> : null}
+          {isBookMappingFilled(bookMapping) ? <BookLink placement="formation_day" className="mt-2 inline-block text-sm text-primary underline underline-offset-4">Read the related chapter</BookLink> : null}
         </div>
         <div className="min-w-[150px]">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Journey progress</p>
