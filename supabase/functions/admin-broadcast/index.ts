@@ -223,7 +223,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Unknown action" }), { status: 400, headers: corsHeaders });
   } catch (err) {
     console.error("[BROADCAST] Error:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Broadcast failed" }), { status: 500, headers: corsHeaders });
   }
 });
 
@@ -244,7 +244,7 @@ async function resolveSegment(
 
   // Get profiles for display names
   const { data: profiles } = await supabase.from("profiles").select("id, display_name");
-  const profileMap = new Map((profiles || []).map((p: any) => [p.id, p.display_name]));
+  const profileMap = new Map<string, string | null>((profiles || []).map((p: any): [string, string | null] => [p.id, typeof p.display_name === "string" ? p.display_name : null]));
 
   // Get entitlements
   const { data: entitlements } = await supabase.from("user_entitlements").select("user_id, expires_at");
