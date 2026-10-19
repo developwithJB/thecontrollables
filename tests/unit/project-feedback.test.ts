@@ -22,12 +22,13 @@ describe('public project feedback and Bible source', () => {
     expect(screen.getByText(/I study with the New Living Translation/)).toBeTruthy();
     expect(screen.getByRole('link', { name: 'View the project on GitHub' }).getAttribute('href')).toBe('https://github.com/developwithJB/thecontrollables');
   });
-  it('uses NLT for every draft source link without changing review status', () => {
+  it('links every draft to Bible.com in the NLT without changing review status', () => {
     for (const draft of FULLY_CHARGED_75_CONTENT_SEED) {
       const url = new URL(gospelReadingUrl(draft.scriptureReference!));
-      expect(url.searchParams.get('search')).toBe(draft.scriptureReference);
-      expect(url.searchParams.get('version')).toBe('NLT');
-      expect(draft.sourceCitations).toEqual([url.href.replace(/\+/g, '%20')]);
+      expect(url.origin).toBe('https://www.bible.com');
+      const usfm = decodeURIComponent(url.pathname).replace(/^\/bible\/116\//, '');
+      expect(usfm).toMatch(/^(MAT|MRK|LUK|JHN)\.[1-9]\d*\.[1-9]\d*(-[1-9]\d*)?$/);
+      expect(draft.sourceCitations).toEqual([url.href]);
       expect(draft.bibleTranslation).toContain('New Living Translation (NLT)');
       expect(draft.publicationStatus).toBe('draft');
       expect(draft.theologicalReviewStatus).toBe('pending');
