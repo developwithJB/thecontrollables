@@ -256,6 +256,13 @@ export function WellnessCircuitEditor(props: CircuitEditorProps) {
         placeholder="My appropriate hydration plan is…"
       />
 
+      {evaluation.requiredActionIds.includes("rest_or_walk") ? (
+        <FieldGroup label="Rest or a gentle walk" id="rest-or-walk" required>
+          <p className="text-sm text-muted-foreground">Rest is obedience, not a loophole. All five circuits and closeout still count today.</p>
+          <Textarea id="rest-or-walk" maxLength={500} value={draft.fields.restOrWalk ?? ""} onChange={(event) => setField(draft, onChange, "restOrWalk", event.target.value, 500)} placeholder="How I rested or walked gently today…" />
+          <PracticeToggle pressed={draft.actions.rest_or_walk === true} onPressedChange={(pressed) => setAction(draft, onChange, "rest_or_walk", pressed)} title="Rest or walk completed" description="Mark this when your described practice is complete." requirement="required" />
+        </FieldGroup>
+      ) : <>
       <MovementBlockEditor
         number="one"
         block={draft.movement.one}
@@ -269,6 +276,7 @@ export function WellnessCircuitEditor(props: CircuitEditorProps) {
         onChange={(block) => onChange({ ...draft, movement: { ...draft.movement, two: block } })}
       />
 
+      </>}
       <PracticeToggle
         pressed={draft.actions.sleep_preparation === true}
         onPressedChange={(pressed) => setAction(draft, onChange, "sleep_preparation", pressed)}

@@ -23,3 +23,6 @@ Keep the existing circuit card and semantic tokens. A compact ordered list shows
 ## Sources and feedback
 
 Use a readable note from JB and one clearly labeled GitHub feedback link in the landing footer. Gospel Awareness cards repeat a compact correction link beside the NLT source context. Preserve semantic colors, underlined links, visible keyboard focus and mobile wrapping. State that GitHub reports are public; never prefill private content, account identity or current-page query strings. Keep translation credit distinct from product guidance and retain all draft-review labels.
+
+## Sabbath attempt setup
+Reuse the existing readiness panel, labels, native select and semantic tokens. The weekday choice is made before start and shown as locked afterward; mobile controls stack. Rest-day Wellness keeps nutrition/hydration, then one description and explicit rest-or-walk attestation. No celebratory animation or competitive language. Preserve all loading, error and reviewed-content gates. Check 375px and 1280px without overflow.

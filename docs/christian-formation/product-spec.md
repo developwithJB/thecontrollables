@@ -229,3 +229,13 @@ These block stable rule or schema contracts:
 - [Privacy and safety](./privacy-and-safety.md)
 - [Content governance](./content-governance.md)
 - [Test strategy](./test-strategy.md)
+
+## Sabbath rules v2 (PR-C; local migration only)
+
+JB selected a weekday chosen at attempt start, locked in the attempt's fixed timezone. Each weekly rest day counts toward the same 75 consecutive calendar days. Awareness 🦉, Perspective 🐢, Habit 🦈 and Environment 🚀 remain required. Wellness 🛰️ requires nutrition, hydration and an explicit rest-or-walk attestation with a 1–500 character description. All five circuits and explicit server closeout remain required, with no grace period.
+
+Existing attempts retain their original rules and have no rest weekday. The new `start_fully_charged_sabbath_attempt` RPC creates `v2_sabbath` attempts; the old RPC cannot create that version. The database computes rest days from the canonical local date and stored weekday. A trigger prevents changing either the weekday or rules version. Clients reload the projection before saving; the circuit RPC independently verifies the date and derives completion. `close_fully_charged_day` remains unchanged, consuming the five server-derived circuit states. The day evaluator likewise still requires all five complete states.
+
+`formation_rule_rollouts.sabbath_new_attempts_enabled` is a server-only switch controlling new v2 starts, initially true in the unapplied migration. Nothing is activated remotely by this PR. Review-day invitations are separate from weekly Sabbath scheduling.
+
+JB will read/edit the AI-assisted Gospel framing drafts. This records intent to review, not completed approval. Independent theological review from the final author is still required by content governance before publication. Pro is the selected hosted-coach tier; price remains TBD. Provider v1 is OpenAI-compatible plus Anthropic with Vault; implementation belongs to PR-D/E.

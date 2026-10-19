@@ -10,6 +10,8 @@ import {
 } from "@/domain/formation/fullyChargedJourney";
 import type { FormationSeason } from "@/domain/formation/content";
 
+import { SABBATH_RULE_VERSION, restDayForDate } from "@/domain/formation/sabbath";
+
 export type FullyChargedPersistedStatus = "scheduled" | "active" | "ended" | "completed" | "cancelled";
 export type FullyChargedPersistedDayStatus = "scheduled" | "open" | "complete" | "incomplete";
 
@@ -18,6 +20,8 @@ export interface FullyChargedTodayState {
   sequenceNumber: number;
   attemptStatus: FullyChargedPersistedStatus;
   rulesVersion: string;
+  restWeekday?: number | null;
+  isRestDay?: boolean;
   contentBundleVersion: string;
   startLocalDate: string;
   startTimezone: string;
@@ -36,6 +40,7 @@ export interface StartFullyChargedAttemptInput {
   startLocalDate: string;
   timezone: string;
   mainPromise: string;
+  restWeekday?: number;
   strictOptIn: boolean;
   rulesAccepted: boolean;
   personalCovenantAccepted: boolean;
@@ -47,6 +52,8 @@ export interface StartFullyChargedAttemptInput {
 }
 
 interface LocalFullyChargedAttempt {
+  rulesVersion?: string;
+  restWeekday?: number;
   version: 1;
   attemptId: string;
   sequenceNumber: number;
@@ -98,6 +105,8 @@ export async function startFullyChargedAttempt(
     const sequenceNumber = (existing?.sequenceNumber ?? 0) + 1;
     const attempt: LocalFullyChargedAttempt = {
       version: 1,
+      rulesVersion: SABBATH_RULE_VERSION,
+      restWeekday: input.restWeekday ?? 0,
       attemptId: `local-fully-charged-${input.userId}-${sequenceNumber}`,
       sequenceNumber,
       status: input.startLocalDate === getLocalDateInTimezone(input.timezone) ? "active" : "scheduled",
@@ -115,11 +124,12 @@ export async function startFullyChargedAttempt(
     return mapLocalAttempt(attempt);
   }
 
-  const { error } = await supabase.rpc("start_fully_charged_attempt", {
+  const { error } = await supabase.rpc("start_fully_charged_sabbath_attempt", {
+    p_rest_weekday: input.restWeekday ?? 0,
     p_start_local_date: input.startLocalDate,
     p_timezone: input.timezone,
     p_main_promise: input.mainPromise.trim(),
-    p_rules_version: FORMATION_RULE_VERSION,
+    p_rules_version: SABBATH_RULE_VERSION,
     p_content_bundle_version: FULLY_CHARGED_CONTENT_BUNDLE_VERSION,
     p_strict_opt_in: input.strictOptIn,
     p_rules_accepted: input.rulesAccepted,
@@ -217,6 +227,7 @@ export async function cancelFullyChargedAttempt(input: {
 }
 
 function validateStartInput(input: StartFullyChargedAttemptInput): void {
+  if (input.restWeekday !== undefined && (!Number.isInteger(input.restWeekday) || input.restWeekday < 0 || input.restWeekday > 6)) throw new Error("Choose a weekday from Sunday through Saturday.");
   if (!input.mainPromise.trim()) throw new Error("Name one keepable Main Promise before starting.");
   if (
     !input.strictOptIn ||
@@ -305,7 +316,9 @@ function mapLocalAttempt(attempt: LocalFullyChargedAttempt): FullyChargedTodaySt
     attemptId: attempt.attemptId,
     sequenceNumber: attempt.sequenceNumber,
     attemptStatus: attempt.status,
-    rulesVersion: FORMATION_RULE_VERSION,
+    rulesVersion: attempt.rulesVersion ?? FORMATION_RULE_VERSION,
+    restWeekday: attempt.restWeekday ?? null,
+    isRestDay: attempt.rulesVersion === SABBATH_RULE_VERSION && restDayForDate(localDate, attempt.restWeekday),
     contentBundleVersion: FULLY_CHARGED_CONTENT_BUNDLE_VERSION,
     startLocalDate: attempt.startLocalDate,
     startTimezone: attempt.startTimezone,
@@ -331,6 +344,8 @@ function normalizeTodayState(value: Json | null, localOnly: boolean): FullyCharg
     sequenceNumber: asNumber(row.sequenceNumber) ?? 1,
     attemptStatus,
     rulesVersion: asString(row.rulesVersion) ?? FORMATION_RULE_VERSION,
+    restWeekday: asNumber(row.restWeekday),
+    isRestDay: row.isRestDay === true,
     contentBundleVersion: asString(row.contentBundleVersion) ?? FULLY_CHARGED_CONTENT_BUNDLE_VERSION,
     startLocalDate: asString(row.startLocalDate) ?? "",
     startTimezone: asString(row.startTimezone) ?? "UTC",

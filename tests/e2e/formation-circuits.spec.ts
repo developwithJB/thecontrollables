@@ -123,3 +123,27 @@ test("keeps private completion reflection out of the share preview and downloads
   const results = await new AxeBuilder({ page }).include("main").analyze();
   expect(results.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical")).toEqual([]);
 });
+
+test("locks the chosen Sabbath weekday and records the rest-day minimum", async ({ page }) => {
+  await page.getByRole("button", { name: /Fully Charged: 75 Days/ }).click();
+  const startPanel = page.getByTestId("fully-charged-start-panel");
+  const weekday = await page.evaluate(() => new Date().getDay());
+  await startPanel.getByLabel("Weekly Sabbath weekday").selectOption(String(weekday));
+  await startPanel.getByLabel("Main Promise", { exact: true }).fill("Keep one promise.");
+  for (const checkbox of await startPanel.getByRole("checkbox").all()) await checkbox.check();
+  await startPanel.getByRole("button", { name: "Start Fully Charged" }).click();
+  await expect(page.getByTestId("fully-charged-journey-panel")).toContainText("(locked) · today");
+  await page.getByRole("button", { name: "Open Wellness" }).click();
+  await expect(page.getByText("Rest is obedience, not a loophole.", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: /I honored this personal nutrition covenant/ }).click();
+  await page.getByRole("button", { name: /I honored this personal hydration covenant/ }).click();
+  await page.getByLabel("Rest or a gentle walk", { exact: true }).fill("Quiet rest and a gentle walk.");
+  await page.getByRole("button", { name: /Rest or walk completed/ }).click();
+  await page.getByRole("button", { name: /Save progress/ }).click();
+  await expect(page.getByText("Circuit complete").first()).toBeVisible();
+  await expect(page.getByLabel("Movement type or adaptation")).toHaveCount(0);
+  await page.screenshot({ path: `artifacts/sequence-preview/c-${test.info().project.name}.png`, fullPage: true });
+  await page.getByRole("button", { name: /Return to Today/ }).first().click();
+  const wellnessCard = page.getByRole("button", { name: "Open Wellness" }).locator("..");
+  await expect(wellnessCard).toContainText("Circuit complete");
+});

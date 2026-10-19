@@ -7,6 +7,8 @@ import {
   type TrainingTrack,
 } from "./circuits";
 
+import { isSabbath, type SabbathContext } from "./sabbath";
+
 const STRICT_REQUIRED_ACTIONS: Record<CircuitType, readonly CircuitActionId[]> = {
   awareness: ["scripture_opened", "reading_completed", "honest_truth_saved"],
   perspective: ["prayer_practiced", "gratitude_recorded", "control_release_move_recorded", "smaller_faithful_action"],
@@ -36,10 +38,10 @@ export interface CircuitEvaluation {
 
 const hasText = (draft: FormationCircuitDraft, key: string) => Boolean(draft.fields[key]?.trim());
 
-export function deriveCompletedActions(circuit: CircuitType, draft: FormationCircuitDraft): CircuitActionId[] {
+export function deriveCompletedActions(circuit: CircuitType, draft: FormationCircuitDraft, context?: SabbathContext | null): CircuitActionId[] {
   const completed = new Set<CircuitActionId>();
   for (const [actionId, value] of Object.entries(draft.actions)) {
-    if (value) completed.add(actionId as CircuitActionId);
+    if (value && actionId !== "rest_or_walk") completed.add(actionId as CircuitActionId);
   }
 
   if (circuit === "awareness") {
@@ -81,12 +83,16 @@ export function deriveCompletedActions(circuit: CircuitType, draft: FormationCir
     if (hasText(draft, "tomorrowPrepared")) completed.add("tomorrow_prepared");
   }
 
-  return CIRCUIT_DEFINITIONS[circuit].actions
+  if (circuit === "wellness" && isSabbath(context) && draft.actions.rest_or_walk &&
+    hasText(draft, "restOrWalk") && draft.fields.restOrWalk.trim().length <= 500) completed.add("rest_or_walk");
+  const result = CIRCUIT_DEFINITIONS[circuit].actions
     .map((action) => action.id)
     .filter((actionId) => completed.has(actionId));
+  return completed.has("rest_or_walk") ? [...result, "rest_or_walk"] : result;
 }
 
-export function getRequiredActionIds(track: TrainingTrack, circuit: CircuitType): readonly CircuitActionId[] {
+export function getRequiredActionIds(track: TrainingTrack, circuit: CircuitType, context?: SabbathContext | null): readonly CircuitActionId[] {
+  if (track === "fully_charged_75" && circuit === "wellness" && isSabbath(context)) return ["nutrition_covenant_honored", "hydration_covenant_honored", "rest_or_walk"];
   return track === "fully_charged_75" ? STRICT_REQUIRED_ACTIONS[circuit] : [];
 }
 
@@ -94,10 +100,13 @@ export function evaluateCircuit(
   track: TrainingTrack,
   circuit: CircuitType,
   draft: FormationCircuitDraft,
+  context?: SabbathContext | null,
 ): CircuitEvaluation {
-  const completedActionIds = deriveCompletedActions(circuit, draft);
-  const allActionIds = CIRCUIT_DEFINITIONS[circuit].actions.map((action) => action.id);
-  const requiredActionIds = getRequiredActionIds(track, circuit);
+  const completedActionIds = deriveCompletedActions(circuit, draft, context);
+  const allActionIds: CircuitActionId[] = circuit === "wellness" && track === "fully_charged_75" && isSabbath(context)
+    ? ["nutrition_covenant_honored", "hydration_covenant_honored", "rest_or_walk", "sleep_preparation"]
+    : CIRCUIT_DEFINITIONS[circuit].actions.map((action) => action.id);
+  const requiredActionIds = getRequiredActionIds(track, circuit, context);
   const missingRequiredActionIds = requiredActionIds.filter((id) => !completedActionIds.includes(id));
   const hasActivity = completedActionIds.length > 0 || Boolean(draft.reflection.trim()) || Boolean(draft.proof);
 
@@ -150,6 +159,7 @@ export function evaluateCircuit(
 }
 
 export function getActionLabel(circuit: CircuitType, actionId: CircuitActionId): string {
+  if (actionId === "rest_or_walk") return "Rest or a gentle walk";
   return CIRCUIT_DEFINITIONS[circuit].actions.find((action) => action.id === actionId)?.shortLabel ?? actionId;
 }
 

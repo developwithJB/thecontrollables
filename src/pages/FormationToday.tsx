@@ -65,9 +65,9 @@ export default function FormationToday() {
       CIRCUIT_TYPES.map((circuit) => {
         const entry = history.find((candidate) => candidate.localDate === practiceLocalDate && candidate.circuit === circuit);
         const draft = entry?.draft ?? createEmptyCircuitDraft();
-        return { circuit, entry, evaluation: evaluateCircuit(track, circuit, draft) };
+        return { circuit, entry, evaluation: evaluateCircuit(track, circuit, draft, track === "fully_charged_75" && strictJourney.journey ? { rulesVersion: strictJourney.journey.rulesVersion, isRestDay: strictJourney.journey.isRestDay === true } : null) };
       }),
-    [history, practiceLocalDate, track],
+    [history, practiceLocalDate, track, strictJourney.journey],
   );
 
   const satisfiedCount = circuits.filter(({ evaluation }) => evaluation.isSatisfiedForTrack).length;
