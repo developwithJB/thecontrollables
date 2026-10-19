@@ -1,3 +1,4 @@
+import { BookLink } from "@/components/BookLink";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -323,9 +324,9 @@ export default function Growth({ surface = "growth" }: GrowthProps) {
           <InfoHint title="Book link">Dive deeper into The Controllables on Amazon.</InfoHint>
         </div>
         <Button asChild variant="outline" size="sm">
-          <a href="https://a.co/d/1DGPGEV" target="_blank" rel="noopener noreferrer">
+          <BookLink placement="growth_promo">
             Get the Book →
-          </a>
+          </BookLink>
         </Button>
       </motion.div>
 
