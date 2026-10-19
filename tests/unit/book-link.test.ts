@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 const mocks = vi.hoisted(() => ({ trackEvent: vi.fn() }));
-vi.mock('@/hooks/useAnalytics', () => ({ useAnalytics: () => ({ trackEvent: mocks.trackEvent }), usePageViewTracking: () => undefined }));
+vi.mock('@/hooks/useAnalytics', () => ({ usePageViewTracking: () => undefined }));
+vi.mock('@/lib/growthEvents', () => ({ trackGrowthEvent: mocks.trackEvent }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { auth: { getSession: () => Promise.resolve({ data: { session: null } }) } } }));
 vi.mock('@/lib/featureFlags', () => ({ onboardingQuickStartEnabled: () => true }));
 import { BookLink } from '@/components/BookLink';
@@ -26,7 +27,7 @@ describe('shared book links', () => {
     expect(link.getAttribute('href')).toBe('https://a.co/d/1DGPGEV');
     expect(link.getAttribute('target')).toBe('_blank'); expect(link.getAttribute('rel')).toBe('noopener noreferrer');
     expect(fireEvent.click(link)).toBe(true);
-    expect(mocks.trackEvent).toHaveBeenCalledWith('cta', 'book_link_click', { placement: 'landing_nav' });
+    expect(mocks.trackEvent).toHaveBeenCalledWith('book_link_click', { placement: 'landing_nav' });
   });
   it('keeps navigation usable when analytics throws or rejects', async () => {
     render(createElement(BookLink, { placement: 'quick_start', children: 'Book' }));
@@ -39,7 +40,7 @@ describe('shared book links', () => {
     page(Landing);
     for (const [id, placement] of [['landing-book-nav', 'landing_nav'], ['landing-book-hero', 'landing_hero'], ['landing-book-section', 'landing_book_section']]) {
       const link = await screen.findByTestId(id); fireEvent.click(link);
-      expect(mocks.trackEvent).toHaveBeenCalledWith('cta', 'book_link_click', { placement });
+      expect(mocks.trackEvent).toHaveBeenCalledWith('book_link_click', { placement });
     }
     const hero = screen.getByTestId('landing-hero');
     expect(within(hero).getAllByRole('link')[0]).toBe(screen.getByTestId('cta-get-started'));
