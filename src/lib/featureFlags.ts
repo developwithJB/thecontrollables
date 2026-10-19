@@ -34,7 +34,7 @@ export interface FeatureFlags {
 export type FeatureFlagOverrides = Partial<Record<FeatureFlagKey, unknown>>;
 
 export const DEFAULT_FEATURE_FLAGS: Readonly<FeatureFlags> = Object.freeze({
-  server_book_loop_enabled: false,
+  server_book_loop_enabled: true,
   onboarding_quick_start_enabled: true,
   formation_circuits_enabled: true,
   formation_completion_enabled: true,

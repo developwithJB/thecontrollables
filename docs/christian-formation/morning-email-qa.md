@@ -1,6 +1,6 @@
 # Morning Formation Email QA
 
-Updated: 2026-08-16
+Updated: 2026-10-19
 
 ## Product flow
 
@@ -29,7 +29,8 @@ The morning email may contain the user's first name, selected path, day number, 
 ```bash
 VITE_ENABLE_DEV_MOCK_AUTH=true npm run dev -- --host 127.0.0.1 --port 4174
 npx vitest run tests/unit/formation-enrollment.test.ts tests/unit/formation-email.test.ts tests/unit/formation-email-migration.test.ts tests/unit/daily-nudge-security.test.ts
-npx playwright test tests/e2e/new-customer-entry.spec.ts
+npm run test:e2e:entry
+npm run test:e2e:formation
 npm run build
 git diff --check
 ```

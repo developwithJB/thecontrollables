@@ -32,12 +32,12 @@ function storage(items: Record<string, string>): Storage {
   };
 }
 describe("book-loop serialization and import", () => {
-  it("defaults OFF and accepts the explicit boolean flag", () => {
-    expect(getFeatureFlags().server_book_loop_enabled).toBe(false);
+  it("defaults ON after backend verification and accepts an explicit rollback flag", () => {
+    expect(getFeatureFlags().server_book_loop_enabled).toBe(true);
     expect(
-      getFeatureFlags({ server_book_loop_enabled: "true" })
+      getFeatureFlags({ server_book_loop_enabled: "false" })
         .server_book_loop_enabled,
-    ).toBe(true);
+    ).toBe(false);
   });
   it("separates promises by day and round-trips the private profile", () => {
     const profile = normalizers.profile(undefined);

@@ -197,3 +197,18 @@ docker exec -i YOUR_LOCAL_DB psql -U postgres -d postgres -v ON_ERROR_STOP=1 < t
 The rollback-only check covers signup metadata, atomic path mirroring, consent
 preservation/opt-out, owner isolation, billing escalation denial, closed/null
 paths, and anonymous RPC denial. It must never target production.
+
+### October 19 production rollout
+
+PR #53's migration was applied once through Lovable. Catalog checks confirmed
+owner-only authenticated policies, restricted table/column grants, revision
+trigger, and SECURITY INVOKER RPCs. Live anonymous table and RPC requests were
+denied. Production role-switch rollback checks were unavailable; the real local
+Auth/PostgREST and two-account browser checks provide behavioral coverage.
+
+The frontend now defaults `server_book_loop_enabled` to true after that backend
+verification. An explicit feature-flag override can turn it off. This enables
+signed-in server storage; importing existing browser data still needs the user's
+confirmation and keeps the browser backup. It does not activate Gospel drafts.
+Book CTA clicks use the always-on growth sink, with placement only and no private
+practice text. Amazon click-outs do not prove a purchase.
