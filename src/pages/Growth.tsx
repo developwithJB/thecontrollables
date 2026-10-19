@@ -332,7 +332,7 @@ export default function Growth({ surface = "growth" }: GrowthProps) {
 
       {/* Footer */}
       <footer className="py-6 text-center">
-        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} AGB Coaching</p>
+        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} The Controllables</p>
       </footer>
     </div>
   );

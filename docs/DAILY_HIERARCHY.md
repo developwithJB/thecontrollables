@@ -1,6 +1,6 @@
 # Daily Decision-Making Hierarchy
 
-**Product Rule — The Dashboard by AGB Coaching**
+**Product Rule — The Dashboard by The Controllables**
 
 This document defines the 4-tier daily goal hierarchy that governs page layout, AI logic, prompts, and feature prioritization across the entire application.
 
