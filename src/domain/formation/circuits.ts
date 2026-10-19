@@ -34,6 +34,7 @@ export type CircuitActionId =
   | "movement_block_one"
   | "movement_block_two"
   | "outdoor_movement"
+  | "rest_or_walk"
   | "sleep_preparation"
   | "adapted_movement"
   | "friction_removed"
@@ -206,6 +207,7 @@ const ACTIONS: Record<CircuitActionId, CircuitActionDefinition> = {
     shortLabel: "Outdoor movement",
     description: "Never override unsafe weather, access, or medical guidance. Use the safety adaptation when needed.",
   },
+  rest_or_walk: { id: "rest_or_walk", label: "Rest or a gentle walk", shortLabel: "Rest or walk", description: "Describe and honestly record your rest or gentle walk." },
   sleep_preparation: {
     id: "sleep_preparation",
     label: "Prepare for sleep",

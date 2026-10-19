@@ -33,6 +33,7 @@ interface FullyChargedJourneyPanelProps {
     startLocalDate: string;
     timezone: string;
     mainPromise: string;
+    restWeekday?: number;
     strictOptIn: boolean;
     rulesAccepted: boolean;
     personalCovenantAccepted: boolean;
@@ -119,6 +120,7 @@ function ActiveJourneyPanel(
         <div>
           <div className="flex flex-wrap gap-2">
             <FutureChip icon={<Flag className="h-3.5 w-3.5" />} label={`Day ${journey.dayNumber ?? "—"} of 75`} />
+            {journey.rulesVersion === "v2_sabbath" ? <FutureChip label={`Sabbath: ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][journey.restWeekday ?? 0]} (locked)${journey.isRestDay ? " · today" : ""}`} /> : null}
             {journey.season ? <FutureChip label={FORMATION_SEASON_LABELS[journey.season]} /> : null}
             {localOnly ? <FutureChip icon={<Sparkles className="h-3.5 w-3.5" />} label="QA copy draft" /> : null}
           </div>
@@ -210,6 +212,7 @@ function StrictStartPanel(
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   const [startLocalDate, setStartLocalDate] = useState(today);
   const [mainPromise, setMainPromise] = useState("");
+  const [restWeekday, setRestWeekday] = useState(0);
   const [checks, setChecks] = useState({
     strictOptIn: false,
     rulesAccepted: false,
@@ -257,6 +260,13 @@ function StrictStartPanel(
         </div>
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="rest-weekday">Weekly Sabbath weekday</Label>
+        <select id="rest-weekday" className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={restWeekday} onChange={(event) => setRestWeekday(Number(event.target.value))}>
+          {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day, index) => <option key={day} value={index}>{day}</option>)}
+        </select>
+        <p className="text-xs text-muted-foreground">Locked for this attempt in {timezone}. Counts toward 75 days. Wellness requires nutrition, hydration and described rest or a gentle walk; all other circuits stay required.</p>
+      </div>
       <div className="space-y-3 rounded-2xl border p-4">
         <ReadinessCheck checked={checks.strictOptIn} onChange={(value) => toggle("strictOptIn", value)} label="I freely choose the strict 75-day path; it is not required or the default." />
         <ReadinessCheck checked={checks.rulesAccepted} onChange={(value) => toggle("rulesAccepted", value)} label="I understand that all five circuits and explicit closeout are required each local day." />
@@ -275,6 +285,7 @@ function StrictStartPanel(
               startLocalDate,
               timezone,
               mainPromise,
+              restWeekday,
               ...checks,
               idempotencyKey: `formation:${props.userId}:fully-charged:start:${startLocalDate}:${props.previousAttemptId ?? "first"}`,
               previousAttemptId: props.previousAttemptId,

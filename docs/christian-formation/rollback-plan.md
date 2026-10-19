@@ -31,3 +31,7 @@
 - No database row was deleted or historical content reference rewritten.
 - Monitoring, support note, owner, timeline, and re-enable criteria are documented.
 
+
+## Sabbath rules v2 rollback
+
+Before any production migration, obtain JB's explicit authorization. To stop new v2 starts after an authorized release, a database administrator/service role sets `formation_rule_rollouts.sabbath_new_attempts_enabled = false`. Deploy the previous start UI if needed; legacy v1 starts remain available. Do not rewrite or downgrade existing v2 attempts, change their locked weekday, delete canonical days, remove required content gates or alter closeout. Continue serving pinned v2 attempts until terminal. Any correction ships as a reviewed forward-only migration; do not drop the new column/functions while v2 history exists. No remote operation is included in PR-C.
