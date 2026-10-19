@@ -3,6 +3,7 @@ BEGIN;
 INSERT INTO auth.users (id,aud,role,email,created_at,updated_at) VALUES
  ('40000000-0000-4000-8000-000000000001','authenticated','authenticated','coach-owner@example.test',now(),now()),
  ('40000000-0000-4000-8000-000000000002','authenticated','authenticated','coach-other@example.test',now(),now());
+INSERT INTO public.profiles (id) VALUES ('40000000-0000-4000-8000-000000000001'),('40000000-0000-4000-8000-000000000002') ON CONFLICT (id) DO NOTHING;
 DO $$ BEGIN
  IF (SELECT coach_providers_enabled FROM public.coach_provider_rollout WHERE id) THEN RAISE EXCEPTION 'expected_default_off'; END IF;
 END $$;

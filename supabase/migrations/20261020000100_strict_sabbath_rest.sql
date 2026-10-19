@@ -7,11 +7,12 @@ CREATE TABLE public.formation_rule_rollouts (
   id boolean PRIMARY KEY DEFAULT true CHECK (id),
   sabbath_new_attempts_enabled boolean NOT NULL DEFAULT true
 );
-ALTER TABLE public.formation_rule_rollouts ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.formation_rule_rollouts FROM PUBLIC, anon, authenticated;
+-- Explicit service access precedes RLS under Lovable's public-schema-grants contract.
+GRANT SELECT, UPDATE ON public.formation_rule_rollouts TO service_role;
+ALTER TABLE public.formation_rule_rollouts ENABLE ROW LEVEL SECURITY;
 INSERT INTO public.formation_rule_rollouts (id) VALUES (true);
 -- Only service-role/DB administration may disable future starts. Existing v2 rules stay pinned.
-GRANT SELECT, UPDATE ON public.formation_rule_rollouts TO service_role;
 CREATE FUNCTION public.lock_formation_attempt_rules() RETURNS trigger
 LANGUAGE plpgsql SET search_path = public, pg_temp AS $$
 BEGIN
