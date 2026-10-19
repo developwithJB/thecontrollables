@@ -31,7 +31,8 @@ declare global {
 const ENABLE_SUPABASE_ANALYTICS = import.meta.env.VITE_ENABLE_SUPABASE_ANALYTICS === "true";
 const whenTelemetryReady = () => window.__TELEMETRY_READY__ ?? Promise.resolve();
 
-const capturePosthogEvent = (eventName: string, eventData?: EventData) => {
+export const capturePosthogEvent = (eventName: string, eventData?: EventData) => {
+  if (!import.meta.env.VITE_POSTHOG_KEY) return;
   void whenTelemetryReady()
     .then(() => import("posthog-js"))
     .then(({ default: posthog }) => {

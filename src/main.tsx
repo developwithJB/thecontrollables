@@ -1,7 +1,10 @@
+import { captureAttribution } from "./lib/growthAttribution";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { initInstallPromptListener, registerServiceWorker } from "./lib/pwa";
+
+captureAttribution();
 
 // Initialize PWA functionality
 initInstallPromptListener();

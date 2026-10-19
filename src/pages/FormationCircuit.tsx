@@ -1,3 +1,4 @@
+import { trackFirstCircuitCompleted } from "@/lib/growthEvents";
 import { ArrowLeft, CheckCircle2, LockKeyhole, Save, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
@@ -132,6 +133,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
       if (savedEvaluation.isSatisfiedForTrack && !trackedCompletion.current) {
         trackedCompletion.current = true;
         void trackFormation("circuit_completed", { track, circuit, outcome: savedEvaluation.state });
+        trackFirstCircuitCompleted(user.id, track);
       }
       if (saved.draft.fields.recoveryReflection?.trim() && !trackedRecovery.current) {
         trackedRecovery.current = true;
