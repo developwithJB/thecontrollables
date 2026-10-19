@@ -14,13 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      coach_provider_settings: {
-        Row: { user_id: string; provider: string; base_url: string | null; model: string; persona_tone: string; depth: string; last4: string | null; updated_at: string }
-        Insert: never
-        Update: { model?: string; persona_tone?: string; depth?: string }
-        Relationships: []
-      }
-
       admin_broadcasts: {
         Row: {
           body_html: string
@@ -716,6 +709,123 @@ export type Database = {
           start_date?: string
         }
         Relationships: []
+      }
+      coach_byo_usage: {
+        Row: {
+          message_count: number
+          usage_date: string
+          user_id: string
+        }
+        Insert: {
+          message_count: number
+          usage_date: string
+          user_id: string
+        }
+        Update: {
+          message_count?: number
+          usage_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_byo_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coach_hosted_usage: {
+        Row: {
+          message_count: number
+          usage_date: string
+          user_id: string
+        }
+        Insert: {
+          message_count: number
+          usage_date: string
+          user_id: string
+        }
+        Update: {
+          message_count?: number
+          usage_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_hosted_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coach_provider_rollout: {
+        Row: {
+          coach_providers_enabled: boolean
+          hosted_coach_enabled: boolean
+          id: boolean
+        }
+        Insert: {
+          coach_providers_enabled?: boolean
+          hosted_coach_enabled?: boolean
+          id?: boolean
+        }
+        Update: {
+          coach_providers_enabled?: boolean
+          hosted_coach_enabled?: boolean
+          id?: boolean
+        }
+        Relationships: []
+      }
+      coach_provider_settings: {
+        Row: {
+          base_url: string | null
+          depth: string
+          hosted_coach_selected: boolean
+          last4: string | null
+          model: string
+          persona_tone: string
+          provider: string
+          updated_at: string
+          user_id: string
+          vault_secret_id: string | null
+        }
+        Insert: {
+          base_url?: string | null
+          depth?: string
+          hosted_coach_selected?: boolean
+          last4?: string | null
+          model?: string
+          persona_tone?: string
+          provider?: string
+          updated_at?: string
+          user_id?: string
+          vault_secret_id?: string | null
+        }
+        Update: {
+          base_url?: string | null
+          depth?: string
+          hosted_coach_selected?: boolean
+          last4?: string | null
+          model?: string
+          persona_tone?: string
+          provider?: string
+          updated_at?: string
+          user_id?: string
+          vault_secret_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_provider_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       completed_actions: {
         Row: {
@@ -1554,8 +1664,8 @@ export type Database = {
           id: string
           planned_start_local_date: string
           previous_attempt_id: string | null
-          rules_accepted_at: string
           rest_weekday: number | null
+          rules_accepted_at: string
           rules_version: string
           sequence_number: number
           start_idempotency_key: string
@@ -1581,8 +1691,8 @@ export type Database = {
           id?: string
           planned_start_local_date: string
           previous_attempt_id?: string | null
-          rules_accepted_at: string
           rest_weekday?: number | null
+          rules_accepted_at: string
           rules_version: string
           sequence_number: number
           start_idempotency_key: string
@@ -1608,8 +1718,8 @@ export type Database = {
           id?: string
           planned_start_local_date?: string
           previous_attempt_id?: string | null
-          rules_accepted_at?: string
           rest_weekday?: number | null
+          rules_accepted_at?: string
           rules_version?: string
           sequence_number?: number
           start_idempotency_key?: string
@@ -2092,6 +2202,21 @@ export type Database = {
           track?: string
           user_id?: string
           visibility?: string
+        }
+        Relationships: []
+      }
+      formation_rule_rollouts: {
+        Row: {
+          id: boolean
+          sabbath_new_attempts_enabled: boolean
+        }
+        Insert: {
+          id?: boolean
+          sabbath_new_attempts_enabled?: boolean
+        }
+        Update: {
+          id?: boolean
+          sabbath_new_attempts_enabled?: boolean
         }
         Relationships: []
       }
@@ -4716,13 +4841,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_hosted_coach_status: { Args: Record<PropertyKey, never>; Returns: Json }
-      select_hosted_coach: { Args: {p_selected: boolean}; Returns: undefined }
-      coach_providers_available: { Args: Record<PropertyKey, never>; Returns: boolean }
-      set_coach_api_key: { Args: {p_provider: string; p_key: string; p_base_url: string; p_model: string}; Returns: Json }
-      clear_coach_api_key: { Args: Record<PropertyKey, never>; Returns: Json }
-      save_coach_preferences: { Args: {p_model: string; p_tone: string; p_depth: string}; Returns: undefined }
-
       activate_formation_path: {
         Args: {
           p_email_enabled?: boolean
@@ -4772,6 +4890,7 @@ export type Database = {
           id: string
           planned_start_local_date: string
           previous_attempt_id: string | null
+          rest_weekday: number | null
           rules_accepted_at: string
           rules_version: string
           sequence_number: number
@@ -4792,10 +4911,12 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      clear_coach_api_key: { Args: never; Returns: Json }
       close_fully_charged_day: {
         Args: { p_attempt_id: string; p_idempotency_key: string }
         Returns: Json
       }
+      coach_providers_available: { Args: never; Returns: boolean }
       compute_build_scores: {
         Args: { p_assessment_id: string }
         Returns: {
@@ -4841,6 +4962,7 @@ export type Database = {
       }
       get_current_fully_charged_content: { Args: never; Returns: Json }
       get_fully_charged_today: { Args: never; Returns: Json }
+      get_hosted_coach_status: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4923,6 +5045,8 @@ export type Database = {
         Args: { target_date: string; target_user_id: string }
         Returns: undefined
       }
+      reserve_coach_byo_usage: { Args: { p_user_id: string }; Returns: Json }
+      reserve_hosted_coach_usage: { Args: { p_user_id: string }; Returns: Json }
       review_formation_content_version: {
         Args: {
           p_historical_status: string
@@ -4970,6 +5094,10 @@ export type Database = {
       }
       save_book_loop_changes: {
         Args: { p_changes: Json; p_user_id: string }
+        Returns: undefined
+      }
+      save_coach_preferences: {
+        Args: { p_depth: string; p_model: string; p_tone: string }
         Returns: undefined
       }
       save_formation_circuit: {
@@ -5072,55 +5200,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      start_fully_charged_sabbath_attempt: {
+      select_hosted_coach: { Args: { p_selected: boolean }; Returns: undefined }
+      set_coach_api_key: {
         Args: {
-          p_rest_weekday: number
-          p_content_bundle_version: string
-          p_environment_prepared: boolean
-          p_idempotency_key: string
-          p_main_promise: string
-          p_personal_covenant_accepted: boolean
-          p_previous_attempt_id?: string
-          p_privacy_safety_acknowledged: boolean
-          p_rules_accepted: boolean
-          p_rules_version: string
-          p_start_local_date: string
-          p_strict_opt_in: boolean
-          p_timezone: string
+          p_base_url: string
+          p_key: string
+          p_model: string
+          p_provider: string
         }
-        Returns: {
-          aggregate_version: number
-          cancelled_at: string | null
-          completed_at: string | null
-          completed_day_count: number
-          content_bundle_version: string
-          created_at: string
-          current_day_number: number | null
-          end_reason_code: string | null
-          ended_at: string | null
-          id: string
-          planned_start_local_date: string
-          previous_attempt_id: string | null
-          rules_accepted_at: string
-          rest_weekday: number | null
-          rules_version: string
-          sequence_number: number
-          start_idempotency_key: string
-          start_timezone: string
-          started_at: string | null
-          status: string
-          strict_opt_in_at: string
-          timezone_policy: string
-          track: string
-          updated_at: string
-          user_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "formation_attempts"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+        Returns: Json
       }
       start_fully_charged_attempt: {
         Args: {
@@ -5150,6 +5238,57 @@ export type Database = {
           id: string
           planned_start_local_date: string
           previous_attempt_id: string | null
+          rest_weekday: number | null
+          rules_accepted_at: string
+          rules_version: string
+          sequence_number: number
+          start_idempotency_key: string
+          start_timezone: string
+          started_at: string | null
+          status: string
+          strict_opt_in_at: string
+          timezone_policy: string
+          track: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formation_attempts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      start_fully_charged_sabbath_attempt: {
+        Args: {
+          p_content_bundle_version: string
+          p_environment_prepared: boolean
+          p_idempotency_key: string
+          p_main_promise: string
+          p_personal_covenant_accepted: boolean
+          p_previous_attempt_id: string
+          p_privacy_safety_acknowledged: boolean
+          p_rest_weekday: number
+          p_rules_accepted: boolean
+          p_rules_version: string
+          p_start_local_date: string
+          p_strict_opt_in: boolean
+          p_timezone: string
+        }
+        Returns: {
+          aggregate_version: number
+          cancelled_at: string | null
+          completed_at: string | null
+          completed_day_count: number
+          content_bundle_version: string
+          created_at: string
+          current_day_number: number | null
+          end_reason_code: string | null
+          ended_at: string | null
+          id: string
+          planned_start_local_date: string
+          previous_attempt_id: string | null
+          rest_weekday: number | null
           rules_accepted_at: string
           rules_version: string
           sequence_number: number
