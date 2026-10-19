@@ -37,6 +37,7 @@ describe("featureFlags", () => {
     );
 
     expect(getFeatureFlags()).toEqual({
+      server_book_loop_enabled: false,
       onboarding_quick_start_enabled: false,
       formation_circuits_enabled: true,
       formation_completion_enabled: true,

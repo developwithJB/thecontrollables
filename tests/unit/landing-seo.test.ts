@@ -5,7 +5,8 @@ import { describe, expect, it } from "vitest";
 const index = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
 const manifest = readFileSync(resolve(process.cwd(), "public/manifest.webmanifest"), "utf8");
 const robots = readFileSync(resolve(process.cwd(), "public/robots.txt"), "utf8");
-const socialImagePath = resolve(process.cwd(), "public/og-image-fully-charged-75-v1.png");
+const socialImagePath = resolve(process.cwd(), "public/social/fully-charged-75-share-og-1200x630-v2.png");
+const xSocialImagePath = resolve(process.cwd(), "public/social/fully-charged-75-share-x-1200x675-v2.png");
 
 describe("landing SEO and social metadata", () => {
   it("uses one consistent canonical Fully Charged 75 narrative", () => {
@@ -25,6 +26,9 @@ describe("landing SEO and social metadata", () => {
     expect(image.readUInt32BE(16)).toBe(1200);
     expect(image.readUInt32BE(20)).toBe(630);
     expect(statSync(socialImagePath).size).toBeGreaterThan(100_000);
-    expect(index).toContain("https://thedashboard.agbcoaching.com/og-image-fully-charged-75-v1.png");
+    expect(index).toContain("https://thedashboard.agbcoaching.com/social/fully-charged-75-share-og-1200x630-v2.png");
+    expect(index).toContain("https://thedashboard.agbcoaching.com/social/fully-charged-75-share-x-1200x675-v2.png");
+    expect(readFileSync(xSocialImagePath).readUInt32BE(16)).toBe(1200);
+    expect(readFileSync(xSocialImagePath).readUInt32BE(20)).toBe(675);
   });
 });

@@ -72,11 +72,11 @@ export function PhotoProofCapture({
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!preparedPhoto) return;
 
     setIsSaving(true);
-    const entry = addProofEntry({
+    const entry = await addProofEntry({
       missionId,
       targetControllable: selectedControllable,
       imageUrl: preparedPhoto.imageUrl,
@@ -87,6 +87,7 @@ export function PhotoProofCapture({
       visibility,
     });
     setIsSaving(false);
+    if (!entry) return;
     toast({ title: "Proof saved privately", description: "Your Dex collected one real-life rep." });
     onSaved?.(entry);
   };

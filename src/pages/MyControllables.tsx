@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useBookLoopState } from "@/hooks/useBookLoopState";
+import { useState } from "react";
 import { BatteryCharging, RotateCcw, ShieldCheck, Sparkles, Target, Zap } from "lucide-react";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 import { usePageViewTracking } from "@/hooks/useAnalytics";
@@ -14,7 +15,6 @@ import { getControllableChargeVisual } from "@/lib/controllableVisuals";
 import { getBookControllable } from "@/lib/bookWorld";
 import { getEgoPattern, type MyControllablesProfile, type SelfTrustStats } from "@/lib/myControllables";
 import {
-  getStartingChargeResult,
   STARTING_CHARGE_EGO_SIGNAL_LABELS,
   type StartingChargeResult,
 } from "@/lib/startingCharge";
@@ -24,7 +24,7 @@ export default function MyControllables() {
   const user = useLifeOSUser();
   const { data: levels } = useControllableLevels(user.id);
   const { profile, stats } = useMyControllablesProfile(user.id);
-  const [startingChargeResult, setStartingChargeResult] = useState<StartingChargeResult | null>(null);
+  const { state: { result: startingChargeResult } } = useBookLoopState("startingCharge", user.id);
   const [showStartingCharge, setShowStartingCharge] = useState(false);
   const roster = ALL_CONTROLLABLES.map((type) => {
     const level = levels?.find((item) => item.type === type) ?? { type, totalXp: 0, level: 1, current: 0, next: 25, progress: 0 };
@@ -34,9 +34,6 @@ export default function MyControllables() {
   const chargedCount = roster.filter((visual) => visual.stageLevel >= 2).length;
   const leadVisual = [...roster].sort((a, b) => b.progressPercent - a.progressPercent)[0];
 
-  useEffect(() => {
-    setStartingChargeResult(getStartingChargeResult(user.id));
-  }, [user.id]);
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 pb-24">
@@ -93,8 +90,7 @@ export default function MyControllables() {
       {!startingChargeResult || showStartingCharge ? (
         <StartingChargeFlow
           userId={user.id}
-          onSaved={(result) => {
-            setStartingChargeResult(result);
+          onSaved={() => {
             setShowStartingCharge(false);
           }}
         />

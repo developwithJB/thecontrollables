@@ -1,3 +1,5 @@
+import { GospelAwarenessPrompts } from "./GospelAwarenessPrompts";
+import type { GospelAwarenessReading } from "@/domain/formation/gospelAwareness";
 import { useState } from "react";
 import {
   Camera,
@@ -31,6 +33,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export interface CircuitEditorProps {
+  gospelAwareness?: GospelAwarenessReading | null;
   userId: string;
   localDate: string;
   track: TrainingTrack;
@@ -46,6 +49,7 @@ export function AwarenessCircuitEditor(props: CircuitEditorProps) {
   const { draft, evaluation, onChange } = props;
   return (
     <div className="space-y-5">
+      {props.track === "fully_charged_75" && props.gospelAwareness ? <GospelAwarenessPrompts reading={props.gospelAwareness} draft={props.localOnly} /> : null}
       <PracticeToggle
         pressed={draft.actions.scripture_opened === true}
         onPressedChange={(pressed) => setAction(draft, onChange, "scripture_opened", pressed)}

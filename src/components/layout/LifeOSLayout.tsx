@@ -1,3 +1,4 @@
+import { BookLoopProvider } from "@/components/BookLoopProvider";
 import { useState, useCallback, Suspense, useEffect } from "react";
 import { useNavigate, Outlet, useLocation } from "react-router-dom";
 import { Book, Flag, FlaskConical, RefreshCw, Settings } from "lucide-react";
@@ -164,19 +165,21 @@ export const LifeOSLayout = () => {
               pullDistance={pullDistance}
             />
             <div className="mx-auto w-full max-w-md px-3 py-4 sm:px-5 md:max-w-3xl md:px-6 lg:max-w-5xl xl:max-w-7xl">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={location.pathname}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <Suspense fallback={<PageShimmer />}>
-                    <Outlet />
-                  </Suspense>
-                </motion.div>
-              </AnimatePresence>
+              <BookLoopProvider userId={user.id}>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={location.pathname}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Suspense fallback={<PageShimmer />}>
+                      <Outlet />
+                    </Suspense>
+                  </motion.div>
+                </AnimatePresence>
+              </BookLoopProvider>
             </div>
           </main>
         </div>
