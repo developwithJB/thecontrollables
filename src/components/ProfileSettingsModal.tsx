@@ -1,3 +1,4 @@
+import { HostedCoachCard } from "@/components/settings/HostedCoachCard";
 import { CoachSettingsCard } from "@/components/settings/CoachSettingsCard";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -388,6 +389,7 @@ export function ProfileSettingsModal({
               {isSaving ? "Saving..." : "Save Changes"}
             </Button>
 
+            <HostedCoachCard key={userId} userId={userId} />
             <CoachSettingsCard userId={userId} />
             {/* Daily Operator AI Settings */}
             <AISettingsCard userId={userId} onRevisitStart={() => onOpenChange(false)} />

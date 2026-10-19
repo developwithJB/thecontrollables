@@ -42,3 +42,7 @@ export const formatPrice = (tier: PlanTier): string => {
 export const getPlanLabel = (tier: PlanTier): string => {
   return tier === "plus" ? "Plus" : "Pro";
 };
+
+// JB sets price; no Stripe object created in this PR.
+export const HOSTED_COACH_PRICE_DISPLAY: string = "TBD";
+export const getHostedCoachPriceDisplay = (): string | null => HOSTED_COACH_PRICE_DISPLAY === "TBD" ? null : HOSTED_COACH_PRICE_DISPLAY;

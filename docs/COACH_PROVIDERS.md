@@ -26,7 +26,7 @@ Only fixed tones balanced/warm/direct and depths concise/standard/detailed are a
 
 Migration `20261020000200_coach_provider_settings.sql` is local only. Production needs JB's explicit authorization, security review of grants/Vault/runtime connectivity, and a separately authorized rollout. Keep the server switch off until those checks pass. Disable the server switch first to stop BYO routing; stored keys remain encrypted and removable. Do not drop Vault/settings while owners have keys. Roll back via reviewed forward-only changes. Supabase is the sole intended migration source; Drizzle cleanup waits for a separate tooling-dependency review.
 
-JB selected existing **Pro** for future hosted coaching, with price **TBD**. PR-E is not implemented until PR-D is merged; no merge is authorized by this sequence. JB intends to read/edit Gospel framing drafts; content remains pending independent theological review and unpublished.
+JB selected existing **Pro** for future hosted coaching, with price **TBD**. PR-D was reviewed and merged before PR-E implementation. See HOSTED_COACH.md for the Pro option; the hosted price remains TBD and both rollouts default off. JB intends to read/edit Gospel framing drafts; content remains pending independent theological review and unpublished.
 
 ## Primary API references checked
 

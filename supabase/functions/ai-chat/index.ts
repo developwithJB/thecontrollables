@@ -1,4 +1,4 @@
-import { readCoachPlanTier } from "../_shared/coachPlan.ts";
+import { readCoachPlanTier, hostedCoachAccess } from "../_shared/coachPlan.ts";
 import { assembleCoachPrompt, createCoachProvider } from "../_shared/coachProvider.ts";
 import { loadCoachCredential } from "../_shared/coachCredentials.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
@@ -609,19 +609,26 @@ Deno.serve(async (req) => {
     );
     
     const { data: providerRollout, error: rolloutError } = await serviceClient
-      .from('coach_provider_rollout').select('coach_providers_enabled').eq('id', true).maybeSingle();
+      .from('coach_provider_rollout').select('coach_providers_enabled,hosted_coach_enabled').eq('id', true).maybeSingle();
     // Missing/unapplied table or flag-off never reads Vault; retain existing gateway.
-    const settingsResult = !rolloutError && providerRollout?.coach_providers_enabled === true
-      ? await serviceClient.from('coach_provider_settings').select('provider,last4,persona_tone,depth').eq('user_id',userId).maybeSingle()
+    const settingsResult = !rolloutError && providerRollout
+      ? await serviceClient.from('coach_provider_settings').select('provider,last4,persona_tone,depth,hosted_coach_selected').eq('user_id',userId).maybeSingle()
       : { data: null, error: null };
     if (settingsResult.error) throw new Error('coach_settings_unavailable');
     const personaSettings = settingsResult.data;
-    const credential = personaSettings?.last4 ? await loadCoachCredential(userId) : null;
-    // A failed configured-key resolution must not silently spend hosted quota.
-    if (personaSettings?.last4 && !credential) throw new Error('coach_credential_unavailable');
-    const provider = createCoachProvider(credential, Deno.env.get('LOVABLE_API_KEY') ?? '');
     const planTier = await getPlanTier(serviceClient, userId);
-    
+    const hostedAccess = hostedCoachAccess(personaSettings?.hosted_coach_selected === true, providerRollout?.hosted_coach_enabled === true, planTier);
+    if (hostedAccess === 'disabled' || hostedAccess === 'upgrade') return new Response(
+      JSON.stringify({ error: hostedAccess === 'disabled' ? 'Hosted coach is not available.' : 'Hosted coach requires Pro.', code: hostedAccess === 'disabled' ? 'hosted_coach_disabled' : 'hosted_coach_requires_pro' }),
+      {status: 403, headers: {...corsHeaders, 'Content-Type':'application/json'}}
+    );
+    const hostedSelected = hostedAccess === 'active';
+    const byoSelected = !hostedSelected && providerRollout?.coach_providers_enabled === true && Boolean(personaSettings?.last4);
+    const credential = byoSelected ? await loadCoachCredential(userId) : null;
+    // A failed configured-key resolution must not silently spend hosted quota.
+    if (byoSelected && !credential) throw new Error('coach_credential_unavailable');
+    const provider = createCoachProvider(credential, Deno.env.get('LOVABLE_API_KEY') ?? '');
+
     // Check if free user is in active trial (has active snapshot within 7 days)
     let isTrialUser = false;
     if (planTier === 'free') {
@@ -642,7 +649,13 @@ Deno.serve(async (req) => {
       }
     }
     
-    const usageResult = credential
+    const usageResult = hostedSelected
+      ? await (async () => {
+          const { data, error } = await serviceClient.rpc('reserve_hosted_coach_usage', { p_user_id: userId });
+          if (error || !data) throw new Error('hosted_coach_usage_unavailable');
+          return data as { allowed: boolean; remaining: number; used: number; dailyLimit: number };
+        })()
+      : credential
       ? await (async () => {
           const { data, error } = await serviceClient.rpc('reserve_coach_byo_usage', { p_user_id: userId });
           if (error || !data) throw new Error('coach_usage_unavailable');
