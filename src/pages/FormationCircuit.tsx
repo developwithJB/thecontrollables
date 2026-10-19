@@ -1,3 +1,4 @@
+import { readPublishedGospelAwareness } from "@/domain/formation/gospelAwareness";
 import { trackFirstCircuitCompleted } from "@/lib/growthEvents";
 import { ArrowLeft, CheckCircle2, LockKeyhole, Save, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -32,7 +33,7 @@ import { useFormationAnalytics } from "@/hooks/useFormationAnalytics";
 import { useFullyChargedJourney } from "@/hooks/useFullyChargedJourney";
 import { useQuery } from "@tanstack/react-query";
 import { loadPublishedFormationContentForDay } from "@/data/formation/contentRepository";
-import { getLocalDateInTimezone } from "@/domain/formation/fullyChargedJourney";
+import { getFullyChargedDayGuide, getLocalDateInTimezone } from "@/domain/formation/fullyChargedJourney";
 
 const CIRCUIT_EDITORS: Record<keyof typeof CIRCUIT_DEFINITIONS, (props: CircuitEditorProps) => JSX.Element> = {
   awareness: AwarenessCircuitEditor,
@@ -219,6 +220,11 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
           <p className="text-sm text-muted-foreground">This strict circuit is read-only until today's reviewed content version is available.</p>
         ) : (
           <Editor
+            gospelAwareness={track === "fully_charged_75"
+              ? localOnly
+                ? getFullyChargedDayGuide(strictJourney.journey?.dayNumber ?? 0)?.awareness
+                : readPublishedGospelAwareness(dayContent.data)
+              : null}
             userId={user.id}
             localDate={localDate}
             track={track}

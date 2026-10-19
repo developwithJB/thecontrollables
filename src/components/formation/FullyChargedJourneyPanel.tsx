@@ -1,3 +1,4 @@
+import { GospelAwarenessPrompts } from "./GospelAwarenessPrompts";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, CheckCircle2, Flag, LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
@@ -136,6 +137,7 @@ function ActiveJourneyPanel(
           {localOnly && guide ? (
             <div className="space-y-3 text-sm leading-relaxed">
               <p>{guide.invitation}</p>
+              <GospelAwarenessPrompts reading={guide.awareness} draft />
               <div><p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">Private reflection</p><p className="mt-1">{guide.reflectionPrompt}</p></div>
               <div><p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">Environment and service</p><p className="mt-1">{guide.servicePrompt}</p></div>
             </div>
