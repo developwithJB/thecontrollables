@@ -15,16 +15,24 @@ export function TrackSelector({ track, onChange }: { track: TrainingTrack; onCha
       <div className="grid gap-2 sm:grid-cols-3">
         {TRAINING_TRACKS.map((candidate) => {
           const Icon = TRACK_ICONS[candidate];
+          const comingSoon = candidate === "charge_40";
           const selected = candidate === track;
           return (
             <button
               key={candidate}
               type="button"
               aria-pressed={selected}
-              onClick={() => onChange(candidate)}
+              disabled={comingSoon}
+              onClick={() => {
+                if (!comingSoon) onChange(candidate);
+              }}
               className={cn(
                 "min-h-[74px] rounded-2xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                selected ? "border-primary/40 bg-primary/10" : "border-border/55 bg-background/60 hover:bg-muted/45",
+                comingSoon
+                  ? "cursor-not-allowed border-border/45 bg-muted/20 opacity-80"
+                  : selected
+                    ? "border-primary/40 bg-primary/10"
+                    : "border-border/55 bg-background/60 hover:bg-muted/45",
               )}
             >
               <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -32,7 +40,7 @@ export function TrackSelector({ track, onChange }: { track: TrainingTrack; onCha
                 {TRACK_LABELS[candidate]}
               </span>
               <span className="mt-1.5 block text-[11px] leading-relaxed text-muted-foreground">
-                {candidate === "read_along" ? "One meaningful practice" : candidate === "charge_40" ? "Partial progress welcome" : "Exact daily requirements"}
+                {comingSoon ? "Coming soon" : candidate === "read_along" ? "One meaningful practice" : "Exact daily requirements"}
               </span>
             </button>
           );

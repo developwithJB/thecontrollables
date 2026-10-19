@@ -62,12 +62,12 @@ export function ProfileSettingsModal({
   onOpenChange,
   userId,
   userEmail,
-  isPaid,
 }: ProfileSettingsModalProps) {
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState("");
   const [timezone, setTimezone] = useState("");
   const [nudgeFrequency, setNudgeFrequency] = useState<NudgeFrequency>("off");
+  const [formationEmailOptInAt, setFormationEmailOptInAt] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isDark, setIsDark] = useState(true);
@@ -97,7 +97,7 @@ export function ProfileSettingsModal({
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("display_name, timezone, email_nudge_enabled, nudge_frequency")
+          .select("display_name, timezone, email_nudge_enabled, nudge_frequency, formation_email_opt_in_at")
           .eq("id", userId)
           .single();
 
@@ -107,6 +107,7 @@ export function ProfileSettingsModal({
 
         if (data) {
           setDisplayName(data.display_name || "");
+          setFormationEmailOptInAt(data.formation_email_opt_in_at || null);
           
           // Map legacy email_nudge_enabled + nudge_frequency to new single frequency
           if (!data.email_nudge_enabled) {
@@ -155,6 +156,9 @@ export function ProfileSettingsModal({
       // Map new frequency to legacy fields
       const emailNudgeEnabled = nudgeFrequency !== "off";
       const dbNudgeFrequency = nudgeFrequency === "off" ? "daily" : nudgeFrequency;
+      const nextFormationEmailOptInAt = emailNudgeEnabled
+        ? formationEmailOptInAt || new Date().toISOString()
+        : null;
 
       // Update profile with all settings
       const { error: profileError } = await supabase
@@ -164,10 +168,12 @@ export function ProfileSettingsModal({
           timezone: timezone,
           email_nudge_enabled: emailNudgeEnabled,
           nudge_frequency: dbNudgeFrequency,
+          formation_email_opt_in_at: nextFormationEmailOptInAt,
         })
         .eq("id", userId);
 
       if (profileError) throw profileError;
+      setFormationEmailOptInAt(nextFormationEmailOptInAt);
 
       toast({
         title: "Profile updated",
@@ -313,54 +319,41 @@ export function ProfileSettingsModal({
                 </div>
               )}
 
-              {/* Premium Option: Email Nudges */}
-              <div className={`space-y-3 p-4 rounded-lg border ${isPaid ? 'bg-muted/50 border-border' : 'bg-muted/20 border-border/50'}`}>
+              {/* Formation email */}
+              <div className="space-y-3 rounded-lg border border-cyan-400/20 bg-cyan-400/[0.05] p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  <Label className={`font-medium ${!isPaid ? 'text-muted-foreground' : ''}`}>
-                    Daily Alignment
+                  <Mail className="h-4 w-4 text-cyan-300" />
+                  <Label className="font-medium">
+                    Morning formation email
                   </Label>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                    Premium
-                  </span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">
-                  {isPaid 
-                    ? "Personalized scripture, reflection, and one clear action each morning. No streaks. No guilt. Turn off anytime."
-                    : "Personalized scripture and growth reflection each morning. Available with Premium."
-                  }
+                <p className="mb-3 text-xs leading-5 text-muted-foreground">
+                  Your selected path, five Controllables, and first honest move arrive around 7:00 AM in your timezone. Turn it off anytime.
                 </p>
-                
-                {isPaid ? (
-                  <RadioGroup 
-                    value={nudgeFrequency} 
-                    onValueChange={(value) => setNudgeFrequency(value as NudgeFrequency)}
-                    className="space-y-2"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="off" id="nudge-off" />
-                      <Label htmlFor="nudge-off" className="cursor-pointer font-normal">
-                        Off
+                <RadioGroup
+                  value={nudgeFrequency}
+                  onValueChange={(value) => setNudgeFrequency(value as NudgeFrequency)}
+                  className="grid gap-2 sm:grid-cols-3"
+                >
+                  {[
+                    ["daily", "Every morning"],
+                    ["weekly", "Mondays only"],
+                    ["off", "Off"],
+                  ].map(([value, label]) => (
+                    <div key={value} className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 ${nudgeFrequency === value ? "border-cyan-400/35 bg-cyan-400/10" : "border-border/60 bg-background/35"}`}>
+                      <RadioGroupItem value={value} id={`nudge-${value}`} />
+                      <Label htmlFor={`nudge-${value}`} className="cursor-pointer text-xs font-medium">
+                        {label}
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="daily" id="nudge-daily" />
-                      <Label htmlFor="nudge-daily" className="cursor-pointer font-normal">
-                        Daily Alignment
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="weekly" id="nudge-weekly" />
-                      <Label htmlFor="nudge-weekly" className="cursor-pointer font-normal">
-                        Weekly
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                ) : (
-                  <div className="text-xs text-muted-foreground/70 italic">
-                    Upgrade to Premium to enable email nudges.
+                  ))}
+                </RadioGroup>
+                {nudgeFrequency !== "off" ? (
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-300" />
+                    {nudgeFrequency === "daily" ? "Next email: tomorrow morning" : "Next email: Monday morning"}
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
 
