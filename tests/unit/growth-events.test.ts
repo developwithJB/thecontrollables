@@ -62,6 +62,6 @@ describe('growth measurement', () => {
   it('keeps display_name with all signup attribution metadata', async () => {
     const { captureAttribution, getSignupAttribution } = await import('@/lib/growthAttribution'); captureAttribution();
     expect(getSignupAttribution()).toEqual({ signup_source: 'jblaunch', signup_medium: null, signup_campaign: null, signup_ref: 'friend', signup_landing_path: '/' });
-    expect(readFileSync('src/pages/Auth.tsx', 'utf8')).toContain('data: { display_name: displayName.trim() || null, ...getSignupAttribution() }');
+    expect(readFileSync('src/pages/Auth.tsx', 'utf8')).toContain('data: { display_name: displayName.trim() || null, ...getSignupAttribution(), ...signupMetadata }');
   });
 });

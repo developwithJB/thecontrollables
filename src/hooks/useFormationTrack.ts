@@ -1,10 +1,43 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBookLoopState } from "@/hooks/useBookLoopState";
-import { type TrainingTrack } from "@/domain/formation/circuits";
+import { isTrainingTrack, type TrainingTrack } from "@/domain/formation/circuits";
+import { supabase } from "@/integrations/supabase/client";
+import { updateFormationTrack } from "@/lib/formationEnrollment";
+import { isStartableFormationTrack } from "@/lib/formationEnrollmentConfig";
+import { isDevMockAuthEnabled } from "@/lib/devMockAuth";
+import { bookQueryKey } from "@/data/bookLoop/model";
+import { toast } from "sonner";
 
 export function useFormationTrack(userId: string) {
-  const { state: track, persist } = useBookLoopState("track", userId);
-  const setTrack = (nextTrack: TrainingTrack) => persist(() => nextTrack);
-
+  const { state: bookTrack, persist, server } = useBookLoopState("track", userId);
+  const client = useQueryClient();
+  const mock = isDevMockAuthEnabled();
+  const key = ["formation-profile-track", userId];
+  const profile = useQuery({
+    queryKey: key,
+    enabled: !!userId && !mock,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("formation_track").eq("id", userId).maybeSingle();
+      if (error) throw error;
+      return isTrainingTrack(data?.formation_track) ? data.formation_track : null;
+    },
+  });
+  const track = profile.data ?? bookTrack;
+  const setTrack = async (nextTrack: TrainingTrack): Promise<boolean> => {
+    if (mock) return persist(() => nextTrack);
+    if (!isStartableFormationTrack(nextTrack)) return false;
+    try {
+      // The authenticated RPC updates enrollment and its book-track mirror atomically.
+      await updateFormationTrack(nextTrack);
+      client.setQueryData(key, nextTrack);
+      if (server) await client.invalidateQueries({ queryKey: bookQueryKey(userId) });
+      else await persist(() => nextTrack);
+      return true;
+    } catch {
+      toast.error("Could not change your formation path. Reload and try again.");
+      return false;
+    }
+  };
   return { track, setTrack };
 }
 

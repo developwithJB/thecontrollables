@@ -8,6 +8,7 @@ import { loadBookRecords, saveBookChanges } from "@/data/bookLoop/repository";
 import { useMyControllablesProfile } from "@/hooks/useMyControllablesProfile";
 import { useControllablesDex } from "@/hooks/useControllablesDex";
 import { useReadAlongProgress } from "@/hooks/useReadAlongProgress";
+import { updateFormationTrack } from "@/lib/formationEnrollment";
 import { useFormationTrack } from "@/hooks/useFormationTrack";
 import { useLocalMissionDrop } from "@/hooks/useLocalMissionDrop";
 
@@ -15,6 +16,8 @@ vi.mock("@/data/bookLoop/repository", () => ({
   loadBookRecords: vi.fn(),
   saveBookChanges: vi.fn(),
 }));
+vi.mock("@/lib/formationEnrollment", () => ({ updateFormationTrack: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }) } }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 let renderer: ReactTestRenderer;
 let client: QueryClient;
@@ -118,14 +121,7 @@ describe("book-loop hooks", () => {
     await act(async () => {
       await view.get().setTrack("fully_charged_75");
     });
-    expect(saveBookChanges).toHaveBeenCalledWith("alice", [
-      {
-        kind: "track",
-        record_key: "current",
-        payload: "fully_charged_75",
-        expected_revision: 12,
-      },
-    ]);
+    expect(updateFormationTrack).toHaveBeenCalledWith("fully_charged_75");
     expect(values.get("formation_selected_track_alice")).toBe("charge_40");
   });
   it("rejects writes until the initial cloud read has succeeded", async () => {
