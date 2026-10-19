@@ -21,13 +21,14 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { APP_ROUTES } from "@/lib/appRoutes";
 
 export const LifeOSLayout = () => {
   const { user, isLoading, isDevMockUser } = useLifeOSAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const reducedMotion = useReducedMotion();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showProfileSettings, setShowProfileSettings] = useState(false);
@@ -169,10 +170,10 @@ export const LifeOSLayout = () => {
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={location.pathname}
-                    initial={{ opacity: 0 }}
+                    initial={false}
                     animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
+                    exit={reducedMotion ? undefined : { opacity: 0 }}
+                    transition={{ duration: reducedMotion ? 0 : 0.15 }}
                   >
                     <Suspense fallback={<PageShimmer />}>
                       <Outlet />

@@ -1,6 +1,6 @@
 import { GospelAwarenessPrompts } from "./GospelAwarenessPrompts";
 import type { GospelAwarenessReading } from "@/domain/formation/gospelAwareness";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Camera,
   HeartHandshake,
@@ -33,6 +33,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export interface CircuitEditorProps {
+  weekOneReview?: boolean;
   gospelAwareness?: GospelAwarenessReading | null;
   userId: string;
   localDate: string;
@@ -49,6 +50,7 @@ export function AwarenessCircuitEditor(props: CircuitEditorProps) {
   const { draft, evaluation, onChange } = props;
   return (
     <div className="space-y-5">
+      {props.track === "read_along" ? <section className="space-y-3 rounded-2xl border border-primary/20 p-4" aria-label="Read Along faith practice"><h2 className="text-sm font-semibold">Awareness 🦉 · Scripture and private prayer</h2><a className="inline-flex min-h-11 items-center rounded text-sm text-primary underline focus-visible:ring-2 focus-visible:ring-ring" href="https://www.bible.com/bible/116/MAT.4.NLT" target="_blank" rel="noopener noreferrer">Open the NLT on Bible.com (new tab)</a><p className="text-sm text-muted-foreground">Choose a passage or continue your reading. Observe what the text says; understand what you learn about Jesus; respond with one honest action. This flexible practice is not an assigned 75-day lesson. Prayer can remain private.</p></section> : null}
       {props.track === "fully_charged_75" && props.gospelAwareness ? <GospelAwarenessPrompts reading={props.gospelAwareness} draft={props.localOnly} /> : null}
       <PracticeToggle
         pressed={draft.actions.scripture_opened === true}
@@ -68,14 +70,14 @@ export function AwarenessCircuitEditor(props: CircuitEditorProps) {
       <FieldGroup
         id="honest-truth"
         label="One honest truth"
-        description="This saves when you write it. Keep names and identifying details out."
+        description="Choose Save progress to keep this privately. Keep names and identifying details out."
         required={evaluation.requiredActionIds.includes("honest_truth_saved")}
       >
         <Textarea
           id="honest-truth"
           value={draft.fields.honestTruth ?? ""}
           onChange={(event) => setField(draft, onChange, "honestTruth", event.target.value, 1000)}
-          placeholder="What is true right now?"
+          placeholder="For example: I can pause before reacting today."
           className="min-h-[96px]"
         />
       </FieldGroup>
@@ -180,6 +182,8 @@ export function PerspectiveCircuitEditor(props: CircuitEditorProps) {
 }
 
 export function HabitCircuitEditor(props: CircuitEditorProps) {
+  const latestDraft = useRef(props.draft);
+  latestDraft.current = props.draft;
   const { userId, localDate, track, draft, evaluation, history, localOnly, onChange, onPersist } = props;
   return (
     <div className="space-y-5">
@@ -211,7 +215,7 @@ export function HabitCircuitEditor(props: CircuitEditorProps) {
         proof={draft.proof}
         localOnly={localOnly}
         onChange={async (proof) => {
-          const nextDraft = { ...draft, proof };
+          const nextDraft = { ...latestDraft.current, proof };
           onChange(nextDraft);
           await onPersist?.(nextDraft);
         }}
@@ -317,6 +321,10 @@ export function EnvironmentCircuitEditor(props: CircuitEditorProps) {
         />
       </div>
 
+      {props.weekOneReview ? <fieldset className="space-y-3 rounded-2xl border border-primary/20 p-4"><legend className="px-2 text-sm font-semibold">Private week-one reflection · optional</legend>
+        <FieldGroup id="week-learning" label="One thing I learned" description="Your learning stays in your private Environment record."><Textarea id="week-learning" value={draft.fields.weekOneLearning ?? ""} maxLength={1000} onChange={event => setField(draft, onChange, "weekOneLearning", event.target.value, 1000)} /></FieldGroup>
+        <FieldGroup id="week-intention" label="One intention for next week" description="Choose Save progress below. These answers are excluded from the share preview."><Textarea id="week-intention" value={draft.fields.weekOneIntention ?? ""} maxLength={1000} onChange={event => setField(draft, onChange, "weekOneIntention", event.target.value, 1000)} /></FieldGroup>
+      </fieldset> : null}
       <FieldGroup id="service-note" label="Optional private note" description="Describe your own learning, not the recipient's personal situation.">
         <Textarea id="service-note" value={draft.fields.serviceNote ?? ""} onChange={(event) => setField(draft, onChange, "serviceNote", event.target.value, 1000)} placeholder="What did serving ask of me?" />
       </FieldGroup>

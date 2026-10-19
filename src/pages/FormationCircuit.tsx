@@ -33,7 +33,7 @@ import { useFormationAnalytics } from "@/hooks/useFormationAnalytics";
 import { useFullyChargedJourney } from "@/hooks/useFullyChargedJourney";
 import { useQuery } from "@tanstack/react-query";
 import { loadPublishedFormationContentForDay } from "@/data/formation/contentRepository";
-import { getFullyChargedDayGuide, getLocalDateInTimezone } from "@/domain/formation/fullyChargedJourney";
+import { addLocalCalendarDays, getFullyChargedDayGuide, getLocalDateInTimezone } from "@/domain/formation/fullyChargedJourney";
 
 const CIRCUIT_EDITORS: Record<keyof typeof CIRCUIT_DEFINITIONS, (props: CircuitEditorProps) => JSX.Element> = {
   awareness: AwarenessCircuitEditor,
@@ -46,7 +46,7 @@ const CIRCUIT_EDITORS: Record<keyof typeof CIRCUIT_DEFINITIONS, (props: CircuitE
 export default function FormationCircuit() {
   const { circuitId } = useParams();
   if (!isCircuitType(circuitId)) return <Navigate to={APP_ROUTES.formationToday} replace />;
-  return <FormationCircuitExperience circuit={circuitId} />;
+  return <FormationCircuitExperience key={circuitId} circuit={circuitId} />;
 }
 
 function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT_DEFINITIONS }) {
@@ -82,9 +82,25 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
   const persistedDraft = entry?.draft;
   const [draft, setDraft] = useState<FormationCircuitDraft>(() => entry?.draft ?? createEmptyCircuitDraft());
 
+  const draftScope = `${user.id}:${track}:${localDate}:${circuit}`;
+  const currentScope = useRef(draftScope);
+  const dirty = useRef(false);
+  const editVersion = useRef(0);
+  const changeDraft = (nextDraft: FormationCircuitDraft) => {
+    dirty.current = true;
+    editVersion.current += 1;
+    setDraft(nextDraft);
+  };
   useEffect(() => {
-    setDraft(persistedDraft ?? createEmptyCircuitDraft());
-  }, [circuit, persistedDraft, track]);
+    if (currentScope.current !== draftScope) {
+      currentScope.current = draftScope;
+      dirty.current = false;
+      editVersion.current += 1;
+      setDraft(persistedDraft ?? createEmptyCircuitDraft());
+    } else if (!dirty.current) {
+      setDraft(persistedDraft ?? createEmptyCircuitDraft());
+    }
+  }, [draftScope, persistedDraft]);
 
   useEffect(() => {
     trackedCompletion.current = false;
@@ -123,13 +139,18 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
     if (track === "fully_charged_75" && !localOnly && !dayContent.data?.id) {
       throw new Error("Today's reviewed content version is unavailable. Progress was not changed.");
     }
+    const savingVersion = editVersion.current;
+    const savingScope = draftScope;
     const saved = await saveCircuit({
       localDate,
       circuit,
       draft: nextDraft,
       contentVersionId: dayContent.data?.id ?? null,
     });
-    setDraft(saved.draft);
+    if (currentScope.current === savingScope && editVersion.current === savingVersion) {
+      dirty.current = false;
+      setDraft(saved.draft);
+    }
     if (!quiet) {
       const savedEvaluation = evaluateCircuit(track, circuit, saved.draft, ruleContext);
       if (savedEvaluation.isSatisfiedForTrack && !trackedCompletion.current) {
@@ -160,7 +181,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
 
   return (
     <div className="ph-no-capture mx-auto max-w-4xl space-y-5 pb-28" data-sentry-mask>
-      <Button variant="ghost" onClick={() => navigate(APP_ROUTES.formationToday)} className="-ml-2 gap-2">
+      <Button variant="ghost" disabled={isSaving} onClick={() => navigate(APP_ROUTES.formationToday)} className="-ml-2 gap-2">
         <ArrowLeft className="h-4 w-4" /> Return to Today
       </Button>
 
@@ -214,6 +235,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
       {error ? <div role="alert" className="rounded-2xl border border-destructive/35 bg-destructive/8 p-4 text-sm">This circuit could not be loaded. Existing data has not been changed.</div> : null}
       {dayContent.error ? <div role="alert" className="rounded-2xl border border-destructive/35 bg-destructive/8 p-4 text-sm">Today's reviewed assignment could not be loaded. Strict progress is temporarily read-only.</div> : null}
 
+      <details className="rounded-2xl border p-4"><summary className="min-h-11 cursor-pointer py-2 text-sm font-semibold">What does a small, honest response look like?</summary><p className="text-sm text-muted-foreground">Name what you can actually do today. An honest truth could be “I can pause before reacting.” A promise could be “Make the call I agreed to.” Keep prayer and other people’s details private. Writing does not save automatically; use Save progress, then return to Today.</p></details>
       <FuturePanel className="p-4 sm:p-5">
         {isLoading || (track === "fully_charged_75" && !localOnly && dayContent.isLoading) ? (
           <div className="space-y-3" aria-label="Loading circuit"><div className="h-20 animate-pulse rounded-2xl bg-muted" /><div className="h-28 animate-pulse rounded-2xl bg-muted" /></div>
@@ -221,6 +243,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
           <p className="text-sm text-muted-foreground">This strict circuit is read-only until today's reviewed content version is available.</p>
         ) : (
           <Editor
+            weekOneReview={track === "fully_charged_75" ? (strictJourney.journey?.dayNumber ?? 0) >= 7 : Boolean(history.length && localDate >= addLocalCalendarDays(history.map(entry => entry.localDate).sort()[0], 6))}
             gospelAwareness={track === "fully_charged_75"
               ? localOnly
                 ? getFullyChargedDayGuide(strictJourney.journey?.dayNumber ?? 0)?.awareness
@@ -233,7 +256,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
             evaluation={evaluation}
             history={history}
             localOnly={localOnly}
-            onChange={setDraft}
+            onChange={changeDraft}
             onPersist={(nextDraft) => persistDraft(nextDraft, true).then(() => undefined)}
           />
         )}
@@ -249,7 +272,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
               id="circuit-reflection"
               aria-describedby="circuit-reflection-description"
               value={draft.reflection}
-              onChange={(event) => setDraft({ ...draft, reflection: event.target.value.slice(0, 4000) })}
+              onChange={(event) => changeDraft({ ...draft, reflection: event.target.value.slice(0, 4000) })}
               placeholder="Optional reflection…"
               className="min-h-[120px]"
             />
@@ -261,10 +284,10 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="flex items-center gap-2 text-sm font-semibold"><CheckCircle2 className="h-4 w-4 text-primary" />{evaluation.statusLabel}</p>
-            <p className="mt-1 truncate text-xs text-muted-foreground">{localOnly ? "Local QA data only" : "Saved privately to your account"} · idempotent daily record</p>
+            <p className="mt-1 truncate text-xs text-muted-foreground">{localOnly ? "Local QA data only" : "Use Save progress to keep changes"} · idempotent daily record</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => navigate(APP_ROUTES.formationToday)}>Return to Today</Button>
+            <Button variant="ghost" disabled={isSaving} onClick={() => navigate(APP_ROUTES.formationToday)}>Return to Today</Button>
             <Button variant="future" onClick={handleSave} disabled={isSaving || isLoading || (track === "fully_charged_75" && !localOnly && !dayContent.data)} className="gap-2"><Save className="h-4 w-4" />{isSaving ? "Saving…" : "Save progress"}</Button>
           </div>
         </div>

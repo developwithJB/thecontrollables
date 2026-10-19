@@ -7,6 +7,7 @@ export default defineConfig({
   retries: 0,
   reporter: [["list"]],
   use: {
+    serviceWorkers: "block",
     baseURL: "http://127.0.0.1:8083",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

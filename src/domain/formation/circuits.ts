@@ -244,7 +244,7 @@ export const CIRCUIT_DEFINITIONS: Record<CircuitType, CircuitDefinition> = {
   awareness: {
     id: "awareness",
     name: "Awareness",
-    purpose: "See what is true before noise or assumption decides the day.",
+    purpose: "Faith and spirituality: read Scripture, notice Jesus, and respond honestly.",
     invitation: "Begin with Scripture, read carefully, and name one honest truth.",
     privacyNote: "Your honest truth and evidence notes are private by default.",
     actions: [ACTIONS.scripture_opened, ACTIONS.reading_completed, ACTIONS.honest_truth_saved, ACTIONS.witness_objective_completed],

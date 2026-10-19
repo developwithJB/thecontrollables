@@ -147,3 +147,17 @@ test("locks the chosen Sabbath weekday and records the rest-day minimum", async 
   const wellnessCard = page.getByRole("button", { name: "Open Wellness" }).locator("..");
   await expect(wellnessCard).toContainText("Circuit complete");
 });
+
+
+test("Read Along starts with Scripture and resumes the next saved practice", async ({ page }) => {
+  await page.getByTestId("next-practice").getByRole("link", { name: "Start Awareness" }).click();
+  await expect(page.getByRole("link", { name: "Open the NLT on Bible.com (new tab)" })).toHaveAttribute("href", "https://www.bible.com/bible/116/MAT.4.NLT");
+  await page.getByLabel("One honest truth").fill("A private first response.");
+  await expect(page.getByLabel("One honest truth")).toHaveValue("A private first response.");
+  await page.getByRole("button", { name: "Save progress" }).click();
+  await expect(page.getByText("Awareness is recorded for today.")).toBeVisible();
+  await page.getByRole("button", { name: "Return to Today", exact: true }).first().click();
+  await expect(page.getByTestId("next-practice").getByRole("link", { name: "Continue Perspective" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId("next-practice").getByRole("link", { name: "Continue Perspective" })).toBeVisible();
+});

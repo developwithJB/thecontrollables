@@ -14,7 +14,7 @@ describe("landing page copy", () => {
     expect(source).toContain("Know exactly what happens next.");
     expect(source).toContain("Choose the right path");
     expect(source).toContain("Start your morning loop");
-    expect(source).toContain("7:00 AM email");
+    expect(source).toContain("optional morning email");
     expect(source).toContain("Open today’s practice");
   });
 

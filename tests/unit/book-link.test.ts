@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({ trackEvent: vi.fn(), optionalEvent: vi.fn() })
 vi.mock('@/hooks/useAnalytics', () => ({ useAnalytics: () => ({ trackEvent: mocks.optionalEvent }), usePageViewTracking: () => undefined }));
 vi.mock('@/lib/growthEvents', () => ({ trackGrowthEvent: mocks.trackEvent }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { auth: { getSession: () => Promise.resolve({ data: { session: null } }) } } }));
+vi.mock('@/hooks/useFormationEntryStatus', () => ({ useFormationEntryStatus: () => ({ data: { strictReady: true, reviewedDays: 75, emailDeliveryReady: false, sample: null }, isPending: false }) }));
 vi.mock('@/lib/featureFlags', () => ({ onboardingQuickStartEnabled: () => true }));
 import { BookLink } from '@/components/BookLink';
 import Landing from '@/pages/Landing';

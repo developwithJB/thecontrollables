@@ -1,8 +1,12 @@
+import type { User as AuthUser } from "@supabase/supabase-js";
+import { useRef } from "react";
+import { FormationAvailability } from "@/components/onboarding/FormationAvailability";
+import { useFormationEntryStatus } from "@/hooks/useFormationEntryStatus";
 import { getSignupAttribution } from "@/lib/growthAttribution";
 import { trackGrowthEvent, signupFailureCategory } from "@/lib/growthEvents";
 import { useCallback, useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { BellRing, Clock3, Eye, EyeOff, Mail, Lock, ArrowLeft, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -63,6 +67,23 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const quickStartDraft = useMemo(() => getOnboardingQuickStartDraft(), []);
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmationPending, setConfirmationPending] = useState(false);
+  const [resendAt, setResendAt] = useState(0);
+  const [countdown, setCountdown] = useState(0);
+  const [confirmationMessage, setConfirmationMessage] = useState("");
+  const [sessionUser, setSessionUser] = useState<AuthUser | null>(null);
+  const [enrollmentError, setEnrollmentError] = useState(false);
+  const [isPreparing, setIsPreparing] = useState(false);
+  const preparing = useRef(false);
+  const preparedUser = useRef<string | null>(null);
+  const reducedMotion = useReducedMotion();
+  const availability = useFormationEntryStatus();
+  useEffect(() => {
+    const tick = () => setCountdown(Math.max(0, Math.ceil((resendAt - Date.now()) / 1000)));
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendAt]);
   const { toast } = useToast();
   const navigate = useNavigate();
   const draftTrack = isStartableFormationTrack(quickStartDraft?.formationTrack) ? quickStartDraft.formationTrack : null;
@@ -70,7 +91,7 @@ export default function Auth() {
   const selectedEnrollment = useMemo(() => draftTrack
     ? {
         track: draftTrack,
-        dailyEmailEnabled: quickStartDraft?.dailyEmailEnabled ?? true,
+        dailyEmailEnabled: quickStartDraft?.dailyEmailEnabled ?? false,
         timezone: quickStartDraft?.timezone || getDeviceTimezone(),
       }
     : null, [draftTrack, quickStartDraft]);
@@ -83,46 +104,62 @@ export default function Auth() {
     return requestedReturnTo ? toSafeInternalPath(requestedReturnTo, fallback) : fallback;
   }, [quickStartDraft, searchParams, selectedFormationTrack]);
 
-  const preparePostAuthDestination = useCallback((userId?: string) => {
-    if (userId && selectedFormationTrack) {
-      saveFormationTrackSelection(userId, selectedFormationTrack);
+  const preparePostAuthDestination = useCallback(async (user: AuthUser) => {
+    if (preparing.current || preparedUser.current === user.id) return;
+    preparing.current = true;
+    setIsPreparing(true);
+    setEnrollmentError(false);
+    try {
+      const metadata = user.user_metadata;
+      const enrollment = selectedEnrollment;
+      if (enrollment) {
+        await activateFormationEnrollment(enrollment);
+        saveFormationTrackSelection(user.id, enrollment.track);
+        clearOnboardingQuickStartDraft();
+      } else if (selectedFormationTrack) saveFormationTrackSelection(user.id, selectedFormationTrack);
+      preparedUser.current = user.id;
+      navigate((enrollment || isStartableFormationTrack(metadata?.formation_track)) && !searchParams.get("returnTo") ? "/formation/today" : postAuthRoute, { replace: true });
+    } catch {
+      setEnrollmentError(true);
+    } finally {
+      preparing.current = false;
+      setIsPreparing(false);
     }
-    if (userId && selectedEnrollment) {
-      void activateFormationEnrollment(selectedEnrollment)
-        .then(() => clearOnboardingQuickStartDraft())
-        .catch((error) => console.warn("Formation enrollment could not be synchronized after sign-in:", error));
-    }
-    return postAuthRoute;
-  }, [postAuthRoute, selectedEnrollment, selectedFormationTrack]);
+  }, [navigate, postAuthRoute, searchParams, selectedEnrollment, selectedFormationTrack]);
 
   useEffect(() => {
+    let active = true;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth event:", event);
-      if (event === "PASSWORD_RECOVERY") {
-        setMode("reset");
-      } else if (event === "SIGNED_IN" && mode !== "reset") {
-        navigate(preparePostAuthDestination(session?.user.id));
-      }
+      // Keep asynchronous Supabase work outside the auth callback lock.
+      if (event === "PASSWORD_RECOVERY") setMode("reset");
+      else if (session?.user && event === "SIGNED_IN") setSessionUser(session.user);
     });
+    const hash = new URLSearchParams(window.location.hash.substring(1));
+    if (hash.get("type") === "recovery") setMode("reset");
+    void supabase.auth.getSession().then(({ data }) => {
+      if (active && data.session?.user && hash.get("type") !== "recovery") setSessionUser(data.session.user);
+    });
+    return () => { active = false; subscription.unsubscribe(); };
+  }, []);
 
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const type = hashParams.get("type");
-    const accessToken = hashParams.get("access_token");
-    
-    if (type === "recovery" && accessToken) {
-      setMode("reset");
-    } else {
-      const checkSession = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session && mode !== "reset") {
-          navigate(preparePostAuthDestination(session.user.id));
-        }
-      };
-      checkSession();
-    }
+  useEffect(() => {
+    if (sessionUser && mode !== "reset") void preparePostAuthDestination(sessionUser);
+  }, [sessionUser, mode, preparePostAuthDestination]);
 
-    return () => subscription.unsubscribe();
-  }, [navigate, mode, preparePostAuthDestination]);
+  const resendConfirmation = async () => {
+    if (isLoading || Date.now() < resendAt) return;
+    setIsLoading(true);
+    setConfirmationMessage("");
+    try {
+      const { error } = await supabase.auth.resend({ type: "signup", email, options: { emailRedirectTo: `${window.location.origin}/auth?returnTo=%2Fformation%2Ftoday` } });
+      if (error) throw error;
+      setResendAt(Date.now() + 60_000);
+      setConfirmationMessage("Confirmation requested. Check your inbox and spam folder.");
+    } catch {
+      setConfirmationMessage("We could not resend right now. Wait a moment and try again.");
+      setResendAt(Date.now() + 60_000);
+    } finally { setIsLoading(false); }
+  };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,14 +213,18 @@ export default function Auth() {
       toast({ title: "Password too short", description: "Password must be at least 6 characters.", variant: "destructive" });
       return;
     }
+    if (mode === "signup" && selectedEnrollment?.track === "fully_charged_75" && !availability.data?.strictReady) {
+      toast({ title: "Choose an available path", description: "Fully Charged is waiting for reviewed content. Choose Read Along to begin today." });
+      return;
+    }
     setIsLoading(true);
     try {
       if (mode === "signup") {
-        const signupMetadata = selectedEnrollment ? buildFormationSignupMetadata(selectedEnrollment) : {};
+        const signupMetadata = buildFormationSignupMetadata(selectedEnrollment ?? { track: "read_along", dailyEmailEnabled: false, timezone: getDeviceTimezone() });
         const { data: signUpData, error } = await supabase.auth.signUp({
           email, password,
           options: {
-            emailRedirectTo: `${window.location.origin}${postAuthRoute}`,
+            emailRedirectTo: `${window.location.origin}/auth?returnTo=${encodeURIComponent(postAuthRoute)}`,
             data: { display_name: displayName.trim() || null, ...getSignupAttribution(), ...signupMetadata },
           },
         });
@@ -193,21 +234,23 @@ export default function Auth() {
             toast({ title: "Account exists", description: "This email is already registered. Try signing in instead.", variant: "destructive" });
           } else throw error;
         } else {
-          trackAccountCreated("signup_form");
           trackGrowthEvent("signup_submitted");
           if (signUpData?.session) {
-            toast({ title: "Welcome", description: "Your account is ready. Opening your dashboard…" });
+            trackAccountCreated("signup_form");
+            setSessionUser(signUpData.session.user);
           } else {
-            toast({ title: "Check your email", description: "We've sent you a confirmation link. Please check your email to activate your account." });
+            setConfirmationPending(true);
+            setResendAt(Date.now() + 60_000);
+            setPassword("");
           }
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data: signedIn, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
             toast({ title: "Invalid credentials", description: "Please check your email and password.", variant: "destructive" });
           } else throw error;
-        }
+        } else if (signedIn.session) setSessionUser(signedIn.session.user);
       }
     } catch (error) {
       if (mode === "signup") trackGrowthEvent("signup_failed", { reason_category: signupFailureCategory(error) });
@@ -232,7 +275,7 @@ export default function Auth() {
       case "reset": return "Enter your new password below";
       case "signup":
         if (quickStartDraft?.formationTrack) {
-          return `Your ${TRACK_LABELS[quickStartDraft.formationTrack]} path is ready. Create an account to open today’s practice.`;
+          return `Your ${TRACK_LABELS[quickStartDraft.formationTrack]} path is selected. Confirm your account, then finish setup to open today’s practice.`;
         }
         if (quickStartDraft?.readingStatus) {
           return `Finish setup to keep your book path: ${READING_STATUS_LABELS[quickStartDraft.readingStatus]}`;
@@ -243,7 +286,7 @@ export default function Auth() {
         if (quickStartDraft?.lifeSeasonLabel) {
           return `Finish setup to keep your ${quickStartDraft.lifeSeasonLabel.toLowerCase()} reflection`;
         }
-        return "Fully Charged is the primary path. Compare it with Read Along before you create an account.";
+        return "Choose Fully Charged for a strict commitment or Read Along for a flexible pace.";
       default: return searchParams.get("returnTo") ? "Sign in to continue where you left off." : "Sign in to access your dashboard";
     }
   };
@@ -292,7 +335,7 @@ export default function Auth() {
             <motion.span
               key={emoji}
               className="text-2xl opacity-60"
-              animate={{ y: [0, -5, 0] }}
+              animate={reducedMotion ? undefined : { y: [0, -5, 0] }}
               transition={{ duration: 2, delay: i * 0.2, repeat: Infinity }}
             >
               {emoji}
@@ -305,7 +348,7 @@ export default function Auth() {
       <main className="flex-1 flex items-center justify-center p-6 lg:p-12 relative z-10">
         <motion.div
           className="w-full max-w-md"
-          initial={{ opacity: 0, y: 20 }}
+          initial={reducedMotion ? false : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
@@ -326,7 +369,23 @@ export default function Auth() {
               </p>
             </div>
 
-            {mode === "reset" ? (
+            {sessionUser && mode !== "reset" ? (
+              <section aria-live="polite" className="space-y-4" data-testid="enrollment-state">
+                <h2 className="text-lg font-semibold">{enrollmentError ? "Your account is ready. Path setup needs another try." : "Saving your path preferences…"}</h2>
+                <p className="text-sm text-muted-foreground">{enrollmentError ? "Your selection is still here. We have not confirmed your email reminder or path enrollment." : "We will open Today after enrollment is confirmed."}</p>
+                {enrollmentError ? <Button variant="future" disabled={isPreparing} onClick={() => void preparePostAuthDestination(sessionUser)}>Retry path setup</Button> : null}
+              </section>
+            ) : confirmationPending ? (
+              <section className="space-y-4" aria-labelledby="confirmation-heading" data-testid="signup-confirmation">
+                <h2 id="confirmation-heading" className="text-xl font-semibold">Check your email to continue</h2>
+                <p className="text-sm text-muted-foreground">If confirmation is needed, a link is on its way to <strong>{email.replace(/^(.).+(@.*)$/, "$1•••$2")}</strong>. Check spam too. Your chosen path will open after confirmation and setup.</p>
+                <p className="text-sm">Email reminders are a preference until enrollment succeeds. You can always return to Today in the app.</p>
+                <Button variant="futureOutline" disabled={isLoading || countdown > 0} onClick={() => void resendConfirmation()}>{countdown > 0 ? `Resend in ${countdown}s` : "Resend confirmation"}</Button>
+                <Button variant="ghost" onClick={() => { setConfirmationPending(false); setConfirmationMessage(""); }}>Edit email address</Button>
+                <Button variant="ghost" onClick={() => { setConfirmationPending(false); setMode("signin"); }}>Back to sign in</Button>
+                <p role="status" className="text-sm">{confirmationMessage}</p>
+              </section>
+            ) : mode === "reset" ? (
               <form onSubmit={handleResetPassword} className="space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="newPassword">New Password</Label>
@@ -356,7 +415,7 @@ export default function Auth() {
                   <Label htmlFor="email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="pl-10 bg-background/50" autoComplete="email" />
+                    <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="pl-10 bg-background/50" autoComplete="email" />
                   </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
@@ -387,13 +446,13 @@ export default function Auth() {
                           </span>
                           <div className="min-w-0">
                             <p className="text-sm font-semibold text-foreground">
-                              {selectedEnrollment.dailyEmailEnabled ? "Your morning formation email is on." : "Your morning formation email is off."}
+                              {selectedEnrollment.dailyEmailEnabled ? "Morning email requested · not active yet." : "Morning email not requested."}
                             </p>
                             <p className="mt-1 flex items-center gap-1.5 text-xs leading-5 text-muted-foreground">
                               <Clock3 className="h-3.5 w-3.5 shrink-0" />
                               {selectedEnrollment.dailyEmailEnabled
-                                ? `Starts around ${formatFormationEmailSchedule(selectedEnrollment.timezone)} with your day, five circuits, and first move.`
-                                : "Your path still starts after signup. Email can be enabled later in Settings."}
+                                ? `Requested for ${formatFormationEmailSchedule(selectedEnrollment.timezone)} after account confirmation and successful setup. Delivery availability is checked separately.`
+                                : "Today works without email. You can request reminders later in Settings."}
                             </p>
                           </div>
                         </div>
@@ -407,6 +466,7 @@ export default function Auth() {
                     ) : null}
                   </div>
                 ) : null}
+                {mode === "signup" && selectedEnrollment?.track === "fully_charged_75" ? <FormationAvailability /> : null}
                 <form onSubmit={handleSubmit} className="space-y-5" data-testid="auth-form">
                   {mode === "signup" && (
                     <div className="space-y-2">
@@ -421,7 +481,7 @@ export default function Auth() {
                     <Label htmlFor="email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="pl-10 bg-background/50" autoComplete="email" data-testid="auth-email-input" />
+                      <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="pl-10 bg-background/50" autoComplete="email" data-testid="auth-email-input" />
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -433,13 +493,14 @@ export default function Auth() {
                     </div>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 pr-10 bg-background/50" autoComplete={mode === "signin" ? "current-password" : "new-password"} data-testid="auth-password-input" />
+                      <Input id="password" required minLength={6} aria-describedby="password-help" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 pr-10 bg-background/50" autoComplete={mode === "signin" ? "current-password" : "new-password"} data-testid="auth-password-input" />
                       <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-0 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground">
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
-                  <Button type="submit" variant="glow" className="w-full" disabled={isLoading} data-testid="auth-submit-button">
+                  <p id="password-help" className="text-xs text-muted-foreground">Use at least 6 characters. A longer, unique password is best.</p>
+                  <Button type="submit" variant="glow" className="w-full" disabled={isLoading || (mode === "signup" && selectedEnrollment?.track === "fully_charged_75" && !availability.data?.strictReady)} data-testid="auth-submit-button">
                     {isLoading ? (mode === "signin" ? "Signing in..." : "Creating account...") : (mode === "signin" ? "Sign In" : "Create account & start my daily loop")}
                   </Button>
                 </form>
@@ -455,7 +516,7 @@ export default function Auth() {
               </>
             )}
 
-            <p className="mt-8 text-xs text-center text-muted-foreground/60">
+            <p className="mt-8 text-xs text-center text-muted-foreground">
               Formation reflections stay private to your account and are excluded from formation analytics.
               {" "}
               <Link to="/privacy" className="underline hover:text-foreground">Privacy</Link>
