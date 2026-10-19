@@ -15,3 +15,7 @@ BookLink is one fixed-destination external anchor, with target blank and noopene
 ## Accessibility and acceptance
 
 All links need descriptive text, visible keyboard focus and adequate contrast using existing semantic tokens. At 375px and desktop widths, navigation must fit without clipping, every new link must be visible, and the covenant CTA must stay visually primary. Check QuickStart both with and without not_started selected. Preserve all five canonical Controllable names and emoji. Reject a changed headline, covenant copy, primary CTA, new destination, layout redesign or externally loaded tracking URL.
+
+## Gospel-first Awareness
+
+Keep the existing circuit card and semantic tokens. A compact ordered list shows Observe, Understand, Respond beside the assigned Gospel reference. Use visible labels and descriptive section names; stack on mobile without horizontal overflow. Draft previews must say pending independent theological review. Authenticated journeys render only prompts from the reviewed server content body, never substitute the bundled draft. Keep the existing One honest truth response and completion rules; do not add required writing fields or analytics of private responses.

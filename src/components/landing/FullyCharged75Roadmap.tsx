@@ -1,3 +1,4 @@
+import { GospelAwarenessPrompts } from "@/components/formation/GospelAwarenessPrompts";
 import { useState } from "react";
 import { ArrowRight, CalendarCheck2, Check, ChevronDown, LockKeyhole, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -160,7 +161,7 @@ export function FullyCharged75Roadmap({ ctaHref, onChoose }: FullyCharged75Roadm
             <div className="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm leading-6 text-muted-foreground">
               <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <p>
-                This roadmap previews the day themes and Scripture references. Inside an active journey, only independently reviewed and published copy can open for that day. Reflections remain private.
+                This roadmap previews the day themes and Scripture references. The Gospel-first Awareness plan is draft guidance pending independent theological review. Inside an active journey, only independently reviewed and published copy can open for that day. Reflections remain private.
               </p>
             </div>
 
@@ -188,6 +189,7 @@ export function FullyCharged75Roadmap({ ctaHref, onChoose }: FullyCharged75Roadm
                         </summary>
                         <div className="space-y-3 border-t border-border/50 px-4 py-4 text-xs leading-5 text-muted-foreground">
                           <p><span className="font-semibold text-foreground">Invitation:</span> {guide.invitation}</p>
+                          <GospelAwarenessPrompts reading={guide.awareness} draft />
                           <p><span className="font-semibold text-foreground">Private reflection:</span> {guide.reflectionPrompt}</p>
                           <p><span className="font-semibold text-foreground">Service:</span> {guide.servicePrompt}</p>
                           {guide.reviewDay ? <p className="flex items-center gap-2 font-semibold text-primary"><CalendarCheck2 className="h-3.5 w-3.5" />Weekly review day</p> : null}

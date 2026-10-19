@@ -1,3 +1,4 @@
+import { formatGospelAwarenessReading } from "./gospelAwareness";
 import { createNewContentDraft, type FormationContentDraft, type FormationContentType } from "./content";
 import type { TrainingTrack } from "./circuits";
 import { FULLY_CHARGED_75_DAY_GUIDES } from "./fullyChargedJourney";
@@ -38,19 +39,22 @@ const seed = (input: SeedInput): FormationContentDraft => ({
   publicationStatus: "draft",
 });
 
-export const FULLY_CHARGED_75_CONTENT_SEED: FormationContentDraft[] = FULLY_CHARGED_75_DAY_GUIDES.map((guide) =>
-  seed({
+export const FULLY_CHARGED_75_CONTENT_SEED: FormationContentDraft[] = FULLY_CHARGED_75_DAY_GUIDES.map((guide) => ({
+  ...seed({
     stableId: guide.stableId,
     title: `Day ${guide.dayNumber}: ${guide.title}`,
     contentType: "daily_scripture_assignment",
-    body: `${guide.invitation}\n\nReflection: ${guide.reflectionPrompt}\n\nEnvironment: ${guide.servicePrompt}`,
+    body: `${guide.invitation}\n\n${formatGospelAwarenessReading(guide.awareness)}\n\nReflection: ${guide.reflectionPrompt}\n\nEnvironment: ${guide.servicePrompt}`,
     track: "fully_charged_75",
     days: [guide.dayNumber, guide.dayNumber],
     season: guide.season,
     scripture: guide.scriptureReference,
-    classification: "Scripture",
+    classification: "Scholarly Interpretation",
+    citations: [`https://www.biblegateway.com/passage/?search=${encodeURIComponent(guide.scriptureReference)}&version=WEB`],
   }),
-);
+  version: 2,
+  aiAssisted: true,
+}));
 
 export const REPRESENTATIVE_FORMATION_CONTENT_SEED: FormationContentDraft[] = [
   seed({ stableId: "read-along.chapter-1", title: "Read Along: Chapter One Practice", contentType: "read_along_prompt", body: "Read the visible chapter section, note one honest application, and stop before later material.", track: "read_along", chapter: "1" }),
