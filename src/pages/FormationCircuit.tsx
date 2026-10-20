@@ -1,3 +1,4 @@
+import { BookLink } from "@/components/BookLink";
 import { readPublishedGospelAwareness } from "@/domain/formation/gospelAwareness";
 import { trackFirstCircuitCompleted } from "@/lib/growthEvents";
 import { ArrowLeft, CheckCircle2, LockKeyhole, Save, ShieldCheck } from "lucide-react";
@@ -204,6 +205,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
         }
       >
         <p className="text-sm text-muted-foreground">{evaluation.statusDescription}</p>
+        <p className="mt-3 text-sm"><BookLink placement="formation_circuit" className="inline-flex min-h-11 items-center text-primary underline">Read The Controllables · Get the book</BookLink></p>
       </FutureHero>
 
       {definition.privacyNote ? (
@@ -284,7 +286,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="flex items-center gap-2 text-sm font-semibold"><CheckCircle2 className="h-4 w-4 text-primary" />{evaluation.statusLabel}</p>
-            <p className="mt-1 truncate text-xs text-muted-foreground">{localOnly ? "Local QA data only" : "Use Save progress to keep changes"} · idempotent daily record</p>
+            <p className="mt-1 truncate text-xs text-muted-foreground">{localOnly ? "Local QA data only" : "Use Save progress to keep changes"} · Your daily practice stays in one saved record</p>
           </div>
           <div className="flex gap-2">
             <Button variant="ghost" disabled={isSaving} onClick={() => navigate(APP_ROUTES.formationToday)}>Return to Today</Button>

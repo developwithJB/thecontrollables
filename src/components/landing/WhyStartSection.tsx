@@ -23,7 +23,7 @@ export function WhyStartSection() {
           This is for you if...
         </h2>
         <p className="text-sm text-muted-foreground mb-6">
-          You don't need another todo app. You need a Life OS.
+          Build a daily practice around what you can control.
         </p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-left">

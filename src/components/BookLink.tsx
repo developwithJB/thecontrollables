@@ -14,7 +14,7 @@ export const BookLink = forwardRef<HTMLAnchorElement, BookLinkProps>(function Bo
 ) {
   return (
     <a ref={ref} href={BOOK_URL} target="_blank" rel="noopener noreferrer"
-      className={className} data-testid={testId}
+      className={className} data-testid={testId} data-book-placement={placement}
       onClick={() => {
         try { void Promise.resolve(trackGrowthEvent("book_link_click", { placement })).catch(() => undefined); }
         catch { /* Analytics must never interrupt navigation. */ }

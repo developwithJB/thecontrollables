@@ -100,7 +100,7 @@ export default function Integrations() {
         <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">
           <p>• OAuth tokens are stored securely server-side. We never store passwords.</p>
           <p>• Gmail provides a summary only — we don't read or store message content.</p>
-          <p>• Syncs are idempotent and can be triggered manually anytime.</p>
+          <p>• Syncs are safe to re-run anytime.</p>
         </div>
       </div>
     </div>

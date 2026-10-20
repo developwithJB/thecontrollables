@@ -17,12 +17,12 @@ export function OnboardingWelcome({ onContinue, onSkip }: OnboardingWelcomeProps
     >
       <div className="max-w-md w-full text-center space-y-8">
         <div className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">AI Life Operating System</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Your daily formation</p>
           <h1 className="text-2xl font-bold tracking-tight text-foreground leading-snug">
             Teach your system how your life works.
           </h1>
           <p className="text-sm text-muted-foreground leading-relaxed pt-2">
-            Connect a few signals — your calendar, your energy, what matters to you — and your Life OS will generate your first daily direction.
+            Connect a few signals — your calendar, your energy, what matters to you — and The Dashboard will suggest your first daily direction.
           </p>
         </div>
 

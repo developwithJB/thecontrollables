@@ -493,13 +493,13 @@ export default function Auth() {
                     </div>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input id="password" required minLength={6} aria-describedby="password-help" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 pr-10 bg-background/50" autoComplete={mode === "signin" ? "current-password" : "new-password"} data-testid="auth-password-input" />
+                      <Input id="password" required minLength={6} aria-describedby={mode === "signup" ? "password-help" : undefined} type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 pr-10 bg-background/50" autoComplete={mode === "signin" ? "current-password" : "new-password"} data-testid="auth-password-input" />
                       <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-0 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground">
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
-                  <p id="password-help" className="text-xs text-muted-foreground">Use at least 6 characters. A longer, unique password is best.</p>
+                  {mode === "signup" ? <p id="password-help" className="text-xs text-muted-foreground">Use at least 6 characters. A longer, unique password is best.</p> : null}
                   <Button type="submit" variant="glow" className="w-full" disabled={isLoading || (mode === "signup" && selectedEnrollment?.track === "fully_charged_75" && !availability.data?.strictReady)} data-testid="auth-submit-button">
                     {isLoading ? (mode === "signin" ? "Signing in..." : "Creating account...") : (mode === "signin" ? "Sign In" : "Create account & start my daily loop")}
                   </Button>

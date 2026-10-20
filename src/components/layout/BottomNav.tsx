@@ -1,4 +1,4 @@
-import { Archive, BatteryCharging, BookOpen, Dumbbell, Sun } from "lucide-react";
+import { Archive, LogOut, BatteryCharging, BookOpen, Dumbbell, Sun } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { APP_ROUTES } from "@/lib/appRoutes";
@@ -12,7 +12,7 @@ const navItems = [
   { path: APP_ROUTES.myControllables, label: "My", icon: BatteryCharging },
 ];
 
-export const BottomNav = () => {
+export const BottomNav = ({ onSignOut }: { onSignOut?: () => void }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -59,6 +59,7 @@ export const BottomNav = () => {
             </motion.button>
           );
         })}
+        {onSignOut ? <button onClick={onSignOut} className="flex min-h-11 min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-2 text-muted-foreground hover:bg-muted/40"><LogOut className="h-5 w-5" /><span className="text-[10px] font-medium">Sign Out</span></button> : null}
       </div>
     </nav>
   );
