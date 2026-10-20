@@ -98,3 +98,6 @@ verify_jwt = false
 
 [functions.ai-consent-update]
 verify_jwt = false
+
+[functions.scripture-passage]
+verify_jwt = true
