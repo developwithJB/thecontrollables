@@ -37,6 +37,7 @@ const Money = lazy(() => import("./pages/Money"));
 const Reset = lazy(() => import("./pages/Reset"));
 const Coach = lazy(() => import("./pages/Coach"));
 const Pricing = lazy(() => import("./pages/Pricing"));
+const Scripture = lazy(() => import("./pages/Scripture"));
 const Billing = lazy(() => import("./pages/Billing"));
 const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -84,6 +85,7 @@ const AppContent = () => {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/scripture" element={<Scripture />} />
           <Route path={APP_ROUTES.landing} element={<Landing />} />
           <Route path={APP_ROUTES.privacy} element={<Privacy />} />
           <Route path={APP_ROUTES.terms} element={<Terms />} />

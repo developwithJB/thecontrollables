@@ -29,6 +29,7 @@ export default function Coach() {
           . AI responses can be mistaken and are not reviewed Scripture lessons.
         </p>
       </header>
+      <Link to="/scripture" className="inline-flex min-h-11 items-center text-sm text-primary underline">Open the Awareness Bible companion</Link>
       <ControllableHub userId={user.id} completedCount={0} onNavigate={destination=>{
         const paths:Record<string,string>={"meal-tracker":"/wellness",planner:"/planner"};
         navigate(toSafeInternalPath(paths[destination]??destination,"/formation/today"));
