@@ -32,23 +32,47 @@ Do not activate production, embed the React reader, provision Sign in with YouVe
 
 [scripture-grounding-mcp](https://github.com/The-Doxa-Way/scripture-grounding-mcp) is a third-party project, not an official YouVersion server. Its retrieval/checking design is useful, but its source supports fuzzy minor-variance verdicts, cross-translation comparisons and keyless BSB corpus fallback. Those are not an NLT exact-wording guarantee. We do not install it or forward customer data to its hosted demo. Our small deterministic checker rejects all nonexact wording and has no fallback corpus. This avoids an extra public service and additional credential transport while permissions are unresolved.
 
-## Partnership inquiry draft for JB to review
+## Commercial use approval request
 
-**Recipient:** YouVersion Platform partnerships/support and the [content-partnership application](https://www.youversion.com/content-partners). This is a draft, not a submitted application or an agreement.
+**Status:** Prepared for JB's review on October 20, 2026. Not sent. JB confirmed that no written permission exists. API and AI-source activation remain disabled; no official-partner branding is approved.
 
-Hello YouVersion team,
+**Send through:** [YouVersion Platform support](https://platform.youversion.com/support). Ask for routing to Platform licensing/partnerships; no direct licensing email address has been verified. The separate [content-partner application](https://www.youversion.com/content-partners) does not itself grant commercial API, AI-processing or brand rights.
 
-I'm JB, building The Dashboard, an open-source Christian formation companion connected to my book, The Controllables. Awareness 🦉 is our faith and spirituality practice. We currently send readers to Bible.com for the NLT and keep private reflection separate from Scripture text and AI guidance.
+**Subject:** Written approval request for The Dashboard — paid app, book links and Scripture integration
 
-We would like to explore an approved relationship for in-app Gospel reading, exact quotation checking and, if permitted, optional AI support. Our app has a free Read Along path, a bring-your-own AI option, and a planned paid Pro tier. We also link to a separately sold book. We understand the current Platform FAQ excludes commercial and indirectly monetized uses, and have left API access disabled.
+Hello YouVersion Platform team,
 
-Can you advise whether written permission is available for this model, which translations—including NLT—could be licensed, and whether any Scripture text may be processed by hosted or user-selected AI providers? Please clarify display attribution, caching/retention, engagement data, SSO, brand wording, and any permitted book/app referral links.
+I'm JB, building The Dashboard, a Christian formation app with a public GitHub codebase, connected to my book, The Controllables. Awareness 🦉 is our faith and spirituality practice: read Scripture, notice the character of Jesus, and respond through one honest action.
 
-Separately, we would like to propose a free Gospel-first reading plan based on Fully Charged 75. Our 75-day packet remains a draft pending independent theological review, so it is not ready to submit or publish. Would a reviewed short introductory plan be the appropriate first step, and what content/linking requirements should it meet?
+Our app currently links readers to Bible.com for the NLT. We have prepared an API integration for review, but it is disabled. Before using Platform Services, we want written guidance on whether our business model can be approved under a separate agreement. We understand that your published Platform FAQ excludes commercial and indirectly monetized uses; we are not assuming that keeping Bible access free creates an exception.
 
-Thank you for helping us choose an approach that respects Scripture, publishers and your mission.
+Our model includes free Read Along practices, optional bring-your-own AI, and a planned Pro subscription at US$14.99/month or US$119.99/year. We also promote a separately purchased book. We propose keeping Scripture access separate from any Pro purchase requirement.
 
+Could you confirm the following, or route us to the appropriate licensing team?
+
+1. **Commercial permission:** Can Platform Services be licensed within this paid-app/book model? If so, what agreement, restrictions, fees or publisher approvals would apply?
+2. **Translations and distribution:** Is NLT available for our approved use? What are the rules for attribution, display, caching, retention, export and future open-source/self-hosted deployments? We would not distribute an app key or assume our approval covers independent forks.
+3. **AI processing:** May licensed passages be used solely as response context and checked quotations, without model training or fine-tuning? Our proposed hosted path uses Lovable's gateway with a Google model; BYO paths support OpenAI, OpenRouter and Anthropic. Which providers, models, retention settings and user permissions would be required? No licensed Scripture is currently sent to these models.
+4. **Identity and privacy:** What consent and data-handling requirements apply to Sign in with YouVersion, Verse of the Day, and Scripture engagement data? Our current source design sends only the selected reference and configured version to YouVersion; private prayer, reflection, coaching history and pasted quote text are not forwarded.
+5. **Branding:** What approved attribution, logos or partnership wording may we use, and only after which approval? We will not describe YouVersion as our official Bible partner without authorization.
+
+Separately, we would like to explore a free Gospel-first reading plan based on Fully Charged 75. Our full 75-day packet remains a draft pending independent theological review and is not ready to submit. Should we begin with a reviewed short introductory plan through your Content Partner program? Please clarify whether and how its partner page or plan may link to our app or book.
+
+If this model cannot be approved, please let us know before we activate anything. We welcome a permitted approach that respects your mission and Bible publishers' rights.
+
+App: https://thedashboard.agbcoaching.com/
+Source and proposed integration: https://github.com/developwithJB/thecontrollables/pull/75
+
+Thank you,
 JB
+
+## Approval record before activation
+
+Keep the actual correspondence and agreements in the owner's private business records. Put only a non-sensitive approval reference in server rollout configuration, not the agreement or contact details in this public repository.
+
+Record separately whether written permission covers the commercial app and book links, the specific translation/publisher license, any model processing, identity/engagement data, and brand wording. Each scope stays pending until explicitly granted. A Content Partner acceptance or app key must not be treated as blanket approval for the other scopes.
+
+After permission, obtain the appropriate app registration and publisher licenses, verify the real version catalog and runtime behavior, and activate only the approved capabilities. The independent 75-day theological review remains a separate publication requirement.
 
 ## Release and validation
 
