@@ -3639,6 +3639,30 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_webhook_events: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          processed_at: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          payload?: Json
+          processed_at?: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          processed_at?: string
+          type?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           account_id: string | null
@@ -4010,36 +4034,63 @@ export type Database = {
       }
       user_entitlements: {
         Row: {
+          cancel_at_period_end: boolean
           created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
           entitlement_type: string
           expires_at: string | null
           granted_at: string
           granted_by: string | null
           id: string
+          plan_tier: string | null
+          price_id: string | null
           source: string
+          stripe_customer_id: string | null
           stripe_session_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
+          cancel_at_period_end?: boolean
           created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
           entitlement_type?: string
           expires_at?: string | null
           granted_at?: string
           granted_by?: string | null
           id?: string
+          plan_tier?: string | null
+          price_id?: string | null
           source: string
+          stripe_customer_id?: string | null
           stripe_session_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
+          cancel_at_period_end?: boolean
           created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
           entitlement_type?: string
           expires_at?: string | null
           granted_at?: string
           granted_by?: string | null
           id?: string
+          plan_tier?: string | null
+          price_id?: string | null
           source?: string
+          stripe_customer_id?: string | null
           stripe_session_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
