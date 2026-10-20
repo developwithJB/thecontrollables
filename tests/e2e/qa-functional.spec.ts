@@ -26,6 +26,8 @@ test("mobile non-strict receipt persists only a display acknowledgement and publ
   await settled(page,"h1"); await page.screenshot({path:"docs/qa/pr1/today-mobile.png",fullPage:true});
   await page.goto("/my-controllables"); await expect(page.getByText("Formation practices recorded: 5")).toBeVisible(); await expect(page.getByText("0 XP",{exact:true})).toBeVisible();
   await page.goto("/evidence"); await expect(page.getByText("Formation practices recorded: 5")).toBeVisible();
-  await page.goto("/"); await expect(page.getByTestId("cta-get-started")).toBeVisible(); await settled(page,'[data-testid="cta-get-started"]'); await page.screenshot({path:"docs/qa/pr1/landing-mobile.png"});
+  // Local rendering fixture for an unreviewed server response; production gates are unchanged.
+  await page.route("**/src/hooks/useFormationEntryStatus.ts", route => route.fulfill({contentType:"application/javascript",body:'export function useFormationEntryStatus(){return {data:{strictReady:false,reviewedDays:0,emailDeliveryReady:false,sample:null},isLoading:false,error:null};}'}));
+  await page.goto("/"); await expect(page.getByTestId("cta-get-started")).toBeVisible(); await expect(page.getByTestId("cta-get-started")).toContainText("Start with Read Along"); await settled(page,'[data-testid="cta-get-started"]'); await page.screenshot({path:"docs/qa/pr1/landing-mobile.png"});
   await page.goto("/auth?mode=signup"); await expect(page.getByTestId("auth-form")).toBeVisible(); await settled(page,'[data-testid="auth-form"]'); await page.screenshot({path:"docs/qa/pr1/auth-mobile.png",fullPage:true});
 });
