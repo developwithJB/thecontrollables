@@ -148,7 +148,10 @@ export function createBudgetedGateway(
   return async (url, init) => {
     if (
       String(url) !== GATEWAY_URL ||
-      init?.method !== "POST" ||
+      !init ||
+      !("method" in init) ||
+      init.method !== "POST" ||
+      !("body" in init) ||
       typeof init.body !== "string"
     )
       throw new Error("invalid_hosted_request");
