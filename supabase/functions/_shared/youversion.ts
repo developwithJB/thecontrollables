@@ -2,6 +2,7 @@
 export interface YouVersionConfig {
   enabled: boolean;
   commercialApproval: string;
+  aiAppApproval: string;
   appKey: string;
   bibleId: string;
 }
@@ -13,6 +14,25 @@ export interface ScripturePassage {
   version: string;
   copyright: string;
   sourceUrl: string;
+}
+export class YouVersionSourceError extends Error {
+  constructor(
+    readonly code: string,
+    readonly status: number,
+    readonly retryAfterSeconds?: number,
+  ) {
+    super(code);
+  }
+}
+/** Retry-After may be delta seconds or an HTTP date. Never reflect raw headers. */
+export function sourceRetryDelay(value: string | null, fallback = 60): number {
+  const seconds =
+    value && /^\d+$/.test(value.trim())
+      ? Number(value)
+      : value
+        ? Math.ceil((Date.parse(value) - Date.now()) / 1000)
+        : NaN;
+  return Number.isSafeInteger(seconds) ? Math.max(1, seconds) : fallback;
 }
 const books = {
   Matthew: ["MAT", 28],
@@ -46,6 +66,7 @@ export function youVersionReady(config: YouVersionConfig): boolean {
   return (
     config.enabled &&
     !!config.commercialApproval.trim() &&
+    !!config.aiAppApproval.trim() &&
     !!config.appKey.trim() &&
     /^[1-9]\d{0,8}$/.test(config.bibleId)
   );
@@ -74,7 +95,34 @@ export async function fetchYouVersionPassage(
       redirect: "error",
       signal: AbortSignal.timeout(8000),
     });
-    if (!response.ok) throw Error("scripture_source_unavailable");
+    if (response.status === 204)
+      throw new YouVersionSourceError("scripture_no_content", 404);
+    if (!response.ok) {
+      const status = response.status;
+      const delay =
+        status === 429 || status >= 500
+          ? sourceRetryDelay(
+              response.headers.get("Retry-After"),
+              status === 429 ? 60 : 5,
+            )
+          : undefined;
+      await response.body?.cancel();
+      const code =
+        status === 401
+          ? "scripture_source_key_unavailable"
+          : status === 403
+            ? "scripture_license_unavailable"
+            : status === 404
+              ? "scripture_passage_not_found"
+              : status === 429
+                ? "scripture_source_rate_limited"
+                : "scripture_source_unavailable";
+      throw new YouVersionSourceError(
+        code,
+        status === 429 ? 429 : status === 404 ? 404 : 503,
+        delay,
+      );
+    }
     // Do not propagate upstream bodies, headers, keys, or private input.
     const body = await response.text();
     if (body.length > 100000) throw Error("invalid_scripture_response");
@@ -90,7 +138,12 @@ export async function fetchYouVersionPassage(
   )
     throw Error("scripture_version_unavailable");
   const abbreviation = text(version.abbreviation, 40);
-  const copyright = text(version.copyright, 12000);
+  const copyright = text(
+    typeof version.copyright === "string" && version.copyright.trim()
+      ? version.copyright
+      : version.promotional_content,
+    12000,
+  );
   const passage = await get(`${root}/passages/${id}?format=text`);
   if (passage.id !== id) throw Error("scripture_reference_mismatch");
   return {

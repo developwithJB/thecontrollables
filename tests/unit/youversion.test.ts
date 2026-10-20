@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import {
   fetchYouVersionPassage,
   gospelPassageId,
+  sourceRetryDelay,
   verifyScriptureQuote,
   youVersionReady,
 } from "../../supabase/functions/_shared/youversion";
@@ -17,6 +18,7 @@ import {
 const config = {
   enabled: true,
   commercialApproval: "synthetic-approval-fixture",
+  aiAppApproval: "synthetic-ai-app-approval-fixture",
   appKey: "synthetic-app-key",
   bibleId: "999999",
 };
@@ -62,6 +64,7 @@ describe("approval-gated YouVersion source boundary", () => {
     {},
     { enabled: false },
     { commercialApproval: "" },
+    { aiAppApproval: "" },
     { appKey: "" },
     { bibleId: "" },
     { bibleId: "1/../../" },
@@ -70,7 +73,13 @@ describe("approval-gated YouVersion source boundary", () => {
     async (override) => {
       const local = Object.keys(override).length
         ? { ...config, ...override }
-        : { enabled: false, appKey: "", commercialApproval: "", bibleId: "" };
+        : {
+            enabled: false,
+            appKey: "",
+            commercialApproval: "",
+            aiAppApproval: "",
+            bibleId: "",
+          };
       const fetcher = mockSource();
       expect(youVersionReady(local)).toBe(false);
       await expect(
@@ -117,6 +126,124 @@ describe("approval-gated YouVersion source boundary", () => {
         fetchYouVersionPassage(config, "John 13:1-2", fetcher),
       ).rejects.toThrow();
       expect(fetcher).toHaveBeenCalledTimes(1);
+    },
+  );
+  it("uses promotional attribution when copyright is absent and refreshes metadata on every read", async () => {
+    const fetcher = vi.fn(async (url: string | URL | Request) =>
+      Response.json(
+        String(url).includes("/passages/")
+          ? upstream
+          : {
+              ...metadata,
+              copyright: " ",
+              promotional_content: "Synthetic publisher notice",
+            },
+      ),
+    );
+    for (let i = 0; i < 2; i++) {
+      const passage = await fetchYouVersionPassage(
+        config,
+        "John 13:1-2",
+        fetcher,
+      );
+      expect(passage.copyright).toBe("Synthetic publisher notice");
+    }
+    expect(fetcher).toHaveBeenCalledTimes(4);
+  });
+  it("handles an empty 204 without trying to parse JSON or inventing text", async () => {
+    const empty = new Response(null, { status: 204 });
+    const read = vi.spyOn(empty, "text");
+    const fetcher = vi.fn(async () => empty);
+    await expect(
+      fetchYouVersionPassage(config, "John 13:1-2", fetcher),
+    ).rejects.toMatchObject({
+      code: "scripture_no_content",
+      status: 404,
+    });
+    expect(read).not.toHaveBeenCalled();
+  });
+  it.each([
+    [401, "scripture_source_key_unavailable", 503],
+    [403, "scripture_license_unavailable", 503],
+    [404, "scripture_passage_not_found", 404],
+  ])(
+    "classifies passage status %s safely; successful metadata alone never proves a license",
+    async (status, code, resultStatus) => {
+      const fetcher = vi
+        .fn()
+        .mockResolvedValueOnce(Response.json(metadata))
+        .mockResolvedValueOnce(
+          new Response("private upstream diagnostic", { status }),
+        );
+      const handler = createScriptureHandler({
+        config,
+        request: fetcher,
+        authenticate: async () => true,
+      });
+      const result = await handler(
+        request({ operation: "passage", reference: "John 13:1-2" }),
+      );
+      expect(result.status).toBe(resultStatus);
+      expect(await result.json()).toEqual({ error: code });
+      expect(fetcher).toHaveBeenCalledTimes(2);
+    },
+  );
+  it("uses valid Retry-After values with safe defaults for malformed headers", () => {
+    const clock = vi.spyOn(Date, "now").mockReturnValue(Date.UTC(2026, 9, 20));
+    try {
+      expect(sourceRetryDelay("30")).toBe(30);
+      expect(sourceRetryDelay("7200")).toBe(7200);
+      expect(sourceRetryDelay("0")).toBe(1);
+      expect(sourceRetryDelay("Tue, 20 Oct 2026 00:02:00 GMT")).toBe(120);
+      expect(sourceRetryDelay("invalid")).toBe(60);
+      expect(sourceRetryDelay(null, 5)).toBe(5);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+  it.each([429, 503])(
+    "respects upstream %s cooldown before another request and never parses its plain-text error",
+    async (status) => {
+      let now = Date.UTC(2026, 9, 20);
+      const clock = vi.spyOn(Date, "now").mockImplementation(() => now);
+      try {
+        const fetcher = vi
+          .fn()
+          .mockResolvedValueOnce(
+            new Response("private diagnostic", {
+              status,
+              headers: { "Retry-After": "120" },
+            }),
+          )
+          .mockResolvedValueOnce(Response.json(metadata))
+          .mockResolvedValueOnce(Response.json(upstream));
+        const log = vi.fn();
+        const handler = createScriptureHandler({
+          config,
+          request: fetcher,
+          authenticate: async () => true,
+          onSourceFailure: log,
+        });
+        const body = { operation: "passage", reference: "John 13:1-2" };
+        const first = await handler(request(body));
+        expect(first.status).toBe(status);
+        expect(first.headers.get("Retry-After")).toBe("120");
+        now += 1000;
+        const second = await handler(request(body));
+        expect(second.status).toBe(429);
+        expect(second.headers.get("Retry-After")).toBe("119");
+        expect(fetcher).toHaveBeenCalledTimes(1);
+        expect(log).toHaveBeenCalledWith(
+          status === 429
+            ? "scripture_source_rate_limited"
+            : "scripture_source_unavailable",
+        );
+        now += 119000;
+        expect((await handler(request(body))).status).toBe(200);
+        expect(fetcher).toHaveBeenCalledTimes(3);
+      } finally {
+        clock.mockRestore();
+      }
     },
   );
   it("rejects wrong returned references, malformed source data and unavailable upstream without inventing a fallback translation", async () => {
@@ -240,9 +367,10 @@ describe("approval-gated YouVersion source boundary", () => {
     const result = await handler(
       request({ operation: "passage", reference: "John 13:1-2" }),
     );
-    expect(result.status).toBe(503);
+    expect(result.status).toBe(429);
     expect(await result.json()).toEqual({
-      error: "scripture_source_unavailable",
+      error: "scripture_source_rate_limited",
+      retryAfterSeconds: 60,
     });
   });
   it("retains JWT verification and does not replace the independent content-review gates", () => {

@@ -13,7 +13,24 @@ export function YouVersionReader({ reference }: { reference: string }) {
   const [quote, setQuote] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [retryAt, setRetryAt] = useState(0);
   const requestState = useRef({ generation: 0 }).current;
+  useEffect(() => {
+    if (!retryAt) return;
+    let timer: number;
+    const check = () => {
+      const remaining = retryAt - Date.now();
+      if (remaining <= 0) {
+        setRetryAt(0);
+        setNotice("");
+      } else {
+        // Preserve long Retry-After values without overflowing browser timers.
+        timer = window.setTimeout(check, Math.min(remaining, 2147483647));
+      }
+    };
+    check();
+    return () => window.clearTimeout(timer);
+  }, [retryAt]);
   useEffect(() => {
     requestState.generation++;
     setPassage(null);
@@ -28,6 +45,7 @@ export function YouVersionReader({ reference }: { reference: string }) {
   // operator rollout, written commercial approval and a licensed app/version.
   if (import.meta.env.VITE_YOUVERSION_READER_ENABLED !== "true") return null;
   async function load(operation: "passage" | "verify_quote") {
+    if (retryAt > Date.now()) return;
     const current = requestState.generation;
     setBusy(true);
     setNotice("");
@@ -51,6 +69,28 @@ export function YouVersionReader({ reference }: { reference: string }) {
         },
       );
       if (requestState.generation !== current) return;
+      if (
+        error?.context instanceof Response &&
+        [429, 503].includes(error.context.status)
+      ) {
+        const failure = await error.context
+          .clone()
+          .json()
+          .catch(() => null);
+        if (requestState.generation !== current) return;
+        if (
+          Number.isSafeInteger(failure?.retryAfterSeconds) &&
+          failure.retryAfterSeconds >= 1 &&
+          Number.isFinite(Date.now() + failure.retryAfterSeconds * 1000)
+        ) {
+          setRetryAt(Date.now() + failure.retryAfterSeconds * 1000);
+          setPassage(null);
+          setNotice(
+            `The Scripture source is busy. Wait ${failure.retryAfterSeconds} seconds before trying again, or read on Bible.com.`,
+          );
+          return;
+        }
+      }
       if (
         error ||
         !data?.passage ||
@@ -92,7 +132,7 @@ export function YouVersionReader({ reference }: { reference: string }) {
     >
       <Button
         variant="futureOutline"
-        disabled={busy}
+        disabled={busy || retryAt > Date.now()}
         onClick={() => void load("passage")}
       >
         {busy ? "Checking source…" : "Read passage here"}
@@ -156,7 +196,7 @@ export function YouVersionReader({ reference }: { reference: string }) {
               </p>
               <Button
                 variant="futureOutline"
-                disabled={busy || !quote.trim()}
+                disabled={busy || retryAt > Date.now() || !quote.trim()}
                 onClick={() => void load("verify_quote")}
               >
                 Compare with source

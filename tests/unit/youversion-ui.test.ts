@@ -140,6 +140,31 @@ describe("Awareness Bible companion", () => {
     });
     expect(screen.queryByText(/Not an exact match/)).toBeNull();
   });
+  it("shows the server cooldown and prevents repeated source requests while keeping Bible.com available", async () => {
+    vi.stubEnv("VITE_YOUVERSION_READER_ENABLED", "true");
+    mocks.getSession.mockResolvedValue({
+      data: { session: { user: { id: "synthetic" } } },
+    });
+    mocks.invoke.mockResolvedValue({
+      error: {
+        context: Response.json(
+          { error: "scripture_source_rate_limited", retryAfterSeconds: 120 },
+          { status: 429 },
+        ),
+      },
+    });
+    companion();
+    const read = screen.getByRole("button", { name: "Read passage here" });
+    fireEvent.click(read);
+    await screen.findByText(/Wait 120 seconds/);
+    expect(read.hasAttribute("disabled")).toBe(true);
+    fireEvent.click(read);
+    expect(mocks.invoke).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole("link", { name: /Read Matthew 4:18-22/ }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("blockquote")).toBeNull();
+  });
   it("ignores a stale passage request after changing the reference", async () => {
     vi.stubEnv("VITE_YOUVERSION_READER_ENABLED", "true");
     mocks.getSession.mockResolvedValue({
