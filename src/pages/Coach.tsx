@@ -6,7 +6,7 @@ export default function Coach() {
   const user = useLifeOSUser();
   const navigate=useNavigate();
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
+    <div data-testid="optional-coach" className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
       <header className="space-y-2">
         <Link
           to="/formation/today"

@@ -347,6 +347,8 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
 
       <div className="w-full max-w-sm flex gap-2 px-1">
         <Textarea
+          aria-label="Message to your coach"
+          maxLength={4000}
           ref={textareaRef}
           value={input}
           onChange={(event) => setInput(event.target.value)}
@@ -357,6 +359,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
           disabled={isLoading}
         />
         <Button
+          aria-label="Send message"
           size="icon"
           className="h-[44px] w-[44px] shrink-0 self-end"
           onClick={handleSend}
@@ -365,6 +368,8 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
           <Send className="w-4 h-4" />
         </Button>
       </div>
+
+      {hasConversation&&<Button variant="outline" className="mt-3 min-h-11" disabled={isLoading} onClick={()=>{setMessages([]);setInput("");setActiveControllable(null);}}>New conversation</Button>}
 
       {!hasConversation && (
         <p className="text-[10px] text-muted-foreground/60 mt-1.5">

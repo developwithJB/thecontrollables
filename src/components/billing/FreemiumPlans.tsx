@@ -36,7 +36,7 @@ export function FreemiumPlans({
             replies per verified account, subject to the shared sample
             allowance. The sample does not reset.
           </p>
-          <Button asChild variant="outline" className="w-full">
+          <Button asChild variant="outline" className="min-h-11 w-full">
             <Link to="/quick-start?path=read_along">Start with Read Along</Link>
           </Button>
         </article>
@@ -57,7 +57,7 @@ export function FreemiumPlans({
             automatic switch to hosted AI. Hosted planning and summaries are
             separate paid features.
           </p>
-          <Button asChild variant="outline" className="w-full">
+          <Button asChild variant="outline" className="min-h-11 w-full">
             <Link to="/billing#coach-settings">Set up my provider</Link>
           </Button>
         </article>
@@ -104,7 +104,7 @@ export function FreemiumPlans({
           </p>
           {onCheckout ? (
             <Button
-              className="w-full"
+              className="min-h-11 w-full"
               disabled={busy}
               onClick={() => onCheckout(interval)}
             >
@@ -113,7 +113,7 @@ export function FreemiumPlans({
                 : `Choose Pro — ${interval === "year" ? "annual" : "monthly"}`}
             </Button>
           ) : (
-            <Button asChild className="w-full">
+            <Button asChild className="min-h-11 w-full">
               <Link to={`/billing?interval=${interval}`}>Choose Pro</Link>
             </Button>
           )}

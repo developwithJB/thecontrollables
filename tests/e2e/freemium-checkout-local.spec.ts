@@ -240,6 +240,9 @@ test("verified free customers can reach an optional coach and read a JSON reply"
     ),
   ).toBeVisible();
   expect(calls).toBe(1);
+  const coachAxe=await new AxeBuilder({page}).include('[data-testid="optional-coach"]').analyze();
+  expect(coachAxe.violations.filter(v=>["serious","critical"].includes(v.impact??""))).toEqual([]);
+
   await page.evaluate(() => {
     window.scrollTo(0, 0);
     document.querySelectorAll("main").forEach((m) => m.scrollTo(0, 0));
