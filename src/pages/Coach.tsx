@@ -1,10 +1,12 @@
-import { Link } from "react-router-dom";
+import { toSafeInternalPath } from "@/lib/safeNavigation";
+import { Link, useNavigate } from "react-router-dom";
 import { ControllableHub } from "@/components/dashboard/ControllableHub";
 import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
 export default function Coach() {
   const user = useLifeOSUser();
+  const navigate=useNavigate();
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
+    <div className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
       <header className="space-y-2">
         <Link
           to="/formation/today"
@@ -27,7 +29,10 @@ export default function Coach() {
           . AI responses can be mistaken and are not reviewed Scripture lessons.
         </p>
       </header>
-      <ControllableHub userId={user.id} completedCount={0} />
-    </main>
+      <ControllableHub userId={user.id} completedCount={0} onNavigate={destination=>{
+        const paths:Record<string,string>={"meal-tracker":"/wellness",planner:"/planner"};
+        navigate(toSafeInternalPath(paths[destination]??destination,"/formation/today"));
+      }}/>
+    </div>
   );
 }
