@@ -1,3 +1,4 @@
+import { LEGACY_SUBSCRIPTION_PRICES, subscriptionPeriod, subscriptionTier } from "../_shared/stripeSubscription.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
@@ -5,12 +6,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 type PlanTier = "plus" | "pro" | "premium";
 
 const PRICE_TO_TIER = (): Record<string, PlanTier> => {
-  const map: Record<string, PlanTier> = {};
+  const map: Record<string, PlanTier> = {...LEGACY_SUBSCRIPTION_PRICES};
   const plus = Deno.env.get("STRIPE_PRICE_ID_PLUS");
   const pro = Deno.env.get("STRIPE_PRICE_ID_PRO");
   const premium = Deno.env.get("STRIPE_PRICE_ID_PREMIUM");
   if (plus) map[plus] = "plus";
-  if (pro) map[pro] = "pro";
+  if (pro) map[pro] = "pro"; // Legacy $9.99/month subscribers retain their plan.
+  for (const name of ["STRIPE_PRICE_ID_PRO_ANNUAL", "STRIPE_PRICE_ID_PRO_MONTHLY"]) {
+    const id = Deno.env.get(name);
+    if (id) map[id] = "pro";
+  }
   if (premium) map[premium] = "premium";
   return map;
 };
@@ -29,11 +34,7 @@ const getSupabaseAdmin = () =>
   );
 
 const getPlanTier = (subscription: Stripe.Subscription): PlanTier => {
-  const metadataTier = subscription.metadata?.plan_tier;
-  if (metadataTier === "plus" || metadataTier === "pro" || metadataTier === "premium") return metadataTier;
-
-  const priceId = subscription.items.data[0]?.price?.id;
-  return (priceId && PRICE_TO_TIER()[priceId]) || "pro";
+  return subscriptionTier(subscription.items.data[0]?.price?.id, PRICE_TO_TIER());
 };
 
 const getUserIdFromSubscription = async (
@@ -61,12 +62,12 @@ const upsertSubscriptionEntitlement = async (
 ) => {
   const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id;
   const planTier = getPlanTier(subscription);
-  const currentPeriodStart = new Date(subscription.current_period_start * 1000).toISOString();
-  const currentPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
-  const isDeleted = subscription.status === "canceled" || subscription.status === "incomplete_expired";
+  const currentPeriodStart = new Date(subscriptionPeriod(subscription).start * 1000).toISOString();
+  const currentPeriodEnd = new Date(subscriptionPeriod(subscription).end * 1000).toISOString();
+  const isDeleted = !["active","trialing"].includes(subscription.status);
   const now = new Date().toISOString();
 
-  await admin.from("user_entitlements").upsert({
+  const {error: entitlementError} = await admin.from("user_entitlements").upsert({
     user_id: userId,
     entitlement_type: "full_access",
     source: "stripe_subscription",
@@ -84,10 +85,12 @@ const upsertSubscriptionEntitlement = async (
     updated_at: now,
   }, { onConflict: "user_id,entitlement_type" });
 
-  await admin
+  if (entitlementError) throw new Error("entitlement_write_failed");
+  const {error: profileError} = await admin
     .from("profiles")
     .update({ plan_tier: isDeleted ? "free" : planTier, updated_at: now })
     .eq("id", userId);
+  if (profileError) throw new Error("profile_entitlement_write_failed");
 };
 
 const handleCheckoutCompleted = async (
@@ -114,7 +117,9 @@ const handleSubscriptionChanged = async (
     return;
   }
 
-  await upsertSubscriptionEntitlement(admin, userId, subscription);
+  // Retrieve current status so late/out-of-order events cannot restore old access.
+  const current = await stripe.subscriptions.retrieve(subscription.id);
+  await upsertSubscriptionEntitlement(admin, userId, current);
 };
 
 serve(async (req) => {
@@ -165,15 +170,16 @@ serve(async (req) => {
         break;
     }
 
-    await admin.from("stripe_webhook_events").insert({
+    const {error: receiptError} = await admin.from("stripe_webhook_events").insert({
       id: event.id,
       type: event.type,
       payload: event as unknown as Record<string, unknown>,
     });
+    if (receiptError && receiptError.code !== "23505") throw new Error("webhook_receipt_write_failed");
 
     return json({ received: true });
   } catch (error) {
-    console.error("[stripe-webhook] processing failed", error);
-    return json({ error: error instanceof Error ? error.message : "Webhook processing failed" }, 500);
+    console.error("[stripe-webhook] processing failed", error instanceof Error ? error.name : "webhook_error");
+    return json({ error: "Webhook processing failed" }, 500);
   }
 });

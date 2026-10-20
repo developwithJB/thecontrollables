@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { type PlanTier as CheckoutPlanTier } from "@/lib/pricing";
+import { type PlanTier as CheckoutPlanTier, type BillingInterval } from "@/lib/pricing";
 import { type PlanTier as EntitlementPlanTier } from "@/lib/entitlements";
 import { withTimeout } from "@/lib/withTimeout";
 
 interface SubscriptionInfo {
+  serverVerified?: boolean;
   isPaid: boolean;
   planTier: EntitlementPlanTier | null;
   // Backward compatibility alias
@@ -33,6 +34,7 @@ interface EntitlementStatus {
 }
 
 interface CheckoutStartOptions {
+  interval?: BillingInterval;
   source?: string;
   successPath?: string;
   cancelPath?: string;
@@ -126,7 +128,7 @@ function getCachedEntitlement(userId: string): SubscriptionInfo {
       // Only trust cache if user was paid (prevents false upgrades)
       if (parsed.isPaid) {
         console.log("[useEntitlements] Using cached paid status for", userId);
-        return parsed;
+        return {...parsed,serverVerified:false};
       }
     }
   } catch {
@@ -150,6 +152,7 @@ function getCachedEntitlement(userId: string): SubscriptionInfo {
  * - AI Companions (AI Operators panel)
  */
 export function useEntitlements(userId: string | null): EntitlementStatus {
+  const queryClient=useQueryClient();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
 
@@ -185,7 +188,8 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
         }
         
         const info: SubscriptionInfo = {
-          isPaid: (result?.plan_tier ?? null) !== null,
+          isPaid: result?.isPaid === true && ["plus","pro","premium","lifetime"].includes(result?.plan_tier),
+          serverVerified:true,
           purchasedAt: result?.purchasedAt ?? null,
           planTier: result?.plan_tier ?? null,
           subscriptionStatus: result?.subscriptionStatus ?? null,
@@ -213,43 +217,40 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 
-  // Check for payment success/cancel URL params
+  // A return URL is display context, never payment authority.
   useEffect(() => {
+    if (!userId) return;
     const urlParams = new URLSearchParams(window.location.search);
     const paymentStatus = urlParams.get("payment");
     
+    let canceled=false;
     if (paymentStatus === "success") {
-      toast.success("Welcome to Full Access! 🎉", {
-        description: "The Controllables and Experience History are now unlocked.",
-        duration: 5000,
-      });
-      
-      // Retry check-payment with delays to handle Stripe webhook timing
-      // This addresses the race condition where Stripe may not have processed the payment yet
-      const retryCheck = async (attempts = 3) => {
-        for (let i = 0; i < attempts; i++) {
-          // Incremental delay: 1s, 2s, 3s
-          await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-          const result = await refetch();
-          if ((result.data?.planTier ?? null) !== null) {
-            console.log("[useEntitlements] Payment verified on attempt", i + 1);
-            break;
+      toast.info("Confirming your subscription…", {description:"We are checking Stripe before confirming access."});
+      const verify=async()=>{
+        for(let i=0;i<3;i++) {
+          if(canceled)return;
+          const result=await refetch();
+          if(canceled)return;
+          if(result.data?.isPaid && result.data.serverVerified) {
+            toast.success("Your subscription is confirmed",{description:"Your paid features are ready. Daily practice stays yours to complete."});
+            void queryClient.invalidateQueries({queryKey:["hosted-ai-allowance",userId]});
+            return;
           }
+          await new Promise(resolve=>setTimeout(resolve,1000*(i+1)));
         }
+        if(!canceled)toast.info("Payment confirmation is still pending",{description:"Refresh Billing shortly. Contact support if your payment receipt arrives but access remains pending."});
       };
-      retryCheck();
-      
-      // Clean up URL immediately
-      window.history.replaceState({}, "", window.location.pathname);
+      void verify();
     } else if (paymentStatus === "canceled") {
-      toast("Checkout canceled", {
-        description: "No worries—you can subscribe anytime.",
-        duration: 3000,
-      });
-      // Clean up URL
-      window.history.replaceState({}, "", window.location.pathname);
+      toast("Checkout closed",{description:"You can return when you’re ready.",duration:3000});
     }
-  }, [refetch]);
+    if(paymentStatus) {
+      urlParams.delete("payment");urlParams.delete("plan");urlParams.delete("checkout_source");
+      const query=urlParams.toString();
+      window.history.replaceState({},"",window.location.pathname+(query?`?${query}`:"")+window.location.hash);
+    }
+    return ()=>{canceled=true;};
+  }, [refetch,queryClient,userId]);
 
   const checkPaymentStatus = useCallback(() => {
     refetch();
@@ -268,6 +269,7 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
         supabase.functions.invoke("create-checkout", {
           body: {
             tier,
+            interval: options?.interval ?? "year",
             source: sanitizeCheckoutSource(options?.source),
             success_path: options?.successPath,
             cancel_path: options?.cancelPath,

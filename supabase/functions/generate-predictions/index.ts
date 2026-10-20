@@ -1,3 +1,4 @@
+import { hostedGateway } from "../_shared/hostedGateway.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -320,7 +321,7 @@ Deno.serve(async (req) => {
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     if (lovableApiKey && predictions.filter(p => p.urgency !== "low").length > 0) {
       try {
-        const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const aiRes = await hostedGateway(userId, "generate-predictions")("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${lovableApiKey}`,
@@ -434,7 +435,7 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error("Error in generate-predictions:", error);
-    return new Response(JSON.stringify({ error: error.message || "Internal server error" }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

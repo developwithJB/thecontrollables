@@ -1,3 +1,4 @@
+import { hostedGateway } from "../_shared/hostedGateway.ts";
 import { readCoachPlanTier, hostedCoachAccess } from "../_shared/coachPlan.ts";
 import { assembleCoachPrompt, createCoachProvider } from "../_shared/coachProvider.ts";
 import { loadCoachCredential } from "../_shared/coachCredentials.ts";
@@ -71,16 +72,6 @@ const MAX_MESSAGES_COUNT = 50;
 const MAX_SESSION_HISTORY_COUNT = 20;
 
 type PlanTier = 'free' | 'plus' | 'pro';
-
-// Daily message limits per plan tier
-const PLAN_DAILY_LIMITS: Record<PlanTier, number> = {
-  free: 2,   // Post-trial free users get 2/day
-  plus: 15,  // Plus gets 15/day
-  pro: 25,   // Pro gets 25/day
-};
-
-// Trial users (active snapshot, free tier) get higher limit
-const TRIAL_DAILY_LIMIT = 5;
 
 // ============ DEEP CHARACTER PROMPTS ============
 const CONTROLLABLE_PROMPTS: Record<string, string> = {
@@ -407,62 +398,11 @@ function getTodayDateKey(): string {
 }
 
 async function getPlanTier(supabaseClient: any, userId: string): Promise<PlanTier> {
-  return readCoachPlanTier(() => supabaseClient.from('profiles').select('plan_tier').eq('id', userId).maybeSingle());
+  const {data,error}=await supabaseClient.rpc('hosted_ai_plan',{p_user_id:userId});
+  return readCoachPlanTier(async()=>({data:data ? {plan_tier:data}:null,error}));
 }
 
-// Check and update daily usage using the real ai_usage_logs schema (usage_date + message_count)
-async function checkAndUpdateDailyUsage(
-  supabaseClient: any,
-  userId: string,
-  planTier: PlanTier,
-  isTrialUser: boolean = false
-): Promise<{ allowed: boolean; remaining: number; used: number; dailyLimit: number }> {
-  const today = getTodayDateKey();
-  // Trial users (free tier with active snapshot) get 5/day, post-trial free get 2/day
-  const dailyLimit = (planTier === 'free' && isTrialUser) ? TRIAL_DAILY_LIMIT : (PLAN_DAILY_LIMITS[planTier] ?? PLAN_DAILY_LIMITS.free);
 
-  if (dailyLimit <= 0) {
-    return { allowed: false, remaining: 0, used: 0, dailyLimit };
-  }
-
-  const { data: usageData, error: fetchError } = await supabaseClient
-    .from('ai_usage_logs')
-    .select('id, message_count')
-    .eq('user_id', userId)
-    .eq('usage_date', today)
-    .maybeSingle();
-
-  if (fetchError) {
-    console.error('Error fetching daily usage:', fetchError);
-    return { allowed: true, remaining: dailyLimit, used: 0, dailyLimit };
-  }
-
-  const currentCount = usageData?.message_count || 0;
-
-  if (currentCount >= dailyLimit) {
-    return { allowed: false, remaining: 0, used: currentCount, dailyLimit };
-  }
-
-  if (usageData) {
-    await supabaseClient
-      .from('ai_usage_logs')
-      .update({ message_count: currentCount + 1, updated_at: new Date().toISOString() })
-      .eq('id', usageData.id);
-  } else {
-    await supabaseClient
-      .from('ai_usage_logs')
-      .insert({ user_id: userId, usage_date: today, message_count: 1 });
-  }
-
-  return {
-    allowed: true,
-    remaining: dailyLimit - currentCount - 1,
-    used: currentCount + 1,
-    dailyLimit,
-  };
-}
-
-// Build the enhanced pattern memory section
 function buildPatternMemory(patternData: PatternData, controllable: string | null): string {
   if (!patternData || patternData.conversationCount === 0) {
     return '';
@@ -627,59 +567,17 @@ Deno.serve(async (req) => {
     const credential = byoSelected ? await loadCoachCredential(userId) : null;
     // A failed configured-key resolution must not silently spend hosted quota.
     if (byoSelected && !credential) throw new Error('coach_credential_unavailable');
-    const provider = createCoachProvider(credential, Deno.env.get('LOVABLE_API_KEY') ?? '');
+    const provider = createCoachProvider(credential, Deno.env.get('LOVABLE_API_KEY') ?? '', credential ? fetch : hostedGateway(userId, 'ai-chat'));
 
-    // Check if free user is in active trial (has active snapshot within 7 days)
-    let isTrialUser = false;
-    if (planTier === 'free') {
-      const { data: activeSession } = await serviceClient
-        .from('reset_sessions')
-        .select('id, start_date')
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (activeSession) {
-        const startDate = new Date(activeSession.start_date);
-        const now = new Date();
-        const daysSinceStart = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-        isTrialUser = daysSinceStart < 7;
-      }
-    }
-    
-    const usageResult = hostedSelected
-      ? await (async () => {
-          const { data, error } = await serviceClient.rpc('reserve_hosted_coach_usage', { p_user_id: userId });
-          if (error || !data) throw new Error('hosted_coach_usage_unavailable');
-          return data as { allowed: boolean; remaining: number; used: number; dailyLimit: number };
-        })()
-      : credential
-      ? await (async () => {
-          const { data, error } = await serviceClient.rpc('reserve_coach_byo_usage', { p_user_id: userId });
-          if (error || !data) throw new Error('coach_usage_unavailable');
-          return data as { allowed: boolean; remaining: number; used: number; dailyLimit: number };
-        })()
-      : await checkAndUpdateDailyUsage(serviceClient, userId, planTier, isTrialUser);
-    
-    if (!usageResult.allowed) {
-      const isPlusLocked = !credential && planTier === 'plus';
-      return new Response(
-        JSON.stringify({ 
-          error: isPlusLocked
-            ? 'AI guide access is locked on Plus. Upgrade to Pro to continue.'
-            : `Daily AI limit reached. You have used ${usageResult.dailyLimit} of ${usageResult.dailyLimit} messages today.`,
-          limitReached: !isPlusLocked,
-          aiLocked: isPlusLocked,
-          remaining: 0,
-          used: usageResult.used,
-          planTier,
-          dailyLimit: usageResult.dailyLimit
-        }),
-        { status: isPlusLocked ? 403 : 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // BYO has a separate 100-request/day anti-abuse guard. Every hosted
+    // provider pass reserves money AND chat counts atomically at the gateway.
+    const usageResult = credential ? await (async () => {
+      const {data, error} = await serviceClient.rpc('reserve_coach_byo_usage', {p_user_id:userId});
+      if (error || !data) throw new Error('coach_usage_unavailable');
+      return data as {allowed:boolean;remaining:number;used:number;dailyLimit:number};
+    })() : {allowed:true, remaining:planTier === 'free' ? 5 : 10, used:0, dailyLimit:planTier === 'free' ? 5 : 10};
+    if (!usageResult.allowed) return new Response(JSON.stringify({error:'BYO request limit reached.',limitReached:true}),
+      {status:429,headers:{...corsHeaders,'Content-Type':'application/json'}});
 
     // ============ INPUT VALIDATION ============
     let body: RequestBody;
@@ -830,7 +728,7 @@ Today's date is ${getTodayDateKey()}.`;
       
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again in a moment.' }),
+          JSON.stringify({ error: 'AI allowance reached or temporarily unavailable. Check Billing for your allowance; BYO has a separate limit.', limitReached:true }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -955,10 +853,10 @@ Today's date is ${getTodayDateKey()}.`;
           JSON.stringify({
             message: assistantMessage,
             actions_taken: actionsTaken,
-            remaining: usageResult.remaining,
-            used: usageResult.used,
+            remaining: credential ? usageResult.remaining : undefined,
+            used: credential ? usageResult.used : undefined,
             planTier,
-            dailyLimit: usageResult.dailyLimit,
+            dailyLimit: credential ? usageResult.dailyLimit : undefined,
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -979,10 +877,10 @@ Today's date is ${getTodayDateKey()}.`;
       JSON.stringify({ 
         message: assistantMessage,
         actions_taken: actionsTaken,
-        remaining: usageResult.remaining,
-        used: usageResult.used,
+        remaining: credential ? usageResult.remaining : undefined,
+        used: credential ? usageResult.used : undefined,
         planTier,
-        dailyLimit: usageResult.dailyLimit
+        dailyLimit: credential ? usageResult.dailyLimit : undefined
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

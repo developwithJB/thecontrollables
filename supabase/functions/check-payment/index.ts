@@ -1,3 +1,4 @@
+import { LEGACY_SUBSCRIPTION_PRICES, subscriptionPeriod, subscriptionTier, entitlementIsCurrent } from "../_shared/stripeSubscription.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
@@ -10,19 +11,22 @@ const corsHeaders = {
 type PlanTier = "plus" | "pro" | "premium" | "lifetime";
 
 const PRICE_TO_TIER = (): Record<string, Exclude<PlanTier, "lifetime">> => {
-  const map: Record<string, Exclude<PlanTier, "lifetime">> = {};
+  const map: Record<string, Exclude<PlanTier, "lifetime">> = {...LEGACY_SUBSCRIPTION_PRICES};
   const plus = Deno.env.get("STRIPE_PRICE_ID_PLUS");
   const pro = Deno.env.get("STRIPE_PRICE_ID_PRO");
   const premium = Deno.env.get("STRIPE_PRICE_ID_PREMIUM");
   if (plus) map[plus] = "plus";
-  if (pro) map[pro] = "pro";
+  if (pro) map[pro] = "pro"; // Legacy $9.99/month subscribers retain their plan.
+  for (const name of ["STRIPE_PRICE_ID_PRO_ANNUAL", "STRIPE_PRICE_ID_PRO_MONTHLY"]) {
+    const id = Deno.env.get(name);
+    if (id) map[id] = "pro";
+  }
   if (premium) map[premium] = "premium";
   return map;
 };
 
 const getTierFromPrice = (priceId?: string | null): Exclude<PlanTier, "lifetime"> => {
-  if (!priceId) return "plus";
-  return PRICE_TO_TIER()[priceId] ?? "plus";
+  return subscriptionTier(priceId ?? undefined, PRICE_TO_TIER());
 };
 
 serve(async (req) => {
@@ -52,7 +56,7 @@ serve(async (req) => {
       .eq("entitlement_type", "full_access")
       .maybeSingle();
 
-    if (entitlement && (!entitlement.expires_at || new Date(entitlement.expires_at) >= new Date())) {
+    if (entitlement && entitlementIsCurrent(entitlement)) {
       const planTier = (entitlement.plan_tier ?? (entitlement.source === "manual" ? "lifetime" : "pro")) as PlanTier;
       return new Response(JSON.stringify({
         plan_tier: planTier,
@@ -82,9 +86,8 @@ serve(async (req) => {
 
     if (subscriptions.data.length > 0) {
       const subscription = subscriptions.data[0];
-      const currentPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      const planTier = (subscription.metadata?.plan_tier as Exclude<PlanTier, "lifetime"> | undefined)
-        ?? getTierFromPrice(subscription.items.data[0]?.price?.id);
+      const currentPeriodEnd = new Date(subscriptionPeriod(subscription).end * 1000).toISOString();
+      const planTier = getTierFromPrice(subscription.items.data[0]?.price?.id);
 
       await supabaseClient.from("user_entitlements").upsert({
         user_id: user.id,
@@ -96,7 +99,7 @@ serve(async (req) => {
         stripe_customer_id: customerId,
         stripe_subscription_id: subscription.id,
         subscription_status: subscription.status,
-        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+        current_period_start: new Date(subscriptionPeriod(subscription).start * 1000).toISOString(),
         current_period_end: currentPeriodEnd,
         cancel_at_period_end: subscription.cancel_at_period_end,
         price_id: subscription.items.data[0]?.price?.id ?? null,
@@ -119,18 +122,17 @@ serve(async (req) => {
 
     const allSubscriptions = await stripe.subscriptions.list({ customer: customerId, limit: 5 });
     const recentSub = allSubscriptions.data.find((sub: Stripe.Subscription) =>
-      sub.status === "past_due" || (sub.status === "canceled" && new Date(sub.current_period_end * 1000) > new Date()),
+      sub.status === "past_due" || (sub.status === "canceled" && new Date(subscriptionPeriod(sub).end * 1000) > new Date()),
     );
 
     if (recentSub) {
-      const planTier = (recentSub.metadata?.plan_tier as Exclude<PlanTier, "lifetime"> | undefined)
-        ?? getTierFromPrice(recentSub.items.data[0]?.price?.id);
+      const planTier = getTierFromPrice(recentSub.items.data[0]?.price?.id);
 
       return new Response(JSON.stringify({
         plan_tier: planTier,
         isPaid: true,
         subscriptionStatus: recentSub.status,
-        currentPeriodEnd: new Date(recentSub.current_period_end * 1000).toISOString(),
+        currentPeriodEnd: new Date(subscriptionPeriod(recentSub).end * 1000).toISOString(),
         purchasedAt: new Date(recentSub.start_date * 1000).toISOString(),
         source: "stripe_subscription",
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
@@ -140,8 +142,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return new Response(JSON.stringify({ error: errorMessage, plan_tier: null, isPaid: false }), {
+    return new Response(JSON.stringify({ error: "Billing status could not be verified. Please try again.", plan_tier: null, isPaid: false }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500,
     });
   }

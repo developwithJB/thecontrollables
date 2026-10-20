@@ -42,47 +42,20 @@ serve(async (req) => {
     }
 
     const customerId = customers.data[0].id;
-    const subscriptions = await stripe.subscriptions.list({ customer: customerId, status: "all", limit: 1 });
-    const subscription = subscriptions.data[0];
-    const planTier = subscription?.metadata?.plan_tier ?? null;
-
-    if (subscription?.status === "active") {
-      await supabaseClient.from("user_entitlements").upsert({
-        user_id: user.id,
-        entitlement_type: "full_access",
-        source: "stripe_subscription",
-        granted_at: new Date(subscription.start_date * 1000).toISOString(),
-        expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
-        stripe_session_id: subscription.id,
-        stripe_customer_id: customerId,
-        stripe_subscription_id: subscription.id,
-        subscription_status: subscription.status,
-        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-        cancel_at_period_end: subscription.cancel_at_period_end,
-        price_id: subscription.items.data[0]?.price?.id ?? null,
-        plan_tier: planTier,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id,entitlement_type" });
-
-      if (planTier === "plus" || planTier === "pro" || planTier === "premium") {
-        await supabaseClient.from("profiles").update({ plan_tier: planTier }).eq("id", user.id);
-      }
-    }
-
-    const origin = req.headers.get("origin") || "https://thedashboard.agbcoaching.com";
+    const rawOrigin = req.headers.get("origin");
+    const origin = rawOrigin && ["https://thedashboard.agbcoaching.com","http://localhost:5173"].includes(rawOrigin)
+      ? rawOrigin : "https://thedashboard.agbcoaching.com";
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${origin}/billing`,
     });
 
-    return new Response(JSON.stringify({ url: portalSession.url, plan_tier: planTier }), {
+    return new Response(JSON.stringify({ url: portalSession.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(JSON.stringify({ error: "The billing portal could not be opened. Please try again or contact support." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

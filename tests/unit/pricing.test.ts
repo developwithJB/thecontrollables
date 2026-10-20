@@ -1,96 +1,75 @@
-/**
- * Unit tests for subscription pricing logic
- * 
- * Run with: npm run test:unit
- */
-
-import { describe, it, expect } from 'vitest';
-import { 
-  getPricing,
-  getPriceId,
-  formatPrice,
-  getPlanLabel,
-  PRICE_IDS,
-  PRICING
-} from '../../src/lib/pricing';
-
-describe('Subscription Pricing', () => {
-  describe('PRICING constants', () => {
-    it('has correct Plus annual price', () => {
-      expect(PRICING.plus.annual).toBe(79.99);
-    });
-
-    it('has correct Pro annual price', () => {
-      expect(PRICING.pro.annual).toBe(119.99);
-    });
-
-    it('has correct Plus monthly equivalent', () => {
-      expect(PRICING.plus.monthlyEquivalent).toBe(6.67);
-    });
-
-    it('has correct Pro monthly equivalent', () => {
-      expect(PRICING.pro.monthlyEquivalent).toBe(9.99);
-    });
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { PRICING, getPricing, formatPrice, getPlanLabel } from "@/lib/pricing";
+import {
+  matchesCheckoutPrice,
+  checkoutOffer,
+} from "../../supabase/functions/_shared/billingContract";
+const price = {
+  active: true,
+  type: "recurring",
+  currency: "usd",
+  unit_amount: 11999,
+  recurring: { interval: "year", interval_count: 1, usage_type: "licensed" },
+  billing_scheme: "per_unit",
+};
+describe("subscription offer contract", () => {
+  it("advertises the exact new annual and monthly contracts", () => {
+    expect(PRICING.pro.annual).toBe(119.99);
+    expect(PRICING.pro.monthly).toBe(14.99);
+    expect(PRICING.plus.annual).toBe(79.99);
+    expect(getPricing().pro.annual).toBe(
+      checkoutOffer("pro", "year")!.amount / 100,
+    );
+    expect(formatPrice("pro")).toBe("$119.99/yr");
+    expect(getPlanLabel("plus")).toBe("Plus");
+    expect(
+      Math.abs(PRICING.pro.monthlyEquivalent * 12 - PRICING.pro.annual),
+    ).toBeLessThan(0.2);
   });
-
-  describe('PRICE_IDS', () => {
-    it('has Plus price ID', () => {
-      expect(PRICE_IDS.plus).toBe("price_1Sty3RIrFORWV7K4lF4DZhPV");
-    });
-
-    it('has Pro price ID', () => {
-      expect(PRICE_IDS.pro).toBe("price_1Sty37IrFORWV7K43PkIVSJx");
-    });
+  it("accepts correct licensed annual and monthly prices", () => {
+    expect(matchesCheckoutPrice(price, "pro", "year")).toBe(true);
+    expect(
+      matchesCheckoutPrice(
+        {
+          ...price,
+          unit_amount: 1499,
+          recurring: { ...price.recurring, interval: "month" },
+        },
+        "pro",
+        "month",
+      ),
+    ).toBe(true);
   });
-
-  describe('getPricing', () => {
-    it('returns all pricing info', () => {
-      const pricing = getPricing();
-      
-      expect(pricing.plus.annual).toBe(79.99);
-      expect(pricing.plus.monthlyEquivalent).toBe(6.67);
-      expect(pricing.pro.annual).toBe(119.99);
-      expect(pricing.pro.monthlyEquivalent).toBe(9.99);
-    });
-  });
-
-  describe('getPriceId', () => {
-    it('returns Plus price ID', () => {
-      expect(getPriceId("plus")).toBe(PRICE_IDS.plus);
-    });
-
-    it('returns Pro price ID', () => {
-      expect(getPriceId("pro")).toBe(PRICE_IDS.pro);
-    });
-  });
-
-  describe('formatPrice', () => {
-    it('formats Plus price correctly', () => {
-      expect(formatPrice("plus")).toBe("$79.99/yr");
-    });
-
-    it('formats Pro price correctly', () => {
-      expect(formatPrice("pro")).toBe("$119.99/yr");
-    });
-  });
-
-  describe('getPlanLabel', () => {
-    it('returns "Plus" for plus plan', () => {
-      expect(getPlanLabel("plus")).toBe("Plus");
-    });
-
-    it('returns "Pro" for pro plan', () => {
-      expect(getPlanLabel("pro")).toBe("Pro");
-    });
-  });
-
-  describe('Pricing math validation', () => {
-    it('Plus monthly equivalent matches annual price', () => {
-      expect(Math.abs(PRICING.plus.monthlyEquivalent * 12 - PRICING.plus.annual)).toBeLessThan(0.1);
-    });
-
-    it('Pro monthly equivalent matches annual price', () => {
-      expect(Math.abs(PRICING.pro.monthlyEquivalent * 12 - PRICING.pro.annual)).toBeLessThan(0.2);
-    });
+  it.each([
+    { unit_amount: 999, recurring: { ...price.recurring, interval: "month" } },
+    { active: false },
+    { currency: "eur" },
+    { type: "one_time" },
+    { unit_amount: null },
+    { recurring: { ...price.recurring, interval_count: 2 } },
+    { recurring: { ...price.recurring, usage_type: "metered" } },
+    { transform_quantity: { divide_by: 5 } },
+  ])("rejects price mismatch %j", (change) =>
+    expect(matchesCheckoutPrice({ ...price, ...change }, "pro", "year")).toBe(
+      false,
+    ),
+  );
+  it("fails closed instead of falling back to the legacy monthly ID", () => {
+    const source = readFileSync(
+      "supabase/functions/create-checkout/index.ts",
+      "utf8",
+    );
+    expect(
+      source.indexOf("matchesCheckoutPrice(price, tier, interval)"),
+    ).toBeLessThan(source.indexOf("stripe.checkout.sessions.create"));
+    expect(source).not.toContain('Deno.env.get("STRIPE_PRICE_ID_PRO")');
+    expect(source).toContain("price_contract_mismatch");
+    expect(source).toContain("${tier}:${interval}:${priceId}");
+    expect(source).not.toContain("payment_method_types:");
+    expect(source).toContain("user.email_confirmed_at");
+    expect(readFileSync("src/lib/pricing.ts", "utf8")).not.toContain(
+      "price_1Sty37",
+    );
   });
 });

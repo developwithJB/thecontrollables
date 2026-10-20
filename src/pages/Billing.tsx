@@ -1,5 +1,10 @@
+import { FreemiumPlans } from "@/components/billing/FreemiumPlans";
+import { AiAllowancePanel } from "@/components/billing/AiAllowancePanel";
+import { CoachSettingsCard } from "@/components/settings/CoachSettingsCard";
+import { HostedCoachCard } from "@/components/settings/HostedCoachCard";
+import { useHostedAiAllowance } from "@/hooks/useHostedAiAllowance";
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEntitlements, getPricing } from "@/hooks/useEntitlements";
 import { SplashScreen } from "@/components/SplashScreen";
@@ -43,6 +48,7 @@ export default function Billing() {
     isCheckingOut,
   } = useEntitlements(user?.id || null);
 
+  const allowance = useHostedAiAllowance(user?.id);
   const pricing = getPricing();
   const freeTrialOfferCopy = getFreeTrialOfferCopy();
 
@@ -101,8 +107,8 @@ export default function Billing() {
   const getPlanPrice = () => {
     if (planTier === "lifetime") return "One-time purchase";
     if (planTier === "premium") return "Premium subscription";
-    if (planTier === "pro") return `$${pricing.pro.annual}/year`;
-    if (planTier === "plus") return `$${pricing.plus.annual}/year`;
+    if (planTier === "pro") return "Your current rate is shown in Manage Subscription.";
+    if (planTier === "plus") return "Your current rate is shown in Manage Subscription.";
     return "$0";
   };
 
@@ -144,7 +150,7 @@ export default function Billing() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
+      <main className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="space-y-6">
           {/* Page Title */}
           <div>
@@ -242,105 +248,17 @@ export default function Billing() {
                   </div>
                 )}
 
-                {!isPaid && (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground text-center">
-                      Unlock AI Companions and Experience History. {freeTrialOfferCopy} is included on Free.
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button
-                        variant="outline"
-                        onClick={() => initiateCheckout("pro", { source: "billing_page_pro" })}
-                        disabled={isCheckingOut}
-                        className="flex-1"
-                      >
-                        {isCheckingOut ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          `Pro $${pricing.pro.annual}/yr`
-                        )}
-                      </Button>
-                      <Button
-                        onClick={() => initiateCheckout("plus", { source: "billing_page_plus" })}
-                        disabled={isCheckingOut}
-                        className="flex-1"
-                      >
-                        {isCheckingOut ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            Plus $${pricing.plus.annual}/yr
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+
               </div>
             </CardContent>
           </Card>
 
-          {/* Features Included */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">What's Included</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <FeatureRow 
-                  label={freeTrialOfferCopy}
-                  included={true} 
-                  free={true}
-                />
-                <FeatureRow 
-                  label="Life Perspective Scan"
-                  included={true} 
-                  free={true}
-                />
-                <FeatureRow 
-                  label="Charge Stage System"
-                  included={true} 
-                  free={true}
-                />
-                <FeatureRow 
-                  label="Time Reflection" 
-                  included={true} 
-                  free={true}
-                />
-                <FeatureRow 
-                  label="Integrity Meter" 
-                  included={true} 
-                  free={true}
-                />
-                <Separator className="my-2" />
-                <FeatureRow 
-                  label="AI Companions" 
-                  included={isPaid} 
-                  premium={true}
-                />
-                <FeatureRow 
-                  label="Experience History & Progress Tracking" 
-                  included={isPaid} 
-                  premium={true}
-                />
-                <FeatureRow 
-                  label="Unlimited Chapter Quests"
-                  included={isPaid} 
-                  premium={true}
-                />
-                <FeatureRow 
-                  label="Certificate Downloads" 
-                  included={isPaid} 
-                  premium={true}
-                />
-                <FeatureRow 
-                  label="Daily Alignment" 
-                  included={isPaid} 
-                  premium={true}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <AiAllowancePanel allowance={allowance.data} unavailable={allowance.isError}/>
+          <Button asChild variant="outline"><Link to="/coach">Open optional AI coach</Link></Button>
+          {!isPaid && <FreemiumPlans initialInterval={new URLSearchParams(location.search).get("interval")==="month"?"month":"year"} onCheckout={interval=>void initiateCheckout("pro",{source:"billing_freemium",interval,successPath:"/billing",cancelPath:`/billing?interval=${interval}`})} busy={isCheckingOut}/>}
+          <div id="coach-settings" className="space-y-4">
+            {user && <><CoachSettingsCard userId={user.id}/><HostedCoachCard userId={user.id}/></>}
+          </div>
 
           {/* Help */}
           <Card>

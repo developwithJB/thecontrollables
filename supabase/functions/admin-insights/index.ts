@@ -1,3 +1,4 @@
+import { hostedGateway } from "../_shared/hostedGateway.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -169,7 +170,7 @@ serve(async (req) => {
     };
 
     // Call Lovable AI with tool calling for structured output
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await hostedGateway(user.id, "admin-insights")("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${lovableApiKey}`,

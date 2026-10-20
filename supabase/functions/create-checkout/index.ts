@@ -1,3 +1,4 @@
+import { checkoutOffer, matchesCheckoutPrice, type BillingInterval } from "../_shared/billingContract.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
@@ -9,11 +10,6 @@ const corsHeaders = {
 
 type PlanTier = "plus" | "pro";
 type PaymentState = "success" | "canceled";
-
-const STRIPE_PRICE_IDS: Record<PlanTier, string> = {
-  plus: Deno.env.get("STRIPE_PRICE_ID_PLUS") ?? "",
-  pro: Deno.env.get("STRIPE_PRICE_ID_PRO") ?? "",
-};
 
 const DEFAULT_ORIGIN = "https://thedashboard.agbcoaching.com";
 const ALLOWED_ORIGINS = (
@@ -54,7 +50,7 @@ const normalizeTier = (value: unknown): PlanTier | null => {
 const normalizePath = (value: unknown, fallback: string): string => {
   if (typeof value !== "string") return fallback;
   const trimmed = value.trim();
-  if (!trimmed.startsWith("/")) return fallback;
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//") || /[\\\r\n]/.test(trimmed)) return fallback;
   return trimmed;
 };
 
@@ -119,6 +115,10 @@ serve(async (req) => {
       );
     }
 
+    const interval = (body.interval ?? "year") as BillingInterval;
+    if (interval !== "year" && interval !== "month") return json({error: "Invalid billing interval.", error_code: "invalid_interval"}, 400);
+    const offer = checkoutOffer(tier, interval);
+    if (!offer) return json({error: "This plan is annual only.", error_code: "invalid_interval"}, 400);
     const checkoutSource = normalizeCheckoutSource(body.source);
     const successPath = normalizePath(body.success_path ?? body.successPath, "/dashboard");
     const cancelPath = normalizePath(body.cancel_path ?? body.cancelPath, "/dashboard");
@@ -139,7 +139,7 @@ serve(async (req) => {
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
 
-    if (!user?.email) {
+    if (!user?.email || !user.email_confirmed_at) {
       return json(
         {
           error: "User not authenticated or email not available.",
@@ -180,7 +180,7 @@ const existingSubscription = subscriptions.data.find((sub: { status: string }) =
         } catch (portalError) {
           logStep("Unable to create portal session for existing subscriber", {
             customerId,
-            portalError: portalError instanceof Error ? portalError.message : String(portalError),
+            errorType: portalError instanceof Error ? portalError.name : "portal_error",
           });
         }
 
@@ -197,10 +197,28 @@ const existingSubscription = subscriptions.data.find((sub: { status: string }) =
       }
     }
 
-    const priceId = STRIPE_PRICE_IDS[tier];
-    if (!priceId) throw new Error(`Stripe price ID is not configured for ${tier}`);
+    // Do not sell a hosted-coach offer while its independently controlled
+    // runtime is unavailable. Existing subscribers can still use their portal.
+    if (tier === "pro") {
+      const admin=createClient(Deno.env.get("SUPABASE_URL") ?? "",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",{auth:{persistSession:false}});
+      const [budget,rollout]=await Promise.all([
+        admin.from("hosted_ai_policy").select("enabled").eq("id",true).maybeSingle(),
+        admin.from("coach_provider_rollout").select("hosted_coach_enabled").eq("id",true).maybeSingle(),
+      ]);
+      if(budget.error || rollout.error || budget.data?.enabled!==true || rollout.data?.hosted_coach_enabled!==true) {
+        return json({error:"Pro checkout is paused while we verify hosted AI availability. Free practice is still available.",error_code:"pro_checkout_unavailable"},503);
+      }
+    }
+
+    const priceId = Deno.env.get(offer.env);
+    if (!priceId) return json({error: "This offer is not available yet. Please try again later.", error_code: "price_not_configured"}, 503);
+    const price = await stripe.prices.retrieve(priceId);
+    if (!matchesCheckoutPrice(price, tier, interval)) {
+      logStep("Price contract mismatch", {tier, interval, priceId});
+      return json({error: "Checkout is temporarily unavailable while we verify pricing.", error_code: "price_contract_mismatch"}, 503);
+    }
     const idempotencyBucket = Math.floor(Date.now() / (1000 * 60 * 5));
-    const idempotencyKey = `checkout:${user.id}:${tier}:${idempotencyBucket}`;
+    const idempotencyKey = `checkout:${user.id}:${tier}:${interval}:${priceId}:${idempotencyBucket}`;
     logStep("Creating checkout session", { tier, priceId, checkoutSource });
 
     const session = await stripe.checkout.sessions.create(
@@ -217,12 +235,14 @@ const existingSubscription = subscriptions.data.find((sub: { status: string }) =
           user_id: user.id,
           product: "full_access",
           plan_tier: tier,
+          billing_interval: interval,
           checkout_source: checkoutSource,
         },
         subscription_data: {
           metadata: {
             user_id: user.id,
             plan_tier: tier,
+            billing_interval: interval,
             checkout_source: checkoutSource,
           },
         },
@@ -233,11 +253,11 @@ const existingSubscription = subscriptions.data.find((sub: { status: string }) =
     return json({
       url: session.url,
       plan_tier: tier,
+      billing_interval: interval,
       checkout_source: checkoutSource,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("Checkout creation failed", { error: errorMessage });
-    return json({ error: errorMessage, error_code: "checkout_create_failed" }, 500);
+    logStep("Checkout creation failed", { errorType: error instanceof Error ? error.name : "checkout_error" });
+    return json({ error: "Checkout could not be opened. Please try again or contact support.", error_code: "checkout_create_failed" }, 500);
   }
 });

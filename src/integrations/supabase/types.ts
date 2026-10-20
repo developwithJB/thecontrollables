@@ -4969,6 +4969,7 @@ export type Database = {
         Returns: Json
       }
       get_fully_charged_today: { Args: never; Returns: Json }
+      get_hosted_ai_allowance: { Args: never; Returns: Json }
       get_hosted_coach_status: { Args: never; Returns: Json }
       has_role: {
         Args: {
