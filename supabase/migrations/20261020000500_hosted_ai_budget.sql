@@ -13,7 +13,7 @@ GRANT SELECT, UPDATE ON public.hosted_ai_policy TO service_role;
 
 CREATE TABLE public.hosted_ai_reservations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   feature text NOT NULL CHECK(length(feature) BETWEEN 1 AND 64),
   chat_request_id uuid,
   free_sample boolean NOT NULL DEFAULT false,
