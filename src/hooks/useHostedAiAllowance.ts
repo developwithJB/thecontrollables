@@ -1,18 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
-
-// Keep this additive RPC contract local until managed types include the migration.
-type AllowanceDatabase = Database & {
-  public: {
-    Functions: {
-      get_hosted_ai_allowance: { Args: never; Returns: import("@/integrations/supabase/types").Json };
-    };
-  };
-};
-const allowanceClient = supabase as SupabaseClient<AllowanceDatabase>;
 export interface HostedAiAllowance {
   enabled: boolean;
   plan: string;
@@ -46,7 +34,7 @@ export function useHostedAiAllowance(ownerId?: string | null) {
     enabled: !!userId,
     staleTime: 0,
     queryFn: async (): Promise<HostedAiAllowance> => {
-      const { data, error } = await allowanceClient.rpc("get_hosted_ai_allowance");
+      const { data, error } = await supabase.rpc("get_hosted_ai_allowance");
       if (error || !data || typeof data !== "object" || Array.isArray(data))
         throw new Error("ai_allowance_unavailable");
       return data as unknown as HostedAiAllowance;
