@@ -1,3 +1,4 @@
+import { hostedGateway } from "../_shared/hostedGateway.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
@@ -128,7 +129,7 @@ RULES:
 - No generic praise. No "great job." Be specific and real.
 - Do NOT include action items — this is a brief acknowledgment, not a coaching session`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await hostedGateway(userId, "ai-reflect")('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,

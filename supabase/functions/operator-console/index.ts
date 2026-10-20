@@ -1,3 +1,4 @@
+import { hostedGateway } from "../_shared/hostedGateway.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -508,7 +509,7 @@ Build weakest: ${buildWeakest || "unknown"}
 Bills due this week: ${billsDueThisWeek.length > 0 ? billsDueThisWeek.map((b: any) => `${b.bill_name} ($${b.amount})`).join(", ") : "none"}
 Last meal log: ${lastMealLog?.log_date || "never"}${observationsSummary}${preferencesSummary}`;
 
-        const aiRes = await fetch(
+        const aiRes = await hostedGateway(userId, "operator-console")(
           "https://ai.gateway.lovable.dev/v1/chat/completions",
           {
             method: "POST",

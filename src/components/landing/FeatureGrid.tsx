@@ -63,8 +63,8 @@ const coreFeatures = [
   },
   {
     icon: Sparkles,
-    title: "7-Day Free Trial",
-    description: "Get full access to every feature for your first week. No credit card required. Upgrade only if it helps.",
+    title: "Start free",
+    description: "Read Along and daily practice are free. Try five hosted coach replies per verified account, bring your own provider key, or choose Pro. No card required to start.",
     trialBadge: true,
   },
   {

@@ -1,3 +1,4 @@
+import { hostedGateway } from "../_shared/hostedGateway.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -412,7 +413,7 @@ Recent completions: ${recentActions.slice(0, 5).map((a) => a.action_text.slice(0
 
 Generate the daily operating plan.`;
 
-          const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          const aiRes = await hostedGateway(userId, "daily-os-plan")("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
             headers: {
               Authorization: `Bearer ${lovableApiKey}`,

@@ -90,7 +90,7 @@ function CoachSettingsEditor({
     >
       <h3 className="font-medium">Coach</h3>
       <p className="text-xs text-muted-foreground">
-        Bring your own provider key. Your provider bills its use. Conversation
+        No platform AI fee. Bring your own provider key; your provider bills its use. Up to 100 requests/day. Conversation
         text and existing chat context go to the provider you select; private
         Wellness check-ins are excluded. Existing AI memory and consent settings
         still apply. The coach cannot approve content or complete your circuits.

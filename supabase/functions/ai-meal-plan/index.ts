@@ -1,3 +1,4 @@
+import { hostedGateway } from "../_shared/hostedGateway.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -90,7 +91,7 @@ ${mealsExample}
 }
 Be creative and varied — never default to the same recipes. Use diverse cuisines, ingredients, and cooking styles each time. Keep meals simple, whole-food focused, and easy to prepare. Return valid JSON only.`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await hostedGateway(String(claimsData.claims.sub), "ai-meal-plan")("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
