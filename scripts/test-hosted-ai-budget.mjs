@@ -69,7 +69,7 @@ try {
   )
     await sql.unsafe(
       readFileSync(
-        "supabase/migrations/20261021000100_hosted_ai_budget.sql",
+        "supabase/migrations/20261020000500_hosted_ai_budget.sql",
         "utf8",
       ),
     );
