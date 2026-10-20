@@ -104,6 +104,15 @@ try {
       false,
     );
   });
+  await check("profile deletion cannot reset a verified owner's lifetime budget",async()=>{
+    await sql.begin(async tx=>{
+      await tx`select set_config('request.jwt.claim.sub',${free},true)`;
+      await tx`set local role authenticated`;
+      await tx`delete from public.profiles where id=${free}`;
+    });
+    assert.equal(Number((await sql`select count(*) as count from public.profiles where id=${free}`)[0].count),1);
+    assert.equal((await reserve(free,'ai-chat',1000,randomUUID())).allowed,false);
+  });
   await check(
     "in-flight paid cost reservations stop exactly at $2.50 across features",
     async () => {
