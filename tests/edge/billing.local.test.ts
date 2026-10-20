@@ -24,6 +24,7 @@ interface IO {
   json: Record<string, unknown>;
   key: string | null;
 }
+let runtimeReady=true;
 let calls: IO[] = [],
   verified = true,
   customer = false,
@@ -34,6 +35,7 @@ let calls: IO[] = [],
   unknownPrice = false,
   canceled = false;
 function reset() {
+  runtimeReady=true;
   calls = [];
   verified = true;
   customer = false;
@@ -67,6 +69,8 @@ globalThis.fetch = async (input, init) => {
   };
   calls.push(call);
   if (url.hostname === "synthetic.supabase.invalid") {
+    if(url.pathname==="/rest/v1/hosted_ai_policy")return ok({enabled:runtimeReady});
+    if(url.pathname==="/rest/v1/coach_provider_rollout")return ok({hosted_coach_enabled:runtimeReady});
     if (url.pathname === "/auth/v1/user")
       return ok({
         id: owner,
@@ -171,6 +175,11 @@ test("unverified account cannot start checkout", async () => {
   verified = false;
   assert((await checkout(request({ tier: "pro" }))).status === 401);
   assert(!calls.some((c) => c.path === "/v1/checkout/sessions"));
+});
+test("new Pro purchases stop when the hosted runtime is unavailable",async()=>{
+  runtimeReady=false;const response=await checkout(request({tier:"pro"}));
+  assert(response.status===503);assert((await response.json()).error_code==="pro_checkout_unavailable");
+  assert(!calls.some(c=>c.path==="/v1/checkout/sessions"));
 });
 test("retired monthly mapping cannot satisfy annual offer", async () => {
   mismatch = true;

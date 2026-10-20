@@ -197,6 +197,19 @@ const existingSubscription = subscriptions.data.find((sub: { status: string }) =
       }
     }
 
+    // Do not sell a hosted-coach offer while its independently controlled
+    // runtime is unavailable. Existing subscribers can still use their portal.
+    if (tier === "pro") {
+      const admin=createClient(Deno.env.get("SUPABASE_URL") ?? "",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",{auth:{persistSession:false}});
+      const [budget,rollout]=await Promise.all([
+        admin.from("hosted_ai_policy").select("enabled").eq("id",true).maybeSingle(),
+        admin.from("coach_provider_rollout").select("hosted_coach_enabled").eq("id",true).maybeSingle(),
+      ]);
+      if(budget.error || rollout.error || budget.data?.enabled!==true || rollout.data?.hosted_coach_enabled!==true) {
+        return json({error:"Pro checkout is paused while we verify hosted AI availability. Free practice is still available.",error_code:"pro_checkout_unavailable"},503);
+      }
+    }
+
     const priceId = Deno.env.get(offer.env);
     if (!priceId) return json({error: "This offer is not available yet. Please try again later.", error_code: "price_not_configured"}, 503);
     const price = await stripe.prices.retrieve(priceId);

@@ -10,7 +10,7 @@
 
 ## Source and authority
 
-`billingContract.ts` is the shared amount/currency/interval contract. The browser sends tier and interval; the server selects a configured Stripe price, retrieves it, and rejects incorrect amount, currency, interval, usage type or active status before creating a session. The old $9.99/month ID is entitlement-only. Unknown subscription prices fail closed instead of becoming Pro through metadata.
+`billingContract.ts` is the shared amount/currency/interval contract. The browser sends tier and interval; the server selects a configured Stripe price, retrieves it, and rejects incorrect amount, currency, interval, usage type or active status before creating a session. New Pro checkout also fails closed while the server-owned AI policy or hosted rollout is unavailable; existing subscribers can still open their portal. The old $9.99/month ID is entitlement-only. Unknown subscription prices fail closed instead of becoming Pro through metadata.
 
 Stripe's Basil API moved subscription periods to items. Webhook/check-payment understand both item and older event periods; multiple items or missing periods fail closed. Webhook updates retrieve current Stripe state to avoid late-event reactivation, check database errors and retain retry behavior. A payment-success URL never grants access or produces an immediate claim that payment is verified.
 
