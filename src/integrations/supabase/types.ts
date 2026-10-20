@@ -2403,6 +2403,65 @@ export type Database = {
           },
         ]
       }
+      hosted_ai_policy: {
+        Row: {
+          daily_budget_micros: number
+          enabled: boolean
+          free_daily_budget_micros: number
+          id: boolean
+        }
+        Insert: {
+          daily_budget_micros?: number
+          enabled?: boolean
+          free_daily_budget_micros?: number
+          id?: boolean
+        }
+        Update: {
+          daily_budget_micros?: number
+          enabled?: boolean
+          free_daily_budget_micros?: number
+          id?: boolean
+        }
+        Relationships: []
+      }
+      hosted_ai_reservations: {
+        Row: {
+          chat_request_id: string | null
+          cost_micros: number
+          created_at: string
+          feature: string
+          free_sample: boolean
+          id: string
+          user_id: string
+        }
+        Insert: {
+          chat_request_id?: string | null
+          cost_micros: number
+          created_at?: string
+          feature: string
+          free_sample?: boolean
+          id?: string
+          user_id: string
+        }
+        Update: {
+          chat_request_id?: string | null
+          cost_micros?: number
+          created_at?: string
+          feature?: string
+          free_sample?: boolean
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosted_ai_reservations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ig_proof_entries: {
         Row: {
           ai_interpretation: string | null
@@ -3639,6 +3698,30 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_webhook_events: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          processed_at: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          payload?: Json
+          processed_at?: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          processed_at?: string
+          type?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           account_id: string | null
@@ -4010,36 +4093,63 @@ export type Database = {
       }
       user_entitlements: {
         Row: {
+          cancel_at_period_end: boolean
           created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
           entitlement_type: string
           expires_at: string | null
           granted_at: string
           granted_by: string | null
           id: string
+          plan_tier: string | null
+          price_id: string | null
           source: string
+          stripe_customer_id: string | null
           stripe_session_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
+          cancel_at_period_end?: boolean
           created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
           entitlement_type?: string
           expires_at?: string | null
           granted_at?: string
           granted_by?: string | null
           id?: string
+          plan_tier?: string | null
+          price_id?: string | null
           source: string
+          stripe_customer_id?: string | null
           stripe_session_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
+          cancel_at_period_end?: boolean
           created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
           entitlement_type?: string
           expires_at?: string | null
           granted_at?: string
           granted_by?: string | null
           id?: string
+          plan_tier?: string | null
+          price_id?: string | null
           source?: string
+          stripe_customer_id?: string | null
           stripe_session_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -4953,6 +5063,7 @@ export type Database = {
         }
         Returns: string
       }
+      disable_hosted_ai_after_mismatch: { Args: never; Returns: undefined }
       end_overdue_fully_charged_attempts: { Args: never; Returns: number }
       generate_invite_code: { Args: never; Returns: string }
       get_circle_wellness_streaks: {
@@ -4969,6 +5080,7 @@ export type Database = {
         Returns: Json
       }
       get_fully_charged_today: { Args: never; Returns: Json }
+      get_hosted_ai_allowance: { Args: never; Returns: Json }
       get_hosted_coach_status: { Args: never; Returns: Json }
       has_role: {
         Args: {
@@ -4977,6 +5089,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      hosted_ai_daily_limit: { Args: { p_user_id: string }; Returns: number }
+      hosted_ai_plan: { Args: { p_user_id: string }; Returns: string }
       import_book_loop: {
         Args: { p_import_id: string; p_records: Json; p_user_id: string }
         Returns: undefined
@@ -5053,7 +5167,15 @@ export type Database = {
         Returns: undefined
       }
       reserve_coach_byo_usage: { Args: { p_user_id: string }; Returns: Json }
-      reserve_hosted_coach_usage: { Args: { p_user_id: string }; Returns: Json }
+      reserve_hosted_ai: {
+        Args: {
+          p_chat_request_id?: string
+          p_cost_micros: number
+          p_feature: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       review_formation_content_version: {
         Args: {
           p_historical_status: string
