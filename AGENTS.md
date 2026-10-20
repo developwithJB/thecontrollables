@@ -1,5 +1,7 @@
 # The Dashboard repository instructions
 
+Keep additive RPC typing local to its consumer until managed database types include it; never edit generated types to repair a preview.
+
 ## Canonical Controllables
 
 These five names and emoji are product canon. Never substitute another mascot or icon:
