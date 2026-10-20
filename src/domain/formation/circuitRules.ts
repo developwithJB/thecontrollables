@@ -131,14 +131,14 @@ export function evaluateCircuit(
         : hasActivity
           ? "in_progress"
           : "not_started";
-    statusLabel = state === "complete" ? "Circuit complete" : isSatisfiedForTrack ? "Practice recorded" : "Ready to practice";
+    statusLabel = isSatisfiedForTrack ? "Practice recorded ✓" : "Ready to practice";
     statusDescription = isSatisfiedForTrack
       ? `${completedActionIds.length} of ${allActionIds.length} practices recorded. Partial progress remains honest progress.`
       : "Record one useful practice today; missing work will not restart this journey.";
   } else {
     isSatisfiedForTrack = completedActionIds.length > 0;
     state = isSatisfiedForTrack ? "recorded" : hasActivity ? "in_progress" : "not_started";
-    statusLabel = isSatisfiedForTrack ? "Practice recorded" : "Optional practice";
+    statusLabel = isSatisfiedForTrack ? "Practice recorded ✓" : hasActivity ? "In progress" : "Optional practice";
     statusDescription = isSatisfiedForTrack
       ? "Your reading companion has saved this practice without creating a streak or deadline."
       : "Choose one practice that supports the chapter you are reading.";

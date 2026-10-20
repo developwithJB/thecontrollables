@@ -1,3 +1,4 @@
+import { useFormationEntryStatus } from "@/hooks/useFormationEntryStatus";
 import { ScripturePractice } from "@/components/onboarding/ScripturePractice";
 import { FormationAvailability } from "@/components/onboarding/FormationAvailability";
 import { ProjectFeedbackNote } from "@/components/ProjectFeedback";
@@ -207,7 +208,9 @@ export default function Landing() {
 
   const quickStartEnabled = onboardingQuickStartEnabled();
   const pathHref = (path: string) => quickStartEnabled ? `/quick-start?path=${path}` : "/auth?mode=signup";
-  const covenantPath = pathHref("fully_charged_75");
+  const { data: entryStatus } = useFormationEntryStatus();
+  const strictReady = entryStatus?.strictReady === true;
+  const covenantPath = pathHref(strictReady ? "fully_charged_75" : "read_along");
 
   if (!authChecked) return null;
 
@@ -227,7 +230,7 @@ export default function Landing() {
             <Link to="/auth">Sign in</Link>
           </Button>
           <Button asChild size="sm" className="hidden sm:inline-flex">
-            <Link to={covenantPath}>Start 75 days</Link>
+            <Link to={covenantPath}>{strictReady ? "Start 75 days" : "Start with Read Along"}</Link>
           </Button>
         </div>
       </nav>
@@ -254,7 +257,7 @@ export default function Landing() {
                     data-testid="cta-get-started"
                     onClick={() => trackEvent("cta", "cta_click", { cta_label: "Begin 75-Day Covenant", position: "hero" })}
                   >
-                    Begin my covenant
+                    {strictReady ? "Begin my covenant" : "Start with Read Along"}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
@@ -262,6 +265,7 @@ export default function Landing() {
                   <a href="#try-a-practice">See today’s practice</a>
                 </Button>
               </div>
+              {!strictReady ? <p className="mt-4 text-sm text-muted-foreground">The strict 75-day path opens once all 75 days are reviewed.</p> : null}
               <p className="mt-4 text-sm text-muted-foreground"><BookLink placement="landing_hero" data-testid="landing-book-hero" className="rounded hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">New to The Controllables? Start with the book →</BookLink></p>
               <p className="mt-4 text-xs text-muted-foreground">75 days · Five daily circuits · One clear next action</p>
               <div className="mt-7 flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -372,7 +376,8 @@ export default function Landing() {
         </section>
 
         <FullyCharged75Roadmap
-          ctaHref={pathHref("fully_charged_75")}
+          ctaHref={covenantPath}
+          ctaLabel={strictReady ? "Choose Fully Charged 75" : "Start with Read Along"}
           onChoose={() => trackEvent("cta", "path_selected", { track: "fully_charged_75", position: "landing_75_roadmap" })}
         />
 
@@ -430,7 +435,7 @@ export default function Landing() {
             <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
               <Button asChild variant="glow" size="lg" className="h-14 px-9 text-base font-semibold">
                 <Link to={covenantPath} onClick={() => trackEvent("cta", "cta_click", { cta_label: "Begin 75-Day Covenant", position: "bottom" })}>
-                  Begin my 75 days<ArrowRight className="ml-2 h-4 w-4" />
+                  {strictReady ? "Begin my 75 days" : "Start with Read Along"}<ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="h-14 px-8 text-base font-semibold">

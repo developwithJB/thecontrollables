@@ -124,3 +124,16 @@ export async function fingerprintImport(
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
+
+/** Setup choices alone are not progress worth interrupting a new account for. */
+export function hasMeaningfulLocalProgress(records: Omit<BookRecord, "revision">[]): boolean {
+  return records.some(row => {
+    if (row.kind === "track" || row.kind === "startingCharge") return false;
+    if (row.kind === "promise" || row.kind === "dex") return true;
+    const defaults = encodeState(row.kind, row.record_key, normalizers[row.kind](undefined));
+    return !defaults.some(defaultRow => JSON.stringify(defaultRow.payload) === JSON.stringify(row.payload));
+  });
+}
+export function importProgressTitle(count: number): string {
+  return `Import ${count} saved ${count === 1 ? "item" : "items"} from this browser?`;
+}

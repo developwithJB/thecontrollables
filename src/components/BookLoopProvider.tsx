@@ -6,18 +6,20 @@ import { BookLoopContext } from "@/hooks/useBookLoopState";
 import { bookQueryKey, type BookRecord } from "@/data/bookLoop/model";
 import {
   collectLocalBookRecords,
+  hasMeaningfulLocalProgress,
+  importProgressTitle,
   fingerprintImport,
   importDecisionKey,
 } from "@/data/bookLoop/local";
 import { importBookRecords, loadBookRecords } from "@/data/bookLoop/repository";
 import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogFooter,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 export function BookLoopProvider({
@@ -82,14 +84,12 @@ function SignedInBookLoop({
       }
       const found = collectLocalBookRecords(localStorage, userId);
       setRecords(found);
-      setDecision(found.length ? "ask" : "ready");
-      if (!found.length)
+      setDecision(hasMeaningfulLocalProgress(found) ? "ask" : "ready");
+      if (!hasMeaningfulLocalProgress(found))
         localStorage.setItem(importDecisionKey(userId), "empty");
     } catch {
-      setError(
-        "Browser data could not be read. You can continue with server data; the local copy will remain untouched.",
-      );
-      setDecision("ask");
+      console.warn("Browser progress could not be checked; continuing with server data.");
+      setDecision("ready");
     }
   }, [query.data, decision, userId]);
   const finish = (value: string) => {
@@ -121,38 +121,26 @@ function SignedInBookLoop({
       setSaving(false);
     }
   };
-  if (query.isError && !query.data)
-    return (
-      <div role="alert" className="p-6 space-y-3">
-        <p>Could not load your synced book data.</p>
-        <Button onClick={() => void query.refetch()}>Retry</Button>
-      </div>
-    );
-  if (!query.data || decision === "checking")
-    return (
-      <div role="status" className="p-6">
-        Loading your book data…
-      </div>
-    );
   if (decision === "ask")
     return (
-      <AlertDialog open>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Import this browser’s book progress?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Copy {records.length || "your"} records from this account and
-              guest progress on this browser into your private account so they
+      <BookLoopContext.Provider value={userId}>
+      {children}
+      <Dialog open onOpenChange={open => { if (!open) setDecision("ready"); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {importProgressTitle(records.length)}
+            </DialogTitle>
+            <DialogDescription>
+              Import saved account and guest progress from this browser into your private account so they
               are available on other devices. This includes promises, private
               Dex photos, local missions, notes, reading progress, and track
               choice. Existing server records will be kept when the same record
               already exists. Your browser copy stays untouched.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+            </DialogDescription>
+          </DialogHeader>
           {error && <p role="alert">{error}</p>}
-          <AlertDialogFooter>
+          <DialogFooter>
             <Button
               variant="outline"
               disabled={saving}
@@ -163,12 +151,14 @@ function SignedInBookLoop({
             <Button disabled={saving} onClick={() => void importData()}>
               {saving ? "Importing…" : "Import browser progress"}
             </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      </BookLoopContext.Provider>
     );
   return (
     <BookLoopContext.Provider value={userId}>
+      {query.isError ? <div role="alert" className="p-4">Could not load your synced book data. <Button onClick={() => void query.refetch()}>Retry</Button></div> : null}
       {children}
     </BookLoopContext.Provider>
   );

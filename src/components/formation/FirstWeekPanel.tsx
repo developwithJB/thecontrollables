@@ -6,14 +6,23 @@ import type { FullyChargedTodayState } from "@/data/formation/fullyChargedReposi
 import { addLocalCalendarDays } from "@/domain/formation/fullyChargedJourney";
 import { weekOneRecords, nextSabbathDate } from "@/domain/formation/firstWeek";
 import { CONTROLLABLE_GUIDES } from "@/lib/controllables";
+import { CIRCUIT_TYPES } from "@/domain/formation/circuits";
+import { evaluateCircuit, getActionLabel } from "@/domain/formation/circuitRules";
 import { AIChat } from "@/components/AIChat";
 
-export function FirstWeekPanel({ history, journey, track, today, nextCircuit, canPractice }: {
+export function FirstWeekPanel({ history, journey, track, today, nextCircuit, canPractice, userId = "" }: {
   history: FormationCircuitEntry[]; journey: FullyChargedTodayState | null; track: TrainingTrack;
-  today: string; nextCircuit: CircuitType | null; canPractice: boolean;
+  userId?: string; today: string; nextCircuit: CircuitType | null; canPractice: boolean;
 }) {
   const [chatOpen, setChatOpen] = useState(false);
   const [sharePreview, setSharePreview] = useState(false);
+  const acknowledgementKey = `formation-day-ack:${userId}:${today}`;
+  const [acknowledgedKey, setAcknowledgedKey] = useState("");
+  let storedAcknowledgement = false;
+  try { storedAcknowledgement = localStorage.getItem(acknowledgementKey) === "acknowledged"; } catch { /* Storage is optional. */ }
+  const acknowledged = acknowledgedKey === acknowledgementKey || storedAcknowledgement;
+  const savedToday = CIRCUIT_TYPES.map(circuit => history.find(e => e.userId === userId && e.track === track && e.localDate === today && e.circuit === circuit));
+  const dayComplete = track !== "fully_charged_75" && canPractice && savedToday.every(e => e && evaluateCircuit(track, e.circuit, e.draft).isSatisfiedForTrack);
   const start = track === "fully_charged_75" ? journey?.startLocalDate : history.map(e => e.localDate).sort()[0] ?? today;
   const records = start ? weekOneRecords(history.filter(e => e.track === track), start) : [];
   const weekAvailable = !!start && today >= addLocalCalendarDays(start, 6);
@@ -23,7 +32,17 @@ export function FirstWeekPanel({ history, journey, track, today, nextCircuit, ca
   const uniqueDays = new Set(records.map(e => e.localDate)).size;
   const nextGuide = nextCircuit ? CONTROLLABLE_GUIDES[nextCircuit] : null;
   return <section className="ph-no-capture space-y-4" aria-label="Your first week" data-sentry-mask>
-    {canPractice && nextGuide ? <div className="space-y-3 rounded-2xl border border-primary/30 bg-primary/5 p-5" data-testid="next-practice">
+    {dayComplete ? <div className="space-y-3 rounded-2xl border border-primary/30 p-5" data-testid="practice-day-receipt">
+      <h2 className="font-display text-xl font-semibold">Day complete</h2><p>{today}</p>
+      <ul className="space-y-2">{savedToday.map(entry => entry ? <li key={entry.circuit}><strong>{CONTROLLABLE_GUIDES[entry.circuit].emoji} {CONTROLLABLE_GUIDES[entry.circuit].name}:</strong> {evaluateCircuit(track, entry.circuit, entry.draft).completedActionIds.map(id => getActionLabel(entry.circuit, id)).join(" · ")}</li> : null)}</ul>
+      <p className="text-sm text-muted-foreground">Completion records a practice. It does not measure your standing with God.</p>
+      <Button variant="futureOutline" disabled={acknowledged} onClick={() => {
+        // Browser-only display acknowledgement: never authorization, strict credit, XP or promises.
+        try { localStorage.setItem(acknowledgementKey, "acknowledged"); } catch { /* Still acknowledge for this view. */ }
+        setAcknowledgedKey(acknowledgementKey);
+      }}>{acknowledged ? "Today acknowledged" : "Close today"}</Button>
+    </div> : null}
+    {!dayComplete && canPractice && nextGuide ? <div className="space-y-3 rounded-2xl border border-primary/30 bg-primary/5 p-5" data-testid="next-practice">
       <p className="text-xs font-semibold uppercase tracking-wider text-primary">{records.length ? "Welcome back · Your next step" : "Begin with one calm first move"}</p>
       <h2 className="font-display text-xl font-semibold">{nextGuide.emoji} {nextGuide.name}</h2>
       <p className="text-sm text-muted-foreground">{nextCircuit === "awareness" ? "Faith and spirituality live here. Open Scripture, notice Jesus, and choose one honest response. Private prayer does not need to be written down." : "Your saved practices are here. Continue the next circuit at your own pace."} {track === "fully_charged_75" ? "All five circuits and Close today are required before the deadline." : "One meaningful practice counts; nothing resets if you miss a day."}</p>
