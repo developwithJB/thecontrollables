@@ -130,6 +130,12 @@ export function hasMeaningfulLocalProgress(records: Omit<BookRecord, "revision">
   return records.some(row => {
     if (row.kind === "track" || row.kind === "startingCharge") return false;
     if (row.kind === "promise" || row.kind === "dex") return true;
+    if (row.kind === "reading") {
+      const reading = normalizers.reading(row.payload);
+      const defaults = normalizers.reading(undefined);
+      // Normalization creates startedAt even for an empty object; a timestamp alone is not progress.
+      return reading.completedSectionIds.length > 0 || reading.completedRepIds.length > 0 || Boolean(reading.bookCompletedAt) || reading.currentSectionId !== defaults.currentSectionId;
+    }
     const defaults = encodeState(row.kind, row.record_key, normalizers[row.kind](undefined));
     return !defaults.some(defaultRow => JSON.stringify(defaultRow.payload) === JSON.stringify(row.payload));
   });
