@@ -1,4 +1,4 @@
-import {allowedPushEndpoint,pushServiceAuthorized} from "../_shared/pushBoundary.ts";
+import {allowedPushEndpoint,pushServiceAuthorized,countLocalPushActions} from "../_shared/pushBoundary.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -284,7 +284,9 @@ Deno.serve(async (req) => {
     const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY")!;
     const vapidSubject = Deno.env.get("VAPID_SUBJECT") || "mailto:hello@agbcoaching.com";
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {persistSession:false, autoRefreshToken:false, detectSessionInUrl:false},
+    });
 
     // Get all push subscriptions with user context
     const { data: subscriptions, error: subError } = await supabase
@@ -315,20 +317,17 @@ Deno.serve(async (req) => {
       .in("user_id", userIds)
       .eq("status", "active");
 
-    // Fetch today's completed actions count per user
-    const today = new Date().toISOString().split("T")[0];
+    // Fetch a bounded window, then count each recipient's local calendar date.
     const { data: completedActions } = await supabase
       .from("completed_actions")
-      .select("user_id")
+      .select("user_id,completed_at")
       .in("user_id", userIds)
-      .gte("completed_at", `${today}T00:00:00Z`);
+      .gte("completed_at", new Date(Date.now()-48*60*60*1000).toISOString());
 
     const profileMap = new Map((profiles || []).map((p: { id: string; timezone: string | null }) => [p.id, p]));
     const sessionMap = new Map((sessions || []).map((s: { user_id: string; current_day: number }) => [s.user_id, s]));
-    const actionCountMap = new Map<string, number>();
-    (completedActions || []).forEach((a: { user_id: string }) => {
-      actionCountMap.set(a.user_id, (actionCountMap.get(a.user_id) || 0) + 1);
-    });
+    const actionCountMap = countLocalPushActions(completedActions || [],
+      new Map((profiles || []).map((p:{id:string;timezone:string|null})=>[p.id,p.timezone])), new Date());
 
     let sent = 0;
     let expired = 0;
@@ -349,16 +348,7 @@ Deno.serve(async (req) => {
         // Only send between 7-8 AM local time
         if (hour < 7 || hour >= 8) continue;
 
-        // Check if we already sent a push today
-        const { data: existingLog } = await supabase
-          .from("email_nudge_logs")
-          .select("id")
-          .eq("user_id", sub.user_id)
-          .eq("nudge_date", today)
-          .eq("status", "push_sent")
-          .maybeSingle();
-
-        if (existingLog) continue;
+        // Push claims are separate from email delivery logs.
         const localDate = new Intl.DateTimeFormat("sv-SE", {timeZone:tz}).format(now);
         const {data:claimed,error:claimError}=await supabase.rpc("claim_push_nudge",{p_user_id:sub.user_id,p_local_date:localDate});
         if(claimError || claimed !== true) continue;
@@ -399,12 +389,6 @@ Deno.serve(async (req) => {
 
         if (response.status === 201 || response.status === 200) {
           sent++;
-          // Log as push_sent
-          await supabase.from("email_nudge_logs").insert({
-            user_id: sub.user_id,
-            nudge_date: today,
-            status: "push_sent",
-          });
         } else if (response.status === 410 || response.status === 404) {
           // Subscription expired, clean up
           await supabase.from("push_subscriptions").delete().eq("id", sub.id);

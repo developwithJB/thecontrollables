@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   allowedPushEndpoint,
+  countLocalPushActions,
   pushServiceAuthorized,
 } from "../../supabase/functions/_shared/pushBoundary";
 import { untrustedCoachContext } from "../../supabase/functions/_shared/untrustedMessages";
@@ -79,3 +80,33 @@ describe("coach request context", () => {
       ).toContain("{PERSONAL_PRACTICE_NOTICE}");
   });
 });
+
+it("push action counts use each recipient's local date instead of UTC", () => {
+  const now = new Date("2026-10-21T14:15:00Z"),
+    zones = new Map([
+      ["west", "America/Los_Angeles"],
+      ["east", "Asia/Tokyo"],
+    ]);
+  const rows = [
+    { user_id: "west", completed_at: "2026-10-21T06:59:00Z" },
+    { user_id: "west", completed_at: "2026-10-21T07:01:00Z" },
+    { user_id: "east", completed_at: "2026-10-20T16:00:00Z" },
+    { user_id: "east", completed_at: "2026-10-21T16:00:00Z" },
+  ];
+  const counts = countLocalPushActions(rows, zones, now);
+  expect(counts.get("west")).toBe(1);
+  expect(counts.get("east")).toBe(1);
+});
+it("push server client does not start persistent auth refresh timers", () => {
+  const source = readFileSync(
+    "supabase/functions/send-push-nudge/index.ts",
+    "utf8",
+  );
+  expect(source).toContain("autoRefreshToken:false");
+  expect(source).toContain("persistSession:false");
+});
+
+it("push claims never occupy the separate email delivery ledger", () =>
+  expect(
+    readFileSync("supabase/functions/send-push-nudge/index.ts", "utf8"),
+  ).not.toContain('.from("email_nudge_logs")'));
