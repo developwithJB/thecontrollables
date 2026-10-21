@@ -3776,6 +3776,24 @@ export type Database = {
           },
         ]
       }
+      telemetry_ingest_limits: {
+        Row: {
+          actor: string
+          count: number
+          window_start: string
+        }
+        Insert: {
+          actor: string
+          count: number
+          window_start: string
+        }
+        Update: {
+          actor?: string
+          count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       time_logs: {
         Row: {
           created_at: string
@@ -5476,6 +5494,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      take_telemetry_ingest_slot: {
+        Args: { p_actor: string }
+        Returns: boolean
       }
       timeline_user_timezone: {
         Args: { target_user_id: string }
