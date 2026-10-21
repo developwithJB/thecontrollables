@@ -48,3 +48,6 @@ Reuse semantic cards, quiet borders, native billing-interval radios, visible lab
 
 ## QA polish
 Use the existing BookLink in Formation headers, readable underlined text with a 44px target. Profile menu and mobile navigation expose Sign Out using the same handler as Settings. Keep six mobile items legible at 390px. Formation renders its shell and page skeleton immediately after auth; authenticated book context stays intact while optional book data loads independently. Password guidance belongs only to signup.
+
+## Legacy billing access
+Reuse the existing Billing card and secondary badge. A server-classified historical grant without a recorded tier says “Legacy app access” and “Access granted,” preserves existing app features and shows the separate server AI allowance. It must not imply an active recurring subscription, renewal or portal action. Explain the support path before an upgrade that could replace a legacy grant. Keep ordinary Free/BYO/Pro offers unchanged; no automatic upgrade or record backfill.

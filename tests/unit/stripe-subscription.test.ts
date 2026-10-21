@@ -3,8 +3,19 @@ import {
   subscriptionPeriod,
   subscriptionTier,
   entitlementIsCurrent,
+  isLegacyAppGrant,
 } from "../../supabase/functions/_shared/stripeSubscription";
 describe("paid entitlement synchronization", () => {
+  it.each(["stripe", "promo", "webhook"])("separates untiered historical %s grants from subscriptions",source=>{
+    expect(isLegacyAppGrant({source,plan_tier:null,subscription_status:null})).toBe(true);
+    expect(isLegacyAppGrant({source,plan_tier:"pro",subscription_status:"active"})).toBe(false);
+    expect(isLegacyAppGrant({source,expires_at:"2000-01-01"})).toBe(false);
+  });
+  it("does not reclassify manual or verified subscription access as an untiered historical grant",()=>{
+    expect(isLegacyAppGrant(null)).toBe(false);
+    expect(isLegacyAppGrant({source:"manual"})).toBe(false);
+    expect(isLegacyAppGrant({source:"stripe_subscription",plan_tier:"pro",subscription_status:"active"})).toBe(false);
+  });
   it("reads Basil item periods and supports older webhook versions", () => {
     expect(
       subscriptionPeriod({

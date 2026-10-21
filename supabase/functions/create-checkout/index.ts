@@ -1,4 +1,5 @@
 import { checkoutOffer, matchesCheckoutPrice, type BillingInterval } from "../_shared/billingContract.ts";
+import { isLegacyAppGrant } from "../_shared/stripeSubscription.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
@@ -197,10 +198,19 @@ const existingSubscription = subscriptions.data.find((sub: { status: string }) =
       }
     }
 
+    const admin=createClient(Deno.env.get("SUPABASE_URL") ?? "",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",{auth:{persistSession:false}});
+    const {data: appGrant, error: appGrantError}=await admin.from("user_entitlements")
+      .select("source,plan_tier,subscription_status,expires_at")
+      .eq("user_id",user.id).eq("entitlement_type","full_access").maybeSingle();
+    if(appGrantError) return json({error:"Your existing access could not be verified. Please try again.",error_code:"access_verification_unavailable"},503);
+    if(isLegacyAppGrant(appGrant)) return json({
+      error:"Your legacy app access is preserved. Contact support before adding Pro so your existing access stays intact.",
+      error_code:"legacy_access_review_required",
+    },409);
+
     // Do not sell a hosted-coach offer while its independently controlled
     // runtime is unavailable. Existing subscribers can still use their portal.
     if (tier === "pro") {
-      const admin=createClient(Deno.env.get("SUPABASE_URL") ?? "",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",{auth:{persistSession:false}});
       const [budget,rollout]=await Promise.all([
         admin.from("hosted_ai_policy").select("enabled").eq("id",true).maybeSingle(),
         admin.from("coach_provider_rollout").select("hosted_coach_enabled").eq("id",true).maybeSingle(),

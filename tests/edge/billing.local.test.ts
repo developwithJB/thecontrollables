@@ -26,6 +26,7 @@ interface IO {
   stripeVersion: string | null;
 }
 let runtimeReady=true;
+let appGrant: Record<string,unknown> | null=null;
 let calls: IO[] = [],
   verified = true,
   customer = false,
@@ -36,6 +37,7 @@ let calls: IO[] = [],
   unknownPrice = false,
   canceled = false;
 function reset() {
+  appGrant=null;
   runtimeReady=true;
   calls = [];
   verified = true;
@@ -86,6 +88,7 @@ globalThis.fetch = async (input, init) => {
       return ok(duplicate ? { id: "evt_local" } : null);
     if (url.pathname === "/rest/v1/user_entitlements" && dbFailure)
       return ok({ message: "synthetic unavailable", code: "XX000" }, 500);
+    if(url.pathname==="/rest/v1/user_entitlements" && call.method==="GET") return ok(appGrant);
     if (
       [
         "/rest/v1/user_entitlements",
@@ -149,6 +152,8 @@ await import("../../supabase/functions/create-checkout/index.ts");
 const checkout = capturedHandler;
 await import("../../supabase/functions/stripe-webhook/index.ts");
 const webhook = capturedHandler;
+await import("../../supabase/functions/check-payment/index.ts");
+const checkPayment = capturedHandler;
 const assert = (condition: unknown, message = "assertion failed") => {
   if (!condition) throw Error(message);
 };
@@ -172,6 +177,32 @@ function test(name: string, run: () => Promise<void>) {
 test("missing auth cannot reach Stripe", async () => {
   assert((await checkout(request({ tier: "pro" }, false))).status === 401);
   assert(!calls.some((c) => c.path.startsWith("/v1/")));
+});
+test("legacy app access is preserved without inventing an active subscription", async()=>{
+  appGrant={source:"stripe",plan_tier:null,subscription_status:null,expires_at:null,granted_at:"2026-01-15T00:00:00Z"};
+  const response=await checkPayment(request({}));
+  const data=await response.json();
+  assert(response.status===200 && data.isPaid===true && data.legacyAppAccess===true);
+  assert(data.subscriptionStatus===null);
+  assert(!calls.some(c=>c.method!=="GET" && ["/rest/v1/user_entitlements","/rest/v1/profiles"].includes(c.path)));
+  assert(!calls.some(c=>c.path.startsWith("/v1/")));
+});
+test("a verified modern paid grant keeps its tier and active status",async()=>{
+  appGrant={source:"stripe_subscription",plan_tier:"pro",subscription_status:"active",expires_at:"2099-01-01"};
+  const response=await checkPayment(request({}));const data=await response.json();
+  assert(data.isPaid===true && data.plan_tier==="pro" && data.legacyAppAccess===false && data.subscriptionStatus==="active");
+});
+test("checkout cannot replace a live untiered legacy grant",async()=>{
+  appGrant={source:"stripe",plan_tier:null,subscription_status:null,expires_at:null};
+  const response=await checkout(request({tier:"pro"}));
+  assert(response.status===409 && (await response.json()).error_code==="legacy_access_review_required");
+  assert(!calls.some(c=>c.path==="/v1/checkout/sessions"));
+});
+test("checkout fails closed if existing app access cannot be checked",async()=>{
+  dbFailure=true;
+  const response=await checkout(request({tier:"pro"}));
+  assert(response.status===503 && (await response.json()).error_code==="access_verification_unavailable");
+  assert(!calls.some(c=>c.path==="/v1/checkout/sessions"));
 });
 test("unverified account cannot start checkout", async () => {
   verified = false;

@@ -269,3 +269,20 @@ test("a success URL alone never claims a confirmed subscription", async ({
   ).toBeVisible();
   await expect(page).toHaveURL(/interval=month/);
 });
+
+test("legacy app access is clearly separate from hosted Pro and free samples",async({page},info)=>{
+  await page.route("**/functions/v1/check-payment",route=>route.fulfill({headers,json:{isPaid:true,plan_tier:"pro",legacyAppAccess:true,subscriptionStatus:null,purchasedAt:"2026-01-15T00:00:00Z"}}));
+  await signedIn(page);
+  await page.goto("/billing?interval=month");
+  await expect(page.getByRole("heading",{name:"Legacy app access",exact:true})).toBeVisible();
+  await expect(page.getByText("Access granted",{exact:true})).toBeVisible();
+  await expect(page.getByText(/3 sample replies left/)).toBeVisible();
+  await expect(page.getByText(/No recurring subscription is verified/)).toBeVisible();
+  await expect(page.getByRole("button",{name:"Manage Subscription",exact:true})).toHaveCount(0);
+  await expect(page.getByText("Active",{exact:true})).toHaveCount(0);
+  await expect(page.getByRole("link",{name:"Set up my provider"})).toHaveCount(0);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  const screenshot=`docs/screenshots/release-2026-10-21/billing-legacy-${info.project.name}.png`;
+  await page.screenshot({path:screenshot,fullPage:true});
+  await info.attach("legacy-billing",{path:screenshot,contentType:"image/png"});
+});
