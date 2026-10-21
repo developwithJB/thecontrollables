@@ -142,3 +142,7 @@ Only known event metadata is stored, without arbitrary extra fields or payload l
 Apply only new00600 once, then deploy whoop-webhook with its reviewed helper. Preserve its existing gateway JWT setting; do not widen endpoint access or claim genuine provider delivery has been exercised. The handler fails closed without the existing configured secret. No00100–00500 replay.
 
 Checks passed:545 unit tests,7 actual mocked WHOOP-handler checks,3 disposable SQL checks for idempotent migration/history preservation/client denial/deduplication, root/app TypeScript and build. Lint is now400errors18warnings (one existing any error removed), with no new findings. A fresh lockfile npm audit reports6high package findings for the same one unpatched build-tool advisory and0critical; no dependency issue was suppressed. No real provider credential, event, health request, notification, email, inference or purchase was used by these checks.
+
+## WHOOP gateway verification limit
+
+Supported managed tools could not retrieve the existing WHOOP deployment JWT flag. A separate reviewed configuration makes verify_jwt=true explicit, adding the provider HMAC as a second check without opening the gateway. Automatic external WHOOP delivery is intentionally paused pending a verified/reviewed configuration; manual authenticated sync is unchanged. Do not describe end-to-end WHOOP delivery as tested or enable a public gateway implicitly. No new secret, provider consent or credential is introduced.
