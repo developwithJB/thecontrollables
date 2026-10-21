@@ -6,11 +6,11 @@ const read = (relativePath: string) => readFileSync(resolve(process.cwd(), relat
 
 const logo = read("src/components/Logo.tsx");
 const index = read("index.html");
-const home = read("src/pages/Home.tsx");
-const growth = read("src/pages/Growth.tsx");
-const wellness = read("src/pages/Wellness.tsx");
-const money = read("src/pages/Money.tsx");
-const landing = read("src/pages/Landing.tsx");
+const home = read("src/pages/practice/DailyDashboardPage.tsx");
+const growth = read("src/pages/reflection/GrowthPage.tsx");
+const wellness = read("src/pages/wellness/WellnessPage.tsx");
+const money = read("src/pages/money/MoneyPage.tsx");
+const landing = read("src/pages/public/LandingPage.tsx");
 const dailyHierarchy = read("docs/DAILY_HIERARCHY.md");
 
 const FOOTERS: Array<[string, string]> = [

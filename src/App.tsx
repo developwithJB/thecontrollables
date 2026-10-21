@@ -1,4 +1,4 @@
-import {OAuthReturnBridge} from "@/components/OAuthReturnBridge";
+import { OAuthReturnBridge } from "@/components/OAuthReturnBridge";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,8 +8,12 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SplashScreen } from "@/components/SplashScreen";
 import { useAppResume } from "@/hooks/useAppResume";
 import { lazy, Suspense, useEffect } from "react";
-import { formationCircuitsEnabled, formationCompletionEnabled, onboardingQuickStartEnabled } from "@/lib/featureFlags";
-import { LifeOSLayout } from "@/components/layout/LifeOSLayout";
+import {
+  formationCircuitsEnabled,
+  formationCompletionEnabled,
+  onboardingQuickStartEnabled,
+} from "@/lib/featureFlags";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { APP_ROUTES } from "@/lib/appRoutes";
 import { applyStoredThemePreference } from "@/lib/theme";
 
@@ -21,36 +25,48 @@ declare global {
 
 // Route-split every page so authenticated formation routes do not download the
 // marketing experience before rendering their primary action.
-const Landing = lazy(() => import("./pages/Landing"));
-const Privacy = lazy(() => import("./pages/Privacy"));
-const Terms = lazy(() => import("./pages/Terms"));
-const Auth = lazy(() => import("./pages/Auth"));
-const Home = lazy(() => import("./pages/Home"));
-const MyControllables = lazy(() => import("./pages/MyControllables"));
-const Train = lazy(() => import("./pages/Train"));
-const Evidence = lazy(() => import("./pages/Evidence"));
-const ControllablesDex = lazy(() => import("./pages/ControllablesDex"));
-const Wellness = lazy(() => import("./pages/Wellness"));
-const Growth = lazy(() => import("./pages/Growth"));
-const Reflect = lazy(() => import("./pages/Reflect"));
-const Planner = lazy(() => import("./pages/Planner"));
-const Money = lazy(() => import("./pages/Money"));
-const Reset = lazy(() => import("./pages/Reset"));
-const Coach = lazy(() => import("./pages/Coach"));
-const Pricing = lazy(() => import("./pages/Pricing"));
-const Billing = lazy(() => import("./pages/Billing"));
-const Admin = lazy(() => import("./pages/Admin"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const QuickStart = lazy(() => import("./pages/QuickStart"));
-const Integrations = lazy(() => import("./pages/Integrations"));
-const ReadAlong = lazy(() => import("./pages/ReadAlong"));
-const Goal = lazy(() => import("./pages/Goal"));
-const Timeline = lazy(() => import("./pages/Timeline"));
-const FormationToday = lazy(() => import("./pages/FormationToday"));
-const FormationCircuit = lazy(() => import("./pages/FormationCircuit"));
-const FormationCompletion = lazy(() => import("./pages/FormationCompletion"));
+const LandingPage = lazy(() => import("./pages/public/LandingPage"));
+const PrivacyPage = lazy(() => import("./pages/public/PrivacyPage"));
+const TermsPage = lazy(() => import("./pages/public/TermsPage"));
+const AuthPage = lazy(() => import("./pages/onboarding/AuthPage"));
+const DailyDashboardPage = lazy(
+  () => import("./pages/practice/DailyDashboardPage"),
+);
+const MyControllablesPage = lazy(
+  () => import("./pages/practice/MyControllablesPage"),
+);
+const TrainingPage = lazy(() => import("./pages/practice/TrainingPage"));
+const EvidencePage = lazy(() => import("./pages/practice/EvidencePage"));
+const ProofCollectionPage = lazy(
+  () => import("./pages/practice/ProofCollectionPage"),
+);
+const WellnessPage = lazy(() => import("./pages/wellness/WellnessPage"));
+const GrowthPage = lazy(() => import("./pages/reflection/GrowthPage"));
+const ReflectionPage = lazy(() => import("./pages/reflection/ReflectionPage"));
+const PlannerPage = lazy(() => import("./pages/planning/PlannerPage"));
+const MoneyPage = lazy(() => import("./pages/money/MoneyPage"));
+const ResetPage = lazy(() => import("./pages/wellness/ResetPage"));
+const CoachPage = lazy(() => import("./pages/coaching/CoachPage"));
+const PricingPage = lazy(() => import("./pages/public/PricingPage"));
+const BillingPage = lazy(() => import("./pages/account/BillingPage"));
+const AdminPage = lazy(() => import("./pages/admin/AdminPage"));
+const NotFoundPage = lazy(() => import("./pages/public/NotFoundPage"));
+const QuickStartPage = lazy(() => import("./pages/onboarding/QuickStartPage"));
+const IntegrationsPage = lazy(() => import("./pages/account/IntegrationsPage"));
+const ReadAlongPage = lazy(() => import("./pages/practice/ReadAlongPage"));
+const GoalPage = lazy(() => import("./pages/planning/GoalPage"));
+const TimelinePage = lazy(() => import("./pages/planning/TimelinePage"));
+const FormationTodayPage = lazy(
+  () => import("./pages/formation/FormationTodayPage"),
+);
+const FormationCircuitPage = lazy(
+  () => import("./pages/formation/FormationCircuitPage"),
+);
+const FormationCompletionPage = lazy(
+  () => import("./pages/formation/FormationCompletionPage"),
+);
 
-// Production-hardened query client configuration
+// Shared query cache; preserve these defaults when reorganizing routes.
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -84,60 +100,102 @@ const AppContent = () => {
       <Sonner />
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path={APP_ROUTES.landing} element={<Landing />} />
-          <Route path={APP_ROUTES.privacy} element={<Privacy />} />
-          <Route path={APP_ROUTES.terms} element={<Terms />} />
-          <Route path={APP_ROUTES.auth} element={<Auth />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path={APP_ROUTES.landing} element={<LandingPage />} />
+          <Route path={APP_ROUTES.privacy} element={<PrivacyPage />} />
+          <Route path={APP_ROUTES.terms} element={<TermsPage />} />
+          <Route path={APP_ROUTES.auth} element={<AuthPage />} />
           <Route
             path={APP_ROUTES.quickStart}
-            element={onboardingQuickStartEnabled() ? <QuickStart /> : <Navigate to="/auth?mode=signup" replace />}
+            element={
+              onboardingQuickStartEnabled() ? (
+                <QuickStartPage />
+              ) : (
+                <Navigate to="/auth?mode=signup" replace />
+              )
+            }
           />
 
-          {/* Life OS pages - persistent layout, only content swaps */}
-          <Route element={<LifeOSLayout />}>
-            <Route path="/coach" element={<Coach />} />
-            <Route path={APP_ROUTES.home} element={<Home />} />
+          {/* Authenticated pages share a persistent layout. */}
+          <Route element={<AppLayout />}>
+            <Route path="/coach" element={<CoachPage />} />
+            <Route path={APP_ROUTES.home} element={<DailyDashboardPage />} />
             <Route
               path={APP_ROUTES.formationToday}
-              element={formationCircuitsEnabled() ? <FormationToday /> : <Navigate to={APP_ROUTES.home} replace />}
+              element={
+                formationCircuitsEnabled() ? (
+                  <FormationTodayPage />
+                ) : (
+                  <Navigate to={APP_ROUTES.home} replace />
+                )
+              }
             />
             <Route
               path={APP_ROUTES.formationCircuit}
-              element={formationCircuitsEnabled() ? <FormationCircuit /> : <Navigate to={APP_ROUTES.home} replace />}
+              element={
+                formationCircuitsEnabled() ? (
+                  <FormationCircuitPage />
+                ) : (
+                  <Navigate to={APP_ROUTES.home} replace />
+                )
+              }
             />
             <Route
               path={APP_ROUTES.formationCompletion}
-              element={formationCircuitsEnabled() && formationCompletionEnabled() ? <FormationCompletion /> : <Navigate to={APP_ROUTES.home} replace />}
+              element={
+                formationCircuitsEnabled() && formationCompletionEnabled() ? (
+                  <FormationCompletionPage />
+                ) : (
+                  <Navigate to={APP_ROUTES.home} replace />
+                )
+              }
             />
-            <Route path={APP_ROUTES.timeline} element={<Timeline />} />
-            <Route path={APP_ROUTES.readAlong} element={<ReadAlong />} />
-            <Route path={APP_ROUTES.goal} element={<Goal />} />
-            <Route path={APP_ROUTES.myControllables} element={<MyControllables />} />
-            <Route path={APP_ROUTES.train} element={<Train />} />
-            <Route path={APP_ROUTES.evidence} element={<Evidence />} />
-            <Route path={APP_ROUTES.proofDex} element={<ControllablesDex />} />
-            <Route path={APP_ROUTES.dex} element={<ControllablesDex />} />
-            <Route path={APP_ROUTES.wellness} element={<Wellness />} />
-            <Route path={APP_ROUTES.planner} element={<Planner />} />
-            <Route path={APP_ROUTES.growth} element={<Growth />} />
-            <Route path={APP_ROUTES.reflect} element={<Reflect />} />
-            <Route path={APP_ROUTES.wealth} element={<Money />} />
+            <Route path={APP_ROUTES.timeline} element={<TimelinePage />} />
+            <Route path={APP_ROUTES.readAlong} element={<ReadAlongPage />} />
+            <Route path={APP_ROUTES.goal} element={<GoalPage />} />
+            <Route
+              path={APP_ROUTES.myControllables}
+              element={<MyControllablesPage />}
+            />
+            <Route path={APP_ROUTES.train} element={<TrainingPage />} />
+            <Route path={APP_ROUTES.evidence} element={<EvidencePage />} />
+            <Route
+              path={APP_ROUTES.proofDex}
+              element={<ProofCollectionPage />}
+            />
+            <Route path={APP_ROUTES.dex} element={<ProofCollectionPage />} />
+            <Route path={APP_ROUTES.wellness} element={<WellnessPage />} />
+            <Route path={APP_ROUTES.planner} element={<PlannerPage />} />
+            <Route path={APP_ROUTES.growth} element={<GrowthPage />} />
+            <Route path={APP_ROUTES.reflect} element={<ReflectionPage />} />
+            <Route path={APP_ROUTES.wealth} element={<MoneyPage />} />
           </Route>
 
-          <Route path={APP_ROUTES.money} element={<Navigate to={APP_ROUTES.wealth} replace />} />
-          <Route path={APP_ROUTES.proof} element={<Navigate to={APP_ROUTES.evidence} replace />} />
+          <Route
+            path={APP_ROUTES.money}
+            element={<Navigate to={APP_ROUTES.wealth} replace />}
+          />
+          <Route
+            path={APP_ROUTES.proof}
+            element={<Navigate to={APP_ROUTES.evidence} replace />}
+          />
 
-          {/* Back-compat redirect */}
-          <Route path={APP_ROUTES.dashboard} element={<Navigate to={APP_ROUTES.home} replace />} />
+          {/* Preserve existing dashboard bookmarks. */}
+          <Route
+            path={APP_ROUTES.dashboard}
+            element={<Navigate to={APP_ROUTES.home} replace />}
+          />
 
           {/* Standalone pages */}
-          <Route path={APP_ROUTES.reset} element={<Reset />} />
-          <Route path={APP_ROUTES.billing} element={<Billing />} />
-          <Route path={APP_ROUTES.admin} element={<Admin />} />
-          <Route path={APP_ROUTES.integrations} element={<Integrations />} />
+          <Route path={APP_ROUTES.reset} element={<ResetPage />} />
+          <Route path={APP_ROUTES.billing} element={<BillingPage />} />
+          <Route path={APP_ROUTES.admin} element={<AdminPage />} />
+          <Route
+            path={APP_ROUTES.integrations}
+            element={<IntegrationsPage />}
+          />
 
-          <Route path="*" element={<NotFound />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     </>

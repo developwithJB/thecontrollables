@@ -1,4 +1,4 @@
-import { privateCertificateUrl } from '@/lib/privateCertificates';
+import { getPrivateCertificateUrl } from '@/lib/privateCertificates';
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Award, Eye, Calendar, Check, Loader2, ChevronDown } from "lucide-react";
@@ -109,7 +109,7 @@ export function Certificates({ resetSessions, userId, dailyResets = [] }: Certif
         
         // Open preview with the new certificate URL (cache-busted so we don't see stale SVGs)
         setSelectedCertificate({
-          url: await privateCertificateUrl(data.certificate_url),
+          url: await getPrivateCertificateUrl(data.certificate_url),
           startDate: session.start_date,
         });
         setShowPreview(true);
@@ -121,7 +121,7 @@ export function Certificates({ resetSessions, userId, dailyResets = [] }: Certif
       } else {
         // Open preview with existing certificate (cache-busted)
         setSelectedCertificate({
-          url: await privateCertificateUrl(cert.certificate_url),
+          url: await getPrivateCertificateUrl(cert.certificate_url),
           startDate: session.start_date,
         });
         setShowPreview(true);

@@ -21,7 +21,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: { auth: {
   getSession: () => Promise.resolve({ data: { session: null } }),
   signUp: mocks.signUp, resend: vi.fn().mockResolvedValue({ error: null }),
 } } }));
-import Auth from "@/pages/Auth";
+import Auth from "@/pages/onboarding/AuthPage";
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() }));

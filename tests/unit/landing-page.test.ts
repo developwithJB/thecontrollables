@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const landingSource = () => readFileSync(resolve(process.cwd(), "src/pages/Landing.tsx"), "utf8");
+const landingSource = () => readFileSync(resolve(process.cwd(), "src/pages/public/LandingPage.tsx"), "utf8");
 
 describe("landing page copy", () => {
   it("states the covenant promise and makes the first-day path explicit", () => {

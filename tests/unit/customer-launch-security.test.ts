@@ -5,7 +5,7 @@ import {
   safeTelemetryProps,
 } from "../../supabase/functions/_shared/telemetry";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
-import { certificateStoragePath } from "@/lib/privateCertificates";
+import { getCertificateStoragePath } from "@/lib/privateCertificates";
 const owner = "00000000-0000-4000-8000-000000000001";
 describe("bounded telemetry privacy", () => {
   it("derives identity on the server and drops raw private data", () => {
@@ -98,8 +98,8 @@ describe("private certificate locations", () => {
         path +
         "?token=expired",
     ])
-      expect(certificateStoragePath(v, backend)).toBe(path);
-    expect(() => certificateStoragePath("Certificate Template.png", backend)).toThrow();
+      expect(getCertificateStoragePath(v, backend)).toBe(path);
+    expect(() => getCertificateStoragePath("Certificate Template.png", backend)).toThrow();
   });
   it("rejects external, traversal and other-bucket locations", () => {
     for (const v of [
@@ -113,7 +113,7 @@ describe("private certificate locations", () => {
         owner +
         "/%252fsecret.svg",
     ])
-      expect(() => certificateStoragePath(v, backend)).toThrow();
+      expect(() => getCertificateStoragePath(v, backend)).toThrow();
   });
   it("removes public URL generation and retains strict JWT settings", () => {
     for (const file of [

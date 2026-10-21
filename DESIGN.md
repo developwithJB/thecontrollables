@@ -4,7 +4,7 @@ The Dashboard helps readers turn The Controllables into private daily Christian 
 
 ## References and tokens
 
-Project-owned references: `src/pages/Landing.tsx`, `src/components/ui/button.tsx`, `src/index.css`, and `tailwind.config.ts`. These existing sources define this small additive change; no outside visual reference is needed. The live reference is https://thecontrollables.lovable.app/.
+Project-owned references: `src/pages/public/LandingPage.tsx`, `src/components/ui/button.tsx`, `src/index.css`, and `tailwind.config.ts`. These existing sources define this small additive change; no outside visual reference is needed. The live reference is https://thecontrollables.lovable.app/.
 
 Use existing semantic background, foreground, muted-foreground, primary, border and ring colors. Use font-display (Space Grotesk) for existing headings and the inherited body font. Spacing follows Tailwind's existing 4px scale; existing section padding is px-5/md:px-8, py-16/md:py-24. Keep the existing button radius, outline border, elevation and focus ring. Add no animation or new token.
 
@@ -51,3 +51,7 @@ Use the existing BookLink in Formation headers, readable underlined text with a 
 
 ## Legacy billing access
 Reuse the existing Billing card and secondary badge. A server-classified historical grant without a recorded tier says “Legacy app access” and “Access granted,” preserves existing app features and shows the separate server AI allowance. It must not imply an active recurring subscription, renewal or portal action. Explain the support path before an upgrade that could replace a legacy grant. Keep ordinary Free/BYO/Pro offers unchanged; no automatic upgrade or record backfill.
+
+## Readability cleanup
+
+Keep existing layouts, routes, interactions, semantic colors, and responsive behavior. Expand unexplained abbreviations in visible labels, define the existing Dex as the private proof collection, and describe optional AI without claiming model training or reviewed Scripture authority. Repository licensing copy must match the actual license status. Preserve all privacy/review/AI-limit qualifications. Check Today, pricing, proof collection, and public entry at mobile and desktop widths after file moves; do not redesign them.

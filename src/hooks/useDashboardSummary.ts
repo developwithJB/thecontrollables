@@ -1,4 +1,4 @@
-import {awardLegacyEvent} from "@/lib/personalProgress";
+import {awardLegacyPersonalEvent} from "@/lib/personalProgress";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -248,7 +248,7 @@ export const useDashboardSummary = (userId: string | null = null) => {
       return data;
     },
     onSuccess: async (quest) => {
-      const reward=await awardLegacyEvent("quest_complete",quest.id);
+      const reward=await awardLegacyPersonalEvent("quest_complete",quest.id);
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
       toast({
         title: "Quest completed!",
@@ -330,7 +330,7 @@ export const useDashboardSummary = (userId: string | null = null) => {
 
       // Award XP for kept promise
       if (kept) {
-        await awardLegacyEvent("integrity_rep",data.id);
+        await awardLegacyPersonalEvent("integrity_rep",data.id);
       }
 
       return data;
@@ -383,7 +383,7 @@ export const useDashboardSummary = (userId: string | null = null) => {
 
       // Award XP for logging time (only for first log of the day)
       try {
-        await awardLegacyEvent("time_log",data.id);
+        await awardLegacyPersonalEvent("time_log",data.id);
       } catch (xpError) {
         console.log("XP award skipped (may already be awarded):", xpError);
       }

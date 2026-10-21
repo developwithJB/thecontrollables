@@ -1,6 +1,6 @@
-import {resetDayNumber} from "@/lib/resetCalendar";
+import {getResetDayNumber} from "@/lib/resetCalendar";
 import {completeLegacyResetDay} from "@/lib/personalProgress";
-import { privateCertificateUrl } from '@/lib/privateCertificates';
+import { getPrivateCertificateUrl } from '@/lib/privateCertificates';
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,7 +60,7 @@ const getLogDateForDay = (startDate: string, dayNumber: number): string => {
 
 // Calculate current day based on start_date and today's date
 // Returns the actual elapsed day, even if > 7 (to detect expired sessions)
-const calculateCurrentDay = (startDate:string,timezone?:string|null):number=>resetDayNumber(startDate,timezone);
+const calculateCurrentDay = (startDate:string,timezone?:string|null):number=>getResetDayNumber(startDate,timezone);
 
 // Check if session has expired (past day 7 without completing all 7 days)
 const isSessionExpired = (startDate: string, completedDaysCount: number,timezone?:string|null): boolean => {
@@ -374,7 +374,7 @@ export const useReset = (externalUserId?: string | null) => {
   // Get existing certificate URL if available
   const { data: certificateUrl = null } = useQuery({
     queryKey: ['private-certificate-url', userId, existingCertificate?.storage_path],
-    queryFn: () => privateCertificateUrl(existingCertificate!.storage_path),
+    queryFn: () => getPrivateCertificateUrl(existingCertificate!.storage_path),
     enabled: !!userId && !!existingCertificate?.storage_path,
     staleTime: 60_000,
     refetchInterval: 240_000,

@@ -16,7 +16,7 @@ const COPY_SURFACES = [
   "src/components/experience/StreakCelebration.tsx",
   "src/components/experience/WellnessStreakHistory.tsx",
   "src/hooks/useDailyRings.ts",
-  "src/pages/Landing.tsx",
+  "src/pages/public/LandingPage.tsx",
   "supabase/functions/_shared/mission-of-the-day.ts",
   "supabase/functions/ai-orchestrator/index.ts",
   "supabase/functions/ai-briefing/index.ts",

@@ -1,9 +1,9 @@
 /**
  * Subscription Pricing Configuration
  *
- * Two annual-first tiers:
- * - Plus ($79.99/yr)
- * - Pro ($119.99/yr)
+ * Current Pro offer: $119.99/year or $14.99/month.
+ * Plus remains a compatibility tier for existing subscribers.
+ * Display amounts come from the shared server checkout contract.
  */
 
 import { CHECKOUT_OFFERS } from "../../supabase/functions/_shared/billingContract";

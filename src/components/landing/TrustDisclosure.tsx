@@ -17,10 +17,12 @@ export function TrustDisclosure() {
           </div>
           <div className="space-y-2">
             <p className="text-xs font-medium text-foreground">
-              Not a chatbot. Not therapy.
+              Optional AI coaching.
             </p>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              These are focused guides trained on The Controllables philosophy and behavior change principles. They don't diagnose. They don't lecture. They help you choose the next right rep.
+              AI guides use The Controllables as guidance to help you choose one
+              practical next step. Responses can be wrong. They are not therapy,
+              diagnosis, or reviewed Scripture teaching.
             </p>
           </div>
         </div>

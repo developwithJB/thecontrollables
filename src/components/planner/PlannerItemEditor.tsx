@@ -24,7 +24,7 @@ import type {
   UpdatePlannerItemInput,
 } from "@/hooks/usePlanner";
 import { useProjects, useCalendarMappings, type Project } from "@/hooks/useProjects";
-import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
+import { useAuthenticatedUser } from "@/hooks/useAppAuth";
 import { useSeason } from "@/hooks/useSeason";
 
 interface PlannerItemEditorProps {
@@ -45,7 +45,7 @@ export const PlannerItemEditor = ({
   isSaving,
 }: PlannerItemEditorProps) => {
   const isEditing = !!item;
-  const user = useLifeOSUser();
+  const user = useAuthenticatedUser();
   const { activeSeason } = useSeason(user.id);
   const { activeProjects } = useProjects(user.id, activeSeason?.id);
   const { mappings } = useCalendarMappings(user.id);

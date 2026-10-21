@@ -28,23 +28,23 @@ export function AIOperatorIntro({ onDismiss }: AIOperatorIntroProps) {
         </div>
         <div>
           <h3 className="font-display font-semibold text-foreground">
-            Meet Your Operators
+            Meet your AI guides
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
-            These are not generic chatbots.
+            Optional support for your next step.
           </p>
         </div>
       </div>
 
       <div className="space-y-3 mb-5">
         <p className="text-sm text-foreground leading-relaxed">
-          These operators are AI-guided, trained on:
+          These AI guides use the following context:
         </p>
         <ul className="space-y-2">
           {[
             "The Controllables philosophy",
             "JB's writing and frameworks",
-            "Behavior change best practices",
+            "Behavior change principles",
           ].map((item, idx) => (
             <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
               <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
@@ -53,7 +53,7 @@ export function AIOperatorIntro({ onDismiss }: AIOperatorIntroProps) {
           ))}
         </ul>
         <p className="text-sm text-foreground/80 italic pt-2">
-          They guide, not diagnose.
+          AI responses can be wrong. These guides do not diagnose.
         </p>
       </div>
 

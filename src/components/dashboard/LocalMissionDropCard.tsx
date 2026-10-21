@@ -291,7 +291,7 @@ export function LocalMissionDropCard({ userId }: LocalMissionDropCardProps) {
             </div>
             <Button asChild size="sm" variant="futureOutline">
               <Link to="/proof/dex">
-                Open Dex
+                Open proof collection
               </Link>
             </Button>
           </div>

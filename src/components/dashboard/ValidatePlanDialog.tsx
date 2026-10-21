@@ -1,4 +1,4 @@
-import {awardLegacyEvent} from "@/lib/personalProgress";
+import {awardLegacyPersonalEvent} from "@/lib/personalProgress";
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -69,7 +69,7 @@ export function ValidatePlanDialog({ open, onOpenChange, userId, onComplete }: V
       .eq("user_id", userId);
 
     if (kept) {
-      await awardLegacyEvent("integrity_rep",promiseId);
+      await awardLegacyPersonalEvent("integrity_rep",promiseId);
     }
 
     setResolvedPromises(prev => new Set(prev).add(promiseId));

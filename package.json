@@ -1,5 +1,5 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "the-controllables-dashboard",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -112,5 +112,14 @@
   "overrides": {
     "postcss-selector-parser": "^7.1.7",
     "esbuild@<=0.24.2": "^0.25.12"
-  }
+  },
+  "description": "Private daily Christian practice connected to The Controllables book.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/developwithJB/thecontrollables.git"
+  },
+  "bugs": {
+    "url": "https://github.com/developwithJB/thecontrollables/issues"
+  },
+  "homepage": "https://thedashboard.agbcoaching.com/"
 }

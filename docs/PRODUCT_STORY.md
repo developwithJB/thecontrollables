@@ -1,186 +1,68 @@
-# The Controllables Dashboard
+# Product guide
 
-## Product Story
+The Dashboard turns *The Controllables* book into private daily Christian practice. It helps a person notice what matters, choose a small action, record it honestly, and return after a difficult day. It does not measure spiritual worth or independently verify physical effort.
 
-The Controllables Dashboard turns *The Controllables* from something people read into something they practice every day.
+## The five Controllables
 
-The book gives people the language: Awareness, Perspective, Habit, Wellness, Environment, and Ego. The app gives them the reps: daily missions, small promises, private proof, reflection, and recovery.
+| Controllable | Daily purpose |
+| --- | --- |
+| Awareness 🦉 | Faith, Scripture, prayer, and learning the character of Jesus |
+| Perspective 🐢 | Notice the story you are telling and choose a faithful response |
+| Habit 🦈 | Turn an intention into one clear commitment |
+| Wellness 🛰️ | Care for nutrition, hydration, movement, sleep, and rest |
+| Environment 🚀 | Shape your surroundings and make room to serve |
 
-It is not another noisy productivity app. It is a calm self-trust training system for people who want to stop trying to control everything and start practicing what they actually can control.
+These names and emoji are fixed across UI, content, prompts, and notifications.
 
-## Customer Promise
+## A newcomer’s path
 
-For people who feel scattered, overwhelmed, or stuck trying to control too much, The Dashboard gives them a simple daily training loop:
+1. Start with Read Along from the landing page.
+2. Choose reading context and a practice path in Quick Start, then create an account.
+3. Open Today and choose one meaningful practice. Awareness links to Scripture and reflection prompts.
+4. Record the practice privately. Proof and private prayer do not have to be shared.
+5. Return for another practice. At five of five, the flexible path shows a receipt; its browser acknowledgement does not award strict-day credit, XP, or promises.
 
-**Read yourself honestly. Choose what you can control. Keep one small promise. Collect proof. Build Self-Trust.**
+Read Along is available without a card or AI subscription. The strict Fully Charged 75 path has a separate server gate: all 75 days must have independently reviewed, published effective content before enrollment. UI flags and payment cannot bypass it. The 40-Day Charge option remains unavailable; do not promise it can be started.
 
-Every day, the user gets one honest read, one mission, one promise, and one chance to prove they are becoming who they said they wanted to be.
+## What users see
 
-## Core Product Loop
+| Surface | Purpose |
+| --- | --- |
+| Today | Five daily practice areas, one next action, and saved-practice receipts |
+| Read Along | Book-connected reading progress and flexible practice |
+| My Controllables | Personal profile, commitments, and separately counted formation practices |
+| Evidence | Personal record of practices, promises, milestones, and reflections |
+| Proof collection | Existing Controllables Dex: private proof entries with deliberate sharing controls |
+| Planner, Goal, Timeline | Plans, dated goals, and personal history |
+| Wellness, Money, Growth, Reflect | Optional supporting tools |
+| Coach | Optional AI support, with consent, provider selection, and server limits |
+| Billing, Integrations | Subscription management and optional external connections |
+| Admin | Role-protected operational and content-review tools |
 
-The app is organized around one repeatable loop:
+The app preserves older dashboard, reset, XP, and promise records alongside formation. A saved formation practice is not automatically XP or a promise kept. Personal rings and historical check-ins are self-reported; they are not reviewed strict-day completion.
 
-**Read -> Choose -> Promise -> Prove -> Reflect -> Repeat**
+## AI and plans
 
-- **Read**: Starting Charge, Today's Read, Ego Signal
-- **Choose**: Control / Release / Move
-- **Promise**: Daily Mission Drop, Promise Ledger
-- **Prove**: Proof Loop, photo proof, Controllables Dex
-- **Reflect**: Read Along Training, recovery wins, Self-Trust progress
-- **Repeat**: XP, levels, badges, streaks, reset paths, share-safe milestones
+Free accounts can receive five hosted sample coach replies per verified account, subject to the shared allowance. The sample does not reset. Bring-your-own AI supports OpenAI-compatible providers (OpenAI/OpenRouter) and Anthropic with owner-supplied keys encrypted in Supabase Vault. Provider billing is separate; the app caps attempted chat requests at 100 per day and never silently switches to hosted AI.
 
-The magic moment is when a user completes a mission, keeps a small promise, adds private proof, and sees evidence that their Self-Trust is growing.
+Pro is $14.99/month or $119.99/year before applicable tax. It provides hosted coaching and paid planning/review/history tools, with up to 200 standard text coach replies per calendar month, at most 10 per day, subject to the shared monthly cost allowance. Long prompts, images, summaries, plans, and failed attempts can reduce the available count. Existing subscribers retain their billed rate. The server decides access and allowance; the browser never awards itself a tier.
 
-## First-Session Happy Path
+AI can be wrong. It is assistance, not Scripture authority, therapy, or diagnosis. It cannot approve lessons, publish formation content, record circuits, or close strict days. Generated answers do not replace reviewed lesson content.
 
-The biggest product risk is not missing features. It is letting a new user wander before they feel the loop.
+The book is a separate purchase. Pro is not required to buy or read it, and buying it does not grant an AI subscription.
 
-The first session should make this path obvious:
+## Scripture, review, and feedback
 
-1. Take Starting Charge.
-2. Get your first Controllable focus.
-3. Do one Daily Charge.
-4. Keep one tiny promise.
-5. Add proof.
-6. See Self-Trust move.
+Bible.com is the Scripture reference destination. Gospel-first Awareness uses Observe, Understand, and Respond prompts. Draft framing remains labeled pending independent theological review; it is not automatically published to enrolled attempts. JB studies with the NLT and invites corrections.
 
-New users should not be pushed into wellness, planner, wealth, admin, integrations, or advanced AI before they understand this core loop.
+YouVersion licensed-text/commercial/AI permission remains pending. Do not call YouVersion an approved official partner or enable API text/AI ingestion by implication. Translation and book rights are separate from repository access.
 
-## How It Works In 5 Minutes A Day
+The GitHub feedback form is public. Ask users to omit private prayers, health information, names, account details, credentials, and signed URLs. Security reports follow [SECURITY.md](../SECURITY.md).
 
-1. **Get your read**
-   See where your head, habits, and energy are today.
-2. **Choose your Controllable**
-   Pick what you can actually control.
-3. **Keep one promise**
-   Do one small mission that builds trust with yourself.
-4. **Add private proof**
-   Capture the rep without exposing your private life.
-5. **Build your Dex**
-   Watch your real-life reps stack up over time.
+## Privacy and deployment
 
-## Advertise-Ready Flows
+Owner-scoped authentication, RLS, private proof, and private certificate storage are server boundaries. Share only deliberately selected safe fields; never collect private reflections or provider keys in analytics. Local storage and client flags are preferences, not authority.
 
-### 1. Starting Charge
+The hosted product combines GitHub review, Lovable frontend publication, and separately deployed Supabase schema/functions/secrets. A fork needs its own backend and external service configuration. Development-tool subscriptions do not pay app inference costs.
 
-A 60-second onboarding read that helps users understand where they are starting and what kind of training they need.
-
-### 2. Read Along Training
-
-A spoiler-safe companion path for people reading, rereading, or leading others through *The Controllables*. Each section turns book concepts into simple reps.
-
-### 3. Daily Charge
-
-The daily Control / Release / Move ritual. Users identify what they can control, release what they cannot, and choose one grounded action.
-
-### 4. Promise Ledger
-
-A private Self-Trust tracker built around kept promises, recovery wins, and honest resets.
-
-### 5. Proof Loop
-
-The Controllables Dex, where users collect private proof of real-life reps across Awareness, Perspective, Habit, Wellness, and Environment.
-
-## Best-Fit Users
-
-The current product is strongest for:
-
-- Readers of *The Controllables*
-- People in a reset season
-- Overthinkers who need action, not more noise
-- Builders, athletes, and young professionals rebuilding consistency
-- Faith-anchored users who want a practical control/release rhythm
-- People who want private growth before public accountability
-
-## Current User Surfaces
-
-- `/` Landing page and product story
-- `/quick-start` Starting Charge onboarding
-- `/home` Daily Charge, Today's Read, Ego Signal, Control / Release / Move, Mission Drop
-- `/read-along` book companion training
-- `/train` Controllable card deck and XP training
-- `/my-controllables` private profile, Self-Trust, Promise Ledger, current focus
-- `/proof` proof loop entry
-- `/proof/dex` The Controllables Dex
-- `/reset` 7-Day Reset
-- `/wellness`, `/planner`, `/growth`, `/reflect`, `/wealth` supporting Life OS areas
-- `/billing`, `/admin`, `/integrations` operational surfaces
-
-## Current Feature Set
-
-The current app supports:
-
-- Book-aligned onboarding
-- Reading status and spoiler-safe Read Along sections
-- Daily Control / Release / Move ritual
-- Mission Drops with core, bonus, recovery, and optional local missions
-- City/state-level local missions without exact location tracking
-- Controllable cards with XP, levels, rarity, stats, charge stages, and safe share copy
-- Promise Ledger for kept promises and recovery wins
-- Self-Trust level and progress
-- Manual photo proof after mission completion
-- Controllables Dex grouped by Controllable
-- Share-safe proof payloads
-- Wellness, planner, money/wealth, reset, certificates, badges, and admin tooling
-- PWA support, install nudges, offline indicator, pull-to-refresh, and dark-first UI
-
-## Privacy Model
-
-Private growth is the default.
-
-Share cards and proof payloads exclude exact location, EXIF data, private reflections, wellness details, money details, calendar data, journal content, AI guidance, captions, and custom promises unless the user explicitly opts in.
-
-City/state only appears when the user enables it. Local participation can remain private, anonymous, or public.
-
-## Technical Snapshot
-
-The frontend is a React 18, Vite, and TypeScript app using React Router, TanStack Query, Tailwind, shadcn/Radix primitives, Framer Motion, lucide icons, Recharts, and `html2canvas` for share card/image generation.
-
-The backend is powered by Supabase:
-
-- Supabase Auth
-- Postgres tables
-- Row Level Security
-- Edge Functions
-- Supabase Storage
-- Stripe infrastructure
-- AI, integrations, notifications, certificates, admin, and sync jobs
-
-Production-backed data exists across profiles, onboarding, reset sessions, daily resets, completed actions, XP logs, badges, certificates, planner items, wellness logs, meal plans, transactions, recurring bills, AI memory/consent/usage, entitlements, Stripe webhooks, wearable connections, and WHOOP data.
-
-## Local-First V1 Areas
-
-The newest book-aligned product loop is intentionally local-first to validate behavior before adding heavier backend tables:
-
-- Read Along progress
-- My Controllables profile
-- Promise Ledger
-- Controllables Dex proof entries
-- Local Mission preferences and completion state
-- Control / Release / Move daily draft
-
-## AI Capabilities
-
-Current AI surfaces include daily briefing, AI chat/guide, reflection, insights, predictions, dashboard intelligence, weekly review, meal planning, grocery help, operator console, memory updates, and AI action proposals.
-
-AI is governed by consent, entitlement, usage, and memory-related tables/functions.
-
-## Payments
-
-Stripe infrastructure exists for checkout, payment checks, customer portal, webhooks, entitlements, plan tiers, and AI limits.
-
-The app is ready to gate features or sell digital products, but an in-app ebook purchase still needs a dedicated product/payment flow and a secure PDF delivery decision.
-
-## What It Is Not Yet
-
-The app is not yet a full social network, maps/event discovery product, photo-library scanner, or public leaderboard system.
-
-The current Controllables/Dex/local mission layer is a lightweight v1 designed to validate the product loop before backend expansion.
-
-## Positioning Summary
-
-**Now:** A book-connected Self-Trust training app for readers of *The Controllables*.
-
-**Next:** A daily operating system for practicing control, release, and aligned action.
-
-**Later:** A full Life OS across wellness, planning, reflection, growth, money, faith, and community.
+See [the README](../README.md) for setup, [architecture](ARCHITECTURE.md) for source locations, and [the docs index](README.md) for current guides and dated release evidence. The strict content gate, paused automatic WHOOP ingress, and unverified push scheduling retain their separate release limits.

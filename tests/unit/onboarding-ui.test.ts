@@ -14,7 +14,7 @@ describe("onboarding UI", () => {
   });
 
   it("keeps quick start visually aligned with the Dashboard world", () => {
-    const source = readSource("src/pages/QuickStart.tsx");
+    const source = readSource("src/pages/onboarding/QuickStartPage.tsx");
 
     expect(source).toContain("Where are you with the book?");
     expect(source).toContain("How deeply do you want to train right now?");
@@ -25,7 +25,7 @@ describe("onboarding UI", () => {
   });
 
   it("removes unexplained intake and discloses the strict path before signup", () => {
-    const source = readSource("src/pages/QuickStart.tsx");
+    const source = readSource("src/pages/onboarding/QuickStartPage.tsx");
 
     expect(source).not.toContain("BirthdayOnboardingStep");
     expect(source).toContain("No birthday or private reflection required.");

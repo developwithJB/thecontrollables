@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/collapsible";
 import { useActionTracking } from "@/hooks/useActionTracking";
 import { HierarchyExplainer } from "@/components/dashboard/HierarchyExplainer";
-import { useLifeOSUser } from "@/hooks/useLifeOSAuth";
+import { useAuthenticatedUser } from "@/hooks/useAppAuth";
 import { useGameSignals } from "@/hooks/useGameSignals";
 import { getControllableRosterProfile } from "@/lib/controllableRoster";
 import type { SupportMode } from "@/lib/signalInterpreter";
@@ -68,7 +68,7 @@ export function MainQuestModule({
   isUpdating = false,
   disabled = false,
 }: MainQuestModuleProps) {
-  const user = useLifeOSUser();
+  const user = useAuthenticatedUser();
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState("");
   // Keep the existing long-lived quest model, but present it as a calm daily anchor.

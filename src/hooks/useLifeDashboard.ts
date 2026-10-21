@@ -1,4 +1,4 @@
-import {awardLegacyEvent} from "@/lib/personalProgress";
+import {awardLegacyPersonalEvent} from "@/lib/personalProgress";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -325,7 +325,7 @@ export const useLifeDashboard = () => {
       return data as MainQuest;
     },
     onSuccess: async (quest) => {
-      const reward=await awardLegacyEvent("quest_complete",quest.id);
+      const reward=await awardLegacyPersonalEvent("quest_complete",quest.id);
       queryClient.invalidateQueries({ queryKey: ["main-quest"] });
       toast({
         title: "Quest completed!",
@@ -390,7 +390,7 @@ export const useLifeDashboard = () => {
 
       // Award XP for kept promise
       if (kept) {
-        await awardLegacyEvent("integrity_rep",data.id);
+        await awardLegacyPersonalEvent("integrity_rep",data.id);
       }
 
       return data as IntegrityLog;
@@ -426,7 +426,7 @@ export const useLifeDashboard = () => {
       if (error) throw error;
 
       // Award XP for logging time
-      await awardLegacyEvent("time_log",data.id);
+      await awardLegacyPersonalEvent("time_log",data.id);
 
       return data as TimeLog;
     },
