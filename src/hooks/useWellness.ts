@@ -131,11 +131,8 @@ export function useWellness(userId: string | undefined) {
       
       // Calculate new streak after refresh
       const newStreak = streakBefore + (todayLog ? 0 : 1);
-      const milestoneXp = STREAK_MILESTONES[newStreak];
-
-      if (milestoneXp) {
-        await awardWellnessMilestone();
-      }
+      const reward = await awardWellnessMilestone();
+      const milestoneXp = reward.amount;
 
       // Trigger celebration for big milestones (7, 14, 30)
       if (CELEBRATION_MILESTONES.includes(newStreak)) {

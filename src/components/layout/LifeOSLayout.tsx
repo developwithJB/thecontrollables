@@ -22,7 +22,6 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
 import { APP_ROUTES } from "@/lib/appRoutes";
 
 export const LifeOSLayout = () => {
