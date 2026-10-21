@@ -58,7 +58,7 @@ describe("Mission of the Day", () => {
   it("generates preview text from the mission move and reward", () => {
     const mission = buildMissionOfTheDay({ date: "2026-06-15", targetControllable: "habit" });
 
-    expect(getMissionEmailPreview(mission)).toBe("Train Habit: Keep one small promise before noon. +40 Habit XP.");
+    expect(getMissionEmailPreview(mission)).toBe("Train Habit: Keep one small promise before noon. Up to 40 Habit XP.");
   });
 
   it("renders concise mission card copy", () => {
@@ -70,8 +70,8 @@ describe("Mission of the Day", () => {
     expect(payload.text).toContain("Charge Habit");
     expect(payload.text).toContain("Today's rep:");
     expect(payload.text).toContain("Why:");
-    expect(payload.text).toContain("+40 Habit XP");
-    expect(payload.text).toContain("+10 Self-Trust");
+    expect(payload.text).toContain("Up to 40 Habit XP");
+    expect(payload.text).toContain("Up to 10 Self-Trust");
     expect(payload.text).toContain("Today's loop:");
     expect(payload.text).toContain("Daily Charge: Control / Release / Move.");
     expect(payload.text).toContain("Promise Ledger: keep or recover one promise.");

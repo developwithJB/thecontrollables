@@ -1,3 +1,4 @@
+import {awardLegacyEvent} from "@/lib/personalProgress";
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -68,12 +69,7 @@ export function ValidatePlanDialog({ open, onOpenChange, userId, onComplete }: V
       .eq("user_id", userId);
 
     if (kept) {
-      await supabase.from("xp_logs").insert({
-        user_id: userId,
-        amount: 30,
-        source: "integrity_rep",
-        description: "Kept a promise",
-      });
+      await awardLegacyEvent("integrity_rep",promiseId);
     }
 
     setResolvedPromises(prev => new Set(prev).add(promiseId));

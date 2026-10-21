@@ -1,3 +1,4 @@
+import {recordPersonalAction} from "@/lib/personalProgress";
 import { useHostedAiAllowance } from "@/hooks/useHostedAiAllowance";
 import { AiAllowancePanel } from "@/components/billing/AiAllowancePanel";
 import { useState, useEffect, useCallback, forwardRef, useImperativeHandle, useRef } from "react";
@@ -290,29 +291,7 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
     }
 
     try {
-      // Insert completed action
-      const { error: actionError } = await supabase
-        .from('completed_actions')
-        .insert([{
-          user_id: user.id,
-          action_text: actionText,
-          controllable: controllable || null,
-          xp_awarded: ACTION_XP,
-        }]);
-
-      if (actionError) throw actionError;
-
-      // Award XP
-      const { error: xpError } = await supabase
-        .from('xp_logs')
-        .insert([{
-          user_id: user.id,
-          amount: ACTION_XP,
-          source: 'action_completed',
-          description: `Completed action: ${actionText.substring(0, 50)}...`,
-        }]);
-
-      if (xpError) throw xpError;
+      const reward=await recordPersonalAction({text:actionText,controllable,kind:"personal"});
 
       // Update message to show completed
       setMessages(prev => prev.map((msg, idx) => 
@@ -326,7 +305,7 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
       toast.success(
         <div className="flex items-center gap-2">
           <Trophy className="w-4 h-4 text-accent" />
-          <span>+{ACTION_XP} XP earned!</span>
+          <span>{reward.xpAwarded ? `+${reward.xpAwarded} XP earned!` : "Practice recorded. Daily XP allowance used."}</span>
         </div>
       );
 
@@ -719,7 +698,7 @@ export const AIGuidePanel = forwardRef<AIGuidePanelHandle, AIGuidePanelProps>(fu
                                     <Zap className="w-3 h-3" /> YOUR ACTION
                                   </p>
                                   {!isActionCompleted && (
-                                    <span className="text-xs text-accent/70">+{ACTION_XP} XP</span>
+                                    <span className="text-xs text-accent/70">Up to {ACTION_XP} XP</span>
                                   )}
                                 </div>
                                 <p className="text-sm text-foreground mb-2">{action}</p>

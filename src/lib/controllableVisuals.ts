@@ -150,7 +150,7 @@ export function getChargeMomentDisplay({
   return {
     icon: visual.icon,
     title: visual.displayLabel,
-    rewardLabel: `+${xpAwarded} ${visual.name} XP`,
+    rewardLabel: xpAwarded>0 ? `+${xpAwarded} ${visual.name} XP` : "Practice recorded",
     nextLabel: visual.stage === "fully charged" ? "Stay Fully Charged" : `Next: ${visual.nextStageLabel}`,
     progressPercent: visual.progressPercent,
   };

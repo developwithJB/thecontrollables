@@ -1,3 +1,4 @@
+import {awardLegacyEvent} from "@/lib/personalProgress";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -246,17 +247,12 @@ export const useDashboardSummary = (userId: string | null = null) => {
       if (error) throw error;
       return data;
     },
-    onSuccess: async () => {
-      // Award XP for completing quest
-      await awardXpMutation.mutateAsync({
-        amount: XP_VALUES.QUEST_COMPLETE,
-        source: "quest_complete",
-        description: "Quest completed",
-      });
+    onSuccess: async (quest) => {
+      const reward=await awardLegacyEvent("quest_complete",quest.id);
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
       toast({
         title: "Quest completed!",
-        description: "+500 XP earned. Choose your next adventure.",
+        description:reward.amount ? `+${reward.amount} XP earned. Choose your next adventure.` : "Quest recorded. Your daily activity XP allowance is used.",
       });
     },
     onError: (error) => {
@@ -268,30 +264,7 @@ export const useDashboardSummary = (userId: string | null = null) => {
     },
   });
 
-  // Award XP
-  const awardXpMutation = useMutation({
-    mutationFn: async ({ amount, source, description }: { amount: number; source: string; description?: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.id) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase
-        .from("xp_logs")
-        .insert({
-          user_id: user.id,
-          amount,
-          source,
-          description,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
-    },
-  });
+  // Rewards are issued by server-owned practice/milestone operations.
 
   // Create promise with timeout protection
   const createPromiseMutation = useMutation({
@@ -357,11 +330,7 @@ export const useDashboardSummary = (userId: string | null = null) => {
 
       // Award XP for kept promise
       if (kept) {
-        await awardXpMutation.mutateAsync({
-          amount: XP_VALUES.INTEGRITY_REP,
-          source: "integrity_rep",
-          description: "Kept a promise",
-        });
+        await awardLegacyEvent("integrity_rep",data.id);
       }
 
       return data;
@@ -414,11 +383,7 @@ export const useDashboardSummary = (userId: string | null = null) => {
 
       // Award XP for logging time (only for first log of the day)
       try {
-        await awardXpMutation.mutateAsync({
-          amount: XP_VALUES.TIME_LOG,
-          source: "time_log",
-          description: "Daily reflection",
-        });
+        await awardLegacyEvent("time_log",data.id);
       } catch (xpError) {
         console.log("XP award skipped (may already be awarded):", xpError);
       }
@@ -491,7 +456,6 @@ export const useDashboardSummary = (userId: string | null = null) => {
     // XP
     totalXp,
     xpLogs,
-    awardXp: awardXpMutation.mutateAsync,
     
     // Integrity
     integrityScore,

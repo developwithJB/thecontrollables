@@ -1,3 +1,4 @@
+import {recordPersonalAction} from "@/lib/personalProgress";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAnalytics } from "./useAnalytics";
@@ -222,20 +223,7 @@ export const usePlannerMutations = () => {
 
       const item = data as unknown as PlannerItem;
 
-      // Award XP via completed_actions for history visibility
-      await supabase.from("completed_actions").insert({
-        user_id: userId,
-        action_text: `Planner: ${item.title}`,
-        controllable: null,
-        xp_awarded: 10,
-      });
-
-      await supabase.from("xp_logs").insert({
-        user_id: userId,
-        amount: 10,
-        source: "planner_task",
-        description: item.title,
-      });
+      await recordPersonalAction({text:`Planner: ${item.title}`,kind:"planner"});
 
       return item;
     },

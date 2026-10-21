@@ -1,3 +1,5 @@
+import {resetDayNumber} from "@/lib/resetCalendar";
+import {completeLegacyResetDay} from "@/lib/personalProgress";
 import { privateCertificateUrl } from '@/lib/privateCertificates';
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -58,18 +60,11 @@ const getLogDateForDay = (startDate: string, dayNumber: number): string => {
 
 // Calculate current day based on start_date and today's date
 // Returns the actual elapsed day, even if > 7 (to detect expired sessions)
-const calculateCurrentDay = (startDate: string): number => {
-  const start = new Date(startDate + "T00:00:00");
-  const today = new Date(getLocalDateString() + "T00:00:00");
-  const diffTime = today.getTime() - start.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  // Day 1 is start_date, so add 1
-  return Math.max(1, diffDays + 1);
-};
+const calculateCurrentDay = (startDate:string,timezone?:string|null):number=>resetDayNumber(startDate,timezone);
 
 // Check if session has expired (past day 7 without completing all 7 days)
-const isSessionExpired = (startDate: string, completedDaysCount: number): boolean => {
-  const elapsedDay = calculateCurrentDay(startDate);
+const isSessionExpired = (startDate: string, completedDaysCount: number,timezone?:string|null): boolean => {
+  const elapsedDay = calculateCurrentDay(startDate,timezone);
   return elapsedDay > 7 && completedDaysCount < 7;
 };
 
@@ -210,15 +205,15 @@ export const useReset = (externalUserId?: string | null) => {
   // Calculate current day based on start_date (date-anchored), capped at 7 for display
   const currentDay = useMemo(() => {
     if (!activeSession?.start_date) return 1;
-    const elapsed = calculateCurrentDay(activeSession.start_date);
+    const elapsed = calculateCurrentDay(activeSession.start_date,activeSession.timezone);
     return Math.min(elapsed, 7); // Cap at 7 for display purposes
-  }, [activeSession?.start_date]);
+  }, [activeSession?.start_date, activeSession?.timezone]);
 
   // Check if session has expired (past day 7 without completing all days)
   const isExpired = useMemo(() => {
     if (!activeSession?.start_date) return false;
-    return isSessionExpired(activeSession.start_date, completedDays.length);
-  }, [activeSession?.start_date, completedDays.length]);
+    return isSessionExpired(activeSession.start_date, completedDays.length,activeSession.timezone);
+  }, [activeSession?.start_date, activeSession?.timezone, completedDays.length]);
 
   // Check if the current day has already been completed
   const isTodayCompleted = useMemo(() => {
@@ -319,54 +314,11 @@ export const useReset = (externalUserId?: string | null) => {
       if (!userId || !activeSession) throw new Error("No active session");
 
       // Check if session has expired before allowing completion
-      if (isSessionExpired(activeSession.start_date, completedDays.length)) {
+      if (isSessionExpired(activeSession.start_date, completedDays.length,activeSession.timezone)) {
         throw new Error("This Snapshot has expired. Start a new 7-Day Snapshot to continue.");
       }
 
-      const { data, error } = await supabase
-        .from("daily_resets")
-        .insert({
-          session_id: activeSession.id,
-          user_id: userId,
-          day_number: currentDay,
-          reflection: userInput,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Award XP for completing the day (bonus XP for Day 7)
-      const xpAmount = currentDay === 7 ? 50 : 25;
-      await supabase
-        .from("xp_logs")
-        .insert({
-          user_id: userId,
-          amount: xpAmount,
-          source: "reset_day_complete",
-          description: `Completed Day ${currentDay} of 7-Day Snapshot`,
-        });
-
-      // Calculate if this completes all 7 days (need to include the one we just added)
-      const newCompletedCount = completedDays.length + 1;
-      
-      // Only mark as "completed" if ALL 7 days are now done
-      if (newCompletedCount >= 7) {
-        await supabase
-          .from("reset_sessions")
-          .update({ 
-            status: "completed", 
-            current_day: 7,
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", activeSession.id);
-      } else {
-        // Update current day in session
-        await supabase
-          .from("reset_sessions")
-          .update({ current_day: currentDay + 1 })
-          .eq("id", activeSession.id);
-      }
+      const data=await completeLegacyResetDay(activeSession.id,userInput);
 
       return data as DailyReset;
     },
