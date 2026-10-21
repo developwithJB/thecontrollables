@@ -1,3 +1,4 @@
+import {untrustedConversation} from "../_shared/untrustedMessages.ts";
 import { hostedGateway } from "../_shared/hostedGateway.ts";
 import { readCoachPlanTier, hostedCoachAccess } from "../_shared/coachPlan.ts";
 import { assembleCoachPrompt, createCoachProvider } from "../_shared/coachProvider.ts";
@@ -637,12 +638,12 @@ Deno.serve(async (req) => {
     if (sessionHistory && sessionHistory.length > 0) {
       const recentHistory = sessionHistory.slice(-10);
       recentHistory.forEach(msg => {
-        conversationMessages.push({ role: msg.role, content: msg.content });
+        conversationMessages.push(...untrustedConversation([msg]));
       });
     }
     
     messages.forEach(msg => {
-      conversationMessages.push({ role: msg.role, content: msg.content });
+      conversationMessages.push(...untrustedConversation([msg]));
     });
 
     const apiKey = Deno.env.get('LOVABLE_API_KEY');

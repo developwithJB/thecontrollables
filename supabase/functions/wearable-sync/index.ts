@@ -128,8 +128,7 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
   try {
     const resp = await fetch(`${baseUrl}/cycle?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}&limit=25`, { headers });
     if (!resp.ok) {
-      const body = await resp.text();
-      console.error(`[WHOOP] Cycles API ${resp.status}: ${body}`);
+      console.error(`[WHOOP] Cycles API status ${resp.status}`);
     } else {
       const data = await resp.json();
       for (const cycle of data.records || []) {
@@ -159,8 +158,7 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
   try {
     const resp = await fetch(`${baseUrl}/recovery?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}&limit=25`, { headers });
     if (!resp.ok) {
-      const body = await resp.text();
-      console.error(`[WHOOP] Recovery API ${resp.status}: ${body}`);
+      console.error(`[WHOOP] Recovery API status ${resp.status}`);
     } else {
       const data = await resp.json();
       for (const rec of data.records || []) {
@@ -191,8 +189,7 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
   try {
     const resp = await fetch(`${baseUrl}/activity/sleep?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}&limit=25`, { headers });
     if (!resp.ok) {
-      const body = await resp.text();
-      console.error(`[WHOOP] Sleep API ${resp.status}: ${body}`);
+      console.error(`[WHOOP] Sleep API status ${resp.status}`);
     } else {
       const data = await resp.json();
       for (const sleep of data.records || []) {
@@ -235,8 +232,7 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
   try {
     const resp = await fetch(`${baseUrl}/activity/workout?start=${encodeURIComponent(startParam)}&end=${encodeURIComponent(endParam)}&limit=25`, { headers });
     if (!resp.ok) {
-      const body = await resp.text();
-      console.error(`[WHOOP] Workouts API ${resp.status}: ${body}`);
+      console.error(`[WHOOP] Workouts API status ${resp.status}`);
     } else {
       const data = await resp.json();
       for (const workout of data.records || []) {
@@ -252,11 +248,11 @@ async function syncWhoop(accessToken: string, userId: string, supabase: any) {
   } catch (e) { console.error("[WHOOP] Workouts fetch error:", e); }
 
   // ── 5. Normalize into health_sync_data from in-memory dayMap ──
-  console.log(`[WHOOP] Sync counts — cycles:${counts.cycles} recoveries:${counts.recoveries} sleeps:${counts.sleeps} workouts:${counts.workouts}`);
-  console.log(`[WHOOP] dayMap dates: ${Object.keys(dayMap).join(", ")}`);
+
+
 
   for (const [date, data] of Object.entries(dayMap)) {
-    console.log(`[WHOOP] Normalizing ${date}:`, JSON.stringify(data));
+
     await supabase.from("health_sync_data").upsert({
       user_id: userId,
       sync_date: date,

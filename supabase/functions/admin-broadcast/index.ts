@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
           });
           sent++;
         } catch (err) {
-          console.error(`[BROADCAST] Failed to send to ${recipient.email}:`, err);
+          console.error("[BROADCAST] Delivery failed");
           failed++;
         }
       }
