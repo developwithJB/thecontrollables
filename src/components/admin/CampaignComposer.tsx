@@ -1,3 +1,4 @@
+import {CampaignHtmlPreview} from "./CampaignHtmlPreview";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -382,12 +383,7 @@ export default function CampaignComposer() {
 
                   {/* HTML Preview */}
                   <div className="border rounded-lg overflow-hidden bg-white">
-                    <ScrollArea className="h-[400px]">
-                      <div
-                        className="p-0"
-                        dangerouslySetInnerHTML={{ __html: previewData.previewHtml }}
-                      />
-                    </ScrollArea>
+                    <CampaignHtmlPreview html={previewData.previewHtml} />
                   </div>
                 </div>
               ) : (

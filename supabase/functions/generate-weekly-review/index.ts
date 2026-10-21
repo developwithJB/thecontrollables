@@ -1,3 +1,4 @@
+import {paidHostedFeatureDenial} from "../_shared/hostedAiBudget.ts";
 import { hostedGateway } from "../_shared/hostedGateway.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
@@ -36,7 +37,8 @@ Deno.serve(async (req) => {
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {auth:{persistSession:false,autoRefreshToken:false}}
     );
 
     const token = authHeader.replace('Bearer ', '');
@@ -50,8 +52,12 @@ Deno.serve(async (req) => {
     const userId = userData.user.id;
     const serviceClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {auth:{persistSession:false,autoRefreshToken:false}}
     );
+
+    const paidDenial=await paidHostedFeatureDenial((name,args)=>serviceClient.rpc(name,args),userId);
+    if(paidDenial)return new Response(JSON.stringify({error:paidDenial.code,code:paidDenial.code}),{status:paidDenial.status,headers:{...corsHeaders,'Content-Type':'application/json'}});
 
     const { start, end, weekKey } = getWeekBounds();
 

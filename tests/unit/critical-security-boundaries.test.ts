@@ -32,7 +32,7 @@ describe("critical production security boundaries", () => {
     expect(insights).not.toContain("body.userId");
 
     const authCheck = insights.indexOf("await authClient.auth.getUser()");
-    const serviceClient = insights.indexOf("createClient(supabaseUrl, supabaseServiceKey)");
+    const serviceClient = insights.search(/createClient\(\s*supabaseUrl,\s*supabaseServiceKey/);
     const behavioralQuery = insights.indexOf('.from("daily_checkins")');
     expect(authCheck).toBeGreaterThan(-1);
     expect(authCheck).toBeLessThan(serviceClient);
@@ -47,7 +47,7 @@ describe("critical production security boundaries", () => {
     expect(snapshotInsights).toContain('.eq("user_id", userId)');
 
     const authCheck = snapshotInsights.indexOf("await authClient.auth.getUser()");
-    const serviceClient = snapshotInsights.indexOf("createClient(supabaseUrl, supabaseServiceKey)");
+    const serviceClient = snapshotInsights.search(/createClient\(\s*supabaseUrl,\s*supabaseServiceKey/);
     expect(authCheck).toBeGreaterThan(-1);
     expect(authCheck).toBeLessThan(serviceClient);
     expect(functionConfig).toMatch(/\[functions\.generate-snapshot-insight\]\s+verify_jwt = true/);

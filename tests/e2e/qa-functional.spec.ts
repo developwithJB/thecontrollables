@@ -1,3 +1,6 @@
+import React from "react";
+import {renderToStaticMarkup} from "react-dom/server";
+import {CampaignHtmlPreview} from "../../src/components/admin/CampaignHtmlPreview";
 import { test, expect } from "@playwright/test";
 test.use({reducedMotion:"reduce"});
 async function settled(page: import("@playwright/test").Page, selector:string){ await expect.poll(()=>page.locator(selector).evaluate(el=>{let opacity=1;for(let n:Element|null=el;n;n=n.parentElement)opacity*=Number(getComputedStyle(n).opacity);return opacity;})).toBe(1); }
@@ -40,4 +43,17 @@ test("legacy daily and weekly surfaces identify personal reports without calling
   await expect(page.getByText("Based on your personal reports. This does not verify effort or award strict 75-day credit.",{exact:true}).first()).toBeVisible();
  }
  expect(outbound.some(path=>path.includes("send-push-nudge")||path.includes("send-daily-nudge"))).toBe(false);
+});
+
+test("campaign preview blocks markup scripts and parent-origin access",async({page})=>{
+ const attack=`<p>Preview text</p><script>parent.postMessage("campaign-attack","*")</script><img src="/preview-fail" onerror='parent.postMessage("campaign-attack","*")'>`;
+ const markup=renderToStaticMarkup(React.createElement(CampaignHtmlPreview,{html:attack}));
+ await page.route("**/__campaign-preview-test",route=>route.fulfill({contentType:"text/html",body:'<script>window.__campaignAttack=false;addEventListener("message",e=>{if(e.data==="campaign-attack")window.__campaignAttack=true})</script>'+markup}));
+ await page.route("**/preview-fail",route=>route.abort());
+ await page.goto("/__campaign-preview-test");
+ const frame=page.frameLocator('iframe[title="Campaign email preview"]');await expect(frame.getByText("Preview text",{exact:true})).toBeVisible();
+ const child=page.frames().find(f=>f.parentFrame());await child?.waitForLoadState("load");
+ expect(await page.evaluate(()=>Reflect.get(window,"__campaignAttack"))).toBe(false);
+ expect(await page.locator('iframe').getAttribute('sandbox')).toBe("");
+ expect(await page.evaluate(()=>document.querySelector('iframe')?.contentDocument===null)).toBe(true);
 });
