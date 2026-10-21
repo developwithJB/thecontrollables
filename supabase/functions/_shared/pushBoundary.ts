@@ -45,3 +45,28 @@ export async function pushServiceAuthorized(
     ) === 0
   );
 }
+
+/** Calendar-day context for the recipient, including DST and UTC boundaries. */
+export function countLocalPushActions(
+  actions: readonly { user_id: string; completed_at: string }[],
+  zones: ReadonlyMap<string, string | null>,
+  now = new Date(),
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const action of actions) {
+    try {
+      const zone = zones.get(action.user_id) || "America/New_York";
+      const format = new Intl.DateTimeFormat("sv-SE", { timeZone: zone });
+      const completed = new Date(action.completed_at);
+      if (
+        completed.getTime() > now.getTime() ||
+        format.format(completed) !== format.format(now)
+      )
+        continue;
+      counts.set(action.user_id, (counts.get(action.user_id) || 0) + 1);
+    } catch {
+      /* An invalid stored zone/date must not affect another user's count. */
+    }
+  }
+  return counts;
+}

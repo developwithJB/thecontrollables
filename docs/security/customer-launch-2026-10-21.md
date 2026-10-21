@@ -116,3 +116,11 @@ Sanitized evidence: [sandbox Apple Pay](evidence-2026-10-21/sandbox-wallet.json)
 | Leaked-password protection | Enabled through the existing auth setting; no password or session changes |
 
 The basic scan is clear. The fresh deeper scan completed with0critical/8warnings; the final follow-up in PR88 addresses the actionable new paths. Two historical-policy references are superseded by effective deployed grants, and manual ring history is explicitly non-authoritative personal reporting. Findings were not ignored or suppressed. Final00500/three-function deployment readback follows when available. Build-tool advisory80, the lint backlog, strict-content review, YouVersion permission and morning-email readiness remain distinct known limitations.
+
+## Final managed readback and sender cleanup
+
+Lovable applied00500 exactly once and deployed only send-push-nudge,ai-chat,send-daily-nudge from reviewed9da98b9. Basic scan returned no findings; live anonymous sending returned401 and public-key lookup200 without delivery. Effective XP/certificate mutation grants are denied; circle claims/progress permissions match the reviewed SQL. Existing owner access and allowance rules remain intact. Two active cron jobs exist with zero push-named jobs; secret-access protection blocked inspection of actual command/auth types, so push automation is **not delivery-verified**. No credential/job was created or scope expanded; anonymous runners fail closed.
+
+Managed tests passed assertions but exposed refresh timers. The follow-up sets the push service client to non-persistent, non-refreshing server auth. Push context counts each recipient’s local date, not UTC. Push delivery claims also stay entirely separate from email delivery logs, so a push cannot occupy the morning email’s unique receipt. The sender’s allowed-path test encrypts a synthetic notification and intercepts the vendor POST; no real notification was sent.
+
+The native release branch added a byte-identical00500 Drizzle transport file plus an empty snapshot/journal entry. This reviewed merge keeps managed database types and native history while removing only the duplicate transport artifacts, with no SQL replay. All canonical migrations remain in Supabase.
