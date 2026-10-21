@@ -1,3 +1,4 @@
+import {trustedOAuthMessage} from "@/lib/oauthReturn";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -112,7 +113,8 @@ export function useConnectProvider() {
           reject(new Error("OAuth timed out. Please try again."));
         }, 5 * 60 * 1000); // 5 minute timeout
 
-        const messageHandler = (event: MessageEvent) => {
+        const messageHandler = async (event: MessageEvent) => {
+          if(!trustedOAuthMessage(event,window.location.origin,popup)||event.data?.provider!==provider)return;
           if (event.data?.type === "oauth-complete") {
             clearTimeout(timeout);
             window.removeEventListener("message", messageHandler);
@@ -121,6 +123,8 @@ export function useConnectProvider() {
             if (event.data.error) {
               reject(new Error(event.data.error));
             } else {
+              const {data:connection,error:connectionError}=await supabase.from("integration_connections").select("id").eq("provider",provider).eq("status","active").maybeSingle();
+              if(connectionError||!connection){reject(new Error("Connection could not be verified. Please reconnect."));return}
               toast({
                 title: "Connected!",
                 description: `${PROVIDER_META[event.data.provider as Provider]?.name || provider} has been connected.`,

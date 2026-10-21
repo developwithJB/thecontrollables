@@ -1,3 +1,4 @@
+import {issueOAuthState} from "../_shared/oauthState.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -51,7 +52,7 @@ Deno.serve(async (req) => {
     }
     const userId = user.id;
 
-    const { provider, redirectUri } = await req.json();
+    const { provider } = await req.json();
     const config = PROVIDER_CONFIG[provider];
     if (!config) {
       return new Response(JSON.stringify({ error: `Unknown provider: ${provider}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -64,7 +65,7 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const callbackUrl = `${supabaseUrl}/functions/v1/integration-oauth-callback`;
-    const state = btoa(JSON.stringify({ provider, userId, redirectUri, popup: true }));
+    const state = await issueOAuthState(String(userId),provider,req.headers.get("origin"));
 
     let authUrl: string;
 

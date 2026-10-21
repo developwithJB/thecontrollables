@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {receiveOAuth,oauthHeaders} from "../_shared/oauthState.ts";
 
 const TOKEN_ENDPOINTS: Record<string, string> = {
   google_calendar: "https://oauth2.googleapis.com/token",
@@ -12,65 +12,15 @@ const CLIENT_ENV: Record<string, { id: string; secret: string }> = {
   instagram: { id: "INSTAGRAM_APP_ID", secret: "INSTAGRAM_APP_SECRET" },
 };
 
-/** Build an HTML page that tries postMessage → window.close → redirect fallback */
-function popupResultPage(provider: string, redirectUri: string, error?: string) {
-  const isError = !!error;
-  const icon = isError ? "❌" : "✅";
-  const heading = isError ? "Connection Failed" : "Connected!";
-  const subtitle = isError
-    ? (error || "").replace(/_/g, " ")
-    : "Redirecting back…";
-  const paramKey = isError ? "integration_error" : "integration_success";
-  const paramVal = isError ? (error || "unknown") : provider;
-  const fallbackUrl = `${redirectUri}?${paramKey}=${encodeURIComponent(paramVal)}`;
-
-  return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f8f9fa;color:#333;text-align:center}.msg{padding:2rem;max-width:320px}h2{margin:0 0 .5rem}p{color:${isError ? "#c00" : "#666"};font-size:.9rem}a{display:inline-block;margin-top:1rem;color:#0066cc;text-decoration:underline;font-size:.85rem}</style></head><body><div class="msg"><h2>${icon} ${heading}</h2><p>${subtitle}</p><a href="${fallbackUrl}" id="fallback" style="display:none">Tap here if not redirected</a></div><script>
-(function(){
-  var sent=false;
-  try{if(window.opener){window.opener.postMessage({type:"oauth-complete",provider:"${provider}"${isError ? ',error:"' + (error || "") + '"' : ""}},"*");sent=true;}}catch(e){}
-  // Try closing the popup after a short delay
-  setTimeout(function(){try{window.close()}catch(e){}},800);
-  // If still open after 1.5s, show fallback link and redirect
-  setTimeout(function(){
-    document.getElementById("fallback").style.display="inline-block";
-    if(!sent){window.location.href="${fallbackUrl}";}
-  },1500);
-})();
-</script></body></html>`;
-}
-
 Deno.serve(async (req) => {
+  const headers=oauthHeaders(req);
+  const failure=(reason:string)=>new Response(JSON.stringify({error:reason}),{status:400,headers});
   try {
-    const url = new URL(req.url);
-    const code = url.searchParams.get("code");
-    const stateRaw = url.searchParams.get("state");
-    const error = url.searchParams.get("error");
-
-    if (error || !code || !stateRaw) {
-      const parsedState = stateRaw ? JSON.parse(atob(stateRaw)) : {};
-      const redirectUri = parsedState.redirectUri || "/integrations";
-      const errorMsg = error || "missing_code";
-      if (parsedState.popup) {
-        return new Response(
-          popupResultPage(parsedState.provider || "", redirectUri, errorMsg),
-          { headers: { "Content-Type": "text/html" } }
-        );
-      }
-      return new Response(null, {
-        status: 302,
-        headers: { Location: `${redirectUri}?integration_error=${errorMsg}` },
-      });
-    }
-
-    const { provider, userId, redirectUri, popup } = JSON.parse(atob(stateRaw));
+    const completion=await receiveOAuth(req,"integration");
+    if("response" in completion)return completion.response;
+    const {admin:serviceClient,userId,provider,code}=completion;
     const envKeys = CLIENT_ENV[provider];
-    if (!envKeys) {
-      const msg = `unsupported_provider_${provider}`;
-      if (popup) {
-        return new Response(popupResultPage(provider, redirectUri || "/integrations", msg), { headers: { "Content-Type": "text/html" } });
-      }
-      return new Response(null, { status: 302, headers: { Location: `${redirectUri || "/integrations"}?integration_error=${msg}` } });
-    }
+    if (!envKeys)return failure("invalid_provider");
     const clientId = Deno.env.get(envKeys.id)!;
     const clientSecret = Deno.env.get(envKeys.secret)!;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -121,15 +71,7 @@ Deno.serve(async (req) => {
       tokenData = await res.json();
     }
 
-    if (tokenData.error) {
-      console.error("Token exchange error:", tokenData);
-      const rd = redirectUri || "/integrations";
-      if (popup) {
-        return new Response(popupResultPage(provider, rd, "token_exchange_failed"), { headers: { "Content-Type": "text/html" } });
-      }
-      return new Response(null, { status: 302, headers: { Location: `${rd}?integration_error=token_exchange_failed` } });
-    }
-
+    if(tokenData.error || !tokenData.access_token)return failure("token_exchange_failed");
     const accessToken = tokenData.access_token;
     const refreshToken = tokenData.refresh_token || null;
     const expiresIn = tokenData.expires_in;
@@ -163,11 +105,6 @@ Deno.serve(async (req) => {
       scopes = (tokenData.scope || "").split(" ");
     }
 
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
     const { error: upsertError } = await serviceClient
       .from("integration_connections")
       .upsert({
@@ -184,29 +121,9 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id,provider" });
 
-    if (upsertError) {
-      console.error("Upsert error:", upsertError);
-      const rd = redirectUri || "/integrations";
-      if (popup) {
-        return new Response(popupResultPage(provider, rd, "save_failed"), { headers: { "Content-Type": "text/html" } });
-      }
-      return new Response(null, { status: 302, headers: { Location: `${rd}?integration_error=save_failed` } });
-    }
-
-    const rd = redirectUri || "/integrations";
-    if (popup) {
-      return new Response(popupResultPage(provider, rd), { headers: { "Content-Type": "text/html" } });
-    }
-
-    return new Response(null, {
-      status: 302,
-      headers: { Location: `${rd}?integration_success=${provider}` },
-    });
-  } catch (err) {
-    console.error("integration-oauth-callback error:", err);
-    return new Response(null, {
-      status: 302,
-      headers: { Location: "/integrations?integration_error=unexpected" },
-    });
+    if(upsertError)return failure("save_failed");
+    return new Response(JSON.stringify({provider}),{headers});
+  } catch {
+    return new Response(JSON.stringify({error:"connection_failed"}),{status:500,headers});
   }
 });

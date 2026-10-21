@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import {trustedOAuthMessage} from "@/lib/oauthReturn";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Calendar, CheckCircle, Loader2 } from "lucide-react";
@@ -13,11 +14,15 @@ interface OnboardingCalendarConnectProps {
 export function OnboardingCalendarConnect({ onConnected, onSkip }: OnboardingCalendarConnectProps) {
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
+  const popupRef=useRef<Window|null>(null);
 
   // Listen for OAuth popup callback
-  const handleMessage = useCallback((event: MessageEvent) => {
-    if (event.data?.type === "oauth-callback" && event.data?.provider === "google_calendar") {
+  const handleMessage = useCallback(async (event: MessageEvent) => {
+    if(!trustedOAuthMessage(event,window.location.origin,popupRef.current))return;
+    if (event.data?.type === "oauth-complete" && event.data?.provider === "google_calendar") {
       if (event.data?.success) {
+        const {data,error}=await supabase.from("integration_connections").select("id").eq("provider","google_calendar").eq("status","active").maybeSingle();
+        if(error||!data){toast.error("Connection could not be verified. Please reconnect.");setConnecting(false);return}
         setConnected(true);
         setConnecting(false);
       } else {
@@ -57,7 +62,7 @@ export function OnboardingCalendarConnect({ onConnected, onSkip }: OnboardingCal
       const w = 500, h = 600;
       const left = window.screenX + (window.innerWidth - w) / 2;
       const top = window.screenY + (window.innerHeight - h) / 2;
-      window.open(data.url, "gcal-connect", `width=${w},height=${h},left=${left},top=${top}`);
+      popupRef.current=window.open(data.url, "gcal-connect", `width=${w},height=${h},left=${left},top=${top}`);
     } catch {
       toast.error("Failed to connect");
       setConnecting(false);

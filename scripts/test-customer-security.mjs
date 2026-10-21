@@ -156,6 +156,18 @@ try {
     const rows=await sql.begin(async tx=>{await tx`SET LOCAL ROLE authenticated`;await tx`SELECT set_config('request.jwt.claim.sub',${owner},true)`;return tx`SELECT name FROM storage.objects`});
     assert.deepEqual(rows.map(r=>r.name),[owner+'/own.svg']);
   });
+  await sql`CREATE TABLE auth.users(id uuid PRIMARY KEY)`;await sql`INSERT INTO auth.users VALUES(${owner}),(${other})`;
+  const oauth=readFileSync('supabase/migrations/20261021000300_oauth_state_requests.sql','utf8');
+  await check('OAuth migration is idempotent and client state reads/writes are denied',async()=>{
+    await sql.unsafe(oauth);await sql.unsafe(oauth);
+    for(const role of ['anon','authenticated'])await assert.rejects(sql.begin(async tx=>{await tx.unsafe('SET LOCAL ROLE '+role);await tx`SELECT * FROM oauth_state_requests`}),/permission denied/);
+  });
+  await sql`INSERT INTO oauth_state_requests VALUES(${'d'.repeat(64)},${owner},'fitbit','https://thedashboard.agbcoaching.com',now()+interval '10 minutes')`;
+  await check('OAuth nonce is owner-bound and consumed only once concurrently',async()=>{
+    const foreign=await sql`DELETE FROM oauth_state_requests WHERE state_hash=${'d'.repeat(64)} AND user_id=${other} RETURNING provider`;assert.equal(foreign.length,0);
+    const results=await Promise.all([1,2].map(()=>sql.begin(async tx=>{await tx`SET LOCAL ROLE service_role`;return tx`DELETE FROM oauth_state_requests WHERE state_hash=${'d'.repeat(64)} AND user_id=${owner} AND expires_at>now() RETURNING provider`})));
+    assert.equal(results.reduce((n,r)=>n+r.length,0),1);
+  });
   console.log(`${passed} security database checks passed`);
 } finally {
   await sql?.end();

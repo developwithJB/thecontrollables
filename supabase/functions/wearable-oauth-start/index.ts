@@ -1,3 +1,4 @@
+import {issueOAuthState} from "../_shared/oauthState.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -27,17 +28,11 @@ Deno.serve(async (req) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const {data:{user},error:userError}=await supabase.auth.getUser(token);
+    if(userError||!user)return new Response(JSON.stringify({error:"Unauthorized"}),{status:401,headers:corsHeaders});
+    const userId=user.id;
 
-    const userId = claimsData.claims.sub;
-
-    const { provider, redirect_uri } = await req.json();
+    const { provider } = await req.json();
 
     if (!provider || !["fitbit", "oura", "whoop"].includes(provider)) {
       return new Response(JSON.stringify({ error: "Invalid provider" }), {
@@ -46,7 +41,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const state = btoa(JSON.stringify({ user_id: userId, provider }));
+    const state = await issueOAuthState(String(userId),provider,req.headers.get("origin"));
     const callbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/wearable-oauth-callback`;
 
     let authUrl: string;

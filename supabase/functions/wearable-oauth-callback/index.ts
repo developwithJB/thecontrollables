@@ -1,32 +1,12 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {receiveOAuth,oauthHeaders} from "../_shared/oauthState.ts";
 
 Deno.serve(async (req) => {
   try {
-    const url = new URL(req.url);
-    const code = url.searchParams.get("code");
-    const stateParam = url.searchParams.get("state");
-    const error = url.searchParams.get("error");
-
-    const appUrl = Deno.env.get("APP_URL") || "https://thecontrollables.lovable.app";
-
-    if (error || !code || !stateParam) {
-      return new Response(null, {
-        status: 302,
-        headers: { Location: `${appUrl}/wellness?wearable_error=${error || "missing_code"}` },
-      });
-    }
-
-    let state: { user_id: string; provider: string };
-    try {
-      state = JSON.parse(atob(stateParam));
-    } catch {
-      return new Response(null, {
-        status: 302,
-        headers: { Location: `${appUrl}/wellness?wearable_error=invalid_state` },
-      });
-    }
-
-    const { user_id, provider } = state;
+    const completion=await receiveOAuth(req,"wearable");
+    if("response" in completion)return completion.response;
+    const {admin:supabase,userId:user_id,provider,code}=completion;
+    const headers=oauthHeaders(req);
+    const failure=(reason:string)=>new Response(JSON.stringify({error:reason}),{status:400,headers});
     const callbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/wearable-oauth-callback`;
 
     let tokenData: { access_token: string; refresh_token: string; expires_in: number; scope?: string };
@@ -49,12 +29,8 @@ Deno.serve(async (req) => {
       });
 
       if (!resp.ok) {
-        const errBody = await resp.text();
-        console.error("Fitbit token error:", errBody);
-        return new Response(null, {
-          status: 302,
-          headers: { Location: `${appUrl}/wellness?wearable_error=token_exchange_failed` },
-        });
+        console.error("Fitbit token exchange failed");
+        return failure("token_exchange_failed");
       }
 
       tokenData = await resp.json();
@@ -75,12 +51,8 @@ Deno.serve(async (req) => {
       });
 
       if (!resp.ok) {
-        const errBody = await resp.text();
-        console.error("Oura token error:", errBody);
-        return new Response(null, {
-          status: 302,
-          headers: { Location: `${appUrl}/wellness?wearable_error=token_exchange_failed` },
-        });
+        console.error("Oura token exchange failed");
+        return failure("token_exchange_failed");
       }
 
       tokenData = await resp.json();
@@ -101,28 +73,16 @@ Deno.serve(async (req) => {
       });
 
       if (!resp.ok) {
-        const errBody = await resp.text();
-        console.error("WHOOP token error:", errBody);
-        return new Response(null, {
-          status: 302,
-          headers: { Location: `${appUrl}/wellness?wearable_error=token_exchange_failed` },
-        });
+        console.error("WHOOP token exchange failed");
+        return failure("token_exchange_failed");
       }
 
       tokenData = await resp.json();
     } else {
-      return new Response(null, {
-        status: 302,
-        headers: { Location: `${appUrl}/wellness?wearable_error=invalid_provider` },
-      });
+      return failure("invalid_provider");
     }
 
-    // Store tokens using service role
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
+    if(!tokenData.access_token || !Number.isFinite(tokenData.expires_in) || tokenData.expires_in<=0)return failure("invalid_token_response");
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
 
     // Build metadata — for WHOOP, fetch profile to get whoop_user_id
@@ -164,22 +124,11 @@ Deno.serve(async (req) => {
 
     if (upsertError) {
       console.error("DB upsert error:", upsertError);
-      return new Response(null, {
-        status: 302,
-        headers: { Location: `${appUrl}/wellness?wearable_error=db_error` },
-      });
+      return failure("db_error");
     }
 
-    return new Response(null, {
-      status: 302,
-      headers: { Location: `${appUrl}/wellness?wearable_connected=${provider}` },
-    });
-  } catch (err) {
-    console.error("wearable-oauth-callback error:", err);
-    const appUrl = Deno.env.get("APP_URL") || "https://thecontrollables.lovable.app";
-    return new Response(null, {
-      status: 302,
-      headers: { Location: `${appUrl}/wellness?wearable_error=internal` },
-    });
+    return new Response(JSON.stringify({provider}),{headers});
+  } catch {
+    return new Response(JSON.stringify({error:"connection_failed"}),{status:500,headers:oauthHeaders(req)});
   }
 });
