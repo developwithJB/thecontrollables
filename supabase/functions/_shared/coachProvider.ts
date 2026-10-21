@@ -52,7 +52,7 @@ export function assembleCoachPrompt(
 export function createCoachProvider(
   credential: CoachCredential | null,
   gatewayKey: string,
-  request: typeof fetch = fetch,
+  request: typeof fetch,
 ): CoachProvider {
   const id = credential?.provider ?? "lovable_gateway";
   if (
@@ -98,7 +98,7 @@ export function createCoachProvider(
                 .map(({ role, content }) => ({ role, content })),
             }
           : {
-              model: credential?.model ?? "google/gemini-2.5-flash",
+              model: credential?.model ?? "google/gemini-3.1-flash-lite",
               messages,
               ...(id === "openai_compatible" &&
               credential?.baseUrl === COACH_BASE_URLS.openai

@@ -220,6 +220,7 @@ export default function Landing() {
         <Logo />
         <div className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
           <a href="#try-a-practice" className="transition-colors hover:text-foreground">How it works</a>
+          <Link to="/pricing" className="transition-colors hover:text-foreground">Pricing</Link>
           <a href="#paths" className="transition-colors hover:text-foreground">Paths</a>
           <a href="#fully-charged-75" className="transition-colors hover:text-foreground">75 days</a>
           <a href="#privacy" className="transition-colors hover:text-foreground">Privacy & recovery</a>
@@ -450,6 +451,7 @@ export default function Landing() {
         <div className="mx-auto mb-6 max-w-2xl"><ProjectFeedbackNote /></div>
         <p className="text-xs text-muted-foreground">The Dashboard from The Controllables · Private daily formation</p>
         <p className="mt-2 text-xs text-muted-foreground/70">
+          <Link to="/pricing" className="hover:text-foreground hover:underline">Pricing</Link>{" · "}
           <Link to="/privacy" className="hover:text-foreground hover:underline">Privacy</Link>
           {" · "}
           <Link to="/terms" className="hover:text-foreground hover:underline">Terms</Link>

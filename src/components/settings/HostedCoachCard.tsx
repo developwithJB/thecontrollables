@@ -43,10 +43,9 @@ export function HostedCoachCard({ userId }: { userId: string }) {
     >
       <h3 className="font-medium">Hosted coach</h3>
       <p className="text-sm">Included with Pro</p>
-      {price ? <p className="text-sm">{price}</p> : null}
+      {price && !query.data.entitled ? <p className="text-sm">{price}</p> : null}
       <p className="text-xs text-muted-foreground">
-        Use the app’s coach without bringing an API key. Pro’s daily chat limit
-        applies. Coaching supports your practice; you still complete every
+        Use the app’s coach without bringing an API key. Up to 200 standard text replies per month, 10/day, subject to the shared AI allowance. Coaching supports your practice; you still complete every
         circuit and close each day yourself.
       </p>
       {query.data.selected ? (

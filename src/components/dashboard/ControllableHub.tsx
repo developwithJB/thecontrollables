@@ -1,6 +1,8 @@
+import { useHostedAiAllowance } from "@/hooks/useHostedAiAllowance";
+import { AiAllowancePanel } from "@/components/billing/AiAllowancePanel";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Send, Zap, Loader2, UtensilsCrossed } from "lucide-react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { Send, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,6 +52,9 @@ interface ControllableHubProps {
 }
 
 export const ControllableHub = ({ userId, completedCount, onNavigate }: ControllableHubProps) => {
+  const allowance = useHostedAiAllowance(userId);
+  const reducedMotion=useReducedMotion();
+  const chatScrollRef=useRef<HTMLDivElement>(null);
   const [activeControllable, setActiveControllable] = useState<ControllableType | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -62,7 +67,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
   const activeProfile = activeControllable ? getControllableRosterProfile(activeControllable) : null;
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    chatScrollRef.current?.scrollTo({top:chatScrollRef.current.scrollHeight,behavior:"auto"});
   }, [messages]);
 
   useEffect(() => {
@@ -87,6 +92,10 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
 
   const sendMessage = useCallback(async (text: string, controllable: ControllableType) => {
     if (!text.trim() || isLoading) return;
+    const a=allowance.data;
+    if (!a || (a.byoActive ? a.byoRemaining<=0 : !a.enabled || a.repliesRemaining<=0 || a.dailyRemaining<=0 || a.budgetPercentRemaining<=0)) {
+      toast({title:"Check your AI allowance",description:"Visit Billing for your limits and provider settings. Daily practice stays available."});return;
+    }
 
     setActiveControllable(controllable);
     const userMessage: ChatMessage = { role: "user", content: text.trim() };
@@ -95,10 +104,6 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
     setMessages(newMessages);
     setInput("");
     setIsLoading(true);
-
-    const isFoodLog =
-      controllable === "wellness" &&
-      /\b(log|ate|had|eat|lunch|dinner|breakfast|snack|steak|chicken|eggs|rice|salad|meal)\b/i.test(text);
 
     try {
       const { data, error } = await supabase.functions.invoke("ai-chat", {
@@ -111,38 +116,27 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        const context=(error as {context?:Response}).context;
+        if(context?.status===429) throw new Error("AI allowance reached or temporarily unavailable. See Billing for usage and reset details.");
+        throw new Error("The coach could not connect. Your practices remain available.");
+      }
 
       const reply = data?.reply || data?.message || "I'm here. Could you tell me a little more?";
       setMessages((previous) => [...previous, { role: "assistant", content: reply }]);
 
-      if (isFoodLog) {
-        toast({
-          title: "Meal logged",
-          description: "Wellness has the latest fuel check.",
-          action: onNavigate ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1 h-7 text-xs"
-              onClick={() => onNavigate("meal-tracker")}
-            >
-              <UtensilsCrossed className="w-3 h-3" />
-              View Meals
-            </Button>
-          ) : undefined,
-        });
-      }
+
     } catch (error) {
       console.error("Chat error:", error);
       setMessages((previous) => [
         ...previous,
-        { role: "assistant", content: "Sorry, I couldn't process that. Try again?" },
+        { role: "assistant", content: error instanceof Error ? error.message : "The coach could not connect. Please check Billing." },
       ]);
     } finally {
+      void allowance.refetch();
       setIsLoading(false);
     }
-  }, [isLoading, messages, onNavigate, toast]);
+  }, [isLoading, messages, toast, allowance]);
 
   const handleSend = useCallback(() => {
     if (!input.trim()) return;
@@ -214,13 +208,14 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
+      initial={reducedMotion ? false : { opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       className="flex flex-col items-center py-4"
     >
+      <AiAllowancePanel compact allowance={allowance.data} unavailable={allowance.isError}/>
       {completedCount > 0 && !hasConversation && (
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
+          initial={reducedMotion ? false : { opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-1 text-xs text-muted-foreground mb-3"
         >
@@ -247,10 +242,10 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
               return (
                 <motion.button
                   key={controllable}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={reducedMotion ? false : { opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.04 }}
-                  whileTap={{ scale: 0.98 }}
+                  transition={{ delay: reducedMotion ? 0 : index * 0.04, duration:reducedMotion?0:0.2 }}
+                  whileTap={reducedMotion ? undefined : { scale: 0.98 }}
                   onClick={() => setActiveControllable(controllable)}
                   className={cn(
                     "w-full rounded-xl border px-3 py-3 text-left transition-all",
@@ -284,7 +279,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
 
       {hasConversation && activeTheme && activeProfile && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
+          initial={reducedMotion ? false : { opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           className="mb-3 flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5"
         >
@@ -296,12 +291,12 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
       )}
 
       {hasConversation && (
-        <div className="w-full max-w-sm space-y-2 max-h-[280px] overflow-y-auto px-1 mb-3 scrollbar-thin">
+        <div ref={chatScrollRef} className="w-full max-w-sm space-y-2 max-h-[280px] overflow-y-auto px-1 mb-3 scrollbar-thin">
           <AnimatePresence initial={false}>
             {messages.map((message, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 10 }}
+                initial={reducedMotion ? false : { opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={cn(
                   "text-sm px-3 py-2 rounded-xl max-w-[85%]",
@@ -317,7 +312,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
 
           {isLoading && (
             <motion.div
-              initial={{ opacity: 0 }}
+              initial={reducedMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
               className="flex items-center gap-2 text-xs text-muted-foreground px-3 py-2"
             >
@@ -337,9 +332,9 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
             {SUGGESTED_PROMPTS.map((suggestion, index) => (
               <motion.button
                 key={`${suggestion.controllable}-${index}`}
-                initial={{ opacity: 0, x: -10 }}
+                initial={reducedMotion ? false : { opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                whileTap={{ scale: 0.97 }}
+                whileTap={reducedMotion ? undefined : { scale: 0.97 }}
                 onClick={() => handleSuggestion(suggestion)}
                 className="flex items-center gap-2 text-left px-3 py-2.5 rounded-xl border border-border/50 bg-card hover:border-accent/50 hover:bg-accent/5 transition-colors text-sm"
               >
@@ -352,6 +347,8 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
 
       <div className="w-full max-w-sm flex gap-2 px-1">
         <Textarea
+          aria-label="Message to your coach"
+          maxLength={4000}
           ref={textareaRef}
           value={input}
           onChange={(event) => setInput(event.target.value)}
@@ -362,6 +359,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
           disabled={isLoading}
         />
         <Button
+          aria-label="Send message"
           size="icon"
           className="h-[44px] w-[44px] shrink-0 self-end"
           onClick={handleSend}
@@ -370,6 +368,8 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
           <Send className="w-4 h-4" />
         </Button>
       </div>
+
+      {hasConversation&&<Button variant="outline" className="mt-3 min-h-11" disabled={isLoading} onClick={()=>{setMessages([]);setInput("");setActiveControllable(null);}}>New conversation</Button>}
 
       {!hasConversation && (
         <p className="text-[10px] text-muted-foreground/60 mt-1.5">

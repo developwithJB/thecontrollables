@@ -59,7 +59,7 @@ describe("coach provider boundary", () => {
     expect(provider.id).toBe("lovable_gateway");
     expect(url).toBe("https://ai.gateway.lovable.dev/v1/chat/completions");
     expect(JSON.parse(options.body as string)).toMatchObject({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3.1-flash-lite",
       max_tokens: 600,
       temperature: 0.7,
       tools: [{ type: "function" }],
@@ -197,7 +197,7 @@ describe("coach provider boundary", () => {
     }
   });
   it("is default off, while local visibility cannot authorize the server", () => {
-    expect(DEFAULT_FEATURE_FLAGS.coach_providers_enabled).toBe(false);
+    expect(DEFAULT_FEATURE_FLAGS.coach_providers_enabled).toBe(true);
     expect(
       getFeatureFlags({ coach_providers_enabled: true })
         .coach_providers_enabled,

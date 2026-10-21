@@ -8,7 +8,7 @@ import {
   type FeatureFlagKey,
   type FeatureFlagProvider,
 } from "../../src/lib/featureFlags";
-import { PRICE_IDS } from "../../src/lib/pricing";
+import { CHECKOUT_PLANS } from "../../src/lib/pricing";
 
 const buildProvider = (
   values: Partial<Record<FeatureFlagKey, unknown>>
@@ -37,8 +37,8 @@ describe("featureFlags", () => {
     );
 
     expect(getFeatureFlags()).toEqual({
-      hosted_coach_enabled: false,
-      coach_providers_enabled: false,
+      hosted_coach_enabled: true,
+      coach_providers_enabled: true,
       server_book_loop_enabled: true,
       onboarding_quick_start_enabled: false,
       formation_circuits_enabled: true,
@@ -65,7 +65,7 @@ describe("featureFlags", () => {
   });
 
   it("maps pricing model to checkout plan helper", () => {
-    const availablePlans = Object.keys(PRICE_IDS);
+    const availablePlans = [...CHECKOUT_PLANS];
 
     expect(availablePlans).toContain(getDefaultCheckoutPlan({ pricing_tier_model: "monthly_default" }));
     expect(availablePlans).toContain(getDefaultCheckoutPlan({ pricing_tier_model: "yearly_default" }));

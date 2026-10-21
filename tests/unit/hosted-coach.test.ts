@@ -35,19 +35,19 @@ describe("Pro hosted coach", () => {
       ).toBe("pro");
     },
   );
-  it("keeps rollout off and omits TBD from presentation", () => {
-    expect(DEFAULT_FEATURE_FLAGS.hosted_coach_enabled).toBe(false);
-    expect(HOSTED_COACH_PRICE_DISPLAY).toBe("TBD");
-    expect(getHostedCoachPriceDisplay()).toBeNull();
+  it("publishes the priced offer while server rollout remains authoritative", () => {
+    expect(DEFAULT_FEATURE_FLAGS.hosted_coach_enabled).toBe(true);
+    expect(HOSTED_COACH_PRICE_DISPLAY).toBe("$119.99/year or $14.99/month");
+    expect(getHostedCoachPriceDisplay()).toBe(HOSTED_COACH_PRICE_DISPLAY);
   });
   it("checks server selection and profile before reserving or making a paid request", () => {
     const edge = readFileSync("supabase/functions/ai-chat/index.ts", "utf8");
     expect(edge).toContain("personaSettings?.hosted_coach_selected === true");
     expect(edge).toContain("providerRollout?.hosted_coach_enabled === true");
     expect(edge.indexOf("hostedAccess === 'disabled'")).toBeLessThan(
-      edge.indexOf("reserve_hosted_coach_usage"),
+      edge.indexOf("createCoachProvider(credential"),
     );
-    expect(edge.indexOf("reserve_hosted_coach_usage")).toBeLessThan(
+    expect(edge.indexOf("createCoachProvider(credential")).toBeLessThan(
       edge.indexOf("provider.complete("),
     );
     expect(edge).not.toContain("user_metadata?.plan_tier");

@@ -12,7 +12,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { FutureChip, FutureHero, FuturePanel } from "@/components/ui/future";
@@ -143,6 +143,11 @@ export default function FormationToday() {
           <p className="mt-1 text-muted-foreground">Your existing data has not been changed. Refresh or try again later.</p>
         </div>
       ) : null}
+
+      <div className="flex flex-wrap gap-3 text-sm">
+        <Link to="/coach" className="inline-flex min-h-11 items-center text-primary underline">Optional AI coach</Link>
+        <Link to="/pricing" className="inline-flex min-h-11 items-center text-muted-foreground underline">Free, BYO & Pro plans</Link>
+      </div>
 
       <section aria-labelledby="daily-circuits-title">
         <div className="mb-3 flex items-end justify-between gap-3">

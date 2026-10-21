@@ -1,3 +1,4 @@
+import { hostedGateway } from "../_shared/hostedGateway.ts";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -671,17 +672,17 @@ function buildRulesResponse(context: any, today: string, mode: OrchestratorMode,
   };
 }
 
-function createLovableProvider(policy: ModelPolicy): AIProvider | null {
+function createLovableProvider(policy: ModelPolicy, userId: string): AIProvider | null {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey || !policy.model || policy.modelTier === "rules") return null;
 
   return {
     name: "lovable",
-    model: policy.model,
+    model: "google/gemini-3.1-flash-lite",
     modelTier: policy.modelTier,
     generateStructuredResponse: async (systemPrompt: string, userPrompt: string) => {
       const inputTokens = estimateTokens(`${systemPrompt}\n${userPrompt}`);
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const response = await hostedGateway(userId, "ai-orchestrator")("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -1297,7 +1298,7 @@ Deno.serve(async (req) => {
     }));
     const cacheKey = `${mode}:${today}:${policy.aiDepth}:${policy.modelTier}:${promptHash}`;
     const cachedStructured = await readCachedStructuredResponse(admin, userId, cacheKey);
-    const provider = createLovableProvider(policy);
+    const provider = createLovableProvider(policy, userId);
     let structured: StructuredResponse | null = null;
     let providerName = "rules";
     let model: string | null = null;

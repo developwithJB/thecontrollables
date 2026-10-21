@@ -6,23 +6,23 @@
  * - Pro ($119.99/yr)
  */
 
+import { CHECKOUT_OFFERS } from "../../supabase/functions/_shared/billingContract";
+export type { BillingInterval } from "../../supabase/functions/_shared/billingContract";
 export type PlanTier = "plus" | "pro";
 export type PlanType = PlanTier;
 
-// Stripe Price IDs (Production)
-export const PRICE_IDS: Record<PlanTier, string> = {
-  plus: "price_1Sty3RIrFORWV7K4lF4DZhPV",
-  pro: "price_1Sty37IrFORWV7K43PkIVSJx",
-} as const;
+// Offer names only. Never embed a Stripe price ID in the browser bundle.
+export const CHECKOUT_PLANS = ["plus", "pro"] as const;
 
 export const PRICING = {
   plus: {
-    annual: 79.99,
+    annual: CHECKOUT_OFFERS.plus.year.amount / 100,
     monthlyEquivalent: 6.67,
   },
   pro: {
-    annual: 119.99,
-    monthlyEquivalent: 9.99,
+    annual: CHECKOUT_OFFERS.pro.year.amount / 100,
+    monthly: CHECKOUT_OFFERS.pro.month.amount / 100,
+    monthlyEquivalent: 10.00,
   },
 } as const;
 
@@ -30,10 +30,6 @@ export const getPricing = () => ({
   plus: PRICING.plus,
   pro: PRICING.pro,
 });
-
-export const getPriceId = (tier: PlanTier): string => {
-  return PRICE_IDS[tier];
-};
 
 export const formatPrice = (tier: PlanTier): string => {
   return `$${PRICING[tier].annual}/yr`;
@@ -43,6 +39,6 @@ export const getPlanLabel = (tier: PlanTier): string => {
   return tier === "plus" ? "Plus" : "Pro";
 };
 
-// JB sets price; no Stripe object created in this PR.
-export const HOSTED_COACH_PRICE_DISPLAY: string = "TBD";
+// Displayed prices must match the shared checkout contract.
+export const HOSTED_COACH_PRICE_DISPLAY: string = "$119.99/year or $14.99/month";
 export const getHostedCoachPriceDisplay = (): string | null => HOSTED_COACH_PRICE_DISPLAY === "TBD" ? null : HOSTED_COACH_PRICE_DISPLAY;

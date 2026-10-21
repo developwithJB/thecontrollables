@@ -1,4 +1,4 @@
-import { PRICE_IDS, type PlanType } from "@/lib/pricing";
+import { CHECKOUT_PLANS, type PlanType } from "@/lib/pricing";
 
 export const FEATURE_FLAG_KEYS = [
   "hosted_coach_enabled",
@@ -38,8 +38,8 @@ export interface FeatureFlags {
 export type FeatureFlagOverrides = Partial<Record<FeatureFlagKey, unknown>>;
 
 export const DEFAULT_FEATURE_FLAGS: Readonly<FeatureFlags> = Object.freeze({
-  hosted_coach_enabled: false,
-  coach_providers_enabled: false,
+  hosted_coach_enabled: true,
+  coach_providers_enabled: true,
   server_book_loop_enabled: true,
   onboarding_quick_start_enabled: true,
   formation_circuits_enabled: true,
@@ -330,7 +330,7 @@ export const formationAnalyticsEnabled = (overrides: FeatureFlagOverrides = {}):
 
 export const getDefaultCheckoutPlan = (overrides: FeatureFlagOverrides = {}): PlanType => {
   const model = getFeatureFlag("pricing_tier_model", overrides);
-  const availablePlans = Object.keys(PRICE_IDS) as PlanType[];
+  const availablePlans = [...CHECKOUT_PLANS] as PlanType[];
 
   const yearlyCandidate =
     (availablePlans.find((plan) => plan === ("yearly" as PlanType)) ??
