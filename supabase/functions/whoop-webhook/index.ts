@@ -1,82 +1,109 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
+import {
+  validWhoopSignature,
+  whoopWebhookPayload,
+  whoopDeliveryKey,
+} from "../_shared/whoopWebhook.ts";
+const headers = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "content-type,x-whoop-signature,x-whoop-signature-timestamp",
+  "Content-Type": "application/json",
 };
-
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  // Only accept POST
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+  if (req.method === "OPTIONS")
+    return new Response(null, { status: 204, headers });
+  if (req.method !== "POST")
+    return new Response(null, { status: 405, headers });
+  const secret = Deno.env.get("WHOOP_CLIENT_SECRET");
+  if (!secret)
+    return new Response(JSON.stringify({ error: "webhook_unavailable" }), {
+      status: 503,
+      headers,
     });
-  }
-
   try {
-    const body = await req.json();
-
-    const supabase = createClient(
+    if (Number(req.headers.get("content-length") || 0) > 16384)
+      return new Response(null, { status: 413, headers });
+    const timestamp = req.headers.get("x-whoop-signature-timestamp"),
+      signature = req.headers.get("x-whoop-signature");
+    if (!timestamp || !signature)
+      return new Response(JSON.stringify({ error: "invalid_signature" }), {
+        status: 401,
+        headers,
+      });
+    const reader = req.body?.getReader(),
+      chunks: Uint8Array[] = [];
+    let size = 0;
+    if (reader)
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > 16384) {
+          await reader.cancel();
+          return new Response(null, { status: 413, headers });
+        }
+        chunks.push(value);
+      }
+    const raw = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) {
+      raw.set(chunk, offset);
+      offset += chunk.length;
+    }
+    if (
+      !(await validWhoopSignature(
+        raw,
+        req.headers.get("x-whoop-signature-timestamp"),
+        req.headers.get("x-whoop-signature"),
+        secret,
+      ))
+    )
+      return new Response(JSON.stringify({ error: "invalid_signature" }), {
+        status: 401,
+        headers,
+      });
+    let decoded: unknown;
+    try {
+      decoded = JSON.parse(
+        new TextDecoder("utf-8", { fatal: true }).decode(raw),
+      );
+    } catch {
+      return new Response(null, { status: 400, headers });
+    }
+    const payload = whoopWebhookPayload(decoded);
+    if (!payload)
+      return new Response(JSON.stringify({ error: "invalid_event" }), {
+        status: 400,
+        headers,
+      });
+    const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
     );
-
-    // Store webhook event for debugging
-    const eventType = body.type || "unknown";
-    const whoopUserId = body.user_id ? String(body.user_id) : null;
-
-    await supabase.from("whoop_webhook_events").insert({
-      event_type: eventType,
-      whoop_user_id: whoopUserId,
-      payload: body,
+    const { error } = await admin.from("whoop_webhook_events").insert({
+      event_type: payload.type,
+      whoop_user_id: payload.user_id,
+      payload,
+      delivery_key: await whoopDeliveryKey(payload),
       processed: false,
     });
-
-    // If we have a whoop user id, find the connected user and trigger a sync
-    if (whoopUserId) {
-      // Find the user by whoop_user_id stored in wearable_connections metadata
-      const { data: connections } = await supabase
-        .from("wearable_connections")
-        .select("user_id, access_token, refresh_token, token_expires_at")
-        .eq("provider", "whoop");
-
-      if (connections) {
-        for (const conn of connections) {
-          // Check metadata for whoop_user_id match
-          // Since metadata is stored as JSONB, we need to check it
-          const { data: fullConn } = await supabase
-            .from("wearable_connections")
-            .select("*")
-            .eq("user_id", conn.user_id)
-            .eq("provider", "whoop")
-            .single();
-
-          if (fullConn?.metadata && (fullConn.metadata as any).whoop_user_id === whoopUserId) {
-            // Mark the webhook as processed
-            // The actual sync will happen on next user interaction or scheduled job
-            // For now, just log the match
-            console.log(`WHOOP webhook matched user ${conn.user_id} for event ${eventType}`);
-            break;
-          }
-        }
-      }
-    }
-
-    return new Response(JSON.stringify({ ok: true }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (err) {
-    console.error("whoop-webhook error:", err);
-    return new Response(JSON.stringify({ error: "Internal error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (error && error.code !== "23505")
+      return new Response(
+        JSON.stringify({ error: "event_store_unavailable" }),
+        { status: 503, headers },
+      );
+    // Event ingestion never reads access tokens, calls WHOOP, or changes a user.
+    return new Response(
+      JSON.stringify({ ok: true, duplicate: error?.code === "23505" }),
+      { status: 200, headers },
+    );
+  } catch {
+    console.error("WHOOP webhook ingestion unavailable");
+    return new Response(JSON.stringify({ error: "webhook_unavailable" }), {
+      status: 503,
+      headers,
     });
   }
 });
