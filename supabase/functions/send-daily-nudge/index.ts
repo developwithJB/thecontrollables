@@ -1976,7 +1976,7 @@ Deno.serve(async (req) => {
               .eq("user_id", userId)
               .eq("nudge_date", localDate);
 
-            console.log(`[NUDGE] Sent Dashboard relaunch email to ${userData.user.email}`);
+            console.log("[NUDGE] Relaunch delivery completed");
             sentCount++;
             relaunchCount++;
             return;
@@ -2020,7 +2020,7 @@ Deno.serve(async (req) => {
               .eq("user_id", userId)
               .eq("nudge_date", localDate);
 
-            console.log(`[NUDGE] Sent ${formationContext.track} formation email to ${formationUser.user.email}`);
+            console.log("[NUDGE] Formation delivery completed");
             sentCount++;
             missionCount++;
             return;
@@ -2069,9 +2069,7 @@ Deno.serve(async (req) => {
               .eq("user_id", userId)
               .eq("nudge_date", localDate);
 
-            console.log(
-              `[NUDGE] Sent dated goal plan ${datedGoalEmail.goal.plan_id} to ${goalUser.user.email}`,
-            );
+            console.log("[NUDGE] Dated goal delivery completed");
             sentCount++;
             datedGoalCount++;
             return;
@@ -2191,7 +2189,7 @@ Deno.serve(async (req) => {
             ...(text ? { text } : {}),
           });
 
-          console.log(`[NUDGE] Sent ${isWeekly ? "weekly" : "daily mission"} to ${email} with subject "${subject}":`, emailResult);
+          console.log("[NUDGE] Delivery request completed", {kind:isWeekly?"weekly":"daily",accepted:!emailResult.error});
 
           // Update the pending log to "sent" status
           await supabase
