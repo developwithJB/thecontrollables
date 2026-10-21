@@ -4949,6 +4949,7 @@ export type Database = {
       whoop_webhook_events: {
         Row: {
           created_at: string
+          delivery_key: string | null
           event_type: string | null
           id: string
           payload: Json | null
@@ -4957,6 +4958,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          delivery_key?: string | null
           event_type?: string | null
           id?: string
           payload?: Json | null
@@ -4965,6 +4967,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          delivery_key?: string | null
           event_type?: string | null
           id?: string
           payload?: Json | null
