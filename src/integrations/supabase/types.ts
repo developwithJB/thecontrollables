@@ -830,6 +830,7 @@ export type Database = {
       completed_actions: {
         Row: {
           action_text: string
+          award_kind: string
           completed_at: string
           controllable: string | null
           created_at: string
@@ -839,6 +840,7 @@ export type Database = {
         }
         Insert: {
           action_text: string
+          award_kind?: string
           completed_at?: string
           controllable?: string | null
           created_at?: string
@@ -848,6 +850,7 @@ export type Database = {
         }
         Update: {
           action_text?: string
+          award_kind?: string
           completed_at?: string
           controllable?: string | null
           created_at?: string
@@ -949,6 +952,7 @@ export type Database = {
           rules: Json
           started_on: string
           status: string
+          timezone: string
           title: string
           updated_at: string
           user_id: string
@@ -963,6 +967,7 @@ export type Database = {
           rules?: Json
           started_on?: string
           status?: string
+          timezone?: string
           title?: string
           updated_at?: string
           user_id: string
@@ -977,6 +982,7 @@ export type Database = {
           rules?: Json
           started_on?: string
           status?: string
+          timezone?: string
           title?: string
           updated_at?: string
           user_id?: string
@@ -2931,6 +2937,30 @@ export type Database = {
           session_id?: string | null
           user_agent?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      personal_reward_receipts: {
+        Row: {
+          amount: number
+          created_at: string
+          record_id: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          record_id: string
+          source: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          record_id?: string
+          source?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -5029,6 +5059,11 @@ export type Database = {
         Args: { assessment: string; target_event_id: string }
         Returns: undefined
       }
+      award_legacy_personal_event: {
+        Args: { p_record_id: string; p_source: string }
+        Returns: Json
+      }
+      award_wellness_milestone: { Args: never; Returns: Json }
       bootstrap_admin: { Args: { admin_user_id: string }; Returns: boolean }
       cancel_fully_charged_attempt: {
         Args: { p_attempt_id: string; p_reason_code?: string }
@@ -5072,6 +5107,10 @@ export type Database = {
         Returns: Json
       }
       coach_providers_available: { Args: never; Returns: boolean }
+      complete_legacy_reset_day: {
+        Args: { p_reflection?: string; p_session_id: string }
+        Returns: Json
+      }
       compute_build_scores: {
         Args: { p_assessment_id: string }
         Returns: {
@@ -5203,6 +5242,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      record_personal_action: {
+        Args: {
+          p_action_text: string
+          p_controllable?: string
+          p_kind?: string
+        }
+        Returns: Json
       }
       refresh_daily_charge_snapshot: {
         Args: { target_date: string; target_user_id: string }
