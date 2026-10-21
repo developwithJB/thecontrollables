@@ -134,3 +134,9 @@ describe("private certificate locations", () => {
       );
   });
 });
+
+it('keeps bucket configuration outside managed SQL migrations',()=>{
+ const migration=readFileSync('supabase/migrations/20261021000100_customer_launch_security.sql','utf8');
+ expect(migration).not.toMatch(/UPDATE\s+storage\.buckets/i);
+ expect(migration).toContain('Certificate owners can read their files');
+});
