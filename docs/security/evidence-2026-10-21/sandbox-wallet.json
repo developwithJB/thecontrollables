@@ -1,0 +1,23 @@
+{
+  "environment": "Stripe test mode; isolated local billing stack",
+  "payment": {
+    "livemode": false,
+    "status": "succeeded",
+    "amount": 1499,
+    "currency": "usd",
+    "wallet_type": "apple_pay"
+  },
+  "signed_checkout_and_subscription_events": "accepted; local profile became Pro",
+  "signed_duplicate_replay": {
+    "http_status": 200,
+    "duplicate": true
+  },
+  "signed_cancellation_event": "accepted; local profile returned Free",
+  "cancel_status_bug": "The initial check-payment response incorrectly retained canceled access. PR78 fixed that branch; edge regressions deny immediate cancellation with future expiry and preserve active scheduled cancellation.",
+  "verification_limits": [
+    "No live charge",
+    "No production paid-access grant",
+    "Test subscription canceled",
+    "Temporary credential file, listener, handlers, synthetic auth user and disposable database removed"
+  ]
+}
