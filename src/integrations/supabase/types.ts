@@ -2820,6 +2820,30 @@ export type Database = {
         }
         Relationships: []
       }
+      oauth_state_requests: {
+        Row: {
+          expires_at: string
+          provider: string
+          return_origin: string
+          state_hash: string
+          user_id: string
+        }
+        Insert: {
+          expires_at: string
+          provider: string
+          return_origin: string
+          state_hash: string
+          user_id: string
+        }
+        Update: {
+          expires_at?: string
+          provider?: string
+          return_origin?: string
+          state_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       operator_suggestions: {
         Row: {
           alternate_actions: Json | null
