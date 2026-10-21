@@ -10,6 +10,8 @@ let handler: (req: Request) => Promise<Response>,
   authorized = true,
   owned = true,
   season = false;
+let validDays = true,
+  seasonComplete = true;
 let calls: { path: string; body: Record<string, unknown>; query: string }[] =
   [];
 const originalServe = Deno.serve;
@@ -35,7 +37,7 @@ globalThis.fetch = async (input, init) => {
       ? {
           id: "season-local",
           user_id: owner,
-          status: "completed",
+          status: seasonComplete ? "completed" : "active",
           started_at: "2026-01-01",
           completed_at: "2026-03-01",
         }
@@ -50,7 +52,9 @@ globalThis.fetch = async (input, init) => {
         }
       : null;
   else if (u.pathname === "/rest/v1/daily_resets")
-    data = Array.from({ length: 7 }, (_, i) => ({ day_number: i + 1 }));
+    data = Array.from({ length: 7 }, (_, i) => ({
+      day_number: validDays ? i + 1 : 1,
+    }));
   else if (u.pathname === "/rest/v1/profiles")
     data = { display_name: "Synthetic QA" };
   else if (u.pathname === "/rest/v1/certificates")
@@ -138,3 +142,32 @@ Deno.test("invalid auth cannot read or sign certificates", async () => {
     ),
   );
 });
+
+Deno.test(
+  "duplicate day rows cannot satisfy seven distinct completed days",
+  async () => {
+    authorized = true;
+    owned = true;
+    season = false;
+    validDays = false;
+    calls = [];
+    const r = await handler(request());
+    if (r.status !== 400 || calls.some((c) => c.path.includes("/storage/")))
+      throw Error("Distinct days required");
+    validDays = true;
+  },
+);
+Deno.test(
+  "an active season cannot issue a completed-season certificate",
+  async () => {
+    authorized = true;
+    owned = true;
+    season = true;
+    seasonComplete = false;
+    calls = [];
+    const r = await handler(request());
+    if (r.status !== 409 || calls.some((c) => c.path.includes("/storage/")))
+      throw Error("Completed season required");
+    seasonComplete = true;
+  },
+);

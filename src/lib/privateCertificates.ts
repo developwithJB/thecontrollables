@@ -16,7 +16,6 @@ export function certificateStoragePath(
     if (!match) throw new Error("Invalid certificate location");
     path = decodeURIComponent(match[1]);
   }
-  if (path === "Certificate Template.png") return path;
   if (!/^[a-f0-9-]{36}\/[a-zA-Z0-9_-]+\.(svg|png)$/i.test(path))
     throw new Error("Invalid certificate path");
   return path;

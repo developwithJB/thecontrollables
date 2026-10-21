@@ -141,6 +141,21 @@ try {
       false,
     );
   });
+  await sql.unsafe(`CREATE TABLE public.certificates(id uuid,user_id uuid);CREATE TABLE public.completion_certificates(id uuid,user_id uuid);GRANT ALL ON public.certificates,public.completion_certificates TO anon,authenticated,service_role;`);
+  const ownership=readFileSync('supabase/migrations/20261021000200_security_ownership.sql','utf8');
+  await check('ownership migration applies twice and disables public admin bootstrap',async()=>{
+    await sql.unsafe(ownership);await sql.unsafe(ownership);
+    for(const role of ['anon','authenticated'])await assert.rejects(sql.begin(async tx=>{await tx.unsafe('SET LOCAL ROLE '+role);await tx`SELECT bootstrap_admin(${owner})`}),/permission denied/);
+    assert.equal((await sql`SELECT bootstrap_admin(${owner}) AS ok`)[0].ok,false);
+  });
+  await check('customers cannot self-issue, alter or truncate certificate records',async()=>{
+    for(const role of ['anon','authenticated'])for(const table of ['certificates','completion_certificates'])for(const command of ['INSERT INTO '+table+' VALUES(gen_random_uuid(),gen_random_uuid())','UPDATE '+table+' SET id=gen_random_uuid()','DELETE FROM '+table,'TRUNCATE '+table])await assert.rejects(sql.begin(async tx=>{await tx.unsafe('SET LOCAL ROLE '+role);await tx.unsafe(command)}),/permission denied/);
+    await sql.begin(async tx=>{await tx`SET LOCAL ROLE service_role`;await tx`INSERT INTO certificates VALUES(${randomUUID()},${owner})`});
+  });
+  await check('certificate policy has no shared template exception',async()=>{
+    const rows=await sql.begin(async tx=>{await tx`SET LOCAL ROLE authenticated`;await tx`SELECT set_config('request.jwt.claim.sub',${owner},true)`;return tx`SELECT name FROM storage.objects`});
+    assert.deepEqual(rows.map(r=>r.name),[owner+'/own.svg']);
+  });
   console.log(`${passed} security database checks passed`);
 } finally {
   await sql?.end();

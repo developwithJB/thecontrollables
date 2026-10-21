@@ -88,7 +88,7 @@ globalThis.fetch = async (input, init) => {
       return ok(duplicate ? { id: "evt_local" } : null);
     if (url.pathname === "/rest/v1/user_entitlements" && dbFailure)
       return ok({ message: "synthetic unavailable", code: "XX000" }, 500);
-    if(url.pathname==="/rest/v1/user_entitlements" && call.method==="GET") return ok(appGrant);
+    if(url.pathname==="/rest/v1/user_entitlements" && call.method==="GET") return ok(appGrant ?? (customer ? {stripe_customer_id:"cus_local",stripe_subscription_id:"sub_local"} : null));
     if (
       [
         "/rest/v1/user_entitlements",
@@ -103,7 +103,7 @@ globalThis.fetch = async (input, init) => {
       return ok({ data: customer ? [{ id: "cus_local" }] : [] });
     if (url.pathname === "/v1/subscriptions")
       return ok({
-        data: existing ? [{ id: "sub_local", status: "active" }] : [],
+        data: existing ? [{ id: "sub_local", status: "active", metadata:{user_id:owner} }] : [],
       });
     if (url.pathname.startsWith("/v1/prices/")) {
       const monthly = url.pathname.endsWith("price_monthly_test");
@@ -154,6 +154,8 @@ await import("../../supabase/functions/stripe-webhook/index.ts");
 const webhook = capturedHandler;
 await import("../../supabase/functions/check-payment/index.ts");
 const checkPayment = capturedHandler;
+await import("../../supabase/functions/customer-portal/index.ts");
+const portal = capturedHandler;
 const assert = (condition: unknown, message = "assertion failed") => {
   if (!condition) throw Error(message);
 };
@@ -188,7 +190,7 @@ test("legacy app access is preserved without inventing an active subscription", 
   assert(!calls.some(c=>c.path.startsWith("/v1/")));
 });
 test("a verified modern paid grant keeps its tier and active status",async()=>{
-  appGrant={source:"stripe_subscription",plan_tier:"pro",subscription_status:"active",expires_at:"2099-01-01"};
+  appGrant={source:"stripe_subscription",plan_tier:"pro",subscription_status:"active",expires_at:"2099-01-01",stripe_customer_id:"cus_local",stripe_subscription_id:"sub_local"};
   const response=await checkPayment(request({}));const data=await response.json();
   assert(data.isPaid===true && data.plan_tier==="pro" && data.legacyAppAccess===false && data.subscriptionStatus==="active");
 });
@@ -383,4 +385,27 @@ test("immediate cancellation cannot retain paid access through a future expiry",
  appGrant={source:"stripe_subscription",plan_tier:"pro",subscription_status:"canceled",expires_at:"2099-01-01"};
  const response=await checkPayment(request({})); const data=await response.json();
  assert(data.isPaid===false && data.plan_tier===null);
+});
+
+test("an email match alone cannot grant paid access or a billing portal",async()=>{
+ const response=await checkPayment(request({}));assert((await response.json()).isPaid===false);
+ assert((await portal(request({}))).status===409);
+ assert(!calls.some(c=>c.path==="/v1/customers"||c.path==="/v1/billing_portal/sessions"));
+});
+test("a trusted UUID customer binding can open only its own portal",async()=>{
+ appGrant={stripe_customer_id:"cus_local",stripe_subscription_id:"sub_local",source:"stripe_subscription",plan_tier:"pro",subscription_status:"active"};
+ assert((await portal(request({}))).status===200);
+ assert(calls.find(c=>c.path==="/v1/billing_portal/sessions")?.body.get("customer")==="cus_local");
+ assert(!calls.some(c=>c.path==="/v1/customers"));
+});
+test("new checkout never reuses a customer merely because email matches",async()=>{
+ const response=await checkout(request({tier:"pro",interval:"month"}));assert(response.status===200);
+ assert(!calls.some(c=>c.path==="/v1/customers"));
+ assert(!calls.find(c=>c.path==="/v1/checkout/sessions")?.body.has("customer"));
+});
+
+test("a stale misbound paid projection cannot bypass Stripe UUID ownership",async()=>{
+ appGrant={source:"stripe_subscription",plan_tier:"pro",subscription_status:"active",stripe_customer_id:"cus_other",stripe_subscription_id:"sub_local"};
+ const r=await checkPayment(request({}));assert(r.status===500&&(await r.json()).isPaid===false);
+ const p=await portal(request({}));assert(p.status===500);assert(!calls.some(c=>c.path==="/v1/billing_portal/sessions"));
 });
