@@ -3366,6 +3366,24 @@ export type Database = {
         }
         Relationships: []
       }
+      push_nudge_claims: {
+        Row: {
+          claimed_at: string
+          local_date: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          local_date: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          local_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth_key: string
@@ -5101,6 +5119,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      claim_push_nudge: {
+        Args: { p_local_date: string; p_user_id: string }
+        Returns: boolean
+      }
       clear_coach_api_key: { Args: never; Returns: Json }
       close_fully_charged_day: {
         Args: { p_attempt_id: string; p_idempotency_key: string }
@@ -5242,6 +5264,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      record_circle_attendance: {
+        Args: { p_challenge_id: string; p_reset_session_id: string }
+        Returns: Json
       }
       record_personal_action: {
         Args: {
