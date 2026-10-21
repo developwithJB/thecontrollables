@@ -206,3 +206,12 @@ export function createBudgetedGateway(
     return response;
   };
 }
+
+/** A paid tool checks current authority before reading data or returning caches.
+ * The later budget reservation still independently gates every provider call. */
+export async function paidHostedFeatureDenial(rpc:BudgetRpc,userId:string):Promise<{status:number;code:string}|null> {
+ const {data,error}=await rpc('hosted_ai_plan',{p_user_id:userId});
+ if(error || typeof data!=='string' || !['free','plus','pro','premium','lifetime'].includes(data))
+  return {status:503,code:'hosted_ai_authority_unavailable'};
+ return data==='free' ? {status:403,code:'hosted_ai_requires_paid'} : null;
+}

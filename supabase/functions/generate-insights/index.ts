@@ -1,3 +1,4 @@
+import {paidHostedFeatureDenial} from "../_shared/hostedAiBudget.ts";
 import { hostedGateway } from "../_shared/hostedGateway.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -45,6 +46,9 @@ Deno.serve(async (req) => {
     // The authenticated caller is the only permitted analytics subject. Never
     // trust a body-supplied user id when the service client bypasses RLS below.
     const userId = authData.user.id;
+    const paidClient=createClient(supabaseUrl,supabaseServiceKey,{auth:{persistSession:false,autoRefreshToken:false}});
+    const paidDenial=await paidHostedFeatureDenial((name,args)=>paidClient.rpc(name,args),userId);
+    if(paidDenial)return new Response(JSON.stringify({error:paidDenial.code,code:paidDenial.code}),{status:paidDenial.status,headers:{...corsHeaders,"Content-Type":"application/json"}});
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
     if (!lovableApiKey) {
@@ -55,7 +59,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey,{auth:{persistSession:false,autoRefreshToken:false}});
 
     console.log(`[INSIGHTS] Generating insights for user ${userId}`);
 
