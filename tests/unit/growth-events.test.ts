@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 const mocks = vi.hoisted(() => ({ insert: vi.fn(), getSession: vi.fn(), onAuthStateChange: vi.fn(), capture: vi.fn() }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: () => ({ insert: mocks.insert }), auth: { getSession: mocks.getSession, onAuthStateChange: mocks.onAuthStateChange } } }));
+vi.mock('@/lib/telemetrySink', () => ({ sendTelemetry: async (_kind: string, payload: unknown) => { const result = await mocks.insert(payload); if(result.error) throw Error('telemetry unavailable'); } }));
 vi.mock('@/hooks/useAnalytics', () => ({ capturePosthogEvent: mocks.capture }));
 function storage() { const map = new Map<string, string>(); return { getItem: (k: string) => map.get(k) ?? null, setItem: (k: string, v: string) => map.set(k, v), removeItem: (k: string) => map.delete(k) }; }
 beforeEach(() => {
@@ -34,11 +35,12 @@ describe('growth measurement', () => {
     lib.trackGrowthEvent('unknown'); expect(mocks.insert).not.toHaveBeenCalled();
     expect(lib.sanitizeGrowthProps({ email: 'private', placement: 'HTTPS://host', step: 'x@y', method: 'DATA:secret', surface: {}, track: 'read_along', reading_status: null })).toEqual({ track: 'read_along', reading_status: null });
   });
-  it('inserts without a select method, trusts only session identity and throttles landing', async () => {
+  it('uses the server sink without trusting a client identity and throttles landing', async () => {
     const lib = await import('@/lib/growthEvents'); lib.trackGrowthEvent('landing_view', { user_id: 'spoof', placement: 'hero' }); lib.trackGrowthEvent('landing_view');
     await vi.waitFor(() => expect(mocks.insert).toHaveBeenCalledTimes(1));
-    expect(mocks.insert.mock.calls[0][0]).toMatchObject({ event_type: 'growth', user_id: 'session-user', event_data: { placement: 'hero' } });
+    expect(mocks.insert.mock.calls[0][0]).toMatchObject({ event_type: 'growth', event_data: { placement: 'hero' } });
     expect(mocks.insert.mock.calls[0][0].event_data.user_id).toBeUndefined();
+    expect(mocks.insert.mock.calls[0][0].user_id).toBeUndefined();
   });
   it('buffers errors, caps retained events at 50, retries once on sign in and drops failures', async () => {
     const old = Array.from({ length: 55 }, () => ({ at: Date.now(), payload: { event_type: 'growth', event_name: 'share_clicked', event_data: {}, page_path: '/', session_id: 's', screen_size: '1x1' } }));

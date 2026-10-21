@@ -378,3 +378,9 @@ test("late active event uses current canceled state and cannot restore Pro", asy
   const profile = calls.find((c) => c.path === "/rest/v1/profiles")!;
   assert(profile.json.plan_tier === "free");
 });
+
+test("immediate cancellation cannot retain paid access through a future expiry",async()=>{
+ appGrant={source:"stripe_subscription",plan_tier:"pro",subscription_status:"canceled",expires_at:"2099-01-01"};
+ const response=await checkPayment(request({})); const data=await response.json();
+ assert(data.isPaid===false && data.plan_tier===null);
+});

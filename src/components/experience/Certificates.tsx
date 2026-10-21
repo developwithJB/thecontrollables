@@ -1,3 +1,4 @@
+import { privateCertificateUrl } from '@/lib/privateCertificates';
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Award, Eye, Calendar, Check, Loader2, ChevronDown } from "lucide-react";
@@ -15,7 +16,7 @@ import {
 import { CertificatePreview } from "./CertificatePreview";
 import { CollapsibleCard } from "./CollapsibleCard";
 
-const withCacheBust = (url: string) => `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
+
 
 interface ResetSession {
   id: string;
@@ -85,7 +86,7 @@ export function Certificates({ resetSessions, userId, dailyResets = [] }: Certif
     setProcessingId(session.id);
 
     try {
-      let cert = getCertificateForSession(session.id);
+      const cert = getCertificateForSession(session.id);
 
       // If no certificate exists, generate one
       if (!cert?.certificate_url) {
@@ -108,7 +109,7 @@ export function Certificates({ resetSessions, userId, dailyResets = [] }: Certif
         
         // Open preview with the new certificate URL (cache-busted so we don't see stale SVGs)
         setSelectedCertificate({
-          url: withCacheBust(data.certificate_url),
+          url: await privateCertificateUrl(data.certificate_url),
           startDate: session.start_date,
         });
         setShowPreview(true);
@@ -120,7 +121,7 @@ export function Certificates({ resetSessions, userId, dailyResets = [] }: Certif
       } else {
         // Open preview with existing certificate (cache-busted)
         setSelectedCertificate({
-          url: withCacheBust(cert.certificate_url),
+          url: await privateCertificateUrl(cert.certificate_url),
           startDate: session.start_date,
         });
         setShowPreview(true);

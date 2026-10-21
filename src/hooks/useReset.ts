@@ -1,3 +1,4 @@
+import { privateCertificateUrl } from '@/lib/privateCertificates';
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -404,10 +405,7 @@ export const useReset = (externalUserId?: string | null) => {
   });
 
   // Get certificate URL from storage
-  const getCertificateUrl = (storagePath: string): string => {
-    const { data } = supabase.storage.from("certificates").getPublicUrl(storagePath);
-    return data.publicUrl;
-  };
+  const getCertificateUrl = privateCertificateUrl;
 
   // Helper to load image
   const loadImage = (src: string): Promise<HTMLImageElement> => {
@@ -421,12 +419,7 @@ export const useReset = (externalUserId?: string | null) => {
   };
 
   // Get the admin-uploaded certificate template
-  const getTemplateUrl = (): string => {
-    const { data } = supabase.storage
-      .from("certificates")
-      .getPublicUrl("Certificate Template.png");
-    return data.publicUrl;
-  };
+  const getTemplateUrl = () => privateCertificateUrl('Certificate Template.png');
 
   // Generate and save certificate to storage
   const generateCertificateMutation = useMutation({
@@ -439,7 +432,7 @@ export const useReset = (externalUserId?: string | null) => {
       }
       
       // Load the admin template
-      const templateUrl = getTemplateUrl();
+      const templateUrl = await getTemplateUrl();
       
       // Create a canvas-based certificate
       const canvas = document.createElement("canvas");
@@ -564,9 +557,13 @@ export const useReset = (externalUserId?: string | null) => {
   });
 
   // Get existing certificate URL if available
-  const certificateUrl = existingCertificate?.storage_path 
-    ? getCertificateUrl(existingCertificate.storage_path) 
-    : null;
+  const { data: certificateUrl = null } = useQuery({
+    queryKey: ['private-certificate-url', userId, existingCertificate?.storage_path],
+    queryFn: () => privateCertificateUrl(existingCertificate!.storage_path),
+    enabled: !!userId && !!existingCertificate?.storage_path,
+    staleTime: 60_000,
+    refetchInterval: 240_000,
+  });
 
   return {
     userId,

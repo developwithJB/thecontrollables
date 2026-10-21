@@ -1,3 +1,4 @@
+import { privateCertificateUrl } from '@/lib/privateCertificates';
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,9 +36,11 @@ export const useCertificate = (resetSessionId: string | undefined) => {
         .eq("reset_session_id", resetSessionId)
         .maybeSingle();
       if (error) throw error;
-      return data as Certificate | null;
+      return data ? { ...data, certificate_url: data.certificate_url ? await privateCertificateUrl(data.certificate_url) : null } as Certificate : null;
     },
     enabled: !!resetSessionId,
+    staleTime: 60_000,
+    refetchInterval: 240_000,
   });
 
   const generateMutation = useMutation({
@@ -87,7 +90,7 @@ export const useCertificate = (resetSessionId: string | undefined) => {
       let url = certificate?.certificate_url;
       if (!url) url = await generateMutation.mutateAsync();
       if (!url) throw new Error("Could not get certificate URL");
-      const pngBlob = await convertSvgToPng(url);
+      const pngBlob = await convertSvgToPng(await privateCertificateUrl(url));
       const blobUrl = URL.createObjectURL(pngBlob);
       const link = document.createElement("a");
       link.href = blobUrl;
@@ -146,9 +149,11 @@ export const useSeasonCertificate = (seasonId: string | undefined) => {
         .eq("certificate_type", "season")
         .maybeSingle();
       if (error) throw error;
-      return data as Certificate | null;
+      return data ? { ...data, certificate_url: data.certificate_url ? await privateCertificateUrl(data.certificate_url) : null } as Certificate : null;
     },
     enabled: !!seasonId,
+    staleTime: 60_000,
+    refetchInterval: 240_000,
   });
 
   const generateMutation = useMutation({

@@ -1,3 +1,4 @@
+import { sendTelemetry } from '@/lib/telemetrySink';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCallback } from "react";
@@ -91,36 +92,33 @@ export function useOperatorConsole(userId: string | null) {
     async (actionId: string) => {
       await updateSuggestionStatus("accepted");
       // Track event
-      await supabase.from("app_events").insert({
+      await sendTelemetry("event", {
         event_type: "interaction",
         event_name: "operator_action_accepted",
         event_data: { action_id: actionId },
-        user_id: userId,
         page_path: "/dashboard",
       });
     },
-    [updateSuggestionStatus, userId]
+    [updateSuggestionStatus]
   );
 
   const snoozeSuggestion = useCallback(async () => {
     await updateSuggestionStatus("snoozed");
-    await supabase.from("app_events").insert({
+    await sendTelemetry("event", {
       event_type: "interaction",
       event_name: "operator_suggestion_snoozed",
       event_data: { mode: suggestion?.mode },
-      user_id: userId,
       page_path: "/dashboard",
     });
-  }, [updateSuggestionStatus, userId, suggestion?.mode]);
+  }, [updateSuggestionStatus, suggestion?.mode]);
 
   const dismissSuggestion = useCallback(async () => {
     await updateSuggestionStatus("dismissed");
     queryClient.setQueryData(["operator-console", userId], null);
-    await supabase.from("app_events").insert({
+    await sendTelemetry("event", {
       event_type: "interaction",
       event_name: "operator_suggestion_dismissed",
       event_data: { mode: suggestion?.mode },
-      user_id: userId,
       page_path: "/dashboard",
     });
   }, [updateSuggestionStatus, userId, suggestion?.mode, queryClient]);
