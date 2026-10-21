@@ -7,6 +7,7 @@ import { type PlanTier as EntitlementPlanTier } from "@/lib/entitlements";
 import { withTimeout } from "@/lib/withTimeout";
 
 interface SubscriptionInfo {
+  legacyAppAccess?: boolean;
   serverVerified?: boolean;
   isPaid: boolean;
   planTier: EntitlementPlanTier | null;
@@ -18,6 +19,7 @@ interface SubscriptionInfo {
 }
 
 interface EntitlementStatus {
+  legacyAppAccess: boolean;
   isPaid: boolean;
   isLoading: boolean;
   purchasedAt: string | null;
@@ -188,6 +190,7 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
         }
         
         const info: SubscriptionInfo = {
+          legacyAppAccess: result?.legacyAppAccess === true,
           isPaid: result?.isPaid === true && ["plus","pro","premium","lifetime"].includes(result?.plan_tier),
           serverVerified:true,
           purchasedAt: result?.purchasedAt ?? null,
@@ -380,6 +383,7 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
   }, [userId]);
 
   return {
+    legacyAppAccess: data?.legacyAppAccess === true,
     isPaid: data?.isPaid ?? false,
     isLoading,
     purchasedAt: data?.purchasedAt ?? null,

@@ -1,4 +1,4 @@
-import { LEGACY_SUBSCRIPTION_PRICES, subscriptionPeriod, subscriptionTier, entitlementIsCurrent } from "../_shared/stripeSubscription.ts";
+import { LEGACY_SUBSCRIPTION_PRICES, subscriptionPeriod, subscriptionTier, entitlementIsCurrent, isLegacyAppGrant } from "../_shared/stripeSubscription.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
@@ -57,14 +57,18 @@ serve(async (req) => {
       .maybeSingle();
 
     if (entitlement && entitlementIsCurrent(entitlement)) {
+      const legacyAppAccess = isLegacyAppGrant(entitlement);
+      // Preserve historical app feature access without claiming a subscription
+      // or changing the separate authoritative hosted-AI allowance.
       const planTier = (entitlement.plan_tier ?? (entitlement.source === "manual" ? "lifetime" : "pro")) as PlanTier;
       return new Response(JSON.stringify({
         plan_tier: planTier,
         isPaid: true,
+        legacyAppAccess,
         purchasedAt: entitlement.granted_at,
         source: entitlement.source,
         expiresAt: entitlement.expires_at,
-        subscriptionStatus: entitlement.subscription_status || "active",
+        subscriptionStatus: legacyAppAccess ? null : entitlement.subscription_status || "active",
         currentPeriodEnd: entitlement.current_period_end || entitlement.expires_at,
         message: "Full Access granted",
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });

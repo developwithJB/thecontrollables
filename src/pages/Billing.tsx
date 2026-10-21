@@ -36,6 +36,7 @@ export default function Billing() {
   const authPath = getAuthRedirectPath(location);
   
   const { 
+    legacyAppAccess,
     isPaid, 
     isLoading, 
     planTier, 
@@ -97,6 +98,7 @@ export default function Billing() {
   }
 
   const getPlanDisplay = () => {
+    if (legacyAppAccess) return "Legacy app access";
     if (planTier === "lifetime") return "Lifetime Access";
     if (planTier === "premium") return "Premium";
     if (planTier === "pro") return "Pro";
@@ -105,6 +107,7 @@ export default function Billing() {
   };
 
   const getPlanPrice = () => {
+    if (legacyAppAccess) return "Your earlier app access is preserved. Hosted AI is counted separately.";
     if (planTier === "lifetime") return "One-time purchase";
     if (planTier === "premium") return "Premium subscription";
     if (planTier === "pro") return "Your current rate is shown in Manage Subscription.";
@@ -113,6 +116,7 @@ export default function Billing() {
   };
 
   const getStatusBadge = () => {
+    if (legacyAppAccess) return <Badge variant="secondary">Access granted</Badge>;
     if (!isPaid) {
       return <Badge variant="secondary">Free Plan</Badge>;
     }
@@ -184,7 +188,7 @@ export default function Billing() {
             </CardHeader>
             
             <CardContent className="space-y-4">
-              {isPaid && currentPeriodEnd && planTier !== "lifetime" && (
+              {isPaid && !legacyAppAccess && currentPeriodEnd && planTier !== "lifetime" && (
                 <div className="flex items-center gap-3 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">
@@ -221,7 +225,7 @@ export default function Billing() {
 
               {/* Actions */}
               <div className="flex flex-col gap-3">
-                {isPaid && planTier !== "lifetime" && (
+                {isPaid && !legacyAppAccess && planTier !== "lifetime" && (
                   <Button
                     onClick={openCustomerPortal}
                     disabled={isOpeningPortal}
@@ -246,6 +250,13 @@ export default function Billing() {
                     <CheckCircle2 className="h-5 w-5 mx-auto mb-2 text-green-500" />
                     You have lifetime access. No subscription to manage.
                   </div>
+                )}
+
+                {legacyAppAccess && (
+                  <p className="text-sm text-muted-foreground">
+                    No recurring subscription is verified for this legacy grant. Your AI allowance is shown below.
+                    Contact support before adding Pro so your existing access stays intact. You can also bring your own provider key.
+                  </p>
                 )}
 
 

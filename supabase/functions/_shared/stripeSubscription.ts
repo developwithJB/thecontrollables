@@ -56,3 +56,17 @@ export function entitlementIsCurrent(
         ["stripe", "promo", "webhook"].includes(entitlement.source ?? "")))
   );
 }
+
+/** A historical app grant is not evidence of a recurring Pro subscription.
+ * Keep its existing app access, but never infer a paid AI tier or overwrite it
+ * with a subscription projection whose cancellation could remove that access. */
+export function isLegacyAppGrant(entitlement: {
+  source?: string;
+  plan_tier?: string | null;
+  subscription_status?: string | null;
+  expires_at?: string | null;
+} | null) {
+  return !!entitlement && entitlement.plan_tier == null &&
+    ["stripe", "promo", "webhook"].includes(entitlement.source ?? "") &&
+    entitlementIsCurrent(entitlement);
+}
