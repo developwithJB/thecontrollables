@@ -1,7 +1,8 @@
-import { BookLoopProvider } from "@/components/BookLoopProvider";
+import { FormationBookBoundary } from "@/components/formation/FormationBookBoundary";
+import { ProfileMenu } from "./ProfileMenu";
 import { useState, useCallback, Suspense, useEffect } from "react";
 import { useNavigate, Outlet, useLocation } from "react-router-dom";
-import { Book, Flag, FlaskConical, RefreshCw, Settings } from "lucide-react";
+import { Book, Flag, FlaskConical, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { SplashScreen } from "@/components/SplashScreen";
@@ -130,15 +131,7 @@ export const LifeOSLayout = () => {
               >
                 <Book className="w-4 h-4" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowProfileSettings(true)}
-                className="rounded-xl text-muted-foreground hover:text-foreground"
-                title="Profile Settings"
-              >
-                <Settings className="w-4 h-4" />
-              </Button>
+              <ProfileMenu onSettings={() => setShowProfileSettings(true)} onSignOut={() => void handleSignOut()} />
             </div>
           </div>
         </header>
@@ -166,7 +159,7 @@ export const LifeOSLayout = () => {
               pullDistance={pullDistance}
             />
             <div className="mx-auto w-full max-w-md px-3 py-4 sm:px-5 md:max-w-3xl md:px-6 lg:max-w-5xl xl:max-w-7xl">
-              <BookLoopProvider userId={user.id}>
+              <FormationBookBoundary userId={user.id} formation={location.pathname.startsWith("/formation/")}>
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={location.pathname}
@@ -180,13 +173,13 @@ export const LifeOSLayout = () => {
                     </Suspense>
                   </motion.div>
                 </AnimatePresence>
-              </BookLoopProvider>
+              </FormationBookBoundary>
             </div>
           </main>
         </div>
 
         {/* Bottom nav (mobile only) */}
-        <BottomNav />
+        <BottomNav onSignOut={handleSignOut} />
 
         {/* Global overlays */}
         <OfflineIndicator />

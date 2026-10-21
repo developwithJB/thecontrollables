@@ -1,3 +1,4 @@
+import { BookLink } from "@/components/BookLink";
 import { FirstWeekPanel } from "@/components/formation/FirstWeekPanel";
 import {
   ArrowRight,
@@ -106,6 +107,7 @@ export default function FormationToday() {
         <p className="text-sm leading-relaxed text-muted-foreground">
           Five distinct circuits, one honest day. Open a circuit to see what your selected path requires or recommends.
         </p>
+        <p className="mt-3 text-sm"><BookLink placement="formation_today" className="inline-flex min-h-11 items-center text-primary underline">Read The Controllables · Get the book</BookLink></p>
       </FutureHero>
 
       <FuturePanel className="p-4 sm:p-5">
@@ -196,7 +198,7 @@ export default function FormationToday() {
         <div className="flex items-start gap-3">
           <History className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div>
-            <p className="text-sm font-semibold">Your Life OS history remains available.</p>
+            <p className="text-sm font-semibold">Your earlier history remains available.</p>
             <p className="mt-1 text-xs text-muted-foreground">Your reflections, proof, promises and other tools remain available. Keep Today as your starting point.</p>
           </div>
         </div>
