@@ -8,13 +8,6 @@
       "when": 1792434234113,
       "tag": "0000_book_loop_grants",
       "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1792603412898,
-      "tag": "0001_whoop_webhook_integrity",
-      "breakpoints": true
     }
   ]
 }

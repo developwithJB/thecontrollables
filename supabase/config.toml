@@ -112,3 +112,8 @@ verify_jwt = false
 
 [functions.send-push-nudge]
 verify_jwt = true
+
+# External WHOOP delivery stays paused until gateway configuration is reviewed.
+# The handler also requires provider HMAC; never loosen JWT implicitly on deploy.
+[functions.whoop-webhook]
+verify_jwt = true

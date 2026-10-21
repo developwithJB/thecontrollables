@@ -1,3 +1,4 @@
+import {readFileSync} from "node:fs";
 import { it, expect } from "vitest";
 import {
   validWhoopSignature,
@@ -90,3 +91,5 @@ it("deduplicates a stable provider event while retaining distinct objects/traces
     await whoopDeliveryKey(body),
   );
 });
+
+it("keeps unverified provider ingress JWT-protected until a reviewed configuration",()=>expect(readFileSync("supabase/config.toml","utf8")).toMatch(/\[functions\.whoop-webhook\]\s+verify_jwt = true/));
