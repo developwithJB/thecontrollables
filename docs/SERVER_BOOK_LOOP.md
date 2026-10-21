@@ -1,11 +1,8 @@
 # Server storage for the book loop
 
-Implemented on `feat/server-book-loop`; not deployed. The feature flag
-`server_book_loop_enabled` defaults **false**. With the flag off, signed-out users,
-and dev mock-auth sessions, the existing browser storage keys remain in use.
-With the flag on for a real signed-in account, the authenticated shell loads
-Supabase records and the book hooks use TanStack Query and confirmed server writes.
-Auth/recovery pages and the shell's sign-out controls remain available on load errors.
+The frontend `server_book_loop_enabled` default is **true**. Real signed-in accounts use the configured Supabase backend; signed-out users, a disabled flag, and development mock-auth sessions retain browser storage behavior. A client flag is not authorization or proof that a fork’s schema is installed.
+
+The authenticated shell keeps auth/recovery and sign-out available. Formation renders independently of optional book loading. Only meaningful saved browser progress prompts import; track/starting-charge defaults alone do not. Import is dismissible without recording a decision, does not block the shell, and never overwrites existing server records.
 
 ## Data contract
 
@@ -41,8 +38,7 @@ Starting Charge is included because My Controllables displays that separate loca
 profile result. The auth onboarding helper still stages a local track selection
 before the import decision; interactive signed-in track changes use the server.
 
-The main Daily Mission completion/XP path already uses `completed_actions`,
-`xp_logs`, and `daily_rings`; it is unchanged. This migration covers the remaining
+The main Daily Mission/reward path is separate. Current personal rewards go through bounded server RPCs; clients do not insert arbitrary `completed_actions` rewards. `daily_rings` remains personal self-report. This migration covers the remaining
 local Mission Drop preferences/progress, not duplicate XP issuance. Covenant
 history and Fully Charged practice/attempt/content tables are separate and unchanged.
 
@@ -87,8 +83,7 @@ in frontend variables. Flags and localStorage never authorize database access.
 ## One-time browser import
 
 On the first signed-in load with the flag on, existing data for that account and
-explicitly disclosed guest data triggers a confirmation dialog. Editors mount after
-the user imports or chooses server data without importing. Other accounts' browser
+explicitly disclosed guest data can trigger a dismissible confirmation dialog when the progress is meaningful. The shell and its children remain available while the user decides; Escape/outside dismissal defers without persisting a decision. Other accounts' browser
 keys are never read into the import. Starting Charge's legacy guest key is `local`.
 
 The importer normalizes and splits existing records, retains stable Dex IDs and

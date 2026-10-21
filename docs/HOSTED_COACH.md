@@ -1,15 +1,33 @@
-# Hosted coach — Pro, price TBD, rollout off
+# Hosted AI coaching
 
-The hosted option reuses Pro and the existing Lovable gateway model (`google/gemini-2.5-flash`). It requires no personal API key. No new Stripe product, price, checkout, billing tier, or model upgrade is introduced. `PAID_FEATURES.hostedCoach` maps to `pro`; legacy higher paid tiers normalize to Pro access. `HOSTED_COACH_PRICE_DISPLAY` remains `TBD` and is omitted from all user-facing price text.
+This is the current code guide. Earlier PR-E notes describing “price TBD,” a 25-message quota, and rollout-off defaults are historical. For dated deployment observations, read the [release evidence](security/customer-launch-2026-10-21.md).
 
-The settings card needs both client visibility `hosted_coach_enabled` and the independent server switch `coach_provider_rollout.hosted_coach_enabled`, both default false. Non-entitled users see an upgrade link to the existing `/billing` route. The owner-scoped selection RPC checks the protected billing profile and server switch; direct client updates of `hosted_coach_selected` are not granted. Clients cannot grant themselves Pro through auth metadata or flags.
+## Customer offer
 
-Selection persists in owner settings and retains a saved BYO key. Saving a new BYO provider key explicitly turns hosted selection off. “Use previous coach” deselects without removing keys, even after a downgrade. The edge reads the server-owned selection and protected profile on every request, then the service-only usage reservation independently checks selection, switch and entitlement again. Downgraded/disabled selections fail closed before a provider call. The new hosted path atomically reserves the existing 25-message daily Pro quota in protected `coach_hosted_usage` with aggregate logging in `ai_usage_logs`; request 26 is denied, including under concurrency. Failed calls consume their reservation. Existing legacy chat limits/behavior remain separate; Protected BYO reservations also count toward the hosted limit that day; both paths share an owner/date advisory lock. The legacy aggregate log is never quota authority for the new hosted path, so resetting it cannot bypass the cap.
+Read Along and personal practice do not require AI. Free verified accounts have five lifetime sample coach replies, subject to the shared sample allowance. Pro is $14.99/month or $119.99/year, with up to 200 standard text coach replies per calendar month and at most 10 per day. All hosted AI shares one monthly cost allowance; longer conversations, images, plans, summaries, and failed attempts can reduce the remaining reply count. There are no overage charges or unlimited-AI promises. Existing subscription rates are preserved.
 
-No new private context source is added. The selected provider gets the existing chat context. Canonical identities and authority boundaries remain locked: Awareness 🦉, Perspective 🐢, Habit 🦈, Wellness 🛰️, Environment 🚀. The coach cannot approve/publish formation content, complete circuits or close days. AI is assistance, not Scripture authority.
+Prices come from `supabase/functions/_shared/billingContract.ts` and `src/lib/pricing.ts`. The settings card, `/coach`, `/billing`, and `/pricing` present the server-derived allowance. A ChatGPT, Codex, Cursor, or other development subscription does not pay this app’s inference bill.
 
-Migration: `20261020000300_hosted_coach_entitlement.sql`, after the reviewed C/D migrations. The migration only adds rollout/selection state and guarded RPCs; it never changes billing records or approves content. Deploy the migration before the edge function and frontend. Keep both coach rollouts off until separately enabling the intended cohort. No provider key or credential reference is seeded.
+## Authority and cost control
 
-Rollback: disable the hosted server switch first; no hosted provider calls can proceed. Already selected users receive a disabled message rather than silently sending their conversation to another provider. Owners can deselect through `select_hosted_coach(false)` even when disabled. For a complete UI rollback, use a reviewed forward-only migration to deselect hosted mode before restoring the previous UI; do not delete retained keys or rewrite billing. Keep existing attempts/history intact.
+- `supabase/functions/_shared/hostedAiBudget.ts` bounds model, input, output, and supported media before requesting a service-only atomic cost reservation. It retains reservations on failures and does not automatically retry upstream or fall back to another paid model.
+- `get_hosted_ai_allowance` exposes the authenticated account’s allowance; `useHostedAiAllowance` reads it for display. Browser counters, editable metadata, and flags cannot create access.
+- `paidHostedFeatureDenial` checks current paid authority before insight/review data or cached paid results. The later budget gate remains independent.
+- Current guarded hosted requests use `google/gemini-3.1-flash-lite` through the existing Lovable gateway. Keep model/cost policy changes separate from refactors.
+- Server rollout/policy settings and entitlement remain authoritative. Frontend visibility defaults do not prove that a provider is configured or enabled in a deployment.
 
-Verification covers free/Plus/Pro and legacy higher tier normalization, hidden TBD text, client/server flag gates, upgrade link, Pro selection/deselection, owner permissions, downgrade, key retention, switching back to BYO, and 25-of-30 concurrent reservations. HTTP provider tests remain mocked; no paid calls, checkout or production Stripe tests are required. Production deployment status and exact release SHA belong in release notes after publishing, not in these feature defaults.
+The older hosted-selection/settings and usage migrations remain in history for compatibility. Do not restore an old quota or bypass the current shared budget because a previous design described it differently.
+
+## Selection and privacy
+
+A saved bring-your-own key can remain while hosted mode is selected. Saving a new personal provider key switches back explicitly. Selection does not grant Pro and never creates an automatic fallback. Current account permissions, consent, and routing are rechecked server-side.
+
+No private prompt, credential, provider body, or health payload belongs in a usage ledger or telemetry. The AI coach has no Scripture publication or strict-day closeout authority. Optional assistance is not reviewed lesson content, therapy, or diagnosis.
+
+## Changes and verification
+
+Do not change billing records, prices, budget policy, credentials, rollout settings, or content review as part of ordinary UI work. Deployments require a reviewed revision and distinct verification of schema, functions, configuration, and frontend publication. Never replay an applied migration.
+
+Use mocked provider/handler tests and disposable local budget checks described in [Testing](TESTING.md). Sandbox payment evidence does not prove real inference or delivery. If a service is disabled, fail clearly rather than silently routing private text to a different provider.
+
+See [personal provider keys](COACH_PROVIDERS.md) and [product guide](PRODUCT_STORY.md).

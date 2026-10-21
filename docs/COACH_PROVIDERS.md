@@ -1,44 +1,39 @@
-# Coach providers — draft, rollout off
+# Bring your own AI provider
 
-PR-D adds optional bring-your-own (BYO) provider keys to the existing `ai-chat` endpoint. It does not create a new hosted tier, price, Stripe product, MCP server or deployment. JB selected OpenAI-compatible (OpenAI/OpenRouter) and Anthropic, with Supabase Vault. Users supply their own credentials. All provider verification in this PR uses synthetic credentials and mocked HTTP; no paid calls are made.
+Users may connect their own OpenAI, OpenRouter, or Anthropic key for coach chat. They pay the selected provider directly; the Dashboard charges no platform AI fee for this path. Up to 100 attempted requests per day are reserved server-side. There is no automatic switch to paid hosted AI.
 
-## Activation and routing
+This is the current code guide, not a claim that every external provider was exercised live. Earlier PR-D rollout plans are historical; see the [release evidence](security/customer-launch-2026-10-21.md) for dated observations.
 
-Both `coach_providers_enabled` client visibility (default false) and `coach_provider_rollout.coach_providers_enabled` server setting (default false) must be enabled for settings UI. Client flags/localStorage never authorize routing, key writes or quota changes. The authenticated edge function checks the server switch after `auth.getUser(token)`. Missing migration/flag-off/no key retains the existing Lovable gateway and its plan limits. A configured BYO key uses its selected fixed destination; failures do not silently switch providers or spend hosted credits. Remove key returns to the existing app coach.
+## Supported configuration
 
-Allowed bases are exactly `https://api.openai.com/v1`, `https://openrouter.ai/api/v1`, and `https://api.anthropic.com`. Redirects are rejected, requests time out at 25 seconds, model identifiers are bounded, and upstream error bodies are discarded. Users select a model available to their provider account; availability and compatibility are not asserted by these mocked tests. OpenAI uses Chat Completions with `max_completion_tokens` and `store:false`; OpenRouter uses its compatible chat endpoint. Anthropic uses the Messages API with a top-level system prompt. BYO v1 is text-only: no app mutation tools are offered or executed. Existing gateway tools remain unchanged, including the second confirmation pass.
+OpenAI-compatible and Anthropic adapters use supported provider configuration; this feature does not accept arbitrary model hosts or install an MCP server. Fixed tone options are balanced/warm/direct; fixed depth options are concise/standard/detailed. No free-text system persona can override locked identity or authority rules.
 
-## Secrets and privacy
+The settings UI requires client visibility and independent server rollout. Frontend defaults currently enable coach visibility; the server setting, authenticated owner, and configured backend remain authoritative. Do not assume a fork is ready to call providers just because the card renders.
 
-The owner-only key RPC writes Vault and returns only provider/last4. Named column grants exclude `vault_secret_id` and deny browser `select *`. There is no decrypt RPC. The edge uses its existing server-only `SUPABASE_DB_URL`, temporarily sets the database role to `service_role` in a transaction, and joins Vault only for the authenticated caller's user ID while the server switch is on. This environment value must be available in the target Edge runtime before an authorized rollout; its deployed presence and connectivity are not verified here. The browser never receives or caches decrypted keys. No `.env` or VITE secret is created. Removing a key prevents subsequent resolutions; an already in-flight provider request may finish.
+## Key lifecycle
 
-Key writes/clear serialize on an owner advisory lock. Rotation updates the same Vault secret; clear removes it, including when rollout is off. Account deletion cascades settings and deletes the owned Vault secret. Keys remain until owner removal/account deletion. Account-scoped settings queries use no persistent cache and are cleared on unmount. The write-only password input is cleared after attempts and discarded on account change. The complete card is blocked from PostHog autocapture/session replay. No growth events, logs or storage carry credentials. Errors are generic, never provider/database error text.
+Keys are stored encrypted in Supabase Vault. Owner-scoped settings return the provider and last four characters, never a decrypted key or Vault reference. Browser `select *` and decrypt RPCs are not exposed. The server resolves only the authenticated owner’s selected key while its rollout is enabled.
 
-The chosen provider receives conversation text and existing `ai-chat` context (including user-supplied snapshot, patterns and session history, plus server-fetched levels); choosing BYO does not create a new context source. Optional private Wellness check-ins from PR-B are not fetched by `ai-chat`. Existing memory/consent controls remain separate. Keys are never part of prompts. Settings explicitly disclose provider transmission and provider billing. This PR does not claim a provider's retention/privacy policy or modify it.
+The write-only password field is cleared after attempts and account changes. The settings card excludes replay/autocapture; prompts, logs, local storage, growth events, and error messages must not carry key material. Named server credentials such as `SUPABASE_DB_URL` belong in Edge Function secrets, never `VITE_` values.
 
-## Persona and limits
+Writes and deletion serialize on an owner lock. Rotation updates the owned Vault secret. Clearing a key prevents subsequent resolution, though an already running request may finish. Account deletion cascades owned settings and Vault cleanup. Do not drop settings/Vault data as a rollback strategy.
 
-Only fixed tones balanced/warm/direct and depths concise/standard/detailed are accepted. The prompt appends locked identity/authority rules after the existing system prompt, followed by fixed style preferences. Awareness 🦉, Perspective 🐢, Habit 🦈, Wellness 🛰️ and Environment 🚀 remain canonical. The coach has no Scripture authority and cannot approve/publish content, complete circuits, close days or bypass review/auth/privacy controls. These prompt rules complement actual server authorization; they are not authorization themselves. No free-text persona is accepted.
+## Routing, cost, and consent
 
-**Assumption:** BYO has a separate cap of 100 attempted chat requests per UTC day for any authenticated tier, independent of hosted plan limits. A service-only atomic database reservation rejects request 101, fails closed on error, and increments aggregate `ai_usage_logs` without storing prompts, key material or health data. A real local concurrency test verifies exactly 100 of 105 simultaneous reservations succeed. Failed calls and invalid requests after reservation consume quota. Hosted messages retain existing plan limits and usage behavior. The existing hosted quota's read/update race and fail-open behavior on lookup error predate this PR and remain unchanged; BYO reservations do not use that path. Shared aggregate counts mean BYO usage also counts toward hosted daily limits when switching back that day.
+The selected provider receives the conversation and the existing coach context disclosed in settings. Choosing a provider does not create a new private context source or imply any provider retention promise. A server-only atomic reservation caps attempted requests; failed requests consume quota. The current hosted budget is a separate authority described in [Hosted AI](HOSTED_COACH.md). Do not rely on historical aggregate logs as quota authority.
 
-## Deployment and rollback
+Saving a new personal key explicitly deselects hosted mode. Hosted selection preserves a saved key; deselection does not delete it. Disabled or missing selection fails clearly instead of routing private text to another provider.
 
-Migration `20261020000200_coach_provider_settings.sql` is local only. Production needs JB's explicit authorization, security review of grants/Vault/runtime connectivity, and a separately authorized rollout. Keep the server switch off until those checks pass. Disable the server switch first to stop BYO routing; stored keys remain encrypted and removable. Do not drop Vault/settings while owners have keys. Roll back via reviewed forward-only changes. Supabase is the sole intended migration source; Drizzle cleanup waits for a separate tooling-dependency review.
+Awareness 🦉, Perspective 🐢, Habit 🦈, Wellness 🛰️, and Environment 🚀 remain canonical. The coach cannot approve Scripture guidance, publish lessons, complete circuits, or close strict days. Its prompt rules complement actual server permissions; prompts alone are not authorization.
 
-JB selected existing **Pro** for future hosted coaching, with price **TBD**. PR-D was reviewed and merged before PR-E implementation. See HOSTED_COACH.md for the Pro option; the hosted price remains TBD and both rollouts default off. JB intends to read/edit Gospel framing drafts; content remains pending independent theological review and unpublished.
+## Source and verification
 
-## Primary API references checked
+- `src/components/settings/CoachSettingsCard.tsx`: private settings UI.
+- `src/data/coach/coachSettings.ts`: typed settings requests.
+- `supabase/functions/_shared/coachProvider.ts` and `coachCredentials.ts`: provider routing and server key resolution.
+- `supabase/functions/ai-chat/index.ts`: authenticated chat entrypoint.
+- `supabase/migrations/20261020000200_coach_provider_settings.sql`: original provider settings history.
 
-- [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)
-- [OpenRouter Chat Completions](https://openrouter.ai/docs/api/api-reference/chat/create-a-chat-completion)
-- [Anthropic Messages](https://platform.claude.com/docs/en/api/messages/create)
-- [Supabase Vault](https://supabase.com/docs/guides/database/vault)
+Verify source paths against the repository when changing the adapter. Use mocked provider tests; never create a key or send a real private conversation just to verify naming/copy. Migration/configuration changes need separate review. Supabase is the canonical migration source; generated Drizzle transport SQL is not a second stream to apply.
 
-## Release review corrections
-
-The server reads paid access only from the protected billing profile, never editable auth user_metadata. Billing lookup errors fail closed. Saving persona preferences while a different provider is selected preserves the currently connected provider model until a new key is saved. Settings show the currently connected model explicitly; secondary controls retain readable hover contrast.
-
-## Lovable schema compatibility
-
-Before production installation, Lovable confirmed the three release migrations were absent and required its platform schema conventions: new application tables reference `public.profiles(id)` rather than `auth.users`, and explicit intended grants precede RLS/policies. The existing `profiles_id_fkey` cascades from auth.users, so coach rows and Vault cleanup still cascade on account deletion. The three unapplied release migrations were corrected in GitHub and clean-reset tested before installation. Named client column grants and server-only counters remain restricted; no Vault pointer or mode-write grant was added. Explicit service-role SELECT on protected usage counters documents intended server access. These are platform conventions, not PostgreSQL requirements.
+Primary API references: [OpenAI](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create), [OpenRouter](https://openrouter.ai/docs/api/api-reference/chat/create-a-chat-completion), [Anthropic](https://platform.claude.com/docs/en/api/messages/create), [Supabase Vault](https://supabase.com/docs/guides/database/vault). These are external references, not permission to transmit user data.
