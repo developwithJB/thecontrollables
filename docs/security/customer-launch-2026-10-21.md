@@ -146,3 +146,5 @@ Checks passed:545 unit tests,7 actual mocked WHOOP-handler checks,3 disposable S
 ## WHOOP gateway verification limit
 
 Supported managed tools could not retrieve the existing WHOOP deployment JWT flag. A separate reviewed configuration makes verify_jwt=true explicit, adding the provider HMAC as a second check without opening the gateway. Automatic external WHOOP delivery is intentionally paused pending a verified/reviewed configuration; manual authenticated sync is unchanged. Do not describe end-to-end WHOOP delivery as tested or enable a public gateway implicitly. No new secret, provider consent or credential is introduced.
+
+Managed00600 applied once and the three paid insight functions deployed. The separate reviewed gateway guard also removes only the byte-identical00600 Drizzle transport adapter and empty snapshot/journal addition, preserving generated types and canonical Supabase SQL without replay. WHOOP deployment follows with explicit JWT=true.
