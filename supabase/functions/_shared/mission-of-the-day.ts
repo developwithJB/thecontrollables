@@ -244,11 +244,8 @@ export const buildMissionOfTheDay = (input: BuildMissionOfTheDayInput = {}): Mis
     missionTitle: toMissionSentence(input.missionTitle || template.missionTitle, 6).replace(/[.]$/g, ""),
     missionInstruction: toMissionSentence(input.missionInstruction || template.missionInstruction, 12),
     shortWhy: toMissionSentence(input.shortWhy || template.shortWhy, 10),
-    xpReward: typeof input.xpReward === "number" && input.xpReward > 0 ? input.xpReward : template.xpReward,
-    selfTrustReward:
-      typeof input.selfTrustReward === "number" && input.selfTrustReward > 0
-        ? input.selfTrustReward
-        : template.selfTrustReward,
+    xpReward: template.xpReward,
+    selfTrustReward: template.selfTrustReward,
     chargeStageImpact: toMissionSentence(input.chargeStageImpact || template.chargeStageImpact, 9),
     appCtaLabel: normalizeWhitespace(input.appCtaLabel || "Open The Dashboard"),
     appCtaUrl: normalizeWhitespace(input.appCtaUrl || "https://thedashboard.agbcoaching.com/home"),
@@ -291,7 +288,7 @@ export const getMissionEmailSubject = (mission: MissionOfTheDay): string => {
 
 export const getMissionEmailPreview = (mission: MissionOfTheDay): string => {
   const controllableName = MISSION_CONTROLLABLE_NAMES[mission.targetControllable];
-  return `Train ${controllableName}: ${trimTrailingPunctuation(mission.missionInstruction)}. +${mission.xpReward} ${controllableName} XP.`;
+  return `Train ${controllableName}: ${trimTrailingPunctuation(mission.missionInstruction)}. Up to ${mission.xpReward} ${controllableName} XP.`;
 };
 
 const escapeHtml = (value: string): string =>
@@ -317,8 +314,8 @@ export const renderMissionEmailText = (mission: MissionOfTheDay): string => {
     mission.shortWhy,
     "",
     "Rewards:",
-    `+${mission.xpReward} ${controllableName} XP`,
-    `+${mission.selfTrustReward} Self-Trust`,
+    `Up to ${mission.xpReward} ${controllableName} XP`,
+    `Up to ${mission.selfTrustReward} Self-Trust`,
     "",
     "Today's loop:",
     "1. Daily Charge: Control / Release / Move.",
@@ -379,10 +376,10 @@ export const renderMissionEmailHtml = (mission: MissionOfTheDay): string => {
               Rewards
             </p>
             <span style="display:inline-block;margin:0 6px 8px 0;border:1px solid rgba(56,189,248,0.45);border-radius:999px;background:rgba(56,189,248,0.14);color:#dff5ff;padding:8px 12px;font-size:14px;font-weight:700;">
-              +${mission.xpReward} ${escapeHtml(controllableName)} XP
+              Up to ${mission.xpReward} ${escapeHtml(controllableName)} XP
             </span>
             <span style="display:inline-block;margin:0 0 8px 0;border:1px solid rgba(148,163,184,0.35);border-radius:999px;background:rgba(148,163,184,0.12);color:#edf2ff;padding:8px 12px;font-size:14px;font-weight:700;">
-              +${mission.selfTrustReward} Self-Trust
+              Up to ${mission.selfTrustReward} Self-Trust
             </span>
             <p style="margin:6px 0 0 0;color:${muted};font-size:13px;line-height:1.45;">
               Add optional proof to your Dex after the rep.

@@ -1,3 +1,4 @@
+import {awardLegacyEvent} from "@/lib/personalProgress";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -323,17 +324,12 @@ export const useLifeDashboard = () => {
       if (error) throw error;
       return data as MainQuest;
     },
-    onSuccess: async () => {
-      // Award XP for completing quest
-      await awardXpMutation.mutateAsync({
-        amount: XP_VALUES.QUEST_COMPLETE,
-        source: "quest_complete",
-        description: "Completed main quest",
-      });
+    onSuccess: async (quest) => {
+      const reward=await awardLegacyEvent("quest_complete",quest.id);
       queryClient.invalidateQueries({ queryKey: ["main-quest"] });
       toast({
         title: "Quest completed!",
-        description: "+500 XP earned. Choose your next adventure.",
+        description:reward.amount ? `+${reward.amount} XP earned. Choose your next adventure.` : "Quest recorded. Your daily activity XP allowance is used.",
       });
     },
     onError: (error) => {
@@ -345,29 +341,7 @@ export const useLifeDashboard = () => {
     },
   });
 
-  // Award XP
-  const awardXpMutation = useMutation({
-    mutationFn: async ({ amount, source, description }: { amount: number; source: string; description?: string }) => {
-      if (!userId) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase
-        .from("xp_logs")
-        .insert({
-          user_id: userId,
-          amount,
-          source,
-          description,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as XpLog;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["xp-logs"] });
-    },
-  });
+  // Rewards are issued by server-owned practice/milestone operations.
 
   // Create promise
   const createPromiseMutation = useMutation({
@@ -416,11 +390,7 @@ export const useLifeDashboard = () => {
 
       // Award XP for kept promise
       if (kept) {
-        await awardXpMutation.mutateAsync({
-          amount: XP_VALUES.INTEGRITY_REP,
-          source: "integrity_rep",
-          description: "Kept a promise",
-        });
+        await awardLegacyEvent("integrity_rep",data.id);
       }
 
       return data as IntegrityLog;
@@ -456,11 +426,7 @@ export const useLifeDashboard = () => {
       if (error) throw error;
 
       // Award XP for logging time
-      await awardXpMutation.mutateAsync({
-        amount: XP_VALUES.TIME_LOG,
-        source: "time_log",
-        description: "Daily time awareness",
-      });
+      await awardLegacyEvent("time_log",data.id);
 
       return data as TimeLog;
     },
@@ -517,7 +483,6 @@ export const useLifeDashboard = () => {
     // XP
     totalXp,
     xpLogs,
-    awardXp: awardXpMutation.mutate,
     
     // Integrity
     integrityScore,

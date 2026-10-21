@@ -401,7 +401,7 @@ export function DailyOperatorBrief({ userId }: DailyOperatorBriefProps) {
                 {mission.missionInstruction}
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
-                <RewardChip icon={<Zap className="h-3.5 w-3.5" />} label={`+${mission.xpReward} ${missionGuide.name} XP`} />
+                <RewardChip icon={<Zap className="h-3.5 w-3.5" />} label={`Up to ${mission.xpReward} ${missionGuide.name} XP`} />
                 <RewardChip icon={<Shield className="h-3.5 w-3.5" />} label={`+${mission.selfTrustReward} Self-Trust`} />
               </div>
             </div>
@@ -439,7 +439,7 @@ export function DailyOperatorBrief({ userId }: DailyOperatorBriefProps) {
         {missionCompletion.completionResult ? (
           <ChargeMoment
             type={missionCompletion.completionResult.progress.type}
-            xpAwarded={Math.max(missionCompletion.completionResult.xpAwarded, mission.xpReward)}
+            xpAwarded={missionCompletion.completionResult.xpAwarded}
             progress={missionCompletion.completionResult.progress.progress}
             totalXp={missionCompletion.completionResult.progress.totalXp}
             level={missionCompletion.completionResult.progress.level}

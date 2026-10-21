@@ -1,3 +1,4 @@
+import {recordPersonalAction} from "@/lib/personalProgress";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -9,12 +10,8 @@ import {
   readDevMockControllableXp,
 } from "@/lib/devMockProgress";
 import {
-  MISSION_COMPLETION_SOURCE,
-  MISSION_SELF_TRUST_SOURCE,
   applyMissionCompletionProgress,
   buildMissionCompletionActionText,
-  buildMissionCompletionXpDescription,
-  buildMissionSelfTrustDescription,
   type MissionCompletionProgress,
 } from "@/lib/missionCompletion";
 import type { MissionOfTheDay } from "@/lib/missionOfTheDay";
@@ -67,28 +64,6 @@ async function getCurrentControllableXp(userId: string, controllable: string): P
 
   if (error) throw error;
   return (data || []).reduce((sum, row) => sum + (row.xp_awarded || 0), 0);
-}
-
-async function ensureXpLog(userId: string, amount: number, source: string, description: string): Promise<void> {
-  const { data: existing, error: existingError } = await supabase
-    .from("xp_logs")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("source", source)
-    .eq("description", description)
-    .maybeSingle();
-
-  if (existingError) throw existingError;
-  if (existing) return;
-
-  const { error } = await supabase.from("xp_logs").insert({
-    user_id: userId,
-    amount,
-    source,
-    description,
-  });
-
-  if (error) throw error;
 }
 
 async function markMissionDailyRing(userId: string, mission: MissionOfTheDay): Promise<void> {
@@ -189,35 +164,15 @@ export function useMissionCompletion(
       const currentXp = await getCurrentControllableXp(userId, mission.targetControllable);
       const alreadyCompleted = !!existing;
 
-      if (!alreadyCompleted) {
-        const { error } = await supabase.from("completed_actions").insert({
-          user_id: userId,
-          action_text: actionText,
-          controllable: mission.targetControllable,
-          xp_awarded: mission.xpReward,
-        });
-        if (error) throw error;
-      }
+      const reward=alreadyCompleted ? {xpAwarded:0,selfTrustAwarded:0,alreadyCompleted:true} : await recordPersonalAction({text:actionText,controllable:mission.targetControllable,kind:"mission"});
 
-      await ensureXpLog(
-        userId,
-        mission.xpReward,
-        MISSION_COMPLETION_SOURCE,
-        buildMissionCompletionXpDescription(mission),
-      );
-      await ensureXpLog(
-        userId,
-        mission.selfTrustReward,
-        MISSION_SELF_TRUST_SOURCE,
-        buildMissionSelfTrustDescription(mission),
-      );
       await markMissionDailyRing(userId, mission);
 
       return {
-        alreadyCompleted,
-        xpAwarded: alreadyCompleted ? 0 : mission.xpReward,
-        selfTrustAwarded: alreadyCompleted ? 0 : mission.selfTrustReward,
-        progress: applyMissionCompletionProgress(mission, currentXp, alreadyCompleted),
+        alreadyCompleted: alreadyCompleted||reward.alreadyCompleted,
+        xpAwarded:reward.xpAwarded,
+        selfTrustAwarded:reward.selfTrustAwarded,
+        progress:applyMissionCompletionProgress({...mission,xpReward:reward.xpAwarded},currentXp,alreadyCompleted||reward.alreadyCompleted),
       };
     },
     onSuccess: (result) => {
@@ -232,7 +187,7 @@ export function useMissionCompletion(
         title: result.alreadyCompleted ? "Mission already complete" : result.progress.chargeStageLabel,
         description: result.alreadyCompleted
           ? "XP already awarded for today's mission."
-          : `+${result.xpAwarded} XP · +${result.selfTrustAwarded} Self-Trust`,
+          : result.xpAwarded ? `+${result.xpAwarded} XP · +${result.selfTrustAwarded} Self-Trust` : "Practice recorded. Your daily activity XP allowance is used.",
       });
     },
   });

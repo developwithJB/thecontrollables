@@ -103,6 +103,7 @@ export const GRACE_EVIDENCE_CATEGORIES: Array<{
 ];
 
 export interface CovenantChallengeRecord {
+  timezone?: string;
   id: string;
   user_id: string;
   title: string;
@@ -205,7 +206,7 @@ export const createEmptyCovenantCheckin = (
   updated_at: new Date().toISOString(),
 });
 
-export const getTodayDateKey = (): string => new Date().toLocaleDateString("sv-SE");
+export const getTodayDateKey = (timezone?:string): string => new Date().toLocaleDateString("sv-SE",timezone?{timeZone:timezone}:undefined);
 
 const parseDateKey = (value: string): Date => new Date(`${value}T12:00:00Z`);
 
@@ -221,8 +222,8 @@ const dateDifference = (later: string, earlier: string): number => {
 };
 
 export const getCovenantDayProgress = (
-  challenge: Pick<CovenantChallengeRecord, "started_on" | "duration_days">,
-  date = getTodayDateKey(),
+  challenge: Pick<CovenantChallengeRecord, "started_on" | "duration_days" | "timezone">,
+  date = getTodayDateKey(challenge.timezone),
 ): CovenantDayProgress => {
   const elapsed = dateDifference(date, challenge.started_on);
   const isBeforeStart = elapsed < 0;

@@ -1,3 +1,4 @@
+import {recordPersonalAction} from "@/lib/personalProgress";
 import { useState } from "react";
 import {
   Sheet,
@@ -98,26 +99,14 @@ export const QuickAddSheet = ({ open, onClose, userId, selectedDate }: QuickAddS
   const handleSaveMovement = async () => {
     if (!movementType.trim()) return;
     setSaving(true);
-    // Save as recharge log + completed action
-    const promises = [
-      supabase.from("recharge_logs" as any).insert({
-        user_id: userId,
-        recharge_type: "movement",
-        log_date: selectedDate,
-        note: `${movementType}${movementDuration ? ` — ${movementDuration} min` : ""}`,
-      } as any),
-      supabase.from("completed_actions").insert({
-        user_id: userId,
-        action_text: `Movement: ${movementType}${movementDuration ? ` (${movementDuration} min)` : ""}`,
-        controllable: "wellness",
-        xp_awarded: 15,
-      }),
-    ];
-    await Promise.all(promises);
-    setSaving(false);
-    toast({ title: "Movement logged" });
-    invalidateActivity();
-    handleClose();
+    try {
+      const {error}=await supabase.from("recharge_logs" as any).insert({user_id:userId,recharge_type:"movement",log_date:selectedDate,note:`${movementType}${movementDuration ? ` — ${movementDuration} min` : ""}`} as any);
+      if(error)throw error;
+      await recordPersonalAction({text:`Movement: ${movementType}${movementDuration ? ` (${movementDuration} min)` : ""}`,controllable:"wellness",kind:"movement"});
+      toast({ title: "Movement logged" });invalidateActivity();handleClose();
+    } catch {toast({title:"Could not verify movement progress",description:"Please try again.",variant:"destructive"})}
+    finally{setSaving(false)}
+
   };
 
   const handleSaveSleep = async () => {

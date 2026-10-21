@@ -140,7 +140,7 @@ export function useCovenant(userId?: string) {
         const activeChallenge = stored.challenges.find((challenge) => challenge.status === "active") ?? null;
         const todayCheckin = activeChallenge
           ? stored.checkins.find(
-              (entry) => entry.challenge_id === activeChallenge.id && entry.checkin_date === today,
+              (entry) => entry.challenge_id === activeChallenge.id && entry.checkin_date === getTodayDateKey(activeChallenge.timezone),
             ) ?? null
           : null;
 
@@ -149,7 +149,7 @@ export function useCovenant(userId?: string) {
           checkins: stored.checkins,
           todayCheckin,
           graceEntries: stored.graceEntries,
-          evidence: calculateCovenantEvidence(stored.checkins, stored.keptIntegrityPromises, today),
+          evidence: calculateCovenantEvidence(stored.checkins, stored.keptIntegrityPromises, getTodayDateKey(activeChallenge?.timezone)),
         };
       }
 
@@ -191,7 +191,7 @@ export function useCovenant(userId?: string) {
       const graceEntries = (graceResult.data ?? []).map(normalizeGraceEntry);
       const todayCheckin = activeChallenge
         ? checkins.find(
-            (entry) => entry.challenge_id === activeChallenge.id && entry.checkin_date === today,
+            (entry) => entry.challenge_id === activeChallenge.id && entry.checkin_date === getTodayDateKey(activeChallenge.timezone),
           ) ?? null
         : null;
 
@@ -200,7 +200,7 @@ export function useCovenant(userId?: string) {
         checkins,
         todayCheckin,
         graceEntries,
-        evidence: calculateCovenantEvidence(checkins, integrityResult.count ?? 0, today),
+        evidence: calculateCovenantEvidence(checkins, integrityResult.count ?? 0, getTodayDateKey(activeChallenge?.timezone)),
       };
     },
     enabled: !!userId,
@@ -237,9 +237,8 @@ export function useCovenant(userId?: string) {
         return record;
       }
 
-      const { data, error } = await supabase
-        .from("covenant_challenges")
-        .insert({
+      const challengeInsert={
+          timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,
           user_id: record.user_id,
           title: record.title,
           mission: record.mission,
@@ -248,7 +247,8 @@ export function useCovenant(userId?: string) {
           ends_on: record.ends_on,
           status: record.status,
           rules: record.rules,
-        })
+        };
+      const { data, error } = await supabase.from("covenant_challenges").insert(challengeInsert)
         .select("*")
         .single();
 
@@ -273,7 +273,8 @@ export function useCovenant(userId?: string) {
       const challenge = stateQuery.data?.activeChallenge;
       if (!challenge) throw new Error("Start a covenant first.");
 
-      const base = stateQuery.data?.todayCheckin ?? createEmptyCovenantCheckin(challenge.id, userId, today);
+      const practiceToday=getTodayDateKey(challenge.timezone);
+      const base = stateQuery.data?.todayCheckin ?? createEmptyCovenantCheckin(challenge.id, userId, practiceToday);
       const next: CovenantDailyCheckinRecord = {
         ...base,
         ...updates,
@@ -285,13 +286,13 @@ export function useCovenant(userId?: string) {
       if (devMock) {
         const stored = readDevState(userId);
         const existingIndex = stored.checkins.findIndex(
-          (entry) => entry.challenge_id === challenge.id && entry.checkin_date === today,
+          (entry) => entry.challenge_id === challenge.id && entry.checkin_date === practiceToday,
         );
         const storedRecord = { ...next, id: next.id || crypto.randomUUID() };
         if (existingIndex >= 0) stored.checkins[existingIndex] = storedRecord;
         else stored.checkins.push(storedRecord);
 
-        const progress = getCovenantDayProgress(challenge, today);
+        const progress = getCovenantDayProgress(challenge, practiceToday);
         if (next.day_complete && progress.dayNumber >= challenge.duration_days) {
           const challengeIndex = stored.challenges.findIndex((entry) => entry.id === challenge.id);
           stored.challenges[challengeIndex] = {
@@ -314,7 +315,7 @@ export function useCovenant(userId?: string) {
 
       if (error) throw error;
 
-      const progress = getCovenantDayProgress(challenge, today);
+      const progress = getCovenantDayProgress(challenge, practiceToday);
       if (next.day_complete && progress.dayNumber >= challenge.duration_days) {
         await supabase
           .from("covenant_challenges")

@@ -1,3 +1,4 @@
+import {awardWellnessMilestone} from "@/lib/personalProgress";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -133,12 +134,7 @@ export function useWellness(userId: string | undefined) {
       const milestoneXp = STREAK_MILESTONES[newStreak];
 
       if (milestoneXp) {
-        await supabase.from("xp_logs").insert({
-          user_id: userId,
-          amount: milestoneXp,
-          source: "wellness_streak",
-          description: `🔥 ${newStreak}-day wellness streak bonus`,
-        });
+        await awardWellnessMilestone();
       }
 
       // Trigger celebration for big milestones (7, 14, 30)
