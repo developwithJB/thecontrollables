@@ -28,7 +28,7 @@ test("pricing and proof collection explain the product in plain language", async
   await page.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
   await page.goto("/pricing");
   await expect(page.getByRole("heading", { name: "Start free. Choose your support." })).toBeVisible();
-  await expect(page.getByText("The source code is available on GitHub.", { exact: false })).toBeVisible();
+  await expect(page.getByText("The Dashboard’s original code is open source under the MIT License.", { exact: false })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Bring your own AI" })).toBeVisible();
   await page.screenshot({ path: "output/readability-cleanup-2026-10-21/pricing-mobile.png", fullPage: true });
   await page.goto("/proof/dex");
