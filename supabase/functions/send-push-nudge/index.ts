@@ -1,3 +1,4 @@
+import {allowedPushEndpoint,pushServiceAuthorized} from "../_shared/pushBoundary.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -34,6 +35,7 @@ async function sendWebPush(
   vapidPrivateKey: string,
   vapidSubject: string
 ): Promise<Response> {
+  if (!allowedPushEndpoint(subscription.endpoint)) throw new Error("unsupported_push_endpoint");
   // Import the VAPID private key
   const url = new URL(subscription.endpoint);
   const audience = `${url.protocol}//${url.host}`;
@@ -57,7 +59,7 @@ async function sendWebPush(
     return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
 
-  function base64urlDecode(str: string): Uint8Array {
+  function base64urlDecode(str: string): Uint8Array<ArrayBuffer> {
     str = str.replace(/-/g, "+").replace(/_/g, "/");
     while (str.length % 4) str += "=";
     const binary = atob(str);
@@ -230,6 +232,7 @@ async function sendWebPush(
   const vapidPublicKeyEncoded = base64urlEncode(rawPublicKey);
 
   return fetch(subscription.endpoint, {
+    redirect: "error",
     method: "POST",
     headers: {
       "Content-Type": "application/octet-stream",
@@ -247,8 +250,12 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") return new Response(null, {status:405, headers:corsHeaders});
   try {
-    const body = await req.json().catch(() => ({}));
+    const raw = await req.text();
+    if (new TextEncoder().encode(raw).length > 8192) return new Response(null,{status:413,headers:corsHeaders});
+    const body = raw ? JSON.parse(raw) : {};
+    if (!body || typeof body !== "object" || Array.isArray(body)) return new Response(null,{status:400,headers:corsHeaders});
 
     // Public endpoint: return VAPID public key for client subscription
     if (body.action === "get_vapid_key") {
@@ -265,7 +272,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Main nudge-sending flow (called by cron)
+    // The public key action above cannot read subscriptions or send. Sending
+    // requires the existing server credential; user JWTs and anon keys cannot send.
+    if (!await pushServiceAuthorized(req.headers.get("Authorization"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")))
+      return new Response(JSON.stringify({error:"Unauthorized"}),{status:401,headers:{...corsHeaders,"Content-Type":"application/json"}});
+    if (body.action && body.action !== "send_nudges") return new Response(null,{status:400,headers:corsHeaders});
+    // Main nudge-sending flow (called by an already-authorized server runner)
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY")!;
@@ -293,7 +305,7 @@ Deno.serve(async (req) => {
     // Fetch profiles for timezone
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, timezone")
+      .select("id, timezone, push_nudges_enabled")
       .in("id", userIds);
 
     // Fetch active reset sessions for context
@@ -312,7 +324,7 @@ Deno.serve(async (req) => {
       .gte("completed_at", `${today}T00:00:00Z`);
 
     const profileMap = new Map((profiles || []).map((p: { id: string; timezone: string | null }) => [p.id, p]));
-    const sessionMap = new Map((sessions || []).map((s: { user_id: string }) => [s.user_id, s]));
+    const sessionMap = new Map((sessions || []).map((s: { user_id: string; current_day: number }) => [s.user_id, s]));
     const actionCountMap = new Map<string, number>();
     (completedActions || []).forEach((a: { user_id: string }) => {
       actionCountMap.set(a.user_id, (actionCountMap.get(a.user_id) || 0) + 1);
@@ -326,6 +338,7 @@ Deno.serve(async (req) => {
       try {
         // Check if it's ~7 AM in user's timezone
         const profile = profileMap.get(sub.user_id);
+        if (!(profile as {push_nudges_enabled?:boolean})?.push_nudges_enabled || !allowedPushEndpoint(sub.endpoint)) continue;
         const tz = (profile as { timezone?: string })?.timezone || "America/New_York";
         const now = new Date();
         const userTime = new Date(
@@ -346,6 +359,9 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (existingLog) continue;
+        const localDate = new Intl.DateTimeFormat("sv-SE", {timeZone:tz}).format(now);
+        const {data:claimed,error:claimError}=await supabase.rpc("claim_push_nudge",{p_user_id:sub.user_id,p_local_date:localDate});
+        if(claimError || claimed !== true) continue;
 
         // Build context-aware message
         const session = sessionMap.get(sub.user_id);
@@ -363,7 +379,7 @@ Deno.serve(async (req) => {
             messageBody = `${3 - actionsToday} action${3 - actionsToday === 1 ? "" : "s"} left today. You're closer than you think.`;
           } else {
             title = "Your Dashboard is ready";
-            messageBody = `Day ${(session as { current_day: number }).current_day} — three small actions waiting for you.`;
+            messageBody = `Day ${session.current_day} — three small actions waiting for you.`;
           }
         } else {
           // No active session
@@ -394,11 +410,10 @@ Deno.serve(async (req) => {
           await supabase.from("push_subscriptions").delete().eq("id", sub.id);
           expired++;
         } else {
-          const errText = await response.text();
-          errors.push(`${sub.user_id}: ${response.status} ${errText}`);
+          errors.push(`push_http_${response.status}`);
         }
       } catch (err) {
-        errors.push(`${sub.user_id}: ${(err as Error).message}`);
+        errors.push("push_delivery_failed");
       }
     }
 
@@ -407,9 +422,9 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("Push nudge error:", err);
+    console.error("Push nudge request failed");
     return new Response(
-      JSON.stringify({ error: (err as Error).message }),
+      JSON.stringify({ error: "push_unavailable" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

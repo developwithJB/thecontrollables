@@ -109,3 +109,6 @@ verify_jwt = true
 # an authenticated POST with a one-use, owner-bound server nonce.
 [functions.wearable-oauth-callback]
 verify_jwt = false
+
+[functions.send-push-nudge]
+verify_jwt = true

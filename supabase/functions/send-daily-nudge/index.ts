@@ -1941,7 +1941,7 @@ Deno.serve(async (req) => {
             context.focusArea = "Faithfulness";
             context.currentDay = covenantContext.dayNumber;
           }
-          console.log(`[NUDGE] Context for ${userId}:`, JSON.stringify(context));
+          console.log("[NUDGE] Context prepared");
 
           if (emailKind === "relaunch") {
             const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
@@ -2133,10 +2133,10 @@ Deno.serve(async (req) => {
                 .eq("user_id", userId)
                 .eq("nudge_date", localDate);
 
-              console.log(`[NUDGE] Sent re-engagement nudge to ${reEngageEmail}`);
+              console.log("[NUDGE] Re-engagement delivery completed");
               sentCount++;
             } catch (reEngageErr) {
-              console.error(`[NUDGE] Failed re-engagement for ${userId}:`, reEngageErr);
+              console.error("[NUDGE] Re-engagement delivery failed");
               await supabase
                 .from("email_nudge_logs")
                 .update({ status: "skipped" })
@@ -2202,8 +2202,8 @@ Deno.serve(async (req) => {
           if (!isWeekly) missionCount++;
         } catch (err: unknown) {
           const errorMsg = err instanceof Error ? err.message : String(err);
-          console.error(`[NUDGE] Error sending to user ${userId}:`, errorMsg);
-          errors.push(`${userId}: ${errorMsg}`);
+          console.error("[NUDGE] Delivery failed");
+          errors.push("delivery_failed");
         }
       }));
 
@@ -2232,9 +2232,9 @@ Deno.serve(async (req) => {
     );
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error("[NUDGE] Fatal error:", errorMsg);
+    console.error("[NUDGE] Request failed");
     return new Response(
-      JSON.stringify({ error: errorMsg }),
+      JSON.stringify({ error: "nudge_unavailable" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

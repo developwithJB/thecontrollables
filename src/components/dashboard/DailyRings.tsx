@@ -1,3 +1,4 @@
+import {PERSONAL_PRACTICE_NOTICE} from "@/lib/personalPracticeNotice";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Share2 } from "lucide-react";
@@ -146,6 +147,7 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
 
   return (
     <div className="flex flex-col items-center gap-6">
+      <p className="text-xs text-muted-foreground">{PERSONAL_PRACTICE_NOTICE}</p>
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-1">
         <p className="text-xs text-muted-foreground tracking-wide uppercase">
           {isFullyCharged ? "Fully Charged" : "Charge your Controllables"}

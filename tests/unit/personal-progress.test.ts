@@ -8,6 +8,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 import {
   recordPersonalAction,
+  recordCircleAttendance,
   completeLegacyResetDay,
   awardLegacyEvent,
   awardWellnessMilestone,
@@ -163,4 +164,9 @@ it("reset calendar days stay correct across DST and travel", () => {
       new Date("2026-10-21T00:30:00Z"),
     ),
   ).toBe(2);
+});
+
+it("circle attendance sends only the circle and saved-session IDs", async()=>{
+ await recordCircleAttendance("circle","session");
+ expect(mocks.rpc).toHaveBeenCalledWith("record_circle_attendance",{p_challenge_id:"circle",p_reset_session_id:"session"});
 });

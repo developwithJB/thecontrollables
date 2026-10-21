@@ -53,7 +53,7 @@ describe("privacy boundaries in diagnostics and system prompts", () => {
           expect(
             node.arguments.map((a) => a.getText(ast)).join(" "),
           ).not.toMatch(
-            /recipient\.email|\$\{email\}|\$\{subject\}|JSON\.stringify\(data\)|Object\.keys\(dayMap\)|\$\{body\}/,
+            /recipient\.email|\$\{\w*[Ee]mail\}|JSON\.stringify\(context\)|\$\{email\}|\$\{subject\}|JSON\.stringify\(data\)|Object\.keys\(dayMap\)|\$\{body\}/,
           );
         if (
           ts.isCallExpression(node) &&

@@ -1,3 +1,4 @@
+import {PERSONAL_PRACTICE_NOTICE} from "@/lib/personalPracticeNotice";
 import { useMemo, useRef, useState } from "react";
 import { endOfWeek, format, startOfWeek } from "date-fns";
 import { Download, Loader2, Lock, Sparkles, ThumbsDown, ThumbsUp, Zap } from "lucide-react";
@@ -227,6 +228,7 @@ export function WeeklyAIInsightCard({ userId, className }: WeeklyAIInsightCardPr
                 A look at how your circuits operated this week.
               </p>
               <p className="mt-1 text-xs text-muted-foreground">{week.label}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{PERSONAL_PRACTICE_NOTICE}</p>
             </div>
             <Badge variant="outline" className="gap-1 border-primary/30 bg-primary/5 text-[10px]">
               <Sparkles className="h-3 w-3 text-primary" />

@@ -13,3 +13,14 @@ export function untrustedConversation(
           }),
   }));
 }
+
+/** Request context is bounded user data, never a system instruction or verified memory. */
+export function untrustedCoachContext(body: Record<string, unknown>) {
+  const context: Record<string, unknown> = {};
+  for (const key of ['challengeContext', 'userContext', 'buildContext', 'patternData']) {
+    if (body[key] != null) context[key] = body[key];
+  }
+  if (!Object.keys(context).length) return [];
+  const text = JSON.stringify(context).slice(0, 8000);
+  return [{ role: 'user' as const, content: JSON.stringify({ unverifiedClientContext: text }) }];
+}

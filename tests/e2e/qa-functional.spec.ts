@@ -31,3 +31,13 @@ test("mobile non-strict receipt persists only a display acknowledgement and publ
   await page.goto("/"); await expect(page.getByTestId("cta-get-started")).toBeVisible(); await expect(page.getByTestId("cta-get-started")).toContainText("Start with Read Along"); await settled(page,'[data-testid="cta-get-started"]'); await page.screenshot({path:"docs/qa/pr1/landing-mobile.png"});
   await page.goto("/auth?mode=signup"); await expect(page.getByTestId("auth-form")).toBeVisible(); await settled(page,'[data-testid="auth-form"]'); await page.screenshot({path:"docs/qa/pr1/auth-mobile.png",fullPage:true});
 });
+
+test("legacy daily and weekly surfaces identify personal reports without calling a sender",async({page})=>{
+ const outbound:string[]=[];
+ await page.route("**/*",route=>{const url=new URL(route.request().url());if(url.hostname==="127.0.0.1"||url.protocol==="data:")return route.continue();outbound.push(url.pathname);return route.abort();});
+ for(const path of ["/train","/growth","/reflect"]){
+  await page.goto(path);
+  await expect(page.getByText("Based on your personal reports. This does not verify effort or award strict 75-day credit.",{exact:true}).first()).toBeVisible();
+ }
+ expect(outbound.some(path=>path.includes("send-push-nudge")||path.includes("send-daily-nudge"))).toBe(false);
+});

@@ -101,7 +101,7 @@ export function CircleCard({
               <h3 className="text-sm font-medium text-foreground">Run This Chapter Quest Together</h3>
             </div>
             <p className="text-xs text-muted-foreground mb-4">
-              Invite 2–5 people to move through the same 7-day chapter quest. See who showed up each day.
+              Invite 2–5 people to move through the same 7-day chapter quest. See whose saved Snapshot check-in was recorded each day.
             </p>
             <div className="flex gap-2">
               <Button
@@ -214,7 +214,7 @@ export function CircleCard({
           <p className="text-xs text-muted-foreground">
             Day {Math.min(currentDay, 7)} of {myCircle.duration_days} ·{" "}
             <span className="text-foreground font-medium">
-              {showedUpTodayCount}/{circleMembers.length} showed up today
+              {showedUpTodayCount}/{circleMembers.length} Snapshot check-ins recorded today
             </span>
           </p>
 
