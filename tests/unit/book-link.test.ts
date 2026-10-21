@@ -10,8 +10,8 @@ vi.mock('@/integrations/supabase/client', () => ({ supabase: { auth: { getSessio
 vi.mock('@/hooks/useFormationEntryStatus', () => ({ useFormationEntryStatus: () => ({ data: { strictReady: true, reviewedDays: 75, emailDeliveryReady: false, sample: null }, isPending: false }) }));
 vi.mock('@/lib/featureFlags', () => ({ onboardingQuickStartEnabled: () => true }));
 import { BookLink } from '@/components/BookLink';
-import Landing from '@/pages/Landing';
-import QuickStart from '@/pages/QuickStart';
+import Landing from '@/pages/public/LandingPage';
+import QuickStart from '@/pages/onboarding/QuickStartPage';
 const page = (component: typeof Landing) => render(createElement(MemoryRouter, null, createElement(component)));
 beforeEach(() => {
   const storage = () => {

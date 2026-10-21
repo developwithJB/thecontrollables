@@ -1,0 +1,675 @@
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { format, addWeeks, subWeeks, addMonths, subMonths, isToday, isBefore, startOfDay } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Plus, RotateCcw, BarChart3, UtensilsCrossed, ArrowRight, CalendarDays, CalendarRange, Calendar as CalendarIcon, Clock3 } from "lucide-react";
+import { APP_ROUTES } from "@/lib/appRoutes";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useToast } from "@/hooks/use-toast";
+import { useAuthenticatedUser } from "@/hooks/useAppAuth";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { MealPlanCard } from "@/components/nutrition/MealPlanCard";
+import { cn } from "@/lib/utils";
+
+import {
+  usePlannerItems,
+  usePlannerMutations,
+  usePlannerRoutines,
+  usePlannerConnections,
+  getWeekRange,
+  type PlannerItem,
+  type CreatePlannerItemInput,
+  type UpdatePlannerItemInput,
+} from "@/hooks/usePlanner";
+
+import { usePlannerActivity, groupActivityByDate } from "@/hooks/usePlannerActivity";
+
+import { PlannerDateStrip } from "@/components/planner/PlannerDateStrip";
+import { PlannerDayView } from "@/components/planner/PlannerDayView";
+import { PlannerWeekGrid } from "@/components/planner/PlannerWeekGrid";
+import { PlannerMonthGrid } from "@/components/planner/PlannerMonthGrid";
+import { PlannerItemEditor } from "@/components/planner/PlannerItemEditor";
+import { PlannerFab } from "@/components/planner/PlannerFab";
+import { QuickAddSheet } from "@/components/planner/QuickAddSheet";
+import { PlannerRoutineManager } from "@/components/planner/PlannerRoutineManager";
+import { PlannerCalendarConnect } from "@/components/planner/PlannerCalendarConnect";
+import { PlanVsActualView } from "@/components/planner/PlanVsActualView";
+import { PlannerBodyContext } from "@/components/planner/PlannerBodyContext";
+import { PlannerDayLoadSummary } from "@/components/planner/PlannerDayLoadSummary";
+import { analyzeCalendar } from "@/lib/calendarIntelligence";
+import { useHealthData } from "@/hooks/useHealthData";
+import { useDailySynthesis } from "@/hooks/useDailySynthesis";
+import { useProjects } from "@/hooks/useProjects";
+import { useSeason } from "@/hooks/useSeason";
+
+type ViewMode = "month" | "week" | "day";
+
+const VIEW_ICONS: Record<ViewMode, React.ElementType> = {
+  month: CalendarDays,
+  week: CalendarRange,
+  day: CalendarIcon,
+};
+
+const PlannerPage = () => {
+  const user = useAuthenticatedUser();
+  const isMobile = useIsMobile();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
+  const callbackHandled = useRef(false);
+  const { isPaid, initiateCheckout } = useEntitlements(user.id);
+  const [showFuelCheck, setShowFuelCheck] = useState(false);
+
+  // View mode
+  const [viewMode, setViewMode] = useState<ViewMode>(isMobile ? "day" : "week");
+
+  // Handle Google Calendar OAuth callback
+  useEffect(() => {
+    const code = searchParams.get("code");
+    const isCallback = searchParams.get("gcal_callback");
+    if (!code || !isCallback || callbackHandled.current) return;
+    callbackHandled.current = true;
+
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Not authenticated");
+
+        const redirectUri = `${window.location.origin}/planner?gcal_callback=true`;
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/planner-gcal-oauth-callback`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ code, redirect_uri: redirectUri }),
+          }
+        );
+
+        if (!res.ok) {
+          const errorPayload = await res.json().catch(() => ({})) as { error?: string };
+          throw new Error(errorPayload.error || "Failed to connect Google Calendar");
+        }
+
+        toast({ title: "Google Calendar connected!" });
+        queryClient.invalidateQueries({ queryKey: ["planner-connections"] });
+      } catch (error: unknown) {
+        toast({ title: "Connection failed", description: error instanceof Error ? error.message : "Try again.", variant: "destructive" });
+      } finally {
+        navigate("/planner", { replace: true });
+      }
+    })();
+  }, [searchParams, navigate, toast, queryClient]);
+
+  const [showPvA, setShowPvA] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+
+  // Week state
+  const [referenceDate, setReferenceDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const weekRange = useMemo(() => getWeekRange(referenceDate), [referenceDate]);
+
+  // Editor state
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<PlannerItem | null>(null);
+  const [routineManagerOpen, setRoutineManagerOpen] = useState(false);
+
+  // Data
+  const { data: items = [], isLoading: itemsLoading } = usePlannerItems(
+    weekRange.start,
+    weekRange.end,
+    user.id
+  );
+  const { createItem, updateItem, completeItem, skipItem, reorderItems, deleteItem, rescheduleItem } =
+    usePlannerMutations();
+  const { routines, createRoutine, deleteRoutine } = usePlannerRoutines(user.id);
+  const { connections, startGoogleCalSync, triggerSync, pushToGoogleCal } = usePlannerConnections(user.id);
+  const { trend: healthTrend, latest: healthLatest, isConnected: wearableConnected } = useHealthData(user.id);
+  const { activeSeason } = useSeason(user.id);
+  const { activeProjects } = useProjects(user.id, activeSeason?.id);
+
+  // Fetch weekly meal counts for the week grid
+  const { data: weekMealCounts = {} } = useQuery({
+    queryKey: ["week-meal-counts", user.id, format(weekRange.start, "yyyy-MM-dd")],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("meal_plans")
+        .select("plan_date, meals")
+        .eq("user_id", user.id)
+        .gte("plan_date", format(weekRange.start, "yyyy-MM-dd"))
+        .lte("plan_date", format(weekRange.end, "yyyy-MM-dd"));
+      const counts: Record<string, number> = {};
+      for (const row of data || []) {
+        counts[row.plan_date] = Array.isArray(row.meals) ? row.meals.length : 0;
+      }
+      return counts;
+    },
+    enabled: !!user.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const googleConnection = connections.find((c) => c.provider === "google_calendar");
+  const isCalendarConnected = !!googleConnection;
+
+  const handlePushToCalendar = useCallback(
+    (item: PlannerItem) => {
+      if (!googleConnection) return;
+      pushToGoogleCal.mutate(
+        { connectionId: googleConnection.id, itemIds: [item.id] },
+        {
+          onSuccess: (data) => {
+            toast({ title: `Pushed to Google Calendar`, description: `${data.pushed} event(s) synced` });
+          },
+          onError: (err: Error) => {
+            toast({ title: "Push failed", description: err.message, variant: "destructive" });
+          },
+        }
+      );
+    },
+    [googleConnection, pushToGoogleCal, toast]
+  );
+
+  const handlePushToday = useCallback(() => {
+    if (!googleConnection) return;
+    pushToGoogleCal.mutate(
+      { connectionId: googleConnection.id, date: format(selectedDate, "yyyy-MM-dd") },
+      {
+        onSuccess: (data) => {
+          toast({ title: `Pushed to Google Calendar`, description: `${data.pushed} event(s) synced` });
+        },
+        onError: (err: Error) => {
+          toast({ title: "Push failed", description: err.message, variant: "destructive" });
+        },
+      }
+    );
+  }, [googleConnection, pushToGoogleCal, selectedDate, toast]);
+
+  // Activity from other systems (rings, meals, actions)
+  const { data: activityItems = [] } = usePlannerActivity(
+    weekRange.start,
+    weekRange.end,
+    user.id
+  );
+  const activityByDate = useMemo(() => groupActivityByDate(activityItems), [activityItems]);
+
+  // Group items by date
+  const itemsByDate = useMemo(() => {
+    const map: Record<string, PlannerItem[]> = {};
+    for (const item of items) {
+      const key = item.scheduled_date;
+      if (!map[key]) map[key] = [];
+      map[key].push(item);
+    }
+    return map;
+  }, [items]);
+
+  const itemCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const allDateKeys = new Set([
+      ...Object.keys(itemsByDate),
+      ...Object.keys(activityByDate),
+    ]);
+    for (const key of allDateKeys) {
+      counts[key] = (itemsByDate[key]?.length ?? 0) + (activityByDate[key]?.length ?? 0);
+    }
+    return counts;
+  }, [itemsByDate, activityByDate]);
+
+  const selectedDateKey = format(selectedDate, "yyyy-MM-dd");
+  const dayItems = itemsByDate[selectedDateKey] ?? [];
+  const dayActivity = activityByDate[selectedDateKey] ?? [];
+
+  // Derive Plan vs Actual data with health metrics
+  const pvaData = useMemo(() => {
+    const today = startOfDay(new Date());
+    return weekRange.days.map((date) => {
+      const key = format(date, "yyyy-MM-dd");
+      const dayItems = itemsByDate[key] ?? [];
+      const isPast = isBefore(date, today) && !isToday(date);
+      const healthForDay = healthTrend.find(h => h.date === key) ?? null;
+      return {
+        date,
+        items: dayItems.map((item) => {
+          let status: "done" | "partial" | "missed" | "planned" = "planned";
+          if (item.status === "done") status = "done";
+          else if (item.status === "skipped") status = "partial";
+          else if (isPast) status = "missed";
+          return {
+            id: item.id,
+            title: item.title,
+            plannedTime: item.start_time ?? undefined,
+            actualTime: item.completed_at ? format(new Date(item.completed_at), "HH:mm") : undefined,
+            status,
+            type: item.item_type as "task" | "time_block" | "routine_instance" | "external_event",
+            project_id: item.project_id ?? null,
+          };
+        }),
+        health: healthForDay,
+      };
+    });
+  }, [weekRange.days, itemsByDate, healthTrend]);
+
+  const pvaSyntheses = useDailySynthesis(pvaData, activeProjects);
+
+  // Handlers
+  const handleToggleStatus = useCallback(
+    (item: PlannerItem) => {
+      if (item.status === "done") {
+        updateItem.mutate({ id: item.id, status: "todo" });
+      } else if (item.status === "todo" || item.status === "in_progress") {
+        completeItem.mutate({ id: item.id, userId: user.id });
+      } else if (item.status === "skipped") {
+        updateItem.mutate({ id: item.id, status: "todo" });
+      }
+    },
+    [user.id, updateItem, completeItem]
+  );
+
+  const handleSave = useCallback(
+    (input: CreatePlannerItemInput | UpdatePlannerItemInput) => {
+      if ("id" in input) {
+        updateItem.mutate(input, {
+          onSuccess: () => { setEditorOpen(false); setEditingItem(null); },
+        });
+      } else {
+        createItem.mutate(
+          { ...input, user_id: user.id },
+          {
+            onSuccess: () => { setEditorOpen(false); setEditingItem(null); toast({ title: "Added to plan" }); },
+          }
+        );
+      }
+    },
+    [user.id, createItem, updateItem, toast]
+  );
+
+  const handleEdit = useCallback((item: PlannerItem) => {
+    setEditingItem(item);
+    setEditorOpen(true);
+  }, []);
+
+  const handleDelete = useCallback((id: string) => { deleteItem.mutate(id); }, [deleteItem]);
+
+  const handleReorder = useCallback(
+    (reordered: { id: string; sort_order: number }[]) => { reorderItems.mutate(reordered); },
+    [reorderItems]
+  );
+
+  // Navigation helpers for month view
+  const handleMonthDateSelect = useCallback((date: Date) => {
+    setSelectedDate(date);
+    setReferenceDate(date);
+    setViewMode("day");
+  }, []);
+
+  // Header date display based on view mode
+  const headerDateLabel = useMemo(() => {
+    if (viewMode === "month") return format(referenceDate, "MMMM yyyy");
+    return `${format(weekRange.days[0], "MMM d")} – ${format(weekRange.days[6], "MMM d")}`;
+  }, [viewMode, referenceDate, weekRange]);
+
+  const handlePrev = useCallback(() => {
+    if (viewMode === "month") {
+      setReferenceDate((d) => subMonths(d, 1));
+    } else {
+      setReferenceDate((d) => subWeeks(d, 1));
+    }
+  }, [viewMode]);
+
+  const handleNext = useCallback(() => {
+    if (viewMode === "month") {
+      setReferenceDate((d) => addMonths(d, 1));
+    } else {
+      setReferenceDate((d) => addWeeks(d, 1));
+    }
+  }, [viewMode]);
+
+  return (
+    <div className="space-y-0 -mx-4 sm:-mx-6 -my-6">
+      {/* Header */}
+      <div className="px-4 sm:px-6 pt-4 pb-2">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-display font-semibold">Plan</h1>
+            <span className="text-xs text-muted-foreground font-mono">
+              {headerDateLabel}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant={showPvA ? "default" : "ghost"} size="icon" className="h-8 w-8" onClick={() => { setShowPvA((v) => !v); setShowFuelCheck(false); }} title="Plan vs Actual">
+              <BarChart3 className="h-4 w-4" />
+            </Button>
+            <Button variant={showFuelCheck ? "default" : "ghost"} size="icon" className="h-8 w-8" onClick={() => { setShowFuelCheck((v) => !v); setShowPvA(false); }} title="Fuel Check">
+              <UtensilsCrossed className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRoutineManagerOpen(true)}>
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+            {!isMobile && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => setQuickAddOpen(true)}>
+                  <UtensilsCrossed className="h-4 w-4 mr-1" /> Quick Log
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => { setEditingItem(null); setEditorOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-1" /> Add
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* View mode toggle */}
+        <div className="flex items-center gap-1 mb-2">
+          {(["month", "week", "day"] as ViewMode[]).map((mode) => {
+            const Icon = VIEW_ICONS[mode];
+            return (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={cn(
+                  "flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
+                  viewMode === mode
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span className="capitalize">{mode}</span>
+              </button>
+            );
+          })}
+          <div className="flex-1" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1 px-2 text-xs"
+            onClick={() => navigate(APP_ROUTES.timeline)}
+          >
+            <Clock3 className="h-3.5 w-3.5" /> Timeline
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => {
+              setReferenceDate(new Date());
+              setSelectedDate(new Date());
+            }}
+          >
+            Today
+          </Button>
+        </div>
+
+        {/* Calendar connection status or connect CTA */}
+        {!isCalendarConnected ? (
+          <div className="rounded-lg border border-accent/30 bg-accent/5 p-3 mb-2">
+            <p className="text-sm font-medium text-foreground mb-1">Connect your calendar</p>
+            <p className="text-xs text-muted-foreground mb-2">Your plan becomes smarter when it knows your real schedule. Connect Google Calendar to see your day structure and track Plan vs. Actual.</p>
+            <Button variant="outline" size="sm" onClick={() => startGoogleCalSync.mutate()} disabled={startGoogleCalSync.isPending}>
+              {startGoogleCalSync.isPending ? "Connecting…" : "Connect Google Calendar"}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+            <span>📅 Calendar connected{googleConnection?.last_synced_at ? ` · Last sync ${format(new Date(googleConnection.last_synced_at), "h:mm a")}` : ""}</span>
+            <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => triggerSync.mutate(googleConnection!.id)} disabled={triggerSync.isPending}>
+              {triggerSync.isPending ? "Syncing…" : "Refresh"}
+            </Button>
+          </div>
+        )}
+
+        {/* View Plan vs Actual on Today CTA */}
+        <button
+          onClick={() => navigate("/home#pva")}
+          className="flex items-center gap-1 text-xs text-accent hover:text-accent/80 transition-colors mb-1"
+        >
+          View Plan vs Actual on Today <ArrowRight className="h-3 w-3" />
+        </button>
+      </div>
+
+      {/* Mobile date strip — only in day/week mode */}
+      {isMobile && viewMode === "day" && (
+        <PlannerDateStrip
+          days={weekRange.days}
+          selectedDate={selectedDate}
+          onSelect={setSelectedDate}
+          onPrevWeek={handlePrev}
+          onNextWeek={handleNext}
+          itemCounts={itemCounts}
+        />
+      )}
+
+      {/* Plan vs Actual overlay */}
+      {showPvA && (
+        <div className="px-4 py-3 border-b border-border bg-card/50">
+          <PlanVsActualView days={pvaData} view="week" isWearableConnected={wearableConnected} syntheses={pvaSyntheses} projects={activeProjects} />
+        </div>
+      )}
+
+      {/* Fuel Check overlay */}
+      {showFuelCheck && (
+        <div className="px-4 py-3 border-b border-border bg-card/50">
+          <MealPlanCard
+            userId={user.id}
+            isPaid={isPaid}
+            onUpgrade={() => initiateCheckout("plus", { source: "planner_fuel_check" })}
+          />
+        </div>
+      )}
+
+      {/* Main content */}
+      {viewMode === "month" ? (
+        /* ═══ MONTH VIEW ═══ */
+        <div className="px-4 sm:px-6 py-3">
+          <div className="flex items-center justify-between mb-3">
+            <Button variant="ghost" size="sm" onClick={handlePrev}>← Prev</Button>
+            <h2 className="text-sm font-semibold text-foreground">{format(referenceDate, "MMMM yyyy")}</h2>
+            <Button variant="ghost" size="sm" onClick={handleNext}>Next →</Button>
+          </div>
+          <PlannerMonthGrid
+            currentMonth={referenceDate}
+            selectedDate={selectedDate}
+            onSelectDate={handleMonthDateSelect}
+            itemsByDate={itemsByDate}
+            activityByDate={activityByDate}
+          />
+        </div>
+      ) : viewMode === "week" && !isMobile ? (
+        /* ═══ DESKTOP WEEK VIEW ═══ */
+        <div className="flex-1 flex overflow-hidden" style={{ height: "calc(100vh - 200px)" }}>
+          <div className="w-[55%] border-r border-border p-4 overflow-y-auto">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={handlePrev}>← Prev</Button>
+                <Button variant="ghost" size="sm" onClick={handleNext}>Next →</Button>
+              </div>
+            </div>
+            <PlannerWeekGrid
+              days={weekRange.days}
+              selectedDate={selectedDate}
+              onSelect={setSelectedDate}
+              itemsByDate={itemsByDate}
+              activityByDate={activityByDate}
+              mealCountsByDate={weekMealCounts}
+            />
+            <div className="mt-4">
+              <PlannerCalendarConnect
+                connections={connections}
+                onConnect={() => startGoogleCalSync.mutate()}
+                onSync={(id) => triggerSync.mutate(id)}
+                onPushToday={handlePushToday}
+                isConnecting={startGoogleCalSync.isPending}
+                isSyncing={triggerSync.isPending}
+                isPushing={pushToGoogleCal.isPending}
+              />
+            </div>
+          </div>
+
+          <div className="w-[45%] overflow-y-auto">
+            {(() => {
+              const dayCalendarIntel = analyzeCalendar(dayItems);
+              return (
+                <>
+                  {dayCalendarIntel && dayCalendarIntel.meetingCount > 0 && (
+                    <PlannerDayLoadSummary intel={dayCalendarIntel} />
+                  )}
+                  {wearableConnected && isToday(selectedDate) && (
+                    <PlannerBodyContext latest={healthLatest} trend={healthTrend} calendarIntel={dayCalendarIntel} />
+                  )}
+                  {!wearableConnected && isToday(selectedDate) && dayCalendarIntel && dayCalendarIntel.meetingCount > 0 && (
+                    <PlannerBodyContext latest={healthLatest} trend={healthTrend} calendarIntel={dayCalendarIntel} />
+                  )}
+                </>
+              );
+            })()}
+            <PlannerDayView
+              date={selectedDate}
+              items={dayItems}
+              activityItems={dayActivity}
+              onToggleStatus={handleToggleStatus}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onReschedule={(item) => { setEditingItem(item); setEditorOpen(true); }}
+              onReorder={handleReorder}
+              onPushToCalendar={handlePushToCalendar}
+              hasGoogleConnection={!!googleConnection}
+              userId={user.id}
+            />
+          </div>
+        </div>
+      ) : viewMode === "week" && isMobile ? (
+        /* ═══ MOBILE WEEK VIEW ═══ */
+        <div className="px-2 py-3">
+          <div className="flex items-center justify-between mb-2 px-2">
+            <Button variant="ghost" size="sm" onClick={handlePrev}>← Prev</Button>
+            <Button variant="ghost" size="sm" onClick={handleNext}>Next →</Button>
+          </div>
+          <PlannerWeekGrid
+            days={weekRange.days}
+            selectedDate={selectedDate}
+            onSelect={(date) => {
+              setSelectedDate(date);
+              setViewMode("day");
+            }}
+            itemsByDate={itemsByDate}
+            activityByDate={activityByDate}
+            mealCountsByDate={weekMealCounts}
+          />
+        </div>
+      ) : (
+        /* ═══ DAY VIEW ═══ */
+        <div className="flex-1 flex overflow-hidden" style={{ height: isMobile ? undefined : "calc(100vh - 200px)" }}>
+          {!isMobile && (
+            <div className="w-[55%] border-r border-border p-4 overflow-y-auto">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={handlePrev}>← Prev</Button>
+                  <Button variant="ghost" size="sm" onClick={handleNext}>Next →</Button>
+                </div>
+              </div>
+              <PlannerWeekGrid
+                days={weekRange.days}
+                selectedDate={selectedDate}
+                onSelect={setSelectedDate}
+                itemsByDate={itemsByDate}
+                activityByDate={activityByDate}
+                mealCountsByDate={weekMealCounts}
+              />
+              <div className="mt-4">
+                <PlannerCalendarConnect
+                  connections={connections}
+                  onConnect={() => startGoogleCalSync.mutate()}
+                  onSync={(id) => triggerSync.mutate(id)}
+                  onPushToday={handlePushToday}
+                  isConnecting={startGoogleCalSync.isPending}
+                  isSyncing={triggerSync.isPending}
+                  isPushing={pushToGoogleCal.isPending}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className={isMobile ? "flex-1 overflow-y-auto" : "w-[45%] overflow-y-auto"}>
+            {(() => {
+              const dayCalendarIntel = analyzeCalendar(dayItems);
+              return (
+                <>
+                  {dayCalendarIntel && dayCalendarIntel.meetingCount > 0 && (
+                    <PlannerDayLoadSummary intel={dayCalendarIntel} />
+                  )}
+                  {wearableConnected && isToday(selectedDate) && (
+                    <PlannerBodyContext latest={healthLatest} trend={healthTrend} calendarIntel={dayCalendarIntel} />
+                  )}
+                  {!wearableConnected && isToday(selectedDate) && dayCalendarIntel && dayCalendarIntel.meetingCount > 0 && (
+                    <PlannerBodyContext latest={healthLatest} trend={healthTrend} calendarIntel={dayCalendarIntel} />
+                  )}
+                </>
+              );
+            })()}
+            <PlannerDayView
+              date={selectedDate}
+              items={dayItems}
+              activityItems={dayActivity}
+              onToggleStatus={handleToggleStatus}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onReschedule={(item) => { setEditingItem(item); setEditorOpen(true); }}
+              onReorder={handleReorder}
+              onPushToCalendar={handlePushToCalendar}
+              hasGoogleConnection={!!googleConnection}
+              userId={user.id}
+            />
+            {isMobile && (
+              <div className="px-4 pb-20">
+                <PlannerCalendarConnect
+                  connections={connections}
+                  onConnect={() => startGoogleCalSync.mutate()}
+                  onSync={(id) => triggerSync.mutate(id)}
+                  onPushToday={handlePushToday}
+                  isConnecting={startGoogleCalSync.isPending}
+                  isSyncing={triggerSync.isPending}
+                  isPushing={pushToGoogleCal.isPending}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* FAB for mobile */}
+      {isMobile && (
+        <PlannerFab
+          onAddTask={() => { setEditingItem(null); setEditorOpen(true); }}
+          onQuickAdd={() => setQuickAddOpen(true)}
+        />
+      )}
+
+      <QuickAddSheet open={quickAddOpen} onClose={() => setQuickAddOpen(false)} userId={user.id} selectedDate={selectedDateKey} />
+
+      <PlannerItemEditor
+        open={editorOpen}
+        onClose={() => { setEditorOpen(false); setEditingItem(null); }}
+        onSave={handleSave}
+        item={editingItem}
+        defaultDate={selectedDateKey}
+        isSaving={createItem.isPending || updateItem.isPending}
+      />
+
+      <PlannerRoutineManager
+        open={routineManagerOpen}
+        onClose={() => setRoutineManagerOpen(false)}
+        routines={routines}
+        onCreateRoutine={(input) => createRoutine.mutate(input)}
+        onDeleteRoutine={(id) => deleteRoutine.mutate(id)}
+        userId={user.id}
+      />
+    </div>
+  );
+};
+
+export default PlannerPage;

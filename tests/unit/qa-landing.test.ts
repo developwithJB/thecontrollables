@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { act, create } from "react-test-renderer";
 import { MemoryRouter } from "react-router-dom";
 import { it, expect, vi } from "vitest";
-import Landing from "@/pages/Landing";
+import Landing from "@/pages/public/LandingPage";
 import { useFormationEntryStatus } from "@/hooks/useFormationEntryStatus";
 vi.mock("@/hooks/useFormationEntryStatus", () => ({ useFormationEntryStatus: vi.fn() }));
 vi.mock("@/hooks/useAnalytics", () => ({ usePageViewTracking: () => {}, useAnalytics: () => ({ trackEvent: vi.fn() }) }));

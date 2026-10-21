@@ -7,11 +7,11 @@ type ProgressRpcName =
   | "award_legacy_personal_event";
 type ProgressClient = {
   rpc(
-    name: ProgressRpcName,
+    rpcName: ProgressRpcName,
     args: Record<string, unknown>,
   ): PromiseLike<{ data: unknown; error: { message: string } | null }>;
 };
-const client = supabase as unknown as ProgressClient;
+const progressClient = supabase as unknown as ProgressClient;
 export interface PersonalReward {
   id: string;
   xpAwarded: number;
@@ -23,17 +23,20 @@ export async function recordPersonalAction(input: {
   controllable?: string | null;
   kind?: "personal" | "movement" | "planner" | "mission";
 }): Promise<PersonalReward> {
-  const canonical = [
+  const controllableIds = [
     "awareness",
     "perspective",
     "habit",
     "wellness",
     "environment",
   ];
-  const name = input.controllable?.toLowerCase();
-  const { data, error } = await client.rpc("record_personal_action", {
+  const controllableId = input.controllable?.toLowerCase();
+  const { data, error } = await progressClient.rpc("record_personal_action", {
     p_action_text: input.text.trim().slice(0, 1000),
-    p_controllable: name && canonical.includes(name) ? name : null,
+    p_controllable:
+      controllableId && controllableIds.includes(controllableId)
+        ? controllableId
+        : null,
     p_kind: input.kind || "personal",
   });
   if (error) throw Error(error.message);
@@ -55,27 +58,36 @@ export async function completeLegacyResetDay(
   sessionId: string,
   reflection?: string,
 ) {
-  const { data, error } = await client.rpc("complete_legacy_reset_day", {
-    p_session_id: sessionId,
-    p_reflection: reflection?.slice(0, 4000) || null,
-  });
+  const { data, error } = await progressClient.rpc(
+    "complete_legacy_reset_day",
+    {
+      p_session_id: sessionId,
+      p_reflection: reflection?.slice(0, 4000) || null,
+    },
+  );
   if (error) throw Error(error.message);
   return data;
 }
 export async function awardWellnessMilestone() {
-  const { data, error } = await client.rpc("award_wellness_milestone", {});
+  const { data, error } = await progressClient.rpc(
+    "award_wellness_milestone",
+    {},
+  );
   if (error) throw Error(error.message);
   return data as { amount: number; streak: number };
 }
 
-export async function awardLegacyEvent(
+export async function awardLegacyPersonalEvent(
   source: "quest_complete" | "integrity_rep" | "time_log",
   recordId: string,
 ) {
-  const { data, error } = await client.rpc("award_legacy_personal_event", {
-    p_source: source,
-    p_record_id: recordId,
-  });
+  const { data, error } = await progressClient.rpc(
+    "award_legacy_personal_event",
+    {
+      p_source: source,
+      p_record_id: recordId,
+    },
+  );
   if (error) throw Error(error.message);
   return data as { amount: number; alreadyAwarded: boolean };
 }
@@ -84,7 +96,7 @@ export async function recordCircleAttendance(
   challengeId: string,
   resetSessionId: string,
 ) {
-  const { data, error } = await client.rpc("record_circle_attendance", {
+  const { data, error } = await progressClient.rpc("record_circle_attendance", {
     p_challenge_id: challengeId,
     p_reset_session_id: resetSessionId,
   });

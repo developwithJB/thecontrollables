@@ -1,4 +1,4 @@
-import { resetDayNumber } from "@/lib/resetCalendar";
+import { getResetDayNumber } from "@/lib/resetCalendar";
 import { beforeEach, describe, it, expect, vi } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import ts from "typescript";
@@ -10,7 +10,7 @@ import {
   recordPersonalAction,
   recordCircleAttendance,
   completeLegacyResetDay,
-  awardLegacyEvent,
+  awardLegacyPersonalEvent,
   awardWellnessMilestone,
 } from "@/lib/personalProgress";
 import { buildMissionOfTheDay } from "@/lib/missionOfTheDay";
@@ -76,7 +76,7 @@ describe("server-owned legacy rewards", () => {
     });
   });
   it("validates event identity and asks the server to calculate wellness milestones", async () => {
-    await awardLegacyEvent("quest_complete", "owned-record");
+    await awardLegacyPersonalEvent("quest_complete", "owned-record");
     expect(mocks.rpc).toHaveBeenCalledWith("award_legacy_personal_event", {
       p_source: "quest_complete",
       p_record_id: "owned-record",
@@ -144,21 +144,21 @@ it("a covenant uses its frozen timezone when the user travels", () => {
 
 it("reset calendar days stay correct across DST and travel", () => {
   expect(
-    resetDayNumber(
+    getResetDayNumber(
       "2026-03-07",
       "America/Los_Angeles",
       new Date("2026-03-09T07:30:00Z"),
     ),
   ).toBe(3);
   expect(
-    resetDayNumber(
+    getResetDayNumber(
       "2026-10-20",
       "America/Los_Angeles",
       new Date("2026-10-21T00:30:00Z"),
     ),
   ).toBe(1);
   expect(
-    resetDayNumber(
+    getResetDayNumber(
       "2026-10-20",
       "Asia/Tokyo",
       new Date("2026-10-21T00:30:00Z"),

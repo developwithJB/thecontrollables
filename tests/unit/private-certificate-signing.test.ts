@@ -3,7 +3,7 @@ const mocks = vi.hoisted(() => ({ sign: vi.fn(), bucket: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { storage: { from: mocks.bucket } },
 }));
-import { privateCertificateUrl } from "@/lib/privateCertificates";
+import { getPrivateCertificateUrl } from "@/lib/privateCertificates";
 const path = "00000000-0000-4000-8000-000000000001/test.svg";
 beforeEach(() => {
   vi.stubEnv("VITE_SUPABASE_URL", "https://synthetic.supabase.invalid");
@@ -17,7 +17,7 @@ describe("owner-authorized certificate downloads", () => {
       error: null,
     });
     expect(
-      await privateCertificateUrl(
+      await getPrivateCertificateUrl(
         "https://synthetic.supabase.invalid/storage/v1/object/sign/certificates/" +
           path +
           "?token=expired",
@@ -31,11 +31,11 @@ describe("owner-authorized certificate downloads", () => {
       data: null,
       error: { message: "RLS denied" },
     });
-    await expect(privateCertificateUrl(path)).rejects.toThrow("unavailable");
+    await expect(getPrivateCertificateUrl(path)).rejects.toThrow("unavailable");
   });
   it("rejects foreign locations before requesting storage access", async () => {
     await expect(
-      privateCertificateUrl("https://evil.invalid/certificate.svg"),
+      getPrivateCertificateUrl("https://evil.invalid/certificate.svg"),
     ).rejects.toThrow();
     expect(mocks.sign).not.toHaveBeenCalled();
   });

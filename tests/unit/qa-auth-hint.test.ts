@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { act,create } from "react-test-renderer";
 import { MemoryRouter } from "react-router-dom";
 import { it,expect,vi } from "vitest";
-import Auth from "@/pages/Auth";
+import Auth from "@/pages/onboarding/AuthPage";
 vi.mock("@/hooks/useFormationEntryStatus",()=>({useFormationEntryStatus:()=>({data:{strictReady:false}})}));
 vi.mock("@/hooks/useAnalytics",()=>({usePageViewTracking:()=>{},useAnalytics:()=>({trackEvent:vi.fn()})}));
 vi.mock("@/hooks/useOnboardingAnalytics",()=>({useOnboardingAnalytics:()=>({trackOnboardingEvent:vi.fn()})}));

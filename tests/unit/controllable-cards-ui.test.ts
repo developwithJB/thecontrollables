@@ -6,8 +6,8 @@ const readSource = (file: string) => readFileSync(resolve(process.cwd(), file), 
 
 describe("Controllable card deck UI wiring", () => {
   it("mounts the shareable card deck on Train and My Controllables", () => {
-    const trainSource = readSource("src/pages/Train.tsx");
-    const myControllablesSource = readSource("src/pages/MyControllables.tsx");
+    const trainSource = readSource("src/pages/practice/TrainingPage.tsx");
+    const myControllablesSource = readSource("src/pages/practice/MyControllablesPage.tsx");
 
     expect(trainSource).toContain("ControllableCardsShowcase");
     expect(trainSource).toContain("Train Your Controllable Cards");

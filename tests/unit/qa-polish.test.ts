@@ -12,6 +12,8 @@ import { FormationBookBoundary } from "@/components/formation/FormationBookBound
 import { BookLoopContext } from "@/hooks/useBookLoopState";
 import { renderToStaticMarkup } from "react-dom/server";
 import { WhyStartSection } from "@/components/landing/WhyStartSection";
+import { TrustDisclosure } from "@/components/landing/TrustDisclosure";
+import { AIOperatorIntro } from "@/components/dashboard/AIOperatorIntro";
 import { OnboardingWelcome } from "@/components/onboarding/OnboardingWelcome";
 vi.mock("@/lib/devMockAuth",()=>({isDevMockAuthEnabled:()=>false}));
 vi.mock("@/lib/featureFlags",()=>({getFeatureFlag:()=>true,formationCircuitsEnabled:()=>true}));
@@ -19,6 +21,13 @@ vi.mock("@/lib/growthEvents",()=>({trackGrowthEvent:vi.fn()}));
 vi.mock("@/components/BookLoopProvider",()=>({BookLoopProvider:()=>createElement("p",null,"Loading book data")}));
 vi.mock("@/components/ui/dropdown-menu",()=>{const Box=({children,...props}:{children:ReactNode})=>createElement("div",props,children); return {DropdownMenu:Box,DropdownMenuTrigger:Box,DropdownMenuContent:Box,DropdownMenuItem:Box};});
 describe("QA polish boundaries",()=>{
+ it("describes AI as optional assistance without claiming model training",()=>{
+  const html=renderToStaticMarkup(createElement("div",null,createElement(TrustDisclosure),createElement(AIOperatorIntro,{onDismiss:()=>{}})));
+  expect(html).toContain("Optional AI coaching.");
+  expect(html).toContain("AI responses can be wrong.");
+  expect(html).not.toMatch(/trained on|not generic chatbots/i);
+ });
+
  it.each(["formation_today","formation_circuit"] as const)("tracks the shared book destination at %s",placement=>{
   let tree:ReturnType<typeof create>; act(()=>{tree=create(createElement(BookLink,{placement,children:"Get the book"}));});
   const link=tree!.root.findByType("a"); expect(link.props.href).toBe(BOOK_URL); act(()=>link.props.onClick()); expect(trackGrowthEvent).toHaveBeenCalledWith("book_link_click",{placement}); act(()=>tree!.unmount());

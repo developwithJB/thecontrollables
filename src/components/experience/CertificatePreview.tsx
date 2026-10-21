@@ -1,4 +1,4 @@
-import { privateCertificateUrl } from "@/lib/privateCertificates";
+import { getPrivateCertificateUrl } from "@/lib/privateCertificates";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Download, Loader2 } from "lucide-react";
@@ -54,7 +54,7 @@ export function CertificatePreview({ certificateUrl, startDate, onClose }: Certi
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      const pngBlob = await convertSvgToPng(await privateCertificateUrl(certificateUrl));
+      const pngBlob = await convertSvgToPng(await getPrivateCertificateUrl(certificateUrl));
 
       const blobUrl = URL.createObjectURL(pngBlob);
       const link = document.createElement("a");

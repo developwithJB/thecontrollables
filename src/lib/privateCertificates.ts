@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /** Normalize old public URLs and new stable paths. Storage RLS enforces ownership. */
-export function certificateStoragePath(
+export function getCertificateStoragePath(
   value: string,
   backendUrl: string,
 ): string {
@@ -21,8 +21,11 @@ export function certificateStoragePath(
   return path;
 }
 
-export async function privateCertificateUrl(value: string): Promise<string> {
-  const path = certificateStoragePath(value, import.meta.env.VITE_SUPABASE_URL);
+export async function getPrivateCertificateUrl(value: string): Promise<string> {
+  const path = getCertificateStoragePath(
+    value,
+    import.meta.env.VITE_SUPABASE_URL,
+  );
   const { data, error } = await supabase.storage
     .from("certificates")
     .createSignedUrl(path, 300);

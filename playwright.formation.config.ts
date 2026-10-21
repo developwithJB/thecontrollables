@@ -17,7 +17,8 @@ export default defineConfig({
     { name: "formation-mobile", use: { ...devices["iPhone 14"] } },
   ],
   webServer: {
-    command: "VITE_ENABLE_DEV_MOCK_AUTH=true npm run dev -- --host 127.0.0.1 --port 8081",
+    command:
+      "VITE_ENABLE_DEV_MOCK_AUTH=true npm run dev -- --host 127.0.0.1 --port 8081",
     url: "http://127.0.0.1:8081/formation/today",
     reuseExistingServer: true,
     timeout: 120_000,

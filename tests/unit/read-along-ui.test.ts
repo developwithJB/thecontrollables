@@ -11,11 +11,11 @@ describe("read along UI wiring", () => {
 
     expect(routesSource).toContain('readAlong: "/read-along"');
     expect(appSource).toContain("path={APP_ROUTES.readAlong}");
-    expect(appSource).toContain("element={<ReadAlong />}");
+    expect(appSource).toContain("element={<ReadAlongPage />}");
   });
 
   it("opens Read Along from the header book icon", () => {
-    const source = readSource("src/components/layout/LifeOSLayout.tsx");
+    const source = readSource("src/components/layout/AppLayout.tsx");
 
     expect(source).toContain("navigate(APP_ROUTES.readAlong)");
     expect(source).toContain('title="Read Along Training"');
@@ -23,7 +23,7 @@ describe("read along UI wiring", () => {
   });
 
   it("keeps the external book link inside the Read Along page", () => {
-    const source = readSource("src/pages/ReadAlong.tsx");
+    const source = readSource("src/pages/practice/ReadAlongPage.tsx");
 
     expect(source).toContain("BookLink");
     expect(readSource("src/lib/bookLinks.ts")).toContain("https://a.co/d/1DGPGEV");
