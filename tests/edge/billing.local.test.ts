@@ -23,6 +23,7 @@ interface IO {
   body: URLSearchParams;
   json: Record<string, unknown>;
   key: string | null;
+  stripeVersion: string | null;
 }
 let runtimeReady=true;
 let calls: IO[] = [],
@@ -66,6 +67,7 @@ globalThis.fetch = async (input, init) => {
     body: new URLSearchParams(raw),
     json,
     key: new Headers(init?.headers).get("idempotency-key"),
+    stripeVersion: new Headers(init?.headers).get("stripe-version"),
   };
   calls.push(call);
   if (url.hostname === "synthetic.supabase.invalid") {
@@ -249,7 +251,7 @@ test("unsupported intervals never start a Stripe checkout", async () => {
 const stripe = new Stripe("sk_test_SYNTHETIC_NOT_REAL", {
   apiVersion: "2025-08-27.basil",
 });
-async function webhookRequest(eventType = "checkout.session.completed") {
+async function webhookRequest(eventType = "checkout.session.completed", apiVersion = "2025-08-27.basil", snapshot?: Record<string, unknown>) {
   const data =
     eventType === "checkout.session.completed"
       ? { client_reference_id: owner, subscription: "sub_local" }
@@ -257,8 +259,9 @@ async function webhookRequest(eventType = "checkout.session.completed") {
   const payload = JSON.stringify({
     id: "evt_local",
     type: eventType,
+    api_version: apiVersion,
     livemode: false,
-    data: { object: data },
+    data: { object: snapshot ?? data },
   });
   const signature = await Stripe.webhooks.generateTestHeaderStringAsync(
     { payload, secret: "whsec_SYNTHETIC_NOT_REAL" },
@@ -295,6 +298,24 @@ test("signed test checkout writes Basil item periods and Pro entitlement", async
     ),
   );
 });
+for (const eventType of ["checkout.session.completed", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"]) {
+  test(`2023-10-16 snapshot ${eventType} reconciles through the pinned current API`, async () => {
+    canceled = eventType === "customer.subscription.deleted";
+    const snapshot = eventType === "checkout.session.completed"
+      ? { client_reference_id: owner, subscription: "sub_local" }
+      : { id: "sub_local", customer: "cus_local", metadata: { user_id: owner }, status: canceled ? "canceled" : "active", current_period_start: 100, current_period_end: 200 };
+    const response = await webhook(await webhookRequest(eventType, "2023-10-16", snapshot));
+    assert(response.status === 200);
+    const retrieve = calls.find(c => c.path === "/v1/subscriptions/sub_local");
+    assert(retrieve?.stripeVersion === "2025-08-27.basil");
+    const write = calls.find(c => c.path === "/rest/v1/user_entitlements");
+    assert(write?.json.current_period_end === new Date(1800000000000).toISOString(), "must use retrieved state, not an old snapshot period");
+    const profile = calls.find(c => c.path === "/rest/v1/profiles");
+    assert(profile?.json.plan_tier === (canceled ? "free" : "pro"));
+    const receipt = calls.find(c => c.path === "/rest/v1/stripe_webhook_events" && c.method === "POST");
+    assert((receipt?.json.payload as Record<string, unknown>)?.api_version === "2023-10-16");
+  });
+}
 test("duplicate webhook delivery does not grant twice", async () => {
   duplicate = true;
   const r = await webhook(await webhookRequest());
