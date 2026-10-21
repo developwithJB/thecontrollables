@@ -40,10 +40,11 @@ const strictRules = [
 
 interface FullyCharged75RoadmapProps {
   ctaHref: string;
+  ctaLabel?: string;
   onChoose: () => void;
 }
 
-export function FullyCharged75Roadmap({ ctaHref, onChoose }: FullyCharged75RoadmapProps) {
+export function FullyCharged75Roadmap({ ctaHref, onChoose, ctaLabel = "Choose Fully Charged 75" }: FullyCharged75RoadmapProps) {
   const [showAllDays, setShowAllDays] = useState(false);
 
   return (
@@ -150,7 +151,7 @@ export function FullyCharged75Roadmap({ ctaHref, onChoose }: FullyCharged75Roadm
             </Button>
             <Button asChild variant="glow">
               <Link to={ctaHref} onClick={onChoose}>
-                Choose Fully Charged 75<ArrowRight className="ml-2 h-4 w-4" />
+                {ctaLabel}<ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
           </div>

@@ -1,3 +1,4 @@
+import { FormationPracticeSummary } from "@/components/formation/FormationPracticeSummary";
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { BookHeart, CalendarDays, Loader2, Plus, Quote, Sparkles } from "lucide-react";
@@ -61,6 +62,7 @@ export function EvidenceMuseum({ userId }: EvidenceMuseumProps) {
               </span>
               <span className="pb-1 text-sm font-semibold text-muted-foreground">Promises Kept</span>
             </div>
+            <FormationPracticeSummary userId={userId} legacyEmpty={covenant.evidence.promisesKept === 0} />
             <div className="mt-4 flex items-start gap-2 text-sm text-muted-foreground">
               <Quote className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <p>Confidence comes from kept promises. Humility remembers who supplied the grace.</p>

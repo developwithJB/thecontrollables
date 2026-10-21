@@ -23,6 +23,7 @@ export function useFormationCircuits(userId: string, track: TrainingTrack) {
     mutationFn: (input: Omit<SaveFormationCircuitInput, "userId" | "track" | "localOnly">) =>
       saveFormationCircuit({ ...input, userId, track, localOnly }),
     onSuccess: (entry) => {
+      void queryClient.invalidateQueries({ queryKey: ["formation-practice-summary", userId] });
       queryClient.setQueryData<FormationCircuitEntry[]>(queryKey, (current = []) =>
         upsertFormationCircuitEntry(current, entry),
       );

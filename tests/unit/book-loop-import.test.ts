@@ -15,16 +15,16 @@ vi.mock("@/data/bookLoop/repository", () => ({
 }));
 vi.mock("@/lib/featureFlags", () => ({ getFeatureFlag: vi.fn() }));
 vi.mock("@/lib/devMockAuth", () => ({ isDevMockAuthEnabled: vi.fn() }));
-vi.mock("@/components/ui/alert-dialog", () => {
-  const Box = ({ children }: { children: ReactNode }) =>
-    createElement("div", null, children);
+vi.mock("@/components/ui/dialog", () => {
+  const Box = ({ children, ...props }: { children: ReactNode }) =>
+    createElement("div", props, children);
   return {
-    AlertDialog: Box,
-    AlertDialogContent: Box,
-    AlertDialogDescription: Box,
-    AlertDialogHeader: Box,
-    AlertDialogTitle: Box,
-    AlertDialogFooter: Box,
+    Dialog: Box,
+    DialogContent: Box,
+    DialogDescription: Box,
+    DialogHeader: Box,
+    DialogTitle: Box,
+    DialogFooter: Box,
   };
 });
 vi.mock("@/components/ui/button", () => ({
@@ -83,7 +83,7 @@ async function click(label: string) {
 }
 beforeEach(() => {
   vi.clearAllMocks();
-  values = new Map([["formation_selected_track_alice", "charge_40"]]);
+  values = new Map([["formation_selected_track_alice", "charge_40"], ["control_release_move_alice_2026-10-19", JSON.stringify({ control: "My response" })]]);
   renderedUser = undefined;
   vi.stubGlobal("localStorage", storage);
   vi.mocked(getFeatureFlag).mockReturnValue(true);
@@ -101,16 +101,16 @@ afterEach(() => {
 });
 
 describe("book-loop import confirmation", () => {
-  it("does not import or mount book editors before explicit confirmation", async () => {
+  it("mounts children but never imports before explicit confirmation", async () => {
     start();
     await settle();
     expect(importBookRecords).not.toHaveBeenCalled();
-    expect(renderedUser).toBeUndefined();
+    expect(renderedUser).toBe("alice");
     await click("Import browser progress");
     expect(importBookRecords).toHaveBeenCalledWith(
       "alice",
       expect.stringMatching(/^[a-f0-9]{64}$/),
-      [{ kind: "track", record_key: "current", payload: "charge_40" }],
+      expect.arrayContaining([{ kind: "track", record_key: "current", payload: "charge_40" }]),
     );
     expect(values.get("formation_selected_track_alice")).toBe("charge_40");
     expect(values.get(importDecisionKey("alice"))).toBe("imported");
@@ -131,13 +131,34 @@ describe("book-loop import confirmation", () => {
     await settle();
     await click("Import browser progress");
     expect(values.has(importDecisionKey("alice"))).toBe(false);
-    expect(renderedUser).toBeUndefined();
+    expect(renderedUser).toBe("alice");
     expect(values.get("formation_selected_track_alice")).toBe("charge_40");
     await click("Import browser progress");
     expect(vi.mocked(importBookRecords).mock.calls[0]).toEqual(
       vi.mocked(importBookRecords).mock.calls[1],
     );
     expect(renderedUser).toBe("alice");
+  });
+  it("dismisses for later without writing a decision", async () => {
+    start(); await settle();
+    const dialog = renderer.root.findAllByType("div").find(node => node.props.onOpenChange);
+    act(() => dialog!.props.onOpenChange(false));
+    expect(values.has(importDecisionKey("alice"))).toBe(false);
+    expect(renderedUser).toBe("alice");
+  });
+  it("does not interrupt setup-only accounts", async () => {
+    values.delete("control_release_move_alice_2026-10-19");
+    start(); await settle();
+    expect(renderer.root.findAllByType("button")).toHaveLength(0);
+    expect(values.get(importDecisionKey("alice"))).toBe("empty");
+  });
+  it("logs storage errors and continues without asking", async () => {
+    vi.spyOn(storage, "getItem").mockImplementationOnce(() => { throw new Error("blocked"); });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    start(); await settle();
+    expect(renderer.root.findAllByType("button")).toHaveLength(0);
+    expect(renderedUser).toBe("alice"); expect(warn).toHaveBeenCalled();
+    vi.restoreAllMocks();
   });
   it("does not ask again after a saved import decision", async () => {
     values.set(importDecisionKey("alice"), "imported");
@@ -151,7 +172,7 @@ describe("book-loop import confirmation", () => {
     values.set(importDecisionKey("bob"), "imported");
     start();
     await settle();
-    expect(renderedUser).toBeUndefined();
+    expect(renderedUser).toBe("alice");
     expect(renderer.root.findAllByType("button")).toHaveLength(2);
   });
   it("does not load server data or ask to import when disabled", async () => {
@@ -180,7 +201,7 @@ describe("book-loop import confirmation", () => {
     );
     start();
     await settle();
-    expect(renderedUser).toBeUndefined();
+    expect(renderedUser).toBe("alice");
     expect(importBookRecords).not.toHaveBeenCalled();
     expect(renderer.root.findAllByProps({ role: "alert" })).toHaveLength(1);
   });

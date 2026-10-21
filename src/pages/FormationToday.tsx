@@ -134,8 +134,8 @@ export default function FormationToday() {
         />
       ) : null}
 
-      <FirstWeekPanel history={history} journey={strictJourney.journey} track={track} today={strictLocalToday} canPractice={strictDayOpen}
-        nextCircuit={circuits.find(item => !item.evaluation.isSatisfiedForTrack)?.circuit ?? (track === "read_along" ? "awareness" : null)} />
+      <FirstWeekPanel history={history} journey={strictJourney.journey} track={track} userId={user.id} today={practiceLocalDate} canPractice={strictDayOpen && !isLoading && !error}
+        nextCircuit={circuits.find(item => !item.evaluation.isSatisfiedForTrack)?.circuit ?? null} />
 
       {error ? (
         <div role="alert" className="rounded-2xl border border-destructive/35 bg-destructive/8 p-4 text-sm">

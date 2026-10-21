@@ -1,3 +1,4 @@
+import { FormationPracticeSummary } from "@/components/formation/FormationPracticeSummary";
 import { useBookLoopState } from "@/hooks/useBookLoopState";
 import { useState } from "react";
 import { BatteryCharging, RotateCcw, ShieldCheck, Sparkles, Target, Zap } from "lucide-react";
@@ -37,6 +38,7 @@ export default function MyControllables() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 pb-24">
+      <FormationPracticeSummary userId={user.id} legacyEmpty={totalXp === 0 || stats.keptPromises === 0} />
       <FutureHero
         eyebrow="The Dashboard"
         title="My Controllables"
