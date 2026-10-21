@@ -1,9 +1,11 @@
+import {captureOAuthReturn} from "./lib/oauthReturn";
 import { captureAttribution } from "./lib/growthAttribution";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { initInstallPromptListener, registerServiceWorker } from "./lib/pwa";
 
+captureOAuthReturn();
 captureAttribution();
 
 // Initialize PWA functionality

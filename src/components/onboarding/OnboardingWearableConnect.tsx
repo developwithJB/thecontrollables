@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import {trustedOAuthMessage} from "@/lib/oauthReturn";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,10 +24,14 @@ export function OnboardingWearableConnect({ onConnected, onSkip }: OnboardingWea
   const [activeTab, setActiveTab] = useState<WearableProvider>("whoop");
   const [connecting, setConnecting] = useState<WearableProvider | null>(null);
   const [connected, setConnected] = useState(false);
+  const popupRef=useRef<Window|null>(null);
 
-  const handleMessage = useCallback((event: MessageEvent) => {
+  const handleMessage = useCallback(async (event: MessageEvent) => {
+    if(!trustedOAuthMessage(event,window.location.origin,popupRef.current))return;
     if (event.data?.type === "oauth-callback" && ["whoop", "oura", "fitbit"].includes(event.data?.provider)) {
       if (event.data?.success) {
+        const {data,error}=await supabase.from("wearable_connections").select("provider").eq("provider",event.data.provider).maybeSingle();
+        if(error||!data){toast.error("Connection could not be verified. Please reconnect.");setConnecting(null);return}
         setConnected(true);
         setConnecting(null);
       } else {
@@ -64,7 +69,7 @@ export function OnboardingWearableConnect({ onConnected, onSkip }: OnboardingWea
       const w = 500, h = 600;
       const left = window.screenX + (window.innerWidth - w) / 2;
       const top = window.screenY + (window.innerHeight - h) / 2;
-      window.open(data.url, "wearable-connect", `width=${w},height=${h},left=${left},top=${top}`);
+      popupRef.current=window.open(data.url, "wearable-connect", `width=${w},height=${h},left=${left},top=${top}`);
     } catch {
       toast.error("Failed to connect");
       setConnecting(null);

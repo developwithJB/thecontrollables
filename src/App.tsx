@@ -1,3 +1,4 @@
+import {OAuthReturnBridge} from "@/components/OAuthReturnBridge";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -153,6 +154,7 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <TooltipProvider>
+            <OAuthReturnBridge />
             <AppContent />
           </TooltipProvider>
         </BrowserRouter>

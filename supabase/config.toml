@@ -101,3 +101,11 @@ verify_jwt = false
 
 [functions.ingest-telemetry]
 verify_jwt = false
+
+[functions.wearable-oauth-start]
+verify_jwt = true
+
+# GET only returns a code to the initiating app. Credential exchange requires
+# an authenticated POST with a one-use, owner-bound server nonce.
+[functions.wearable-oauth-callback]
+verify_jwt = false
