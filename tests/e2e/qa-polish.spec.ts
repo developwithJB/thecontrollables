@@ -7,7 +7,7 @@ test("mobile Formation book links, sign out, copy, and signup-only guidance",asy
  const start=Date.now(); await page.goto("/formation/today"); await expect(page.getByRole("heading",{name:"Practice what you can control."})).toBeVisible(); console.log(`QA polish Today shell ${Date.now()-start}ms`);
  await expect(page.locator('[data-book-placement="formation_today"]')).toHaveAttribute("href",BOOK_URL);
  await expect(page.locator("body")).not.toContainText(/Life OS|idempotent/i);
- await page.getByRole("button",{name:"Profile menu"}).click(); await expect(page.getByRole("menuitem",{name:"Sign Out"})).toBeVisible(); await page.keyboard.press("Escape");
+ await page.getByRole("button",{name:"Profile menu"}).click(); await expect(page.getByRole("menuitem",{name:"Sign Out"})).toBeVisible(); await page.getByRole("menu",{name:"Profile menu"}).press("Escape"); await expect(page.getByRole("menu",{name:"Profile menu"})).toBeHidden();
  await expect(page.getByRole("button",{name:"Sign Out",exact:true})).toBeVisible();
  await page.getByRole("button",{name:"Open Awareness"}).click(); await expect(page.locator('[data-book-placement="formation_circuit"]')).toHaveAttribute("href",BOOK_URL); await expect(page.locator("body")).not.toContainText(/Life OS|idempotent/i);
  await page.goto("/formation/today");
