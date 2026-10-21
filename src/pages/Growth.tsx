@@ -140,7 +140,7 @@ export default function Growth({ surface = "growth" }: GrowthProps) {
   useEffect(() => {
     if (!myCircle) return;
     if (completedDayCount > prevCompletedDaysRef.current && completedDayCount > 0) {
-      logShowedUp(completedDayCount);
+      void logShowedUp();
     }
     prevCompletedDaysRef.current = completedDayCount;
   }, [completedDayCount, myCircle, logShowedUp]);

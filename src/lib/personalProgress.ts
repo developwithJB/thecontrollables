@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 type ProgressRpcName =
   | "record_personal_action"
+  | "record_circle_attendance"
   | "complete_legacy_reset_day"
   | "award_wellness_milestone"
   | "award_legacy_personal_event";
@@ -77,4 +78,16 @@ export async function awardLegacyEvent(
   });
   if (error) throw Error(error.message);
   return data as { amount: number; alreadyAwarded: boolean };
+}
+
+export async function recordCircleAttendance(
+  challengeId: string,
+  resetSessionId: string,
+) {
+  const { data, error } = await client.rpc("record_circle_attendance", {
+    p_challenge_id: challengeId,
+    p_reset_session_id: resetSessionId,
+  });
+  if (error) throw Error(error.message);
+  return data as { recorded: boolean; newRecord?: boolean };
 }

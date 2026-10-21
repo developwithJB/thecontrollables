@@ -1,3 +1,4 @@
+import {recordCircleAttendance} from "@/lib/personalProgress";
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -247,34 +248,16 @@ export function useCircle(userId: string | undefined, activeSessionId?: string) 
 
   // Log showed-up (called when user completes daily reset)
   const logShowedUp = useCallback(
-    async (dayNumber: number) => {
-      if (!userId || !myCircle) return;
-
-      const today = new Date().toISOString().split("T")[0];
-
-      // Check if already logged today
-      const { data: existing } = await supabase
-        .from("challenge_progress")
-        .select("id")
-        .eq("challenge_id", myCircle.id)
-        .eq("user_id", userId)
-        .eq("log_date", today)
-        .limit(1);
-
-      if (existing?.length) return; // Already logged
-
-      await supabase.from("challenge_progress").insert({
-        challenge_id: myCircle.id,
-        user_id: userId,
-        day_number: dayNumber,
-        completed: true,
-        completed_at: new Date().toISOString(),
-        log_date: today,
-      });
-
-      queryClient.invalidateQueries({ queryKey: ["circle-members", myCircle.id] });
+    async () => {
+      if (!userId || !myCircle || !activeSessionId) return;
+      try {
+        const result = await recordCircleAttendance(myCircle.id,activeSessionId);
+        if(result.recorded) void queryClient.invalidateQueries({ queryKey: ["circle-members", myCircle.id] });
+      } catch {
+        console.warn("Circle check-in could not be confirmed from the saved Snapshot day.");
+      }
     },
-    [userId, myCircle, queryClient]
+    [userId, myCircle, activeSessionId, queryClient]
   );
 
   // Lookup circle info by invite code (for join preview)

@@ -1,3 +1,4 @@
+import {PERSONAL_PRACTICE_NOTICE} from "@/lib/personalPracticeNotice";
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, Loader2, Calendar, ArrowRight, Shield, Zap, AlertTriangle, Sparkles } from "lucide-react";
@@ -116,6 +117,8 @@ export const WeeklyRecapCard = ({ userId, isPaid = false }: WeeklyRecapCardProps
         <h3 className="text-sm font-semibold text-foreground">Weekly Review</h3>
         {reviewLoading && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground ml-auto" />}
       </div>
+
+      <p className="text-xs text-muted-foreground">{PERSONAL_PRACTICE_NOTICE}</p>
 
       {/* AI Review — structured display */}
       {review ? (
