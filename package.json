@@ -121,5 +121,6 @@
   "bugs": {
     "url": "https://github.com/developwithJB/thecontrollables/issues"
   },
-  "homepage": "https://thedashboard.agbcoaching.com/"
+  "homepage": "https://thedashboard.agbcoaching.com/",
+  "license": "MIT"
 }

@@ -59,4 +59,4 @@ Keep screenshots free of personal records, payment details, secrets, and signed 
 
 Use the [feedback template](https://github.com/developwithJB/thecontrollables/issues/new?template=feedback.yml) for ordinary corrections. Issues are public. For a suspected vulnerability, follow [SECURITY.md](SECURITY.md) instead.
 
-There is currently no general reuse license in the repository. Please resolve licensing with the owner before redistributing a fork or incorporating third-party material. Contributing does not imply rights to book or Bible text.
+The project’s original code is licensed under the [MIT License](LICENSE). Preserve its copyright and license notice when redistributing code. Book text, Bible translations, third-party assets, and dependencies retain their separate rights; do not include material you lack permission to contribute.

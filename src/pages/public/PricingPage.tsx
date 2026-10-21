@@ -37,10 +37,12 @@ export default function PricingPage() {
           </BookLink>
         </section>
         <p className="text-sm text-muted-foreground">
-          The source code is available on GitHub. Check the repository’s licensing
-          information before adapting or redistributing it. Hosted Pro covers
-          this app’s services and bounded AI usage. Subscriptions to ChatGPT,
-          Codex, or other development tools do not pay this app’s inference bills.
+          The Dashboard’s original code is open source under the MIT License. You
+          can adapt or self-host the code under its terms. Book text, Bible
+          translations, and third-party material retain their separate rights.
+          Hosted Pro covers this app’s services and bounded AI usage.
+          Subscriptions to ChatGPT, Codex, or other development tools do not pay
+          this app’s inference bills.
         </p>
         <p>
           <a

@@ -105,4 +105,6 @@ For private security reports, read [SECURITY.md](SECURITY.md). For ordinary impr
 
 ## License
 
-The source is public, but this repository does not yet contain a `LICENSE` file. A public repository alone does not grant a general reuse license. License selection is pending the owner’s decision. Book text, Bible translations, third-party assets, and dependencies may have separate rights; do not assume repository access grants rights to them.
+The project’s original code is open source under the [MIT License](LICENSE). You may use, modify, redistribute, and use that code commercially under its terms, including preserving the copyright and license notice.
+
+Book text, Bible translations, third-party assets, and dependencies retain their separate rights and license terms. The MIT license does not grant rights to third-party material or imply endorsement by The Dashboard, JB, or YouVersion.
