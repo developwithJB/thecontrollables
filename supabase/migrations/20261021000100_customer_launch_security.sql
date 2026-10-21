@@ -17,7 +17,9 @@ DROP POLICY IF EXISTS "Anyone can view scriptures" ON public.daily_scriptures;
 
 -- Certificates may contain names and private season reflections. Existing
 -- records/paths stay intact; owners use short-lived signed download URLs.
-UPDATE storage.buckets SET public=false WHERE id='certificates';
+-- Set certificates.public=false through the supported Storage updateBucket
+-- operation immediately after applying this migration; managed SQL cannot
+-- mutate storage.buckets. See the release procedure in docs/security/.
 DROP POLICY IF EXISTS "Certificates are publicly accessible" ON storage.objects;
 DROP POLICY IF EXISTS "Certificate owners can read their files" ON storage.objects;
 CREATE POLICY "Certificate owners can read their files" ON storage.objects FOR SELECT TO authenticated

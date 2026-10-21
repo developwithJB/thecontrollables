@@ -49,6 +49,8 @@ try {
   await check("migration applies twice safely", async () => {
     await sql.unsafe(migration);
     await sql.unsafe(migration);
+    // Emulate the separate supported Storage updateBucket({public:false}) operation.
+    await sql`UPDATE storage.buckets SET public=false WHERE id='certificates'`;
   });
   for (const role of ["anon", "authenticated"])
     await check(
