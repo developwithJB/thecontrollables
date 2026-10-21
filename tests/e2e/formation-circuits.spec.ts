@@ -154,6 +154,9 @@ test("Read Along starts with Scripture and resumes the next saved practice", asy
   await expect(page.getByRole("link", { name: "Open the NLT on Bible.com (new tab)" })).toHaveAttribute("href", "https://www.bible.com/bible/116/MAT.4.NLT");
   await page.getByLabel("One honest truth").fill("A private first response.");
   await expect(page.getByLabel("One honest truth")).toHaveValue("A private first response.");
+  // Blur after route entry: navigation animation must not remount and erase edits.
+  await page.getByLabel("One honest truth").blur();
+  await expect(page.getByLabel("One honest truth")).toHaveValue("A private first response.");
   await page.getByRole("button", { name: "Save progress" }).click();
   await expect(page.getByText("Awareness is recorded for today.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Return to Today", exact: true }).first().click();
