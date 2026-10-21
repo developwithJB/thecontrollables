@@ -49,14 +49,24 @@ serve(async (req) => {
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    const { data: entitlement } = await supabaseClient
+    const { data: entitlement, error: entitlementError } = await supabaseClient
       .from("user_entitlements")
       .select("*")
       .eq("user_id", user.id)
       .eq("entitlement_type", "full_access")
       .maybeSingle();
 
+    if (entitlementError) throw new Error("entitlement_lookup_failed");
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    const stripe = stripeKey ? new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" }) : null;
     if (entitlement && entitlementIsCurrent(entitlement)) {
+      if(entitlement.source==="stripe_subscription"){
+        if(!stripe || !entitlement.stripe_subscription_id)throw new Error("subscription_binding_required");
+        const live=await stripe.subscriptions.retrieve(entitlement.stripe_subscription_id);
+        const customer=typeof live.customer==="string"?live.customer:live.customer.id;
+        if(live.metadata?.user_id!==user.id || customer!==entitlement.stripe_customer_id || !["active","trialing"].includes(live.status))throw new Error("subscription_owner_mismatch");
+        getTierFromPrice(live.items.data[0]?.price?.id);
+      }
       const legacyAppAccess = isLegacyAppGrant(entitlement);
       // Preserve historical app feature access without claiming a subscription
       // or changing the separate authoritative hosted-AI allowance.
@@ -74,22 +84,19 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
     }
 
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    if (!stripe) throw new Error("STRIPE_SECRET_KEY is not set");
 
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    if (customers.data.length === 0) {
+    const customerId = entitlement?.stripe_customer_id;
+    if (!customerId) {
       return new Response(JSON.stringify({ plan_tier: null, isPaid: false, message: "No subscription found" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
       });
     }
-
-    const customerId = customers.data[0].id;
     const subscriptions = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 });
 
     if (subscriptions.data.length > 0) {
       const subscription = subscriptions.data[0];
+      if (subscription.metadata?.user_id !== user.id) throw new Error("subscription_owner_mismatch");
       const currentPeriodEnd = new Date(subscriptionPeriod(subscription).end * 1000).toISOString();
       const planTier = getTierFromPrice(subscription.items.data[0]?.price?.id);
 

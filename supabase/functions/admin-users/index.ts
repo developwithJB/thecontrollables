@@ -5,9 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Fallback admin email for initial bootstrap
-const BOOTSTRAP_ADMIN_EMAIL = "developwithjb@gmail.com";
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -53,34 +50,11 @@ Deno.serve(async (req) => {
       .eq("role", "admin")
       .maybeSingle();
 
-    // Allow bootstrap: if no admins exist and user has bootstrap email, auto-create admin role
-    if (!roleData && user.email === BOOTSTRAP_ADMIN_EMAIL) {
-      const { data: existingAdmins } = await adminClient
-        .from("user_roles")
-        .select("id")
-        .eq("role", "admin")
-        .limit(1);
-      
-      if (!existingAdmins || existingAdmins.length === 0) {
-        // Bootstrap first admin
-        await adminClient
-          .from("user_roles")
-          .insert({ user_id: user.id, role: "admin", granted_by: "system_bootstrap" });
-      }
-    }
-
-    // Re-check admin status after potential bootstrap
-    const { data: finalRoleCheck } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (!finalRoleCheck) {
+    // Only a previously provisioned UUID role authorizes admin access. Email
+    // claims (including auto-confirmed signup addresses) never grant a role.
+    if (roleError || !roleData) {
       return new Response(JSON.stringify({ error: "Forbidden", isAdmin: false }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 

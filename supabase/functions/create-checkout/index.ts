@@ -155,11 +155,14 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId: string | undefined;
-
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
+    const admin=createClient(Deno.env.get("SUPABASE_URL") ?? "",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",{auth:{persistSession:false}});
+    const {data: appGrant,error:appGrantError}=await admin.from("user_entitlements")
+      .select("*").eq("user_id",user.id).eq("entitlement_type","full_access").maybeSingle();
+    if(appGrantError) return json({error:"Existing access could not be verified.",error_code:"access_verification_unavailable"},503);
+    // Only a service-written UUID binding identifies a Stripe customer. A signup
+    // email can be unverified even when the auth provider auto-confirms it.
+    const customerId: string | undefined = appGrant?.stripe_customer_id || undefined;
+    if (customerId) {
       const subscriptions = await stripe.subscriptions.list({
         customer: customerId,
         status: "all",
@@ -170,6 +173,9 @@ const existingSubscription = subscriptions.data.find((sub: { status: string }) =
         ACTIVE_SUBSCRIPTION_STATUSES.has(sub.status),
       );
 
+      if (subscriptions.data.some((sub: {metadata?:Record<string,string>}) => sub.metadata?.user_id !== user.id)) {
+        return json({error:"Your billing link needs an ownership review. Contact support.",error_code:"billing_ownership_review_required"},409);
+      }
       if (existingSubscription) {
         let portalUrl: string | null = null;
         try {
@@ -198,11 +204,6 @@ const existingSubscription = subscriptions.data.find((sub: { status: string }) =
       }
     }
 
-    const admin=createClient(Deno.env.get("SUPABASE_URL") ?? "",Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",{auth:{persistSession:false}});
-    const {data: appGrant, error: appGrantError}=await admin.from("user_entitlements")
-      .select("source,plan_tier,subscription_status,expires_at")
-      .eq("user_id",user.id).eq("entitlement_type","full_access").maybeSingle();
-    if(appGrantError) return json({error:"Your existing access could not be verified. Please try again.",error_code:"access_verification_unavailable"},503);
     if(isLegacyAppGrant(appGrant)) return json({
       error:"Your legacy app access is preserved. Contact support before adding Pro so your existing access stays intact.",
       error_code:"legacy_access_review_required",

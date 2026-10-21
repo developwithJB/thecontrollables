@@ -81,6 +81,10 @@ async function handleSeasonCertificate(body: any, user: any, supabaseAdmin: any)
     );
   }
 
+  if (season.status !== "completed" || !season.completed_at) {
+    return new Response(JSON.stringify({error:"Season is not complete"}),{status:409,headers:{...corsHeaders,"Content-Type":"application/json"}});
+  }
+
   // Check existing certificate
   const { data: existingCert } = await supabaseAdmin
     .from("certificates")
@@ -371,7 +375,7 @@ async function handleSnapshotCertificate(body: any, user: any, supabaseAdmin: an
   }
 
   const completedDayNumbers = completedDays?.map((d: any) => d.day_number) || [];
-  if (completedDayNumbers.length < 7) {
+  if (![1,2,3,4,5,6,7].every(day => completedDayNumbers.includes(day))) {
     return new Response(
       JSON.stringify({
         error: "Certificate requires all 7 days completed",

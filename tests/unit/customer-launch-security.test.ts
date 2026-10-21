@@ -99,9 +99,7 @@ describe("private certificate locations", () => {
         "?token=expired",
     ])
       expect(certificateStoragePath(v, backend)).toBe(path);
-    expect(certificateStoragePath("Certificate Template.png", backend)).toBe(
-      "Certificate Template.png",
-    );
+    expect(() => certificateStoragePath("Certificate Template.png", backend)).toThrow();
   });
   it("rejects external, traversal and other-bucket locations", () => {
     for (const v of [

@@ -392,168 +392,31 @@ export const useReset = (externalUserId?: string | null) => {
       if (!userId || !activeSession?.id) return null;
       
       const { data, error } = await supabase
-        .from("completion_certificates")
+        .from("certificates")
         .select("*")
         .eq("user_id", userId)
-        .eq("challenge_id", activeSession.id)
+        .eq("reset_session_id", activeSession.id)
         .maybeSingle();
       
       if (error) throw error;
-      return data;
+      return data ? { ...data, storage_path: data.certificate_url } : null;
     },
     enabled: !!userId && !!activeSession?.id,
   });
 
   // Get certificate URL from storage
-  const getCertificateUrl = privateCertificateUrl;
 
-  // Helper to load image
-  const loadImage = (src: string): Promise<HTMLImageElement> => {
-    return new Promise((resolve, reject) => {
-      const img = new window.Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-      img.src = src;
-    });
-  };
-
-  // Get the admin-uploaded certificate template
-  const getTemplateUrl = () => privateCertificateUrl('Certificate Template.png');
-
-  // Generate and save certificate to storage
+  // Completion is checked by the authenticated server handler. Browsers can
+  // request a certificate but cannot self-issue an authoritative record.
   const generateCertificateMutation = useMutation({
     mutationFn: async (): Promise<string> => {
-      if (!activeSession?.start_date || !userId) throw new Error("No active session");
-      
-      // Check if certificate already exists
-      if (existingCertificate?.storage_path) {
-        return getCertificateUrl(existingCertificate.storage_path);
-      }
-      
-      // Load the admin template
-      const templateUrl = await getTemplateUrl();
-      
-      // Create a canvas-based certificate
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d", { willReadFrequently: false });
-      
-      if (!ctx) throw new Error("Canvas not supported");
-
-      // Load template and use its natural dimensions
-      let templateImg: HTMLImageElement;
-      try {
-        templateImg = await loadImage(templateUrl);
-        canvas.width = templateImg.naturalWidth;
-        canvas.height = templateImg.naturalHeight;
-        
-        // Enable image smoothing for better quality
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        
-        ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
-      } catch (err) {
-        console.error("Failed to load certificate template:", err);
-        throw new Error("Certificate template not found. Please contact support.");
-      }
-
-      // Calculate center X based on actual canvas width
-      const centerX = canvas.width / 2;
-      const canvasHeight = canvas.height;
-
-      // Text styling - positioned for template
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-
-      // User's display name (centered, upper third)
-      if (displayName) {
-        ctx.fillStyle = "#1a1a1a";
-        ctx.font = "italic 56px Georgia, serif";
-        ctx.fillText(displayName, centerX, canvasHeight * 0.5);
-      }
-
-      // Description text
-      ctx.fillStyle = "#404040";
-      ctx.font = "18px system-ui, sans-serif";
-      ctx.fillText("For completing the 7-Day Snapshot Challenge", centerX, canvasHeight * 0.6);
-      ctx.fillText("I committed to controlling what I could and surrendering what I could not.", centerX, canvasHeight * 0.64);
-
-      // Date range
-      const startFormatted = new Date(activeSession.start_date + "T00:00:00").toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      });
-      const endFormatted = new Date(endDate + "T00:00:00").toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      });
-      ctx.font = "16px system-ui, sans-serif";
-      ctx.fillStyle = "#404040";
-      ctx.fillText(`${startFormatted} – ${endFormatted}`, centerX * 0.66, canvasHeight * 0.83);
-
-      // "The Controllables" branding
-      ctx.font = "italic 20px Georgia, serif";
-      ctx.fillStyle = "#1a1a1a";
-      ctx.fillText("The Controllables", centerX * 1.34, canvasHeight * 0.83);
-
-      // Convert canvas to blob with high quality
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(
-          (b) => {
-            if (b) resolve(b);
-            else reject(new Error("Failed to create certificate image"));
-          },
-          "image/png",
-          1.0 // Maximum quality
-        );
-      });
-
-      // Verify blob is valid
-      if (blob.size === 0) {
-        throw new Error("Generated certificate is empty");
-      }
-
-      // Upload to storage
-      const storagePath = `${userId}/${activeSession.id}.png`;
-      const { error: uploadError } = await supabase.storage
-        .from("certificates")
-        .upload(storagePath, blob, {
-          contentType: "image/png",
-          upsert: true,
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Save certificate record to database
-      const { error: dbError } = await supabase
-        .from("completion_certificates")
-        .upsert({
-          user_id: userId,
-          challenge_id: activeSession.id,
-          start_date: activeSession.start_date,
-          end_date: endDate,
-          timezone: activeSession.timezone,
-          storage_path: storagePath,
-        }, {
-          onConflict: "user_id,challenge_id",
-        });
-
-      if (dbError) throw dbError;
-
-      // Invalidate certificate query
-      queryClient.invalidateQueries({ queryKey: ["certificate"] });
-
-      return getCertificateUrl(storagePath);
+      if(!activeSession?.id) throw new Error("No active session");
+      const {data,error}=await supabase.functions.invoke("generate-certificate", {body:{reset_session_id:activeSession.id}});
+      if(error || !data?.certificate_url) throw new Error("Certificate unavailable. Complete all seven days first.");
+      queryClient.invalidateQueries({queryKey:["certificate"]});
+      return data.certificate_url;
     },
-    onError: (error) => {
-      toast({
-        title: "Error generating certificate",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+    onError:(error)=>toast({title:"Certificate unavailable",description:error.message,variant:"destructive"}),
   });
 
   // Get existing certificate URL if available
