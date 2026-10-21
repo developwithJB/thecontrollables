@@ -94,3 +94,25 @@ All caller-supplied coach context moves to a bounded explicitly unverified user 
 Follow-up checks:529 unit tests,7 actual mocked push-handler tests,7 disposable SQL checks,2 local mobile checks, root/app TypeScript, Deno checks for all3 affected functions, production build and3 emoji-contract tests passed. Lint remains401errors18warnings. Apply only new00500 once, deploy send-push-nudge/ai-chat/send-daily-nudge with reviewed shared helpers and publish the frontend. Do not replay00100–00400 or create/expand scheduler credentials. Remaining static findings stay visible with their dispositions.
 
 Push vendor references: [Apple Web Push](https://developer.apple.com/documentation/usernotifications/sending-web-push-notifications-in-web-apps-and-browsers), [Mozilla Autopush endpoints](https://mozilla-services.github.io/autopush-rs/http.html), [FCM service](https://firebase.google.com/docs/reference/fcm/rest). Unknown endpoint hosts fail closed until reviewed; this is a finite supported-browser list.
+
+## Published frontend and finding disposition
+
+The normal Lovable Publish flow confirmed “Your website was updated” on October21. Live pricing shows Free, BYO, Pro14.99/month or119.99/year with bounded AI and separate book purchase. The signed-in Today page loads Read Along, book links, private-practice language and profile Sign Out. Public chunks contain the new authenticated personal-progress helper, OAuth return bridge and practice receipt. Hosted build hashes differ from the local environment; byte identity is not claimed. The published runtime derives from reviewed c6035b0, with managed types added; main27f4b35 also removes only duplicate deployment adapters.
+
+Sanitized evidence: [sandbox Apple Pay](evidence-2026-10-21/sandbox-wallet.json), [live denial checks](evidence-2026-10-21/live-boundaries.json), [live monthly pricing](evidence-2026-10-21/live-pricing.png). No secrets, card data, real customer identifiers or private row payloads are included.
+
+| Reported path | Fix and regression evidence |
+| --- | --- |
+| Unsigned wearable state, cross-account attachment and open redirect | PR83 opaque hashed one-use state plus authenticated UUID-bound finalization;9 OAuth handler tests,4 local desktop/mobile checks, live GET303/POST401 |
+| Spoofed wearable/integration popup success | PR83 exact popup/source/origin checks and owner connection readback; local OAuth browser regressions |
+| Email-based admin bootstrap | PR82 existing UUID role only;2 admin edge tests plus SQL privilege checks |
+| Email-based Stripe portal/status/customer discovery | PR82 stored UUID binding and metadata owner match;27 billing edge tests |
+| Direct certificate or legacy completion-certificate self-issuance | PR82 server-issued records/blobs with owner reads;6 certificate edge tests and SQL denials |
+| Arbitrary completed-action XP, reset reward replay and premature covenant completion | PR85 authenticated fixed/capped personal rewards, dated closeout and completion guards;13 isolated SQL checks, including concurrency and cross-owner/replay/date cases |
+| CSV formulas/quotes/newlines | PR84 csvCell escaping/neutralization; security-input-privacy unit regressions |
+| Operator commands, meal preferences or supplied assistant history in privileged model roles | PR84 user-role untrusted input boundaries; unit regressions and Deno type checks; no inference performed |
+| Reminder/broadcast recipient data and wearable health/provider payloads in logs | PR84 removes the reported sensitive diagnostic fields; unit source/privacy regressions, status-only observability retained |
+| Public telemetry/legacy content tables and certificate listing | PR78/82 server-only tables, bounded gateway, private owner-folder storage;6 telemetry edge tests, SQL and live denials |
+| Leaked-password protection | Enabled through the existing auth setting; no password or session changes |
+
+The basic scan is clear. The fresh deeper scan completed with0critical/8warnings; the final follow-up in PR88 addresses the actionable new paths. Two historical-policy references are superseded by effective deployed grants, and manual ring history is explicitly non-authoritative personal reporting. Findings were not ignored or suppressed. Final00500/three-function deployment readback follows when available. Build-tool advisory80, the lint backlog, strict-content review, YouVersion permission and morning-email readiness remain distinct known limitations.

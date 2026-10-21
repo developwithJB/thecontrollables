@@ -1,0 +1,50 @@
+[
+  {
+    "check": "anonymous_rpc_denied",
+    "name": "record_personal_action",
+    "status": 401,
+    "denied": true
+  },
+  {
+    "check": "anonymous_rpc_denied",
+    "name": "complete_legacy_reset_day",
+    "status": 401,
+    "denied": true
+  },
+  {
+    "check": "anonymous_rpc_denied",
+    "name": "award_wellness_milestone",
+    "status": 401,
+    "denied": true
+  },
+  {
+    "check": "anonymous_rpc_denied",
+    "name": "award_legacy_personal_event",
+    "status": 401,
+    "denied": true
+  },
+  {
+    "check": "oauth_authless_post",
+    "family": "wearable",
+    "status": 401,
+    "denied": true
+  },
+  {
+    "check": "oauth_unsigned_get",
+    "family": "wearable",
+    "status": 303,
+    "owned_redirect": true
+  },
+  {
+    "check": "oauth_authless_post",
+    "family": "integration",
+    "status": 401,
+    "denied": true
+  },
+  {
+    "check": "oauth_unsigned_get",
+    "family": "integration",
+    "status": 303,
+    "owned_redirect": true
+  }
+]
