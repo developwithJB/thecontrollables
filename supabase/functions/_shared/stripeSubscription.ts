@@ -51,7 +51,6 @@ export function entitlementIsCurrent(
     (entitlement.source === "manual" ||
       status === "active" ||
       status === "trialing" ||
-      status === "canceled" ||
       (!status &&
         ["stripe", "promo", "webhook"].includes(entitlement.source ?? "")))
   );

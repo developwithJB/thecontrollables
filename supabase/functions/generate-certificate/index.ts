@@ -86,12 +86,13 @@ async function handleSeasonCertificate(body: any, user: any, supabaseAdmin: any)
     .from("certificates")
     .select("*")
     .eq("season_id", season_id)
+    .eq("user_id", user.id)
     .eq("certificate_type", "season")
     .maybeSingle();
 
   if (existingCert?.certificate_url && existingCert?.reflection_text) {
     return new Response(
-      JSON.stringify({ certificate_url: existingCert.certificate_url, reflection_text: existingCert.reflection_text }),
+      JSON.stringify({ certificate_url: await signCertificate(supabaseAdmin, `${user.id}/season-${existingCert.id}.svg`), reflection_text: existingCert.reflection_text }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
@@ -298,8 +299,7 @@ ${mostStruggled ? `Most struggled: ${mostStruggled.name}` : ""}`;
     );
   }
 
-  const { data: urlData } = supabaseAdmin.storage.from("certificates").getPublicUrl(storagePath);
-  const certificateUrl = urlData.publicUrl;
+  const certificateUrl = await signCertificate(supabaseAdmin, storagePath);
 
   // Upsert certificate record
   await supabaseAdmin.from("certificates").upsert({
@@ -310,7 +310,7 @@ ${mostStruggled ? `Most struggled: ${mostStruggled.name}` : ""}`;
     display_name: displayName,
     start_date: startDate,
     end_date: endDate,
-    certificate_url: certificateUrl,
+    certificate_url: storagePath,
     reflection_text: reflectionText,
     total_xp: null,
     level: null,
@@ -400,11 +400,12 @@ async function handleSnapshotCertificate(body: any, user: any, supabaseAdmin: an
     .from("certificates")
     .select("*")
     .eq("reset_session_id", reset_session_id)
+    .eq("user_id", user.id)
     .single();
 
   if (existingCert?.certificate_url) {
     return new Response(
-      JSON.stringify({ certificate_url: existingCert.certificate_url }),
+      JSON.stringify({ certificate_url: await signCertificate(supabaseAdmin, `${user.id}/${existingCert.id}.svg`) }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
@@ -556,12 +557,11 @@ async function handleSnapshotCertificate(body: any, user: any, supabaseAdmin: an
     );
   }
 
-  const { data: urlData } = supabaseAdmin.storage.from("certificates").getPublicUrl(storagePath);
-  const certificateUrl = urlData.publicUrl;
+  const certificateUrl = await signCertificate(supabaseAdmin, storagePath);
 
   await supabaseAdmin
     .from("certificates")
-    .update({ certificate_url: certificateUrl })
+    .update({ certificate_url: storagePath })
     .eq("id", certificateId);
 
   return new Response(
@@ -594,4 +594,11 @@ function wrapText(text: string, maxChars: number): string[] {
   }
   if (current.trim()) lines.push(current.trim());
   return lines;
+}
+
+// Called only after the owning session/season has been authorized above.
+async function signCertificate(admin: ReturnType<typeof createClient>, path: string): Promise<string> {
+  const { data, error } = await admin.storage.from('certificates').createSignedUrl(path, 300);
+  if (error || !data?.signedUrl) throw new Error('Certificate download unavailable');
+  return data.signedUrl;
 }

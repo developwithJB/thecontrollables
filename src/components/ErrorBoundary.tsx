@@ -1,7 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertTriangle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { sendTelemetry } from "@/lib/telemetrySink";
 import { captureHandledException } from "@/hooks/useAnalytics";
 
 interface Props {
@@ -37,14 +37,11 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private async logError(error: Error, errorInfo: ErrorInfo) {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      await supabase.from("app_errors").insert({
+      await sendTelemetry("error", {
         error_message: error.message,
         error_stack: error.stack,
         error_type: "react_boundary",
         component_name: errorInfo.componentStack?.slice(0, 500),
-        user_id: user?.id,
         page_path: window.location.pathname,
         user_agent: navigator.userAgent,
       });

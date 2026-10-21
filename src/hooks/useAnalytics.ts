@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { sendTelemetry } from "@/lib/telemetrySink";
 import { APP_VERSION } from "@/lib/version";
 
 // Generate a session ID for tracking (persists across page loads in same tab)
@@ -83,18 +83,13 @@ export const useAnalytics = () => {
     if (!ENABLE_SUPABASE_ANALYTICS) return;
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      await supabase.from("page_views").insert({
+      await sendTelemetry("page", {
         page_path: path,
         referrer: isVirtual ? window.location.pathname : document.referrer || null,
         session_id: sessionId.current,
         user_agent: navigator.userAgent,
         screen_size: getScreenSize(),
         load_time_ms: loadTime,
-        user_id: user?.id || null,
       });
     } catch (error) {
       console.warn("Failed to track page view:", error);
@@ -107,11 +102,7 @@ export const useAnalytics = () => {
     if (!ENABLE_SUPABASE_ANALYTICS) return;
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      await supabase.from("app_events").insert({
+      await sendTelemetry("event", {
         event_type: _eventType,
         event_name: eventName,
         event_data: { ...eventData, app_version: APP_VERSION },
@@ -119,7 +110,6 @@ export const useAnalytics = () => {
         session_id: sessionId.current,
         user_agent: navigator.userAgent,
         screen_size: getScreenSize(),
-        user_id: user?.id || null,
       });
     } catch (error) {
       console.warn("Failed to track event:", error);
@@ -154,11 +144,7 @@ export const useAnalytics = () => {
       if (!ENABLE_SUPABASE_ANALYTICS) return;
 
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        await supabase.from("app_errors").insert({
+        await sendTelemetry("error", {
           error_message: errorMessage,
           error_stack: errorStack || null,
           error_type: errorType || "runtime",
@@ -167,7 +153,6 @@ export const useAnalytics = () => {
           session_id: sessionId.current,
           user_agent: navigator.userAgent,
           additional_context: { ...additionalContext, app_version: APP_VERSION },
-          user_id: user?.id || null,
         });
       } catch (error) {
         console.warn("Failed to track error:", error);

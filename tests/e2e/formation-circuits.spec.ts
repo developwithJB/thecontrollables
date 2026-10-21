@@ -56,7 +56,7 @@ test("does not complete a promise from optional photo proof and supports deletio
   await page.getByLabel("One Main Promise").fill("Send the message I promised to send.");
 
   const onePixelPng = Buffer.from(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2n7sAAAAASUVORK5CYII=",
+    "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGMw7vgPRAwQCgAtNgbpkphh3AAAAABJRU5ErkJggg==",
     "base64",
   );
   await page.locator('input[type="file"]').setInputFiles({ name: "proof.png", mimeType: "image/png", buffer: onePixelPng });
@@ -155,7 +155,7 @@ test("Read Along starts with Scripture and resumes the next saved practice", asy
   await page.getByLabel("One honest truth").fill("A private first response.");
   await expect(page.getByLabel("One honest truth")).toHaveValue("A private first response.");
   await page.getByRole("button", { name: "Save progress" }).click();
-  await expect(page.getByText("Awareness is recorded for today.")).toBeVisible();
+  await expect(page.getByText("Awareness is recorded for today.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Return to Today", exact: true }).first().click();
   await expect(page.getByTestId("next-practice").getByRole("link", { name: "Continue Perspective" })).toBeVisible();
   await page.reload();

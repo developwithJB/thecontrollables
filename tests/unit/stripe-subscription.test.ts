@@ -40,7 +40,7 @@ describe("paid entitlement synchronization", () => {
     expect(() => subscriptionTier("unknown", {})).toThrow();
     expect(subscriptionTier("legacy", { legacy: "pro" })).toBe("pro");
   });
-  it.each(["past_due", "unpaid", "incomplete", "incomplete_expired", "paused"])(
+  it.each(["past_due", "unpaid", "incomplete", "incomplete_expired", "paused", "canceled"])(
     "rejects nonpaying state %s",
     (status) => {
       expect(
@@ -52,11 +52,11 @@ describe("paid entitlement synchronization", () => {
       ).toBe(false);
     },
   );
-  it("keeps prepaid canceled access only until expiry and preserves manual grants", () => {
+  it("keeps scheduled cancellation active until expiry and preserves manual grants", () => {
     expect(
       entitlementIsCurrent({
         source: "stripe_subscription",
-        subscription_status: "canceled",
+        subscription_status: "active",
         expires_at: "2099-01-01",
       }),
     ).toBe(true);

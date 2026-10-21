@@ -1,0 +1,34 @@
+# Paying-customer security and payment verification — October 21, 2026
+
+## Payment evidence
+
+The owner authorized Apple Pay in Stripe **test mode** for the $14.99 monthly offer. Readback from Stripe confirmed `status=succeeded`, `livemode=false`, `currency=usd`, `amount=1499`, and `payment_method.card.wallet.type=apple_pay`. No live charge was made.
+
+The actual repository Checkout, webhook and billing-status handlers ran against a disposable local database and synthetic local auth account. Stripe CLI forwarded authentic, signed snapshot events at API version 2023-10-16. Checkout completion and subscription creation each returned HTTP 200; the private receipt table deduplicated delivery and the local account became active Pro. A signed replay returned HTTP 200 with `duplicate=true`. The test subscription was canceled; the signed deletion event returned HTTP 200 and the profile returned to Free.
+
+Cancellation exposed an existing disagreement: `check-payment` still treated a canceled subscription as paid until the old period end, while the webhook/hosted allowance revoked it. This release removes that branch. Scheduled end-of-period cancellations retain access because Stripe keeps their status active until the period ends. Immediate cancellation is denied even if an old expiry remains in the future. Legacy manual and untiered app grants remain preserved.
+
+The local test database, synthetic auth user, listener and handler processes were removed. The approved temporary test-key file was deleted. No production access was granted, no live credentials changed, and no test credential was committed. Sanitized local evidence is in `output/payment-security-2026-10-21/` (not tracked).
+
+## Security changes
+
+- Lovable confirmed leaked-password/HIBP protection enabled through the existing auth setting. Existing sessions and other auth settings were preserved. This does not retroactively check existing passwords.
+- Analytics clients send to `ingest-telemetry`. Direct anon/authenticated table privileges and permissive insert policies are removed from app_events, app_errors and page_views. The endpoint validates optional JWTs, derives user identity, accepts at most 8 KiB, strips arbitrary properties/private error text, and permits explicit deployed/preview/local origins. CORS is a browser control, not authentication.
+- An atomic service-only SQL function limits accepted telemetry to 120 events per actor per minute and 1,000 project-wide per minute. Actor identifiers are daily HMAC hashes; no raw IP is stored. The global cap remains effective when network headers are spoofed. These limits bound accepted database writes; they do not eliminate invocation-level denial of service. Analytics remains best effort and is never authorization or payment evidence.
+- Legacy daily_readings and daily_scriptures become server-only. No browser database consumer was found; the reminder worker uses service role. The separately reviewed formation-content gates are unchanged.
+- Certificates become private. Owner-folder RLS permits the owner to sign a five-minute download URL; the exact shared blank template is available to signed-in users. New records store stable paths; old public URL records normalize to the same paths. Opening/downloading renews access. Old public certificate links stop working by design because certificates can contain names and private reflections. Public share text remains separate.
+- Updates resolve patched dependency advisories, including React Router 7.18.4, selector parser 7.1.7 and vulnerable esbuild versions. Lovable tagging remains installed; Drizzle source/migrations are untouched.
+
+## Known limits
+
+The remaining npm audit result is **six high package findings for one unpatched braces advisory**, propagated through Tailwind 3, chokidar, fast-glob, micromatch and lovable-tagger. The published latest braces version remains 3.0.3 with no fixed release. See [upstream advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm). This is build-time glob parsing with repository-controlled configuration; no customer-supplied glob reaches it or is bundled into the static frontend. Do not run untrusted repository builds on a privileged developer host. Findings are retained, not suppressed. Removing the affected dependency chain requires a separately verified Tailwind/Lovable tooling migration or an upstream patch; this release does not claim zero vulnerabilities.
+
+Repository-wide lint retains the existing **401 errors and 18 warnings**. No new lint finding remains in this release. This is not a clean lint gate. Strict 75-day starts still require the complete reviewed packet. YouVersion integration remains disabled pending permission. Morning-email delivery readiness remains separately gated. The infrastructure scanner has no configured connector; a backend scan alone is not exhaustive security clearance.
+
+## Validation and release procedure
+
+Run unit tests, edge handler tests, isolated SQL migration checks, root/app TypeScript, production build, lint and named local Playwright billing/entry/formation specs. Never run the production Stripe spec or an unfiltered e2e command.
+
+Apply only `20261021000100_customer_launch_security.sql` using Lovable's managed migration path after GitHub review. Deploy `ingest-telemetry`, `generate-certificate` and `check-payment` with their shared helpers, then publish the synchronized frontend. Do not change Stripe secrets/prices/webhook, AI flags/model/caps, content publication states or other JWT settings. Confirm a fresh backend scan, deny direct client table operations and verify one legitimate book click through the new sink without disclosing row payloads. If Lovable generates a duplicate migration adapter, inspect and remove it in a separate GitHub cleanup without replaying the canonical migration.
+
+Local results: **482 unit tests, 33 edge-handler tests, seven isolated SQL checks, 12 billing browser checks, 14 account-entry checks and 18 formation/first-week checks passed**. Root/app TypeScript, Deno certificate type checking and the production build passed. Canonical emoji contract passed (three tests). Lint: 401 errors, 18 warnings, unchanged baseline. An initial highly concurrent browser run exposed an ambiguous toast selector and an invalid PNG fixture; those fixtures were corrected, and clean isolated-output runs passed with one browser worker. No production Stripe browser test was run.

@@ -1,3 +1,4 @@
+import { sendTelemetry } from './telemetrySink';
 import { supabase } from '@/integrations/supabase/client';
 import { capturePosthogEvent } from '@/hooks/useAnalytics';
 import { getAttribution } from './growthAttribution';
@@ -26,11 +27,9 @@ function buffer(): Buffered[] {
 }
 function save(events: Buffered[]) { try { localStorage.setItem(BUFFER_KEY, JSON.stringify(events.slice(-50))); } catch { /* Best effort */ } }
 async function send(payload: Payload) {
-  const { data } = await supabase.auth.getSession();
   const anonymous = { ...payload };
   delete anonymous.user_id;
-  const result = await supabase.from('app_events').insert({ ...anonymous, ...(data.session?.user.id ? { user_id: data.session.user.id } : {}) });
-  if (result.error) throw result.error;
+  await sendTelemetry('event', anonymous);
 }
 function listen() {
   if (listening) return;

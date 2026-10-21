@@ -124,24 +124,6 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
     }
 
-    const allSubscriptions = await stripe.subscriptions.list({ customer: customerId, limit: 5 });
-    const recentSub = allSubscriptions.data.find((sub: Stripe.Subscription) =>
-      sub.status === "past_due" || (sub.status === "canceled" && new Date(subscriptionPeriod(sub).end * 1000) > new Date()),
-    );
-
-    if (recentSub) {
-      const planTier = getTierFromPrice(recentSub.items.data[0]?.price?.id);
-
-      return new Response(JSON.stringify({
-        plan_tier: planTier,
-        isPaid: true,
-        subscriptionStatus: recentSub.status,
-        currentPeriodEnd: new Date(subscriptionPeriod(recentSub).end * 1000).toISOString(),
-        purchasedAt: new Date(recentSub.start_date * 1000).toISOString(),
-        source: "stripe_subscription",
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
-    }
-
     return new Response(JSON.stringify({ plan_tier: null, isPaid: false, message: "No subscription found" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
     });

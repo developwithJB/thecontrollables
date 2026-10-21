@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { privateCertificateUrl } from "@/lib/privateCertificates";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,11 +11,10 @@ interface CertificatePreviewProps {
   onClose?: () => void;
 }
 
-const withCacheBust = (url: string) => `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
 
 export function CertificatePreview({ certificateUrl, startDate, onClose }: CertificatePreviewProps) {
   const [isDownloading, setIsDownloading] = useState(false);
-  const displayUrl = useMemo(() => withCacheBust(certificateUrl), [certificateUrl]);
+  const displayUrl = certificateUrl;
 
   // Convert SVG to PNG using canvas
   const convertSvgToPng = async (svgUrl: string): Promise<Blob> => {
@@ -54,7 +54,7 @@ export function CertificatePreview({ certificateUrl, startDate, onClose }: Certi
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      const pngBlob = await convertSvgToPng(displayUrl);
+      const pngBlob = await convertSvgToPng(await privateCertificateUrl(certificateUrl));
 
       const blobUrl = URL.createObjectURL(pngBlob);
       const link = document.createElement("a");
