@@ -31,6 +31,7 @@ npx playwright test --config=playwright.entry.config.ts new-customer-entry.spec.
 npx playwright test --config=playwright.formation.config.ts formation-circuits.spec.ts first-week.spec.ts
 npx playwright test --config=playwright.qa-polish.config.ts qa-polish.spec.ts
 npx playwright test --config=playwright.billing.config.ts freemium-checkout-local.spec.ts
+npx playwright test --config=playwright.launch-funnel.config.ts launch-funnel-local.spec.ts
 ```
 
 Entry checks use public routes. Formation/polish checks enable development mock auth; handlers and database tests independently verify authorization. Mock auth is not evidence of real session or billing behavior. Browser specs intercept external traffic; keep those safeguards intact.

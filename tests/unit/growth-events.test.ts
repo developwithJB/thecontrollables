@@ -63,7 +63,66 @@ describe('growth measurement', () => {
   });
   it('keeps display_name with all signup attribution metadata', async () => {
     const { captureAttribution, getSignupAttribution } = await import('@/lib/growthAttribution'); captureAttribution();
-    expect(getSignupAttribution()).toEqual({ signup_source: 'jblaunch', signup_medium: null, signup_campaign: null, signup_ref: 'friend', signup_landing_path: '/' });
+    expect(getSignupAttribution()).toEqual({ signup_source: 'jblaunch', signup_medium: null, signup_campaign: null, signup_content: null, signup_ref: 'friend', signup_landing_path: '/', signup_last_source: 'jblaunch', signup_last_medium: null, signup_last_campaign: null, signup_last_content: null });
     expect(readFileSync('src/pages/onboarding/AuthPage.tsx', 'utf8')).toContain('data: { display_name: displayName.trim() || null, ...getSignupAttribution(), ...signupMetadata }');
   });
+});
+
+describe('launch funnel event boundaries', () => {
+  it('accepts all client growth names at the server while dropping private properties', async () => {
+    const { GROWTH_EVENT_NAMES } = await import('@/lib/growthEvents');
+    const { sanitizeTelemetry } = await import('../../supabase/functions/_shared/telemetry');
+    for (const name of GROWTH_EVENT_NAMES) {
+      const event = sanitizeTelemetry({ kind: 'event', payload: { event_type: 'growth', event_name: name, event_data: { placement: 'day7_review', reflection: 'PRIVATE', email: 'PRIVATE' } } }, 'server-owner');
+      expect(event.row).toMatchObject({ user_id: 'server-owner', event_name: name, event_data: { placement: 'day7_review' } });
+      expect(JSON.stringify(event)).not.toContain('PRIVATE');
+    }
+  });
+  it('records an authenticated visit once per account per browser session', async () => {
+    const lib = await import('@/lib/growthEvents');
+    lib.trackAuthenticatedVisit('a'); lib.trackAuthenticatedVisit('a'); lib.trackAuthenticatedVisit('b');
+    await vi.waitFor(() => expect(mocks.insert).toHaveBeenCalledTimes(2));
+    expect(mocks.insert.mock.calls.every(c => c[0].event_name === 'authenticated_visit')).toBe(true);
+  });
+  it('records only the seventh local calendar day and deduplicates per account', async () => {
+    const { getLocalDate } = await import('@/domain/formation/circuitRules');
+    const created = new Date(2027, 2, 13, 12);
+    const lib = await import('@/lib/growthEvents');
+    lib.trackDaySevenReturn('a', created.toISOString(), '2027-03-18', 'read_along');
+    lib.trackDaySevenReturn('a', 'invalid', '2027-03-19', 'read_along');
+    expect(mocks.insert).not.toHaveBeenCalled();
+    const seventh = new Date(created); seventh.setDate(seventh.getDate() + 6);
+    lib.trackDaySevenReturn('a', created.toISOString(), getLocalDate(seventh), 'read_along');
+    lib.trackDaySevenReturn('a', created.toISOString(), getLocalDate(seventh), 'read_along');
+    await vi.waitFor(() => expect(mocks.insert).toHaveBeenCalledTimes(1));
+    expect(mocks.insert.mock.calls[0][0]).toMatchObject({ event_name: 'day7_return', event_data: { track: 'read_along' } });
+  });
+  it('stores sanitized bio defaults before Quick Start without replacing a first touch', async () => {
+    const lib = await import('@/lib/growthAttribution');
+    lib.captureAttribution({ pathname: '/start', search: 'utm_source=bio&utm_medium=social&utm_campaign=first100' });
+    lib.captureAttribution({ pathname: '/quick-start', search: '?path=read_along' });
+    expect(lib.getSignupAttribution()).toMatchObject({ signup_source: 'bio', signup_campaign: 'first100', signup_landing_path: '/start' });
+  });
+});
+
+it('bounds checkout analytics waiting even if the sink never responds', async () => {
+  vi.useFakeTimers();
+  try {
+    mocks.insert.mockImplementationOnce(() => new Promise(() => {}));
+    const lib = await import('@/lib/growthEvents');
+    lib.trackGrowthEvent('checkout_opened');
+    let finished = false;
+    const flush = lib.flushGrowthEvents().then(() => { finished = true; });
+    await vi.advanceTimersByTimeAsync(299); expect(finished).toBe(false);
+    await vi.advanceTimersByTimeAsync(1); await flush; expect(finished).toBe(true);
+  } finally { vi.useRealTimers(); }
+});
+
+it('retains first touch while attributing the converting campaign across internal reloads', async () => {
+  const lib = await import('@/lib/growthAttribution');
+  lib.captureAttribution({ pathname: '/', search: '' });
+  lib.captureAttribution({ pathname: '/start', search: '?utm_source=youtube&utm_campaign=first100&utm_content=episode01' });
+  document.referrer = 'https://example.com/quick-start';
+  lib.captureAttribution({ pathname: '/auth', search: '?mode=signup' });
+  expect(lib.getSignupAttribution()).toMatchObject({ signup_source: 'search.example', signup_last_source: 'youtube', signup_last_campaign: 'first100', signup_last_content: 'episode01' });
 });

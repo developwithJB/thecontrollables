@@ -212,7 +212,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
       animate={{ opacity: 1, scale: 1 }}
       className="flex flex-col items-center py-4"
     >
-      <AiAllowancePanel compact allowance={allowance.data} unavailable={allowance.isError}/>
+      <AiAllowancePanel compact userId={userId} allowance={allowance.data} unavailable={allowance.isError}/>
       {completedCount > 0 && !hasConversation && (
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: -10 }}

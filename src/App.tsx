@@ -26,6 +26,7 @@ declare global {
 // Route-split every page so authenticated formation routes do not download the
 // marketing experience before rendering their primary action.
 const LandingPage = lazy(() => import("./pages/public/LandingPage"));
+const CampaignStartPage = lazy(() => import("./pages/public/CampaignStartPage"));
 const PrivacyPage = lazy(() => import("./pages/public/PrivacyPage"));
 const TermsPage = lazy(() => import("./pages/public/TermsPage"));
 const AuthPage = lazy(() => import("./pages/onboarding/AuthPage"));
@@ -100,6 +101,7 @@ const AppContent = () => {
       <Sonner />
       <Suspense fallback={<PageLoader />}>
         <Routes>
+          <Route path="/start" element={<CampaignStartPage />} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path={APP_ROUTES.landing} element={<LandingPage />} />
           <Route path={APP_ROUTES.privacy} element={<PrivacyPage />} />

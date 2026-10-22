@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import type { FormationCircuitEntry, TrainingTrack, CircuitType } from "@/domain/formation/circuits";
@@ -10,9 +11,10 @@ import { CIRCUIT_TYPES } from "@/domain/formation/circuits";
 import { evaluateCircuit, getActionLabel } from "@/domain/formation/circuitRules";
 import { AIChat } from "@/components/AIChat";
 
-export function FirstWeekPanel({ history, journey, track, today, nextCircuit, canPractice, userId = "" }: {
+export function FirstWeekPanel({ history, journey, track, today, nextCircuit, canPractice, userId = "", weekOneOffer }: {
   history: FormationCircuitEntry[]; journey: FullyChargedTodayState | null; track: TrainingTrack;
   userId?: string; today: string; nextCircuit: CircuitType | null; canPractice: boolean;
+  weekOneOffer?: ReactNode;
 }) {
   const [chatOpen, setChatOpen] = useState(false);
   const [sharePreview, setSharePreview] = useState(false);
@@ -65,6 +67,7 @@ export function FirstWeekPanel({ history, journey, track, today, nextCircuit, ca
       <p className="text-sm text-muted-foreground">These are saved practices, not a spiritual score or a claim of strict day closeout. Notice what helped you return. Day 7’s assigned Gospel appears with your reviewed lesson when available.</p>
       {learning ? <p className="whitespace-pre-wrap text-sm"><strong>What I learned:</strong> {learning}</p> : null}
       {intention ? <p className="whitespace-pre-wrap text-sm"><strong>My next intention:</strong> {intention}</p> : null}
+      {records.length > 0 ? weekOneOffer : null}
       {canPractice ? <Link className="inline-flex min-h-11 items-center text-sm text-primary underline" to="/formation/today/environment">Add a private learning and next-week intention in Environment</Link> : null}
       <Button variant="futureOutline" onClick={() => setSharePreview(value => !value)}>Preview a share-safe week-one note</Button>
       {sharePreview ? <div className="rounded-xl border bg-muted/25 p-4" data-testid="week-one-share-preview"><p className="text-sm">I am practicing the five Controllables with The Dashboard. One honest next step at a time.</p><p className="mt-2 text-xs text-muted-foreground">Optional text to copy yourself. No account identity, reflection, counts, private promise or recipient details are included.</p></div> : null}

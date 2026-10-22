@@ -6,7 +6,8 @@ import "./index.css";
 import { initInstallPromptListener, registerServiceWorker } from "./lib/pwa";
 
 captureOAuthReturn();
-captureAttribution();
+// /start records its sanitized campaign defaults before navigating to Quick Start.
+if (window.location.pathname !== "/start") captureAttribution();
 
 // Initialize PWA functionality
 initInstallPromptListener();

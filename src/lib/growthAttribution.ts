@@ -58,14 +58,14 @@ export function getAttribution(): {
   }
   return { first, last };
 }
-export function captureAttribution(): void {
+export function captureAttribution(location?: { pathname: string; search: string }): void {
   if (typeof window === "undefined") return;
   try {
     const touch: Attribution = {
-      landing_path: window.location.pathname,
+      landing_path: location?.pathname ?? window.location.pathname,
       captured_at: Date.now(),
     };
-    const searchParams = new URLSearchParams(window.location.search);
+    const searchParams = new URLSearchParams(location?.search ?? window.location.search);
     for (const key of ATTRIBUTION_KEYS) {
       if (key === "referrer_host") continue;
       const value = sanitizeAttributionValue(searchParams.get(key));
@@ -97,7 +97,12 @@ export function captureAttribution(): void {
       /* Storage unavailable */
     }
     try {
-      window.sessionStorage.setItem("growth_last_touch", JSON.stringify(touch));
+      // Internal navigation/reloads must not erase the campaign that brought
+      // this session in. A new campaign or external referrer becomes last touch.
+      const previous = readStoredAttribution(window.sessionStorage, "growth_last_touch");
+      const attributed = ATTRIBUTION_KEYS.some(key => !!touch[key]);
+      if (attributed || !previous)
+        window.sessionStorage.setItem("growth_last_touch", JSON.stringify(touch));
     } catch {
       /* Storage unavailable */
     }
@@ -106,12 +111,17 @@ export function captureAttribution(): void {
   }
 }
 export function getSignupAttribution() {
-  const first = getAttribution().first;
+  const { first, last } = getAttribution();
   return {
     signup_source: first?.utm_source || first?.referrer_host || "direct",
     signup_medium: first?.utm_medium || null,
     signup_campaign: first?.utm_campaign || null,
+    signup_content: first?.utm_content || null,
     signup_ref: first?.ref || null,
     signup_landing_path: first?.landing_path || "/",
+    signup_last_source: last?.utm_source || last?.referrer_host || "direct",
+    signup_last_medium: last?.utm_medium || null,
+    signup_last_campaign: last?.utm_campaign || null,
+    signup_last_content: last?.utm_content || null,
   };
 }
