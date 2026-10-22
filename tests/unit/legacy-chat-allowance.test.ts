@@ -34,6 +34,7 @@ vi.mock("@/hooks/useHostedAiAllowance", () => ({
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { functions: { invoke: mocks.invoke } },
 }));
+vi.mock("@/hooks/useEntitlements", () => ({ useEntitlements: () => ({ isLoading: false, isPaid: false, legacyAppAccess: false, serverVerified: true }) }));
 vi.mock("@/lib/growthEvents", () => ({ trackGrowthEvent: vi.fn() }));
 import { AIChat } from "@/components/AIChat";
 beforeEach(() => {

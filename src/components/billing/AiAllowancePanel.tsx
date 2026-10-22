@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import type { HostedAiAllowance } from "@/hooks/useHostedAiAllowance";
 import { isFreeSampleExhausted } from "@/lib/launchFunnel";
-import { ProOfferCard } from "./ProOfferCard";
+import { AccountProOffer } from "./AccountProOffer";
 export function AiAllowancePanel({
   allowance,
   unavailable = false,
@@ -78,7 +78,7 @@ export function AiAllowancePanel({
         ) : (
           explanation
         ))}
-      {!unavailable && isFreeSampleExhausted(allowance) ? <ProOfferCard placement="sample_exhausted" userId={userId} /> : null}
+      {!unavailable && userId && isFreeSampleExhausted(allowance) ? <AccountProOffer placement="sample_exhausted" userId={userId} /> : null}
       <Link
         to="/billing"
         className="inline-flex min-h-11 items-center text-primary underline"

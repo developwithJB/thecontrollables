@@ -275,14 +275,26 @@ test("landing links the owner-supplied social accounts and canonical book destin
   await expect(
     page.getByRole("link", { name: "@thecontrollables", exact: true }),
   ).toHaveAttribute("href", "https://www.instagram.com/thecontrollables/");
-  await expect(page.getByRole("link", { name: "YouTube · @thcontrollables", exact: true })).toHaveAttribute("href", "https://www.youtube.com/@thcontrollables");
-  await expect(page.getByRole("link", { name: "X · @developwithjb", exact: true })).toHaveAttribute("href", "https://x.com/developwithjb");
-  await expect(page.locator('a[href*="x.com/thcontrollables"], a[href*="x.com/thecontrollables"]')).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "YouTube · @thcontrollables", exact: true }),
+  ).toHaveAttribute("href", "https://www.youtube.com/@thcontrollables");
+  await expect(
+    page.getByRole("link", { name: "X · @developwithjb", exact: true }),
+  ).toHaveAttribute("href", "https://x.com/developwithjb");
+  await expect(
+    page.locator(
+      'a[href*="x.com/thcontrollables"], a[href*="x.com/thecontrollables"]',
+    ),
+  ).toHaveCount(0);
   await expect(
     page.locator('[data-book-placement="landing_hero"]'),
   ).toHaveAttribute("href", "https://a.co/d/1DGPGEV");
-  await page.getByRole("link", { name: "X · @developwithjb", exact: true }).scrollIntoViewIfNeeded();
-  await page.screenshot({ path: `output/launch-funnel/${test.info().project.name}-social-footer.png` });
+  await page
+    .getByRole("link", { name: "X · @developwithjb", exact: true })
+    .scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: `output/launch-funnel/${test.info().project.name}-social-footer.png`,
+  });
   await noOverflow(page);
 });
 
@@ -410,4 +422,30 @@ test("checkout records request and URL-return events before a local navigation",
         "checkout_completed",
     ),
   ).toBe(false);
+});
+
+test("legacy app access with an exhausted hosted sample is not offered another subscription", async ({
+  page,
+}) => {
+  await harness(page, { exhausted: true });
+  await page.route("**/functions/v1/check-payment", (route) =>
+    route.fulfill({
+      headers,
+      json: {
+        isPaid: true,
+        plan_tier: "pro",
+        legacyAppAccess: true,
+        subscriptionStatus: null,
+      },
+    }),
+  );
+  await signedIn(page);
+  await page.goto("/coach");
+  await expect(
+    page.getByRole("heading", { name: "Your AI allowance" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("0 sample replies left on this account", { exact: false }),
+  ).toBeVisible();
+  await expect(page.getByTestId("pro-offer-sample_exhausted")).toHaveCount(0);
 });

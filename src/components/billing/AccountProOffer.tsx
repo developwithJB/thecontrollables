@@ -1,8 +1,16 @@
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { useHostedAiAllowance } from "@/hooks/useHostedAiAllowance";
+import { isFreeSampleExhausted } from "@/lib/launchFunnel";
+import type { ProOfferPlacement } from "./ProOfferCard";
 import { ProOfferCard } from "./ProOfferCard";
 
-export function DaySevenProOffer({ userId }: { userId: string }) {
+export function AccountProOffer({
+  userId,
+  placement,
+}: {
+  userId: string;
+  placement: ProOfferPlacement;
+}) {
   const entitlement = useEntitlements(userId);
   const allowance = useHostedAiAllowance(userId);
   if (
@@ -15,5 +23,10 @@ export function DaySevenProOffer({ userId }: { userId: string }) {
     allowance.data.plan !== "free"
   )
     return null;
-  return <ProOfferCard placement="day7_review" userId={userId} />;
+  if (
+    placement === "sample_exhausted" &&
+    !isFreeSampleExhausted(allowance.data)
+  )
+    return null;
+  return <ProOfferCard placement={placement} userId={userId} />;
 }

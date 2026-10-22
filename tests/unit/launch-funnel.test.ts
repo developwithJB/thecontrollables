@@ -10,7 +10,7 @@ import {
 import type { HostedAiAllowance } from "@/hooks/useHostedAiAllowance";
 import { ProOfferCard } from "@/components/billing/ProOfferCard";
 import { AiAllowancePanel } from "@/components/billing/AiAllowancePanel";
-import { DaySevenProOffer } from "@/components/billing/DaySevenProOffer";
+import { AccountProOffer } from "@/components/billing/AccountProOffer";
 const mocks = vi.hoisted(() => ({
   track: vi.fn(),
   entitlement: {
@@ -176,11 +176,46 @@ describe("server-driven upgrade moments", () => {
     if (state === "allowance-error") mocks.allowance.isError = true;
     if (state === "paused") mocks.allowance.data.enabled = false;
     if (state === "pro") mocks.allowance.data.plan = "pro";
-    render(router(createElement(DaySevenProOffer, { userId: "a" })));
+    render(
+      router(
+        createElement(AccountProOffer, {
+          userId: "a",
+          placement: "day7_review",
+        }),
+      ),
+    );
     expect(screen.queryByRole("complementary")).toBeNull();
   });
   it("shows the day-seven offer to a server-verified free account", () => {
-    render(router(createElement(DaySevenProOffer, { userId: "a" })));
+    render(
+      router(
+        createElement(AccountProOffer, {
+          userId: "a",
+          placement: "day7_review",
+        }),
+      ),
+    );
     expect(screen.getByTestId("pro-offer-day7_review")).toBeTruthy();
   });
+});
+
+it.each(["paid", "legacy", "unverified"])(
+  "does not show exhausted sample offers to %s accounts",
+  (state) => {
+    if (state === "paid") mocks.entitlement.isPaid = true;
+    if (state === "legacy") mocks.entitlement.legacyAppAccess = true;
+    if (state === "unverified") mocks.entitlement.serverVerified = false;
+    mocks.allowance.data = { ...free };
+    render(
+      router(createElement(AiAllowancePanel, { allowance: free, userId: "a" })),
+    );
+    expect(screen.queryByTestId("pro-offer-sample_exhausted")).toBeNull();
+  },
+);
+it("shows an exhausted sample offer only with verified unpaid account access", () => {
+  mocks.allowance.data = { ...free };
+  render(
+    router(createElement(AiAllowancePanel, { allowance: free, userId: "a" })),
+  );
+  expect(screen.getByTestId("pro-offer-sample_exhausted")).toBeTruthy();
 });

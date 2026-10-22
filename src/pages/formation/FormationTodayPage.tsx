@@ -1,5 +1,5 @@
 import { BookLink } from "@/components/BookLink";
-import { DaySevenProOffer } from "@/components/billing/DaySevenProOffer";
+import { AccountProOffer } from "@/components/billing/AccountProOffer";
 import { trackDaySevenReturn } from "@/lib/growthEvents";
 import { FirstWeekPanel } from "@/components/formation/FirstWeekPanel";
 import {
@@ -143,7 +143,7 @@ export default function FormationTodayPage() {
       ) : null}
 
       <FirstWeekPanel history={history} journey={strictJourney.journey} track={track} userId={user.id} today={practiceLocalDate} canPractice={strictDayOpen && !isLoading && !error}
-        weekOneOffer={!localOnly && !isLoading && !error ? <DaySevenProOffer userId={user.id} /> : undefined}
+        weekOneOffer={!localOnly && !isLoading && !error ? <AccountProOffer placement="day7_review" userId={user.id} /> : undefined}
         nextCircuit={circuits.find(item => !item.evaluation.isSatisfiedForTrack)?.circuit ?? null} />
 
       {error ? (
