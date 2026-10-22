@@ -191,6 +191,23 @@ async function captureOffer(page: Page, testId: string, filename: string) {
   });
 }
 
+test("anonymous growth never sends the public API key as a user session token", async ({
+  page,
+}) => {
+  await harness(page);
+  const landingRequest = page.waitForRequest(
+    (request) =>
+      request.url().includes("/functions/v1/ingest-telemetry") &&
+      request.method() === "POST" &&
+      request.postDataJSON()?.payload?.event_name === "landing_view",
+  );
+  await page.goto("/start?utm_source=qa&utm_campaign=anonymous_transport");
+  const request = await landingRequest;
+  expect((request.headers().authorization || "").trim()).toBe("");
+  expect(request.headers().apikey).toBeTruthy();
+  await expect(page).toHaveURL(/\/quick-start\?path=read_along/);
+});
+
 test("bio campaign survives the full public onboarding path into signup metadata", async ({
   page,
 }) => {
