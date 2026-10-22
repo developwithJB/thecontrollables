@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { sendTelemetry } from "@/lib/telemetrySink";
 import { APP_VERSION } from "@/lib/version";
+import { isPosthogEnabled } from "@/lib/telemetryConfig";
 
 // Generate a session ID for tracking (persists across page loads in same tab)
 const getSessionId = () => {
@@ -32,7 +33,7 @@ const ENABLE_SUPABASE_ANALYTICS = import.meta.env.VITE_ENABLE_SUPABASE_ANALYTICS
 const whenTelemetryReady = () => window.__TELEMETRY_READY__ ?? Promise.resolve();
 
 export const capturePosthogEvent = (eventName: string, eventData?: EventData) => {
-  if (!import.meta.env.VITE_POSTHOG_KEY) return;
+  if (!isPosthogEnabled()) return;
   void whenTelemetryReady()
     .then(() => import("posthog-js"))
     .then(({ default: posthog }) => {

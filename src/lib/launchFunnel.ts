@@ -4,6 +4,8 @@ import { sanitizeAttributionValue } from "./growthAttribution";
 export const NEW_PASSWORD_MIN_LENGTH = 8;
 export const CONTROLLABLES_INSTAGRAM_URL =
   "https://www.instagram.com/thecontrollables/";
+export const CONTROLLABLES_YOUTUBE_URL = "https://www.youtube.com/@thcontrollables";
+export const JB_X_URL = "https://x.com/developwithjb";
 
 /** Campaign parameters are attribution, never destinations or authorization. */
 export function readAlongCampaignPath(search: string): string {

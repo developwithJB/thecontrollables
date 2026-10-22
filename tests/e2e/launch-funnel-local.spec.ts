@@ -267,7 +267,7 @@ test("bio campaign survives the full public onboarding path into signup metadata
     .toBe(true);
 });
 
-test("landing links the named Instagram and uses the canonical book destination", async ({
+test("landing links the owner-supplied social accounts and canonical book destination", async ({
   page,
 }) => {
   await harness(page);
@@ -275,9 +275,14 @@ test("landing links the named Instagram and uses the canonical book destination"
   await expect(
     page.getByRole("link", { name: "@thecontrollables", exact: true }),
   ).toHaveAttribute("href", "https://www.instagram.com/thecontrollables/");
+  await expect(page.getByRole("link", { name: "YouTube · @thcontrollables", exact: true })).toHaveAttribute("href", "https://www.youtube.com/@thcontrollables");
+  await expect(page.getByRole("link", { name: "X · @developwithjb", exact: true })).toHaveAttribute("href", "https://x.com/developwithjb");
+  await expect(page.locator('a[href*="x.com/thcontrollables"], a[href*="x.com/thecontrollables"]')).toHaveCount(0);
   await expect(
     page.locator('[data-book-placement="landing_hero"]'),
   ).toHaveAttribute("href", "https://a.co/d/1DGPGEV");
+  await page.getByRole("link", { name: "X · @developwithjb", exact: true }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `output/launch-funnel/${test.info().project.name}-social-footer.png` });
   await noOverflow(page);
 });
 
