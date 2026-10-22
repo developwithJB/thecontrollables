@@ -1,5 +1,9 @@
 project_id = "mttsfdplqmvraefbfqlq"
 
+# Local Auth policy. Hosted Auth must also be configured to 8 before release.
+[auth]
+minimum_password_length = 8
+
 [functions.ai-chat]
 verify_jwt = false
 

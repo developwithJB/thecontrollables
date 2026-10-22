@@ -11,6 +11,8 @@ Start with the [repository README](../README.md). Current contributor guidance l
 
 ## Dated plans and evidence
 
+- [First 100 paying customers: funnel implementation and release acceptance](launch/first100-funnel-2026-10-21.md): campaign links, contextual Pro offers, event definitions, and outstanding production checks. This is not a publication claim.
+
 Files with dates, PR-specific release notes, QA screenshots, and `christian-formation` implementation/audit documents record what was planned or verified at a particular revision. They are not current setup instructions or proof that a feature is enabled today. Historical source paths may predate the page-folder cleanup.
 
 Use code/configuration for current defaults, the current guides above for contributor workflows, and the dated [customer-launch security evidence](security/customer-launch-2026-10-21.md) for the payment/security release’s observations and limits. Later notes in that ledger supersede earlier staging observations. Do not replay an old migration or enable a rollout merely because a historical plan says to do so.

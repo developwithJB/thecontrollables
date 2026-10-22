@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { type PlanTier as CheckoutPlanTier, type BillingInterval } from "@/lib/pricing";
 import { type PlanTier as EntitlementPlanTier } from "@/lib/entitlements";
 import { withTimeout } from "@/lib/withTimeout";
+import { trackGrowthEvent, flushGrowthEvents } from "@/lib/growthEvents";
 
 interface SubscriptionInfo {
   legacyAppAccess?: boolean;
@@ -19,6 +20,7 @@ interface SubscriptionInfo {
 }
 
 interface EntitlementStatus {
+  serverVerified: boolean;
   legacyAppAccess: boolean;
   isPaid: boolean;
   isLoading: boolean;
@@ -266,6 +268,7 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
     }
 
     setIsCheckingOut(true);
+    trackGrowthEvent("checkout_requested", { placement: sanitizeCheckoutSource(options?.source) ?? "billing", method: options?.interval ?? "year" });
     
     try {
       const { data: result, error } = await withTimeout(
@@ -315,17 +318,21 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
         toast.error("Unable to start checkout", {
           description: parsed.message,
         });
+        trackGrowthEvent("checkout_failed", { reason_category: "unavailable" });
         setIsCheckingOut(false);
         return;
       }
       
       if (checkoutPayload.url) {
+        trackGrowthEvent("checkout_opened", { placement: sanitizeCheckoutSource(options?.source) ?? "billing", method: options?.interval ?? "year" });
+        await flushGrowthEvents();
         // Redirect in same tab to avoid popup blockers on mobile
         window.location.href = checkoutPayload.url;
       } else {
         throw new Error("No checkout URL returned");
       }
     } catch (error) {
+      trackGrowthEvent("checkout_failed", { reason_category: "unavailable" });
       console.error("Checkout error:", error);
       toast.error("Failed to start checkout", {
         description: error instanceof Error ? error.message : "Please try again",
@@ -383,6 +390,7 @@ export function useEntitlements(userId: string | null): EntitlementStatus {
   }, [userId]);
 
   return {
+    serverVerified: data?.serverVerified === true,
     legacyAppAccess: data?.legacyAppAccess === true,
     isPaid: data?.isPaid ?? false,
     isLoading,

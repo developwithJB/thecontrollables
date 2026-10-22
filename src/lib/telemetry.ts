@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/react";
 import { supabase } from "@/integrations/supabase/client";
 import { APP_VERSION } from "@/lib/version";
 import { setupGlobalErrorTracking } from "@/hooks/useAnalytics";
+import { isPosthogEnabled } from "@/lib/telemetryConfig";
 
 const getPlanTier = (user: { app_metadata?: Record<string, unknown>; user_metadata?: Record<string, unknown> }) => {
   const metadataTier = user.app_metadata?.plan_tier ?? user.user_metadata?.plan_tier;
@@ -12,9 +13,10 @@ const getPlanTier = (user: { app_metadata?: Record<string, unknown>; user_metada
 
 export const initTelemetry = () => {
   const posthogKey = import.meta.env.VITE_POSTHOG_KEY;
+  const posthogEnabled = isPosthogEnabled();
   const posthogHost = import.meta.env.VITE_POSTHOG_HOST || "https://us.i.posthog.com";
 
-  if (posthogKey) {
+  if (posthogEnabled) {
     posthog.init(posthogKey, {
       api_host: posthogHost,
       capture_pageview: false,
@@ -42,7 +44,7 @@ export const initTelemetry = () => {
     const user = data.session?.user;
     if (!user) return;
     const planTier = getPlanTier(user);
-    posthog.identify(user.id, { plan_tier: planTier });
+    if (posthogEnabled) posthog.identify(user.id, { plan_tier: planTier });
     Sentry.setUser({ id: user.id });
     Sentry.setTag("plan_tier", planTier);
   });
@@ -50,14 +52,14 @@ export const initTelemetry = () => {
   supabase.auth.onAuthStateChange((_event, session) => {
     const user = session?.user;
     if (!user) {
-      posthog.reset();
+      if (posthogEnabled) posthog.reset();
       Sentry.setUser(null);
       Sentry.setTag("plan_tier", "free");
       return;
     }
 
     const planTier = getPlanTier(user);
-    posthog.identify(user.id, { plan_tier: planTier });
+    if (posthogEnabled) posthog.identify(user.id, { plan_tier: planTier });
     Sentry.setUser({ id: user.id });
     Sentry.setTag("plan_tier", planTier);
   });

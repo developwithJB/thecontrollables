@@ -1,9 +1,10 @@
 import type { User as AuthUser } from "@supabase/supabase-js";
+import { NEW_PASSWORD_MIN_LENGTH } from "@/lib/launchFunnel";
 import { useRef } from "react";
 import { FormationAvailability } from "@/components/onboarding/FormationAvailability";
 import { useFormationEntryStatus } from "@/hooks/useFormationEntryStatus";
 import { getSignupAttribution } from "@/lib/growthAttribution";
-import { trackGrowthEvent, signupFailureCategory } from "@/lib/growthEvents";
+import { trackGrowthEvent, signupFailureCategory, trackAuthenticatedVisit } from "@/lib/growthEvents";
 import { useCallback, useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
@@ -111,6 +112,7 @@ export default function AuthPage() {
     setEnrollmentError(false);
     try {
       const metadata = user.user_metadata;
+      if (user.email_confirmed_at) trackAuthenticatedVisit(user.id);
       const enrollment = selectedEnrollment;
       if (enrollment) {
         await activateFormationEnrollment(enrollment);
@@ -182,8 +184,8 @@ export default function AuthPage() {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPassword || newPassword.length < 6) {
-      toast({ title: "Invalid password", description: "Password must be at least 6 characters.", variant: "destructive" });
+    if (!newPassword || newPassword.length < NEW_PASSWORD_MIN_LENGTH) {
+      toast({ title: "Invalid password", description: "Password must be at least 8 characters.", variant: "destructive" });
       return;
     }
     setIsLoading(true);
@@ -209,8 +211,8 @@ export default function AuthPage() {
       });
       return;
     }
-    if (password.length < 6) {
-      toast({ title: "Password too short", description: "Password must be at least 6 characters.", variant: "destructive" });
+    if (mode === "signup" && password.length < NEW_PASSWORD_MIN_LENGTH) {
+      toast({ title: "Password too short", description: "Password must be at least 8 characters.", variant: "destructive" });
       return;
     }
     if (mode === "signup" && selectedEnrollment?.track === "fully_charged_75" && !availability.data?.strictReady) {
@@ -393,6 +395,7 @@ export default function AuthPage() {
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="newPassword"
+                      required minLength={NEW_PASSWORD_MIN_LENGTH} aria-describedby="reset-password-help"
                       type={showPassword ? "text" : "password"}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
@@ -405,6 +408,7 @@ export default function AuthPage() {
                     </button>
                   </div>
                 </div>
+                <p id="reset-password-help" className="text-xs text-muted-foreground">Use at least 8 characters. A longer, unique password is best.</p>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Updating..." : "Update Password"}
                 </Button>
@@ -493,13 +497,13 @@ export default function AuthPage() {
                     </div>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input id="password" required minLength={6} aria-describedby={mode === "signup" ? "password-help" : undefined} type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 pr-10 bg-background/50" autoComplete={mode === "signin" ? "current-password" : "new-password"} data-testid="auth-password-input" />
+                      <Input id="password" required minLength={mode === "signup" ? NEW_PASSWORD_MIN_LENGTH : undefined} aria-describedby={mode === "signup" ? "password-help" : undefined} type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 pr-10 bg-background/50" autoComplete={mode === "signin" ? "current-password" : "new-password"} data-testid="auth-password-input" />
                       <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-0 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground">
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
-                  {mode === "signup" ? <p id="password-help" className="text-xs text-muted-foreground">Use at least 6 characters. A longer, unique password is best.</p> : null}
+                  {mode === "signup" ? <p id="password-help" className="text-xs text-muted-foreground">Use at least 8 characters. A longer, unique password is best.</p> : null}
                   <Button type="submit" variant="glow" className="w-full" disabled={isLoading || (mode === "signup" && selectedEnrollment?.track === "fully_charged_75" && !availability.data?.strictReady)} data-testid="auth-submit-button">
                     {isLoading ? (mode === "signin" ? "Signing in..." : "Creating account...") : (mode === "signin" ? "Sign In" : "Create account & start my daily loop")}
                   </Button>

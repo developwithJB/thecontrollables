@@ -1,4 +1,5 @@
 import { useFormationEntryStatus } from "@/hooks/useFormationEntryStatus";
+import { CONTROLLABLES_INSTAGRAM_URL, CONTROLLABLES_YOUTUBE_URL, JB_X_URL } from "@/lib/launchFunnel";
 import { ScripturePractice } from "@/components/onboarding/ScripturePractice";
 import { FormationAvailability } from "@/components/onboarding/FormationAvailability";
 import { ProjectFeedbackNote } from "@/components/ProjectFeedback";
@@ -457,6 +458,9 @@ export default function LandingPage() {
           <Link to="/terms" className="hover:text-foreground hover:underline">Terms</Link>
           {" · "}
           Questions?{" "}<a href="https://instagram.com/agbcoaching" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">@agbcoaching</a>
+          {" · "}<a href={CONTROLLABLES_INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-primary underline">@thecontrollables</a>
+          {" · "}<a href={CONTROLLABLES_YOUTUBE_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-primary underline">YouTube · @thcontrollables</a>
+          {" · "}<a href={JB_X_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-primary underline">X · @developwithjb</a>
           {" · "}© {new Date().getFullYear()} The Controllables
         </p>
       </footer>

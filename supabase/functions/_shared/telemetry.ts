@@ -11,6 +11,10 @@ const allowedKeys = new Set([
   "utm_medium",
   "utm_campaign",
   "utm_content",
+  "last_utm_source",
+  "last_utm_medium",
+  "last_utm_campaign",
+  "last_utm_content",
   "ref",
   "referrer_host",
   "app_version",
@@ -35,6 +39,14 @@ const growthNames = new Set([
   "book_nudge_dismissed",
   "share_clicked",
   "share_completed",
+  "authenticated_visit",
+  "day7_return",
+  "checkout_requested",
+  "checkout_opened",
+  "checkout_failed",
+  "pro_offer_viewed",
+  "pro_offer_clicked",
+  "pro_offer_dismissed",
 ]);
 const identifier = (v: unknown, fallback: string) =>
   typeof v === "string" &&

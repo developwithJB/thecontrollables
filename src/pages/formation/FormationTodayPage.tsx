@@ -1,4 +1,6 @@
 import { BookLink } from "@/components/BookLink";
+import { AccountProOffer } from "@/components/billing/AccountProOffer";
+import { trackDaySevenReturn } from "@/lib/growthEvents";
 import { FirstWeekPanel } from "@/components/formation/FirstWeekPanel";
 import {
   ArrowRight,
@@ -61,6 +63,10 @@ export default function FormationTodayPage() {
   useEffect(() => {
     void trackFormation("formation_day_opened", { track, source: "formation_today" });
   }, [track, trackFormation]);
+
+  useEffect(() => {
+    if (!localOnly && !isLoading && !error) trackDaySevenReturn(user.id, user.created_at, localDate, track);
+  }, [user.id, user.created_at, localDate, track, localOnly, isLoading, error]);
 
   const circuits = useMemo(
     () =>
@@ -137,6 +143,7 @@ export default function FormationTodayPage() {
       ) : null}
 
       <FirstWeekPanel history={history} journey={strictJourney.journey} track={track} userId={user.id} today={practiceLocalDate} canPractice={strictDayOpen && !isLoading && !error}
+        weekOneOffer={!localOnly && !isLoading && !error ? <AccountProOffer placement="day7_review" userId={user.id} /> : undefined}
         nextCircuit={circuits.find(item => !item.evaluation.isSatisfiedForTrack)?.circuit ?? null} />
 
       {error ? (

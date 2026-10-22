@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, afterEach, it, expect, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ signUp: vi.fn(), activate: vi.fn(), clear: vi.fn(), track: vi.fn() }));
+const mocks = vi.hoisted(() => ({ signUp: vi.fn(), activate: vi.fn(), clear: vi.fn(), track: vi.fn(), signIn: vi.fn(), updateUser: vi.fn() }));
 vi.mock("@/hooks/useFormationEntryStatus", () => ({ useFormationEntryStatus: () => ({ data: { strictReady: true, reviewedDays: 75, emailDeliveryReady: false }, isPending: false }) }));
 vi.mock("@/hooks/useAnalytics", () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }), usePageViewTracking: vi.fn() }));
 vi.mock("@/hooks/useOnboardingAnalytics", () => ({ useOnboardingAnalytics: () => ({ trackAccountCreated: mocks.track }) }));
@@ -19,14 +19,14 @@ vi.mock("@/lib/onboardingQuickStartDraft", () => ({
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { auth: {
   onAuthStateChange: () => ({ data: { subscription: { unsubscribe: vi.fn() } } }),
   getSession: () => Promise.resolve({ data: { session: null } }),
-  signUp: mocks.signUp, resend: vi.fn().mockResolvedValue({ error: null }),
+  signUp: mocks.signUp, signInWithPassword: mocks.signIn, updateUser: mocks.updateUser, resend: vi.fn().mockResolvedValue({ error: null }),
 } } }));
 import Auth from "@/pages/onboarding/AuthPage";
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() }));
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+afterEach(() => { window.location.hash = ""; cleanup(); vi.unstubAllGlobals(); });
 async function submit() {
   render(createElement(MemoryRouter, { initialEntries: ["/auth?mode=signup"] }, createElement(Auth)));
   fireEvent.change(screen.getByTestId("auth-name-input"), { target: { value: "Local QA" } });
@@ -55,4 +55,40 @@ it("keeps the draft and surfaces retry if enrollment fails after authenticated s
   fireEvent.click(screen.getByRole("button", { name: "Retry path setup" }));
   await waitFor(() => expect(mocks.activate).toHaveBeenCalledTimes(2));
   await waitFor(() => expect(mocks.clear).toHaveBeenCalledTimes(1));
+});
+
+it("requires eight characters for signup, including programmatic form submission", async () => {
+  render(createElement(MemoryRouter, { initialEntries: ["/auth?mode=signup"] }, createElement(Auth)));
+  expect(screen.getByTestId("auth-password-input").getAttribute("minlength")).toBe("8");
+  fireEvent.change(screen.getByTestId("auth-name-input"), { target: { value: "Local QA" } });
+  fireEvent.change(screen.getByTestId("auth-email-input"), { target: { value: "local@example.test" } });
+  fireEvent.change(screen.getByTestId("auth-password-input"), { target: { value: "1234567" } });
+  fireEvent.submit(screen.getByTestId("auth-form"));
+  expect(mocks.signUp).not.toHaveBeenCalled();
+  mocks.signUp.mockResolvedValue({ data: { session: null }, error: null });
+  fireEvent.change(screen.getByTestId("auth-password-input"), { target: { value: "12345678" } });
+  fireEvent.submit(screen.getByTestId("auth-form"));
+  await waitFor(() => expect(mocks.signUp).toHaveBeenCalledTimes(1));
+});
+it("does not lock out existing six-character passwords during sign-in", async () => {
+  mocks.signIn.mockResolvedValue({ data: { session: null }, error: null });
+  render(createElement(MemoryRouter, { initialEntries: ["/auth"] }, createElement(Auth)));
+  expect(screen.getByTestId("auth-password-input").hasAttribute("minlength")).toBe(false);
+  fireEvent.change(screen.getByTestId("auth-email-input"), { target: { value: "local@example.test" } });
+  fireEvent.change(screen.getByTestId("auth-password-input"), { target: { value: "123456" } });
+  fireEvent.submit(screen.getByTestId("auth-form"));
+  await waitFor(() => expect(mocks.signIn).toHaveBeenCalledWith({ email: "local@example.test", password: "123456" }));
+});
+it("requires eight characters when setting a replacement password", async () => {
+  window.location.hash = "#type=recovery";
+  mocks.updateUser.mockResolvedValue({ error: null });
+  render(createElement(MemoryRouter, { initialEntries: ["/auth"] }, createElement(Auth)));
+  const input = await screen.findByLabelText("New Password");
+  expect(input.getAttribute("minlength")).toBe("8");
+  fireEvent.change(input, { target: { value: "1234567" } });
+  fireEvent.submit(input.closest("form")!);
+  expect(mocks.updateUser).not.toHaveBeenCalled();
+  fireEvent.change(input, { target: { value: "12345678" } });
+  fireEvent.submit(input.closest("form")!);
+  await waitFor(() => expect(mocks.updateUser).toHaveBeenCalledWith({ password: "12345678" }));
 });

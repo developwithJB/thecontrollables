@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { capturePosthogEvent } from "@/hooks/useAnalytics";
 import { getAttribution } from "./growthAttribution";
 import { APP_VERSION } from "./version";
+import { getLocalDate } from "@/domain/formation/circuitRules";
 export const GROWTH_EVENTS_ENABLED = true;
 export const GROWTH_EVENT_NAMES = [
   "landing_view",
@@ -16,6 +17,14 @@ export const GROWTH_EVENT_NAMES = [
   "book_nudge_dismissed",
   "share_clicked",
   "share_completed",
+  "authenticated_visit",
+  "day7_return",
+  "checkout_requested",
+  "checkout_opened",
+  "checkout_failed",
+  "pro_offer_viewed",
+  "pro_offer_clicked",
+  "pro_offer_dismissed",
 ] as const;
 type GrowthPropertyValue = string | number | boolean | null;
 const ALLOWED_PROPERTY_KEYS = new Set([
@@ -71,6 +80,7 @@ let sessionEventCount = 0,
   authRetrySubscribed = false;
 let fallbackSessionId: string | undefined;
 const BUFFER_KEY = "growth_event_buffer";
+const pendingDeliveries = new Set<Promise<unknown>>();
 function readBufferedGrowthEvents(): BufferedGrowthEvent[] {
   try {
     const data = JSON.parse(localStorage.getItem(BUFFER_KEY) || "[]");
@@ -149,9 +159,11 @@ export function trackGrowthEvent(
       /* Use memory throttle */
     }
     const data = sanitizeGrowthProps(props);
-    const first = getAttribution().first;
+    const { first, last } = getAttribution();
     for (const key of ATTRIBUTION_KEYS)
       if (first?.[key]) data[key] = first[key];
+    for (const key of ["utm_source", "utm_medium", "utm_campaign", "utm_content"] as const)
+      if (last?.[key]) data[`last_${key}`] = last[key];
     data.app_version = APP_VERSION;
     const payload: GrowthEventPayload = {
       event_type: "growth",
@@ -163,14 +175,29 @@ export function trackGrowthEvent(
     };
     subscribeToSignInRetry();
     capturePosthogEvent(name, data);
-    void sendGrowthTelemetry(payload).catch(() =>
+    const delivery = sendGrowthTelemetry(payload).catch(() =>
       saveBufferedGrowthEvents([
         ...readBufferedGrowthEvents(),
         { at: Date.now(), payload },
       ]),
     );
+    pendingDeliveries.add(delivery);
+    void delivery.finally(() => pendingDeliveries.delete(delivery));
   } catch {
     /* Analytics never blocks UI or navigation */
+  }
+}
+
+/** Give checkout events a bounded chance to arrive before same-tab navigation. */
+export async function flushGrowthEvents(): Promise<void> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      Promise.allSettled([...pendingDeliveries]),
+      new Promise<void>(resolve => { timeout = setTimeout(resolve, 300); }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
 }
 export function trackFirstCircuitCompleted(
@@ -186,6 +213,29 @@ export function trackFirstCircuitCompleted(
   } catch {
     /* Skip dedupe-sensitive event if storage is unavailable */
   }
+}
+
+/** Browser deduplication is measurement only, never account or practice authority. */
+export function trackAuthenticatedVisit(userId: string) {
+  try {
+    const key = `growth_authenticated_visit:${userId}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "true");
+    trackGrowthEvent("authenticated_visit");
+  } catch { /* Analytics must not block authentication. */ }
+}
+
+export function trackDaySevenReturn(userId: string, createdAt: string, today: string, track: string) {
+  const signupDate = new Date(createdAt);
+  if (!userId || Number.isNaN(signupDate.getTime())) return;
+  signupDate.setDate(signupDate.getDate() + 6);
+  if (today !== getLocalDate(signupDate)) return;
+  try {
+    const key = `growth_day7_return:${userId}`;
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, "true");
+    trackGrowthEvent("day7_return", { track });
+  } catch { /* Missing browser storage must not block Today. */ }
 }
 export function signupFailureCategory(error: unknown): string {
   const code =

@@ -264,7 +264,7 @@ export default function BillingPage() {
             </CardContent>
           </Card>
 
-          <AiAllowancePanel allowance={allowance.data} unavailable={allowance.isError}/>
+          <AiAllowancePanel userId={user?.id} allowance={allowance.data} unavailable={allowance.isError}/>
           <Button asChild variant="outline"><Link to="/coach">Open optional AI coach</Link></Button>
           {!isPaid && <FreemiumPlans initialInterval={new URLSearchParams(location.search).get("interval")==="month"?"month":"year"} onCheckout={interval=>void initiateCheckout("pro",{source:"billing_freemium",interval,successPath:"/billing",cancelPath:`/billing?interval=${interval}`})} busy={isCheckingOut}/>}
           <div id="coach-settings" className="space-y-4">

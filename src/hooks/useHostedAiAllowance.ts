@@ -11,7 +11,7 @@ export interface HostedAiAllowance {
   byoActive: boolean;
   byoRemaining: number;
 }
-export function useHostedAiAllowance(ownerId?: string | null) {
+export function useHostedAiAllowance(ownerId?: string | null, enabled = true) {
   const [sessionOwner, setSessionOwner] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
@@ -29,9 +29,9 @@ export function useHostedAiAllowance(ownerId?: string | null) {
     };
   }, []);
   const userId = ownerId ?? sessionOwner;
-  return useQuery({
+  const query = useQuery({
     queryKey: ["hosted-ai-allowance", userId],
-    enabled: !!userId,
+    enabled: !!userId && enabled,
     staleTime: 0,
     queryFn: async (): Promise<HostedAiAllowance> => {
       const { data, error } = await supabase.rpc("get_hosted_ai_allowance");
@@ -40,4 +40,5 @@ export function useHostedAiAllowance(ownerId?: string | null) {
       return data as unknown as HostedAiAllowance;
     },
   });
+  return { ...query, userId };
 }
