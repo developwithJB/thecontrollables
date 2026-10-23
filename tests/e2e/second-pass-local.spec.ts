@@ -36,6 +36,10 @@ test("all five saved practices give a visible close receipt and retain separate 
   await expect(page.getByTestId("practice-day-receipt")).toContainText("Day complete");
   await page.getByRole("button", { name: "Close today", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Today closed", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Today closed", exact: true })).toBeFocused();
+  const headingBox = await page.getByRole("heading", { name: "Today closed", exact: true }).boundingBox();
+  const headerBox = await page.getByRole("banner").boundingBox();
+  expect(headingBox!.y).toBeGreaterThanOrEqual(headerBox!.y + headerBox!.height);
   await expect(page.getByRole("status").filter({ hasText: "Saved on this browser" })).toBeVisible();
   await page.getByTestId("practice-day-receipt").screenshot({ path: `output/qa-second-pass-2026-10-23/${info.project.name}-receipt.png` });
   await page.reload();

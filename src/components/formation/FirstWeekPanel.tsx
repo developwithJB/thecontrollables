@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,12 @@ export function FirstWeekPanel({ history, journey, track, today, nextCircuit, ca
   const [sharePreview, setSharePreview] = useState(false);
   const acknowledgementKey = `formation-day-ack:${userId}:${today}`;
   const [acknowledgedKey, setAcknowledgedKey] = useState("");
+  const receiptHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (acknowledgedKey !== acknowledgementKey) return;
+    receiptHeading.current?.focus({ preventScroll: true });
+    receiptHeading.current?.scrollIntoView?.({ block: "start", behavior: "auto" });
+  }, [acknowledgedKey, acknowledgementKey]);
   let storedAcknowledgement = false;
   try { storedAcknowledgement = localStorage.getItem(acknowledgementKey) === "acknowledged"; } catch { /* Storage is optional. */ }
   const acknowledged = acknowledgedKey === acknowledgementKey || storedAcknowledgement;
@@ -35,7 +41,7 @@ export function FirstWeekPanel({ history, journey, track, today, nextCircuit, ca
   const nextGuide = nextCircuit ? CONTROLLABLE_GUIDES[nextCircuit] : null;
   return <section className="ph-no-capture space-y-4" aria-label="Your first week" data-sentry-mask>
     {dayComplete ? <div className="space-y-3 rounded-2xl border border-primary/30 p-5" data-testid="practice-day-receipt">
-      <h2 className="font-display text-xl font-semibold">{acknowledged ? "Today closed" : "Day complete"}</h2><p>{today} · 5 of 5 circuits recorded</p>
+      <h2 ref={receiptHeading} tabIndex={-1} className="scroll-mt-28 font-display text-xl font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{acknowledged ? "Today closed" : "Day complete"}</h2><p>{today} · 5 of 5 circuits recorded</p>
       <ul className="space-y-2">{savedToday.map(entry => entry ? <li key={entry.circuit}><strong>{CONTROLLABLE_GUIDES[entry.circuit].emoji} {CONTROLLABLE_GUIDES[entry.circuit].name}:</strong> {evaluateCircuit(track, entry.circuit, entry.draft).completedActionIds.map(id => getActionLabel(entry.circuit, id)).join(" · ")}</li> : null)}</ul>
       <p className="text-sm text-muted-foreground">Completion records a practice. It does not measure your standing with God.</p>
       <p className="text-sm text-muted-foreground">Your saved practices stay in your account. This receipt does not award XP, kept promises, a streak, or strict 75-day credit.</p>

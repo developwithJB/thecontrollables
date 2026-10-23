@@ -22,6 +22,7 @@ it("makes Close today visibly change the receipt without granting rewards", () =
   })));
   fireEvent.click(screen.getByRole("button", { name: "Close today" }));
   expect(screen.getByRole("heading", { name: "Today closed" })).toBeTruthy();
+  expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Today closed" }));
   expect(screen.getByRole("status").textContent).toContain("Saved on this browser");
   expect(screen.queryByText(/XP awarded|streak earned/i)).toBeNull();
 });
