@@ -193,7 +193,7 @@ export function HabitCircuitEditor(props: CircuitEditorProps) {
         description="Make it specific enough that the answer can be honest."
         required={evaluation.requiredActionIds.includes("main_promise_named")}
       >
-        <Input id="main-promise" value={draft.fields.mainPromise ?? ""} onChange={(event) => setField(draft, onChange, "mainPromise", event.target.value, 500)} placeholder="Today I will…" />
+        <Textarea id="main-promise" rows={3} maxLength={500} value={draft.fields.mainPromise ?? ""} onChange={(event) => setField(draft, onChange, "mainPromise", event.target.value, 500)} placeholder="Today I will…" />
       </FieldGroup>
 
       <PracticeToggle

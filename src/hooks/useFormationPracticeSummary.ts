@@ -12,8 +12,15 @@ export function summarizeFormationPractices(history: Practice[]) {
     if (!unique.has(key) || unique.get(key)!.updatedAt < entry.updatedAt) unique.set(key, entry);
   }
   const recorded = [...unique.values()].filter(e => e.completedActionIds.length > 0 || e.completionState === "recorded" || e.completionState === "complete");
+  const dailyCircuits = new Map<string, Set<string>>();
+  for (const entry of recorded) {
+    const key = `${entry.userId}:${entry.track}:${entry.localDate}`;
+    if (!dailyCircuits.has(key)) dailyCircuits.set(key, new Set());
+    dailyCircuits.get(key)!.add(entry.circuit);
+  }
   return {
     total: recorded.length,
+    completeDays: [...dailyCircuits.values()].filter(circuits => CIRCUIT_TYPES.every(circuit => circuits.has(circuit))).length,
     byDate: Object.fromEntries([...new Set(recorded.map(e => e.localDate))].map(date => [date, recorded.filter(e => e.localDate === date).length])),
     days: new Set(recorded.map(e => e.localDate)).size,
     perCircuit: Object.fromEntries(CIRCUIT_TYPES.map(c => [c, recorded.filter(e => e.circuit === c).length])),
@@ -34,6 +41,6 @@ export async function loadFormationPracticeSummary(userId: string, localOnly: bo
 }
 export function useFormationPracticeSummary(userId: string) {
   const localOnly = isDevMockAuthEnabled();
-  const query = useQuery({ queryKey:["formation-practice-summary",userId,localOnly],queryFn:()=>loadFormationPracticeSummary(userId,localOnly),staleTime:15_000 });
+  const query = useQuery({ queryKey:["formation-practice-summary",userId,localOnly],queryFn:()=>loadFormationPracticeSummary(userId,localOnly),enabled:!!userId,staleTime:15_000 });
   return { ...(query.data ?? summarizeFormationPractices([])), isLoading:query.isLoading,error:query.error };
 }

@@ -8,6 +8,7 @@ import { CalendarClock, CheckCircle2, Flag, LockKeyhole, ShieldCheck, Sparkles }
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { FutureChip, FuturePanel } from "@/components/ui/future";
@@ -268,7 +269,7 @@ function StrictStartPanel(
         </div>
         <div className="space-y-2">
           <Label htmlFor="fully-charged-main-promise">Main Promise</Label>
-          <Input id="fully-charged-main-promise" maxLength={1000} value={mainPromise} onChange={(event) => setMainPromise(event.target.value)} placeholder="One clear promise you can answer honestly" />
+          <Textarea id="fully-charged-main-promise" rows={3} maxLength={1000} value={mainPromise} onChange={(event) => setMainPromise(event.target.value)} placeholder="One clear promise you can answer honestly" />
           <p className="text-xs text-muted-foreground">Private. Keep it specific and realistically completable.</p>
         </div>
       </div>

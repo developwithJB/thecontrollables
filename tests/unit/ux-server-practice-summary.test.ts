@@ -16,5 +16,5 @@ it.each(["read_along", "charge_40"])("counts server-shaped %s rows with completi
   expect(mocks.from).toHaveBeenCalledWith("formation_circuit_entries");
   expect(mocks.select).toHaveBeenCalledWith("user_id,track,local_date,circuit_type,updated_at,completed_action_ids,completion_state");
   expect(mocks.eq).toHaveBeenCalledWith("user_id", "qa");
-  expect(summary).toEqual({ total: 1, days: 1, byDate: { "2026-10-23": 1 }, perCircuit: { awareness: 1, perspective: 0, habit: 0, wellness: 0, environment: 0 } });
+  expect(summary).toEqual({ total: 1, completeDays: 0, days: 1, byDate: { "2026-10-23": 1 }, perCircuit: { awareness: 1, perspective: 0, habit: 0, wellness: 0, environment: 0 } });
 });

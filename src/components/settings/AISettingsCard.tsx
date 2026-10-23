@@ -35,7 +35,7 @@ export function AISettingsCard({ userId, onRevisitStart }: AISettingsCardProps) 
   const navigate = useNavigate();
   const [memoryOpen, setMemoryOpen] = useState(false);
   const consents = useAIConsents(userId);
-  const memories = useAIMemories(userId);
+  const memories = useAIMemories(userId, memoryOpen && consents.data?.memory_enabled === true && !consents.isError);
   const { updateConsents, archiveMemory } = useAIOperatorActions(userId);
   const { resetDailyOperatorOnboarding, isResettingDailyOperatorOnboarding } = useOnboarding(userId);
   const consentValues = consents.data;
@@ -53,7 +53,7 @@ export function AISettingsCard({ userId, onRevisitStart }: AISettingsCardProps) 
         <Switch
           id={`ai-${key}`}
           checked={consentValues?.[key] === true}
-          disabled={updateConsents.isPending || consents.isLoading}
+          disabled={updateConsents.isPending || consents.isLoading || consents.isError || !consentValues}
           onCheckedChange={(checked) => updateConsents.mutate({ [key]: checked })}
         />
       </div>
@@ -97,6 +97,10 @@ export function AISettingsCard({ userId, onRevisitStart }: AISettingsCardProps) 
       </div>
 
       <div className="space-y-2">
+        {consents.isError ? <div role="alert" className="rounded-md border p-3 text-sm">
+          <p>AI privacy settings are unavailable. No consent change has been saved. Daily practice is still available.</p>
+          <Button variant="outline" className="mt-2" disabled={consents.isFetching} onClick={() => void consents.refetch()}>Retry privacy settings</Button>
+        </div> : null}
         {PRIMARY_CONSENTS.map(renderConsent)}
       </div>
 
@@ -120,7 +124,7 @@ export function AISettingsCard({ userId, onRevisitStart }: AISettingsCardProps) 
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-2">
-          {!consentValues?.memory_enabled ? (
+          {consents.isError || memories.isError ? <p role="alert" className="px-3 py-2 text-xs">Memory could not be loaded. This does not mean you have no saved memories.</p> : !consentValues?.memory_enabled ? (
             <p className="text-xs text-muted-foreground/80 px-3 py-2">
               Memory is off. Turn it on before the Operator stores preferences.
             </p>

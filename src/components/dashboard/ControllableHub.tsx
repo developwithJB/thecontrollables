@@ -1,4 +1,5 @@
 import { useAllowanceRefresh } from "@/hooks/useAllowanceRefresh";
+import { useCoachConversation } from "@/hooks/useCoachConversation";
 import { useHostedAiAllowance } from "@/hooks/useHostedAiAllowance";
 import { AiAllowancePanel } from "@/components/billing/AiAllowancePanel";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -52,14 +53,18 @@ interface ControllableHubProps {
   onNavigate?: (destination: string) => void;
 }
 
-export const ControllableHub = ({ userId, completedCount, onNavigate }: ControllableHubProps) => {
+export const ControllableHub = (props: ControllableHubProps) => (
+  <ControllableHubSession key={props.userId ?? "guest"} {...props} />
+);
+
+const ControllableHubSession = ({ userId, completedCount, onNavigate }: ControllableHubProps) => {
   const allowance = useHostedAiAllowance(userId);
   const allowanceRefresh = useAllowanceRefresh(allowance.refetch);
   const reducedMotion=useReducedMotion();
   const chatScrollRef=useRef<HTMLDivElement>(null);
-  const [activeControllable, setActiveControllable] = useState<ControllableType | null>("awareness");
-  const [chosenControllable, setChosenControllable] = useState<ControllableType | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const conversation = useCoachConversation(userId);
+  const { messages, setMessages, guide: chosenControllable, setGuide: setChosenControllable } = conversation;
+  const [activeControllable, setActiveControllable] = useState<ControllableType | null>(chosenControllable ?? "awareness");
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -141,7 +146,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
       await allowanceRefresh.refresh();
       setIsLoading(false);
     }
-  }, [isLoading, messages, toast, allowance, allowanceRefresh]);
+  }, [isLoading, messages, toast, allowance, allowanceRefresh, setChosenControllable, setMessages]);
 
   const handleSend = useCallback(() => {
     if (!input.trim()) return;
@@ -213,10 +218,16 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
 
   return (
     <motion.div
+      data-sentry-mask
       initial={reducedMotion ? false : { opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col items-center py-4"
+      className="ph-no-capture flex flex-col items-center py-4"
     >
+      {userId ? <div className="mb-4 w-full max-w-sm space-y-1 px-1 text-xs text-muted-foreground">
+        <label className="flex min-h-11 items-center gap-2"><input type="checkbox" checked={conversation.remember} onChange={event => conversation.setRemember(event.target.checked)} />Keep this conversation in this tab</label>
+        <p>{conversation.remember ? "Reload restores up to 50 messages in this tab for 24 hours. New conversation replaces them; signing out clears them. This is separate from AI memory." : "Off by default. Leaving or reloading this page clears this conversation unless you choose to keep it in this tab."}</p>
+        {conversation.storageFailed ? <p role="alert">This browser could not save the conversation. Keep this page open to continue.</p> : null}
+      </div> : null}
       {allowanceRefresh.failed ? (
         <div role="alert" className="mb-3 text-sm">
           <p>AI usage could not refresh. Retry before sending another message.</p>
@@ -384,7 +395,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
 
       {!hasConversation && (
         <p className="text-[10px] text-muted-foreground/60 mt-1.5">
-          {userId ? "Your team will keep learning from your moves." : "Your team gets sharper as you use the app."}
+          Coaching is optional. You choose what to share.
         </p>
       )}
     </motion.div>

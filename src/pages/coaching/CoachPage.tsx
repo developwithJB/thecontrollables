@@ -29,7 +29,7 @@ export default function CoachPage() {
           . AI responses can be mistaken and are not reviewed Scripture lessons.
         </p>
       </header>
-      <ControllableHub userId={user.id} completedCount={0} onNavigate={destination=>{
+      <ControllableHub key={user.id} userId={user.id} completedCount={0} onNavigate={destination=>{
         const paths:Record<string,string>={"meal-tracker":"/wellness",planner:"/planner"};
         navigate(toSafeInternalPath(paths[destination]??destination,"/formation/today"));
       }}/>

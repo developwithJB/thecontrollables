@@ -35,9 +35,11 @@ export function FirstWeekPanel({ history, journey, track, today, nextCircuit, ca
   const nextGuide = nextCircuit ? CONTROLLABLE_GUIDES[nextCircuit] : null;
   return <section className="ph-no-capture space-y-4" aria-label="Your first week" data-sentry-mask>
     {dayComplete ? <div className="space-y-3 rounded-2xl border border-primary/30 p-5" data-testid="practice-day-receipt">
-      <h2 className="font-display text-xl font-semibold">Day complete</h2><p>{today}</p>
+      <h2 className="font-display text-xl font-semibold">{acknowledged ? "Today closed" : "Day complete"}</h2><p>{today} · 5 of 5 circuits recorded</p>
       <ul className="space-y-2">{savedToday.map(entry => entry ? <li key={entry.circuit}><strong>{CONTROLLABLE_GUIDES[entry.circuit].emoji} {CONTROLLABLE_GUIDES[entry.circuit].name}:</strong> {evaluateCircuit(track, entry.circuit, entry.draft).completedActionIds.map(id => getActionLabel(entry.circuit, id)).join(" · ")}</li> : null)}</ul>
       <p className="text-sm text-muted-foreground">Completion records a practice. It does not measure your standing with God.</p>
+      <p className="text-sm text-muted-foreground">Your saved practices stay in your account. This receipt does not award XP, kept promises, a streak, or strict 75-day credit.</p>
+      {acknowledged ? <p role="status" className="text-sm font-semibold text-primary">Saved on this browser. You can rest for today and return tomorrow; your practices remain editable.</p> : <p className="text-xs text-muted-foreground">Close today saves a display acknowledgement on this browser only.</p>}
       <Button variant="futureOutline" disabled={acknowledged} onClick={() => {
         // Browser-only display acknowledgement: never authorization, strict credit, XP or promises.
         try { localStorage.setItem(acknowledgementKey, "acknowledged"); } catch { /* Still acknowledge for this view. */ }

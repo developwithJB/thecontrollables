@@ -39,7 +39,7 @@ export function FreemiumPlans({
             allowance. The sample does not reset.
           </p>
           <Button asChild variant="outline" className="min-h-11 w-full">
-            <Link to={signedIn ? "/billing" : "/quick-start?path=read_along"}>{signedIn ? "View my plan" : "Start with Read Along"}</Link>
+            <Link to={onCheckout ? "/formation/today" : signedIn ? "/billing" : "/quick-start?path=read_along"}>{onCheckout ? "Return to Today" : signedIn ? "View my plan" : "Start with Read Along"}</Link>
           </Button>
         </article>
         <article

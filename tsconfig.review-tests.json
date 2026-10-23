@@ -6,6 +6,10 @@
     "tests/unit/ux-profile-timezone.test.ts",
     "tests/unit/ux-optional-account.test.ts",
     "tests/unit/ux-sign-out-guard.test.ts",
-    "tests/unit/auth-first-week.test.ts"
+    "tests/unit/auth-first-week.test.ts",
+    "tests/unit/second-pass-completion.test.ts",
+    "tests/unit/second-pass-state.test.ts",
+    "tests/unit/qa-summary.test.ts",
+    "tests/unit/ux-server-practice-summary.test.ts"
   ]
 }

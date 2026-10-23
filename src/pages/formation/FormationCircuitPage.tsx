@@ -170,7 +170,9 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
         title: savedEvaluation.statusLabel,
         description: savedEvaluation.isSatisfiedForTrack
           ? `${definition.name} is recorded for today.`
-          : `${savedEvaluation.missingRequiredActionIds.length} required ${savedEvaluation.missingRequiredActionIds.length === 1 ? "practice remains" : "practices remain"}. Your progress is saved.`,
+          : track === "fully_charged_75"
+            ? `${savedEvaluation.missingRequiredActionIds.length} required ${savedEvaluation.missingRequiredActionIds.length === 1 ? "practice remains" : "practices remain"}. Your progress is saved.`
+            : "Your notes are saved. Complete one practice above and save again to count this circuit on Today. A check-in or reflection alone does not count as a practice.",
       });
     }
   };
