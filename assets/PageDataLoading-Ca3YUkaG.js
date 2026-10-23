@@ -1,0 +1,1 @@
+import{f as i,j as r}from"./vendor-query-BhQmI5_y.js";import{b5 as u}from"./index-D6fhGTAu.js";function m({userId:s,queryNames:t,loading:n=!1}){const a=i({predicate:e=>t.includes(String(e.queryKey[0]))&&e.queryKey.includes(s)&&e.state.status==="pending"});return n||a>0?r.jsx(u,{}):null}export{m as P};
