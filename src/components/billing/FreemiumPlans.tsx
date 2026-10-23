@@ -16,7 +16,7 @@ export function FreemiumPlans({
 }) {
   const [interval, setInterval] = useState<BillingInterval>(initialInterval);
   return (
-    <section aria-labelledby="plans-title" className="space-y-6" id="plans">
+    <section aria-labelledby="plans-title" className="scroll-mt-20 space-y-6" id="plans">
       <div>
         <h2 id="plans-title" className="font-display text-2xl font-bold">
           Start free. Choose your support.
@@ -39,7 +39,7 @@ export function FreemiumPlans({
             allowance. The sample does not reset.
           </p>
           <Button asChild variant="outline" className="min-h-11 w-full">
-            <Link to={signedIn ? "/billing" : "/quick-start?path=read_along"}>{signedIn ? "View my plan" : "Start with Read Along"}</Link>
+            <Link to={onCheckout ? "/formation/today" : signedIn ? "/billing" : "/quick-start?path=read_along"}>{onCheckout ? "Return to Today" : signedIn ? "View my plan" : "Start with Read Along"}</Link>
           </Button>
         </article>
         <article

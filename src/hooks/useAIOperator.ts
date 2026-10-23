@@ -372,11 +372,13 @@ export function useAIConsents(userId: string | null) {
       return normalizeAIConsents(data) as AIConsents;
     },
     enabled: !!userId,
+    retry: false,
+    refetchOnWindowFocus: false,
     staleTime: 60_000,
   });
 }
 
-export function useAIMemories(userId: string | null) {
+export function useAIMemories(userId: string | null, enabled = true) {
   return useQuery({
     queryKey: ["ai-memories", userId],
     queryFn: async () => {
@@ -390,7 +392,9 @@ export function useAIMemories(userId: string | null) {
       if (error) throw error;
       return (data || []) as AIMemory[];
     },
-    enabled: !!userId,
+    enabled: !!userId && enabled,
+    retry: false,
+    refetchOnWindowFocus: false,
     staleTime: 60_000,
   });
 }

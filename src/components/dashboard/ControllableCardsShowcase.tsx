@@ -6,6 +6,7 @@ import { InfoHint } from "@/components/ui/info-hint";
 import { FutureMetric, FuturePanel } from "@/components/ui/future";
 import { useToast } from "@/hooks/use-toast";
 import { useControllableLevels } from "@/hooks/useControllableLevels";
+import { useFormationPracticeSummary } from "@/hooks/useFormationPracticeSummary";
 import { ALL_CONTROLLABLES } from "@/lib/controllableTheme";
 import {
   buildControllableTrainingCard,
@@ -36,6 +37,7 @@ export function ControllableCardsShowcase({
   compact = false,
 }: ControllableCardsShowcaseProps) {
   const { data: levels, isLoading } = useControllableLevels(userId);
+  const practices = useFormationPracticeSummary(userId ?? "");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -134,6 +136,7 @@ export function ControllableCardsShowcase({
             key={card.id}
             card={card}
             compact={compact}
+            practiceCount={practices.error || practices.isLoading ? null : practices.perCircuit[card.id] ?? 0}
             onShare={() => handleShareCard(card)}
             onTrain={() => navigate(`${APP_ROUTES.train}?controllable=${card.id}`)}
           />
@@ -146,11 +149,13 @@ export function ControllableCardsShowcase({
 function ControllableTrainingCardView({
   card,
   compact,
+  practiceCount,
   onShare,
   onTrain,
 }: {
   card: ControllableTrainingCard;
   compact: boolean;
+  practiceCount: number | null;
   onShare: () => void;
   onTrain: () => void;
 }) {
@@ -163,6 +168,7 @@ function ControllableTrainingCardView({
       )}
       style={{ borderColor: card.stateLabel === "Base" ? "hsl(var(--border))" : card.color }}
     >
+      <p className="mb-3 text-xs text-muted-foreground">Formation practices recorded: {practiceCount ?? "Unavailable"}</p>
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-1 opacity-90"
         style={{ background: `linear-gradient(90deg, transparent, ${card.color}, transparent)` }}

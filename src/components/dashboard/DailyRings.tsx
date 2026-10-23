@@ -147,6 +147,10 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
 
   return (
     <div className="flex flex-col items-center gap-6">
+      <div className="text-center text-sm">
+        <h2 className="font-semibold">Legacy daily moves</h2>
+        <p className="text-xs text-muted-foreground">These optional tools have their own progress. Your formation practices are recorded separately on Today.</p>
+      </div>
       <p className="text-xs text-muted-foreground">{PERSONAL_PRACTICE_NOTICE}</p>
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-1">
         <p className="text-xs text-muted-foreground tracking-wide uppercase">
@@ -217,7 +221,7 @@ export const DailyRings = ({ userId }: DailyRingsProps) => {
               <span className="flex flex-col leading-none">
                 <span className="text-[11px] font-medium">{definition.shortName}</span>
                 <span className="text-[9px] uppercase tracking-[0.16em] opacity-70">
-                  {completed ? "Charged" : "Ready"}
+                  {completed ? "Legacy move charged" : "Legacy move open"}
                 </span>
               </span>
             </button>
