@@ -31,7 +31,7 @@ describe("functional QA regressions", () => {
   });
   it("counts unique saved practices, days and circuits, excluding empty entries", () => {
     const empty = { ...history[0], localDate: "2026-10-18", draft: createEmptyCircuitDraft(), completedActionIds: [] };
-    expect(summarizeFormationPractices([...history, history[0], empty])).toEqual({ total: 5, days: 1, perCircuit: { awareness: 1, perspective: 1, habit: 1, wellness: 1, environment: 1 } });
+    expect(summarizeFormationPractices([...history, history[0], empty])).toEqual({ total: 5, byDate: { [history[0].localDate]: 5 }, days: 1, perCircuit: { awareness: 1, perspective: 1, habit: 1, wellness: 1, environment: 1 } });
   });
   it("ignores setup choices and empty normalized payloads, retaining real reading progress", () => {
     expect(hasMeaningfulLocalProgress([{kind:"track",record_key:"current",payload:"charge_40"}, ...encodeState("profile", "current", normalizers.profile(undefined)), ...encodeState("reading", "current", normalizers.reading(undefined))])).toBe(false);

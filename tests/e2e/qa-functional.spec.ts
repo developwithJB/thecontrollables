@@ -3,6 +3,24 @@ import {renderToStaticMarkup} from "react-dom/server";
 import {CampaignHtmlPreview} from "../../src/components/admin/CampaignHtmlPreview";
 import { test, expect } from "@playwright/test";
 test.use({reducedMotion:"reduce"});
+test("formation count follows a saved practice across existing surfaces without a reload",async({page})=>{
+ await page.route("**/*",route=>{const url=new URL(route.request().url());return ["127.0.0.1","localhost"].includes(url.hostname)?route.continue():route.abort();});
+ await page.goto("/my-controllables");
+ await expect(page.getByText("Formation practices recorded: 0")).toBeVisible();
+ await page.getByRole("button",{name:"Today",exact:true}).click();
+ await page.getByRole("button",{name:"Open Awareness",exact:true}).click();
+ await page.getByLabel("One honest truth",{exact:true}).fill("Synthetic QA practice for persistence checks.");
+ await page.getByRole("button",{name:"Save progress",exact:true}).click();
+ await expect(page.getByText("Awareness is recorded for today.")).toBeVisible();
+ for(const name of ["My","Train","Reflect","Evidence"]){
+   await page.getByRole("navigation").getByRole("button",{name,exact:true}).click();
+   await expect(page.getByText("Formation practices recorded: 1")).toBeVisible();
+   if(name==="My")await expect(page.getByText("0 XP",{exact:true})).toBeVisible();
+   if(name==="Train")await expect(page.getByText("Mission delayed",{exact:true})).toHaveCount(0);
+ }
+ await settled(page, "h1");
+ await page.screenshot({path:"output/ux-2026-10-23/pr-a-count.png"});
+});
 async function settled(page: import("@playwright/test").Page, selector:string){ await expect.poll(()=>page.locator(selector).evaluate(el=>{let opacity=1;for(let n:Element|null=el;n;n=n.parentElement)opacity*=Number(getComputedStyle(n).opacity);return opacity;})).toBe(1); }
 test("mobile non-strict receipt persists only a display acknowledgement and public entry is clean", async ({page}) => {
   const external:string[]=[];

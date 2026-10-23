@@ -1,3 +1,4 @@
+import { FormationPracticeSummary } from "@/components/formation/FormationPracticeSummary";
 import { BatteryCharging, Dumbbell, Target, Zap } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useAuthenticatedUser } from "@/hooks/useAppAuth";
@@ -37,6 +38,7 @@ export default function TrainingPage() {
         }
       />
 
+      <FormationPracticeSummary userId={user.id} legacyEmpty />
       <ControllableCardsShowcase
         userId={user.id}
         title="Train Your Controllable Cards"

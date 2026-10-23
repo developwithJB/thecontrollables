@@ -45,7 +45,7 @@ export default function MyControllablesPage() {
         icon={<BatteryCharging className="h-5 w-5" />}
         chips={
           <>
-            <FutureChip icon={<ShieldCheck className="h-3.5 w-3.5" />} label={`${chargedCount}/5 Charged`} />
+            <FutureChip icon={<ShieldCheck className="h-3.5 w-3.5" />} label={`${chargedCount}/5 XP charge`} />
             <FutureChip icon={<Zap className="h-3.5 w-3.5" />} label={`${totalXp.toLocaleString()} XP`} />
             <FutureChip icon={<Sparkles className="h-3.5 w-3.5" />} label={`Self-Trust Level ${stats.level}`} />
           </>

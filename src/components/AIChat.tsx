@@ -142,7 +142,7 @@ export function AIChat({
         },
       ]);
     } finally {
-      void allowance.refetch();
+      await Promise.resolve(allowance.refetch()).catch(() => undefined);
       setIsLoading(false);
     }
   };
