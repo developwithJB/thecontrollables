@@ -9,6 +9,7 @@
     "tests/unit/auth-first-week.test.ts",
     "tests/unit/second-pass-completion.test.ts",
     "tests/unit/second-pass-state.test.ts",
+    "tests/unit/second-pass-billing.test.ts",
     "tests/unit/qa-summary.test.ts",
     "tests/unit/ux-server-practice-summary.test.ts"
   ]

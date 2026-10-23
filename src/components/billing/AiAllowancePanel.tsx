@@ -7,11 +7,13 @@ export function AiAllowancePanel({
   unavailable = false,
   compact = false,
   userId,
+  billingPage = false,
 }: {
   allowance?: HostedAiAllowance;
   unavailable?: boolean;
   compact?: boolean;
   userId?: string;
+  billingPage?: boolean;
 }) {
   const explanation = allowance && (
     <div className="space-y-2 pt-2">
@@ -80,10 +82,10 @@ export function AiAllowancePanel({
         ))}
       {!unavailable && userId && isFreeSampleExhausted(allowance) ? <AccountProOffer placement="sample_exhausted" userId={userId} /> : null}
       <Link
-        to="/billing"
+        to={billingPage ? "/billing#coach-settings" : "/billing"}
         className="inline-flex min-h-11 items-center text-primary underline"
       >
-        Plans, usage & bring your own key
+        {billingPage ? "Open provider settings" : "Plans, usage & bring your own key"}
       </Link>
     </section>
   );

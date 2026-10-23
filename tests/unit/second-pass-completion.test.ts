@@ -5,8 +5,10 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { FirstWeekPanel } from "@/components/formation/FirstWeekPanel";
 import { FreemiumPlans } from "@/components/billing/FreemiumPlans";
+import { AiAllowancePanel } from "@/components/billing/AiAllowancePanel";
 import { CIRCUIT_TYPES, createEmptyCircuitDraft, type FormationCircuitEntry } from "@/domain/formation/circuits";
 vi.mock("@/components/AIChat", () => ({ AIChat: () => null }));
+vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 beforeEach(() => { const values = new Map<string, string>(); vi.stubGlobal("localStorage", { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) }); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const actions = ["scripture_opened", "prayer_practiced", "main_promise_completed", "sleep_preparation", "service_completed"];
@@ -36,4 +38,9 @@ it("billing's free action returns to practice instead of signup or its own plan 
   fireEvent.click(screen.getByRole("button", { name: "Choose Pro — monthly" }));
   expect(checkout).toHaveBeenLastCalledWith("month");
   expect(screen.getByRole("link", { name: "Set up my provider" }).getAttribute("href")).toBe("/billing#coach-settings");
+});
+
+it("Billing usage navigation targets provider settings rather than the same unanchored page", () => {
+  render(createElement(MemoryRouter, null, createElement(AiAllowancePanel, { billingPage: true })));
+  expect(screen.getByRole("link", { name: "Open provider settings" }).getAttribute("href")).toBe("/billing#coach-settings");
 });

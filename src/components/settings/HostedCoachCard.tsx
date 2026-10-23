@@ -63,7 +63,7 @@ export function HostedCoachCard({ userId }: { userId: string }) {
           </Button>
         ) : (
           <Button asChild>
-            <Link to="/billing">Explore Pro</Link>
+            <Link to="/billing#plans">Explore Pro</Link>
           </Button>
         )}
         {query.data.selected ? (

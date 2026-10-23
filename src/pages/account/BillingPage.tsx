@@ -54,6 +54,14 @@ export default function BillingPage() {
   const freeTrialOfferCopy = getFreeTrialOfferCopy();
 
   useEffect(() => {
+    if (isAuthLoading || isLoading) return;
+    const section = location.hash.slice(1);
+    if (section === "plans" || section === "coach-settings") {
+      document.getElementById(section)?.scrollIntoView({ block: "start", behavior: "auto" });
+    }
+  }, [isAuthLoading, isLoading, location.hash]);
+
+  useEffect(() => {
     let isMounted = true;
 
     const initAuth = async () => {
@@ -264,10 +272,10 @@ export default function BillingPage() {
             </CardContent>
           </Card>
 
-          <AiAllowancePanel userId={user?.id} allowance={allowance.data} unavailable={allowance.isError}/>
+          <AiAllowancePanel billingPage userId={user?.id} allowance={allowance.data} unavailable={allowance.isError}/>
           <Button asChild variant="outline"><Link to="/coach">Open optional AI coach</Link></Button>
           {!isPaid && <FreemiumPlans initialInterval={new URLSearchParams(location.search).get("interval")==="month"?"month":"year"} onCheckout={interval=>void initiateCheckout("pro",{source:"billing_freemium",interval,successPath:"/billing",cancelPath:`/billing?interval=${interval}`})} busy={isCheckingOut}/>}
-          <div id="coach-settings" className="space-y-4">
+          <div id="coach-settings" className="scroll-mt-20 space-y-4">
             {user && <><CoachSettingsCard userId={user.id}/><HostedCoachCard userId={user.id}/></>}
           </div>
 

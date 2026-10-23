@@ -16,7 +16,7 @@ export function FreemiumPlans({
 }) {
   const [interval, setInterval] = useState<BillingInterval>(initialInterval);
   return (
-    <section aria-labelledby="plans-title" className="space-y-6" id="plans">
+    <section aria-labelledby="plans-title" className="scroll-mt-20 space-y-6" id="plans">
       <div>
         <h2 id="plans-title" className="font-display text-2xl font-bold">
           Start free. Choose your support.
