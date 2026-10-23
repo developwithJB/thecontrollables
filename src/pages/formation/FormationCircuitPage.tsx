@@ -1,3 +1,4 @@
+import { UnsavedPracticeGuard } from "@/components/formation/UnsavedPracticeGuard";
 import { BookLink } from "@/components/BookLink";
 import { readPublishedGospelAwareness } from "@/domain/formation/gospelAwareness";
 import { trackFirstCircuitCompleted } from "@/lib/growthEvents";
@@ -86,6 +87,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
   const draftScope = `${user.id}:${track}:${localDate}:${circuit}`;
   const currentScope = useRef(draftScope);
   const dirty = useRef(false);
+  const [savedVersion, setSavedVersion] = useState<number | null>(null);
   const editVersion = useRef(0);
   const changeDraft = (nextDraft: FormationCircuitDraft) => {
     dirty.current = true;
@@ -150,6 +152,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
     });
     if (currentScope.current === savingScope && editVersion.current === savingVersion) {
       dirty.current = false;
+      setSavedVersion(savingVersion);
       setDraft(saved.draft);
     }
     if (!quiet) {
@@ -182,6 +185,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
 
   return (
     <div className="ph-no-capture mx-auto max-w-4xl space-y-5 pb-28" data-sentry-mask>
+      <UnsavedPracticeGuard dirty={dirty.current} />
       <Button variant="ghost" disabled={isSaving} onClick={() => navigate(APP_ROUTES.formationToday)} className="-ml-2 gap-2">
         <ArrowLeft className="h-4 w-4" /> Return to Today
       </Button>
@@ -290,7 +294,7 @@ function FormationCircuitExperience({ circuit }: { circuit: keyof typeof CIRCUIT
           </div>
           <div className="flex gap-2">
             <Button variant="ghost" disabled={isSaving} onClick={() => navigate(APP_ROUTES.formationToday)}>Return to Today</Button>
-            <Button variant="future" onClick={handleSave} disabled={isSaving || isLoading || (track === "fully_charged_75" && !localOnly && !dayContent.data)} className="gap-2"><Save className="h-4 w-4" />{isSaving ? "Saving…" : "Save progress"}</Button>
+            <Button variant="future" onClick={handleSave} disabled={isSaving || isLoading || (track === "fully_charged_75" && !localOnly && !dayContent.data)} className="gap-2"><Save className="h-4 w-4" />{isSaving ? "Saving…" : !dirty.current && savedVersion === editVersion.current ? "Saved ✓" : "Save progress"}</Button>
           </div>
         </div>
       </div>

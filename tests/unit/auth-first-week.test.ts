@@ -92,3 +92,36 @@ it("requires eight characters when setting a replacement password", async () => 
   fireEvent.submit(input.closest("form")!);
   await waitFor(() => expect(mocks.updateUser).toHaveBeenCalledWith({ password: "12345678" }));
 });
+it("does not promise email confirmation before the signup response establishes it",()=>{
+ render(createElement(MemoryRouter,{initialEntries:["/auth?mode=signup"]},createElement(Auth)));
+ expect(screen.queryByText(/Confirm your account, then/)).toBeNull();
+ expect(screen.getByText(/If email confirmation is required/)).toBeTruthy();
+});
+it("switches an already-registered signup to sign-in with email retained and a recovery action",async()=>{
+ mocks.signUp.mockResolvedValue({data:null,error:new Error("User already registered")});await submit();
+ expect(await screen.findByRole("heading",{name:"Welcome back"})).toBeTruthy();
+ expect(screen.getByTestId("auth-email-input")).toHaveProperty("value","local@example.test");
+ expect(screen.getByTestId("auth-password-input")).toHaveProperty("value","");
+ expect(screen.getByRole("alert").textContent).toContain("Forgot password?");
+});
+it("keeps invalid credentials generic with a visible prefilled password-recovery path",async()=>{
+ mocks.signIn.mockResolvedValue({data:null,error:new Error("Invalid login credentials")});
+ render(createElement(MemoryRouter,{initialEntries:["/auth"]},createElement(Auth)));
+ fireEvent.change(screen.getByTestId("auth-email-input"),{target:{value:"local@example.test"}});fireEvent.change(screen.getByTestId("auth-password-input"),{target:{value:"synthetic"}});fireEvent.submit(screen.getByTestId("auth-form"));
+ const alert=await screen.findByRole("alert");expect(alert.textContent).toContain("We could not sign you in");
+ fireEvent.click(screen.getAllByRole("button",{name:"Forgot password?"})[0]);
+ expect(await screen.findByRole("heading",{name:"Reset your password"})).toBeTruthy();expect(screen.getByLabelText("Email")).toHaveProperty("value","local@example.test");
+});
+it.each([true, false])("records never-saved settings only for an identified new signup (new=%s)", async isNew => {
+  const values = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => values.set(key, value),
+  });
+  mocks.signUp.mockResolvedValue({ data: { session: null, user: { id: "new-user", identities: isNew ? [{ provider: "email" }] : [] } }, error: null });
+  await submit();
+  await screen.findByTestId("signup-confirmation");
+  const marker = values.get("profile-settings-state:new-user");
+  if (isNew) expect(JSON.parse(marker!)).toEqual({ status: "not_saved", suggestedTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+  else expect(marker).toBeUndefined();
+});

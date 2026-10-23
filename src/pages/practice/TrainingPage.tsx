@@ -9,6 +9,8 @@ import { ControllableCardsShowcase } from "@/components/dashboard/ControllableCa
 import { FutureChip, FutureHero, FutureMetric } from "@/components/ui/future";
 import { getControllableGuide, isControllableGuideId } from "@/lib/controllables";
 
+import { PageDataLoading } from "@/components/layout/PageDataLoading";
+
 export default function TrainingPage() {
   usePageViewTracking("Train");
   const user = useAuthenticatedUser();
@@ -18,6 +20,7 @@ export default function TrainingPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-4 pb-24">
+      <PageDataLoading userId={user.id} queryNames={["controllable-levels", "ai-daily-operator-brief", "formation-practice-summary"]} />
       <FutureHero
         eyebrow="Charging Bay"
         title="Train"

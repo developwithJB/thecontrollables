@@ -44,6 +44,8 @@ import { GameRulesSection } from "@/components/GameRulesSection";
 import { DashboardManualSection } from "@/components/DashboardManualSection";
 import { GrowthBodyInsight } from "@/components/dashboard/GrowthBodyInsight";
 
+import { PageDataLoading } from "@/components/layout/PageDataLoading";
+
 interface GrowthProps {
   surface?: "growth" | "reflect";
 }
@@ -170,6 +172,8 @@ export default function GrowthPage({ surface = "growth" }: GrowthProps) {
           </InfoHint>
         </div>
       </div>
+
+      <PageDataLoading userId={user.id} queryNames={["all-reset-sessions", "reset-session", "dashboard-summary", "formation-practice-summary"]} />
 
       <ControllablePoweredBy controllables={["perspective", "habit", "environment"]} />
 

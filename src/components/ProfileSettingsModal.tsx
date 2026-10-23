@@ -1,3 +1,5 @@
+import { resolveProfileTimezone, readProfileSettingsMarker, markProfileSettingsSaved } from "@/lib/profileTimezone";
+import { getDeviceTimezone } from "@/lib/formationEnrollmentConfig";
 import { HostedCoachCard } from "@/components/settings/HostedCoachCard";
 import { CoachSettingsCard } from "@/components/settings/CoachSettingsCard";
 import { useState, useEffect } from "react";
@@ -64,8 +66,10 @@ export function ProfileSettingsModal({
   onOpenChange,
   userId,
   userEmail,
+  onSignOut,
 }: ProfileSettingsModalProps) {
   const navigate = useNavigate();
+  const browserTimezone=getDeviceTimezone();
   const [displayName, setDisplayName] = useState("");
   const [timezone, setTimezone] = useState("");
   const [nudgeFrequency, setNudgeFrequency] = useState<NudgeFrequency>("off");
@@ -118,12 +122,7 @@ export function ProfileSettingsModal({
             setNudgeFrequency((data.nudge_frequency as NudgeFrequency) || "daily");
           }
           
-          if (data.timezone) {
-            setTimezone(data.timezone);
-          } else {
-            // Default to browser timezone
-            setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
-          }
+          setTimezone(resolveProfileTimezone(data, browserTimezone, readProfileSettingsMarker(userId)));
         } else {
           // No profile yet, use browser timezone
           setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -136,7 +135,7 @@ export function ProfileSettingsModal({
     };
 
     fetchProfile();
-  }, [open, userId]);
+  }, [open, userId, browserTimezone]);
 
   const handleThemeToggle = () => {
     const newIsDark = !isDark;
@@ -145,9 +144,7 @@ export function ProfileSettingsModal({
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    onOpenChange(false);
-    navigate("/");
+    await onSignOut();
   };
 
   const handleSave = async () => {
@@ -168,6 +165,7 @@ export function ProfileSettingsModal({
         .update({ 
           display_name: displayName.trim() || null,
           timezone: timezone,
+          updated_at: new Date().toISOString(),
           email_nudge_enabled: emailNudgeEnabled,
           nudge_frequency: dbNudgeFrequency,
           formation_email_opt_in_at: nextFormationEmailOptInAt,
@@ -175,6 +173,7 @@ export function ProfileSettingsModal({
         .eq("id", userId);
 
       if (profileError) throw profileError;
+      markProfileSettingsSaved(userId);
       setFormationEmailOptInAt(nextFormationEmailOptInAt);
 
       toast({
@@ -362,12 +361,13 @@ export function ProfileSettingsModal({
 
             {/* Timezone */}
             <div className="space-y-2">
-              <Label>Timezone</Label>
+              <Label htmlFor="profile-timezone">Timezone</Label>
               <Select value={timezone} onValueChange={setTimezone}>
-                <SelectTrigger>
+                <SelectTrigger id="profile-timezone">
                   <SelectValue placeholder="Select timezone" />
                 </SelectTrigger>
                 <SelectContent>
+                  {!COMMON_TIMEZONES.some(tz => tz.value === timezone) && timezone ? <SelectItem value={timezone}>{timezone}</SelectItem> : null}
                   {COMMON_TIMEZONES.map((tz) => (
                     <SelectItem key={tz.value} value={tz.value}>
                       {tz.label}
@@ -375,8 +375,9 @@ export function ProfileSettingsModal({
                   ))}
                 </SelectContent>
               </Select>
+              {timezone !== browserTimezone ? <Button type="button" variant="ghost" className="h-auto whitespace-normal text-left text-xs underline" onClick={()=>setTimezone(browserTimezone)}>Use this browser’s timezone ({browserTimezone})</Button> : null}
               <p className="text-xs text-muted-foreground">
-                Used for daily reset timing{nudgeFrequency !== "off" || pushEnabled ? " and reminders" : ""}
+                Reminder delivery keeps the saved timezone until you press Save Changes. Existing strict attempts keep their start timezone. Used for daily reset timing{nudgeFrequency !== "off" || pushEnabled ? " and reminders" : ""}
               </p>
             </div>
 

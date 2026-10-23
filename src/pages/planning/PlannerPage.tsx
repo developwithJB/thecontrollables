@@ -1,3 +1,4 @@
+import { PageDataLoading } from "@/components/layout/PageDataLoading";
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, addWeeks, subWeeks, addMonths, subMonths, isToday, isBefore, startOfDay } from "date-fns";
@@ -331,6 +332,7 @@ const PlannerPage = () => {
 
   return (
     <div className="space-y-0 -mx-4 sm:-mx-6 -my-6">
+      <PageDataLoading userId={user.id} queryNames={["planner-items", "planner-routines", "planner-connections", "planner-activity"]} />
       {/* Header */}
       <div className="px-4 sm:px-6 pt-4 pb-2">
         <div className="flex items-center justify-between mb-2">
@@ -499,6 +501,7 @@ const PlannerPage = () => {
             />
             <div className="mt-4">
               <PlannerCalendarConnect
+                  hideConnect
                 connections={connections}
                 onConnect={() => startGoogleCalSync.mutate()}
                 onSync={(id) => triggerSync.mutate(id)}
@@ -582,6 +585,7 @@ const PlannerPage = () => {
               />
               <div className="mt-4">
                 <PlannerCalendarConnect
+                  hideConnect
                   connections={connections}
                   onConnect={() => startGoogleCalSync.mutate()}
                   onSync={(id) => triggerSync.mutate(id)}
@@ -627,6 +631,7 @@ const PlannerPage = () => {
             {isMobile && (
               <div className="px-4 pb-20">
                 <PlannerCalendarConnect
+                  hideConnect
                   connections={connections}
                   onConnect={() => startGoogleCalSync.mutate()}
                   onSync={(id) => triggerSync.mutate(id)}

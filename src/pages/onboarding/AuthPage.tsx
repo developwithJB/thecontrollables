@@ -1,3 +1,4 @@
+import { markNewProfileSettings } from "@/lib/profileTimezone";
 import type { User as AuthUser } from "@supabase/supabase-js";
 import { NEW_PASSWORD_MIN_LENGTH } from "@/lib/launchFunnel";
 import { useRef } from "react";
@@ -68,6 +69,7 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const quickStartDraft = useMemo(() => getOnboardingQuickStartDraft(), []);
   const [isLoading, setIsLoading] = useState(false);
+  const [signInError, setSignInError] = useState(false);
   const [confirmationPending, setConfirmationPending] = useState(false);
   const [resendAt, setResendAt] = useState(0);
   const [countdown, setCountdown] = useState(0);
@@ -203,6 +205,7 @@ export default function AuthPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSignInError(false);
     if (!email || !password || (mode === "signup" && !displayName.trim())) {
       toast({
         title: "Missing fields",
@@ -233,10 +236,15 @@ export default function AuthPage() {
         if (error) {
           if (error.message.includes("already registered")) {
             trackGrowthEvent("signup_failed", { reason_category: "exists" });
+            setMode("signin"); setPassword(""); setSignInError(true);
             toast({ title: "Account exists", description: "This email is already registered. Try signing in instead.", variant: "destructive" });
           } else throw error;
         } else {
           trackGrowthEvent("signup_submitted");
+          const newUser = signUpData?.user ?? signUpData?.session?.user;
+          if (newUser && (signUpData?.session || newUser.identities?.length)) {
+            markNewProfileSettings(newUser.id, getDeviceTimezone());
+          }
           if (signUpData?.session) {
             trackAccountCreated("signup_form");
             setSessionUser(signUpData.session.user);
@@ -250,6 +258,7 @@ export default function AuthPage() {
         const { data: signedIn, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
+            setSignInError(true);
             toast({ title: "Invalid credentials", description: "Please check your email and password.", variant: "destructive" });
           } else throw error;
         } else if (signedIn.session) setSessionUser(signedIn.session.user);
@@ -277,7 +286,7 @@ export default function AuthPage() {
       case "reset": return "Enter your new password below";
       case "signup":
         if (quickStartDraft?.formationTrack) {
-          return `Your ${TRACK_LABELS[quickStartDraft.formationTrack]} path is selected. Confirm your account, then finish setup to open today’s practice.`;
+          return `Your ${TRACK_LABELS[quickStartDraft.formationTrack]} path is selected. Create your account to open today’s practice after setup. If email confirmation is required, we’ll show you the next step.`;
         }
         if (quickStartDraft?.readingStatus) {
           return `Finish setup to keep your book path: ${READING_STATUS_LABELS[quickStartDraft.readingStatus]}`;
@@ -433,6 +442,7 @@ export default function AuthPage() {
               </form>
             ) : (
               <>
+                {signInError && mode === "signin" ? <p role="alert" className="mb-4 text-sm">We could not sign you in. Check your details or <button type="button" className="underline text-primary" onClick={() => {setMode("forgot");setSignInError(false);}}>Forgot password?</button></p> : null}
                 {mode === "signup" ? (
                   <div className="mb-5 space-y-3">
                     <div className="grid grid-cols-3 gap-2 text-center text-[11px] leading-4 text-muted-foreground">

@@ -1,4 +1,6 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { clearSignedOutState } from "@/lib/signedOutState";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -6,6 +8,8 @@ import { getDevMockUser, isDevMockAuthEnabled } from "@/lib/devMockAuth";
 import { getAuthRedirectPath } from "@/lib/safeNavigation";
 
 export function useAppAuth() {
+  const queryClient=useQueryClient();
+  const previousOwner=useRef<string | null>(null);
   const devMockAuth = isDevMockAuthEnabled();
   const [user, setUser] = useState<User | null>(() =>
     devMockAuth ? getDevMockUser() : null,
@@ -28,6 +32,12 @@ export function useAppAuth() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
+      if (previousOwner.current && previousOwner.current !== session?.user.id) {
+        clearSignedOutState(previousOwner.current);
+        void queryClient.cancelQueries();
+        queryClient.clear();
+      }
+      previousOwner.current=session?.user.id ?? null;
       setUser(session?.user ?? null);
       if (!session && event !== "INITIAL_SESSION") {
         navigate(authPath, { replace: true });
@@ -41,6 +51,7 @@ export function useAppAuth() {
         } = await supabase.auth.getSession();
         if (!isMounted) return;
         if (session) {
+          previousOwner.current=session.user.id;
           setUser(session.user);
           supabase.auth.refreshSession().then(({ data, error }) => {
             if (!isMounted) return;
@@ -67,7 +78,7 @@ export function useAppAuth() {
       subscription.unsubscribe();
       clearTimeout(timeout);
     };
-  }, [authPath, devMockAuth, navigate]);
+  }, [authPath, devMockAuth, navigate, queryClient]);
 
   return { user, isLoading, isDevMockUser: devMockAuth };
 }

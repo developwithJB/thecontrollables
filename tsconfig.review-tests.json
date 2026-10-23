@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.app.json",
+  "include": [
+    "src/vite-env.d.ts",
+    "tests/unit/ux-polish-behavior.test.ts",
+    "tests/unit/ux-profile-timezone.test.ts",
+    "tests/unit/ux-optional-account.test.ts",
+    "tests/unit/ux-sign-out-guard.test.ts",
+    "tests/unit/auth-first-week.test.ts"
+  ]
+}

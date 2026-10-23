@@ -1,9 +1,10 @@
+import { PracticeExitProvider } from "@/components/formation/PracticeExitProvider";
 import { OAuthReturnBridge } from "@/components/OAuthReturnBridge";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Routes, Route, Navigate } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SplashScreen } from "@/components/SplashScreen";
 import { useAppResume } from "@/hooks/useAppResume";
@@ -120,6 +121,7 @@ const AppContent = () => {
 
           {/* Authenticated pages share a persistent layout. */}
           <Route element={<AppLayout />}>
+            <Route path="/settings" element={<Navigate to="/formation/today?settings=profile" replace />} />
             <Route path="/coach" element={<CoachPage />} />
             <Route path={APP_ROUTES.home} element={<DailyDashboardPage />} />
             <Route
@@ -204,6 +206,21 @@ const AppContent = () => {
   );
 };
 
+// A data-router root enables supported navigation blockers without rewriting
+// the existing page routes, auth boundary or OAuth return bridge.
+const router = createBrowserRouter([
+  { path: "*", element: (
+    <ErrorBoundary>
+      <TooltipProvider>
+        <PracticeExitProvider>
+          <OAuthReturnBridge />
+          <AppContent />
+        </PracticeExitProvider>
+      </TooltipProvider>
+    </ErrorBoundary>
+  ) },
+]);
+
 const App = () => {
   useEffect(() => {
     applyStoredThemePreference();
@@ -212,12 +229,7 @@ const App = () => {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <TooltipProvider>
-            <OAuthReturnBridge />
-            <AppContent />
-          </TooltipProvider>
-        </BrowserRouter>
+        <RouterProvider router={router} />
       </QueryClientProvider>
     </ErrorBoundary>
   );
