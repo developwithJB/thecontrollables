@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAllowanceRefresh } from "@/hooks/useAllowanceRefresh";
 import { useHostedAiAllowance } from "@/hooks/useHostedAiAllowance";
 import { AiAllowancePanel } from "@/components/billing/AiAllowancePanel";
 import { AWARENESS_CHAT_WELCOME } from "@/lib/awarenessLanguage";
@@ -58,8 +59,10 @@ export function AIChat({
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const allowance = useHostedAiAllowance(undefined, isOpen);
+  const allowanceRefresh = useAllowanceRefresh(allowance.refetch);
   const currentAllowance = allowance.data;
   const limitReached =
+    allowanceRefresh.failed ||
     !currentAllowance ||
     allowance.isError ||
     (currentAllowance.byoActive
@@ -142,7 +145,7 @@ export function AIChat({
         },
       ]);
     } finally {
-      await Promise.resolve(allowance.refetch()).catch(() => undefined);
+      await allowanceRefresh.refresh();
       setIsLoading(false);
     }
   };
@@ -256,12 +259,17 @@ export function AIChat({
                 </Button>
               </div>
               <div className="mt-3 max-h-56 overflow-y-auto">
-                <AiAllowancePanel
+                {allowanceRefresh.failed ? (
+                  <div role="alert">
+                    <p>AI usage could not refresh. Retry before sending another message.</p>
+                    <Button variant="outline" disabled={allowanceRefresh.pending} onClick={() => void allowanceRefresh.refresh()}>Retry usage refresh</Button>
+                  </div>
+                ) : <AiAllowancePanel
                   compact
                   userId={allowance.userId ?? undefined}
                   allowance={allowance.data}
                   unavailable={allowance.isError}
-                />
+                />}
               </div>
             </div>
           </motion.div>

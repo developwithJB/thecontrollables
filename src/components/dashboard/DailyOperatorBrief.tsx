@@ -293,7 +293,7 @@ export function DailyOperatorBrief({ userId }: DailyOperatorBriefProps) {
     setDeeperPass(null);
   };
 
-  if (brief.isLoading) {
+  if (brief.isLoading || ((!plan || brief.isError) && formation.isLoading)) {
     return (
       <div className="dashboard-os-card rounded-2xl px-5 py-5">
         <div className="flex items-center gap-3">

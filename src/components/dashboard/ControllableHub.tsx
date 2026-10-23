@@ -1,3 +1,4 @@
+import { useAllowanceRefresh } from "@/hooks/useAllowanceRefresh";
 import { useHostedAiAllowance } from "@/hooks/useHostedAiAllowance";
 import { AiAllowancePanel } from "@/components/billing/AiAllowancePanel";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -6,10 +7,7 @@ import { Send, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  ALL_CONTROLLABLES,
-  getControllableTheme,
-} from "@/lib/controllableTheme";
+import { ALL_CONTROLLABLES, getControllableTheme } from "@/lib/controllableTheme";
 import { getControllableRosterProfile } from "@/lib/controllableRoster";
 import {
   AWARENESS_GUIDE_PROMPTS,
@@ -54,18 +52,13 @@ interface ControllableHubProps {
   onNavigate?: (destination: string) => void;
 }
 
-export const ControllableHub = ({
-  userId,
-  completedCount,
-  onNavigate,
-}: ControllableHubProps) => {
+export const ControllableHub = ({ userId, completedCount, onNavigate }: ControllableHubProps) => {
   const allowance = useHostedAiAllowance(userId);
-  const reducedMotion = useReducedMotion();
-  const chatScrollRef = useRef<HTMLDivElement>(null);
-  const [activeControllable, setActiveControllable] =
-    useState<ControllableType | null>("awareness");
-  const [chosenControllable, setChosenControllable] =
-    useState<ControllableType | null>(null);
+  const allowanceRefresh = useAllowanceRefresh(allowance.refetch);
+  const reducedMotion=useReducedMotion();
+  const chatScrollRef=useRef<HTMLDivElement>(null);
+  const [activeControllable, setActiveControllable] = useState<ControllableType | null>("awareness");
+  const [chosenControllable, setChosenControllable] = useState<ControllableType | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -73,18 +66,11 @@ export const ControllableHub = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
-  const activeTheme = activeControllable
-    ? getControllableTheme(activeControllable)
-    : null;
-  const activeProfile = activeControllable
-    ? getControllableRosterProfile(activeControllable)
-    : null;
+  const activeTheme = activeControllable ? getControllableTheme(activeControllable) : null;
+  const activeProfile = activeControllable ? getControllableRosterProfile(activeControllable) : null;
 
   useEffect(() => {
-    chatScrollRef.current?.scrollTo({
-      top: chatScrollRef.current.scrollHeight,
-      behavior: "auto",
-    });
+    chatScrollRef.current?.scrollTo({top:chatScrollRef.current.scrollHeight,behavior:"auto"});
   }, [messages]);
 
   useEffect(() => {
@@ -96,127 +82,66 @@ export const ControllableHub = ({
 
   const detectControllable = useCallback((text: string): ControllableType => {
     const lower = text.toLowerCase();
-    if (
-      /\b(scattered|anxious|overwhelmed|spiritual|spirit|grief|worried|lonely|afraid)\b/.test(
-        lower,
-      )
-    )
-      return "awareness";
 
-    if (
-      /\b(food|eat|lunch|dinner|breakfast|meal|log|steak|chicken|protein|calories|snack|drink|water)\b/.test(
-        lower,
-      )
-    )
-      return "wellness";
-    if (
-      /\b(sleep|tired|energy|rest|hydrat|move|workout|exercise|run|gym|health)\b/.test(
-        lower,
-      )
-    )
-      return "wellness";
-    if (
-      /\b(habit|rep|streak|routine|discipline|consistent|daily|skip|move)\b/.test(
-        lower,
-      )
-    )
-      return "habit";
-    if (new RegExp(`\\b(${AWARENESS_KEYWORDS.join("|")})\\b`).test(lower))
-      return "awareness";
-    if (
-      /\b(perspective|zoom out|big picture|long term|future|past|time|season|patient)\b/.test(
-        lower,
-      )
-    )
-      return "perspective";
-    if (
-      /\b(environment|space|room|desk|phone|app|screen|trigger|design|setup|friction)\b/.test(
-        lower,
-      )
-    )
-      return "environment";
+    if (/\b(scattered|anxious|overwhelmed|spiritual|spirit|grief|worried|lonely|afraid)\b/.test(lower)) return "awareness";
+    if (/\b(food|eat|lunch|dinner|breakfast|meal|log|steak|chicken|protein|calories|snack|drink|water)\b/.test(lower)) return "wellness";
+    if (/\b(sleep|tired|energy|rest|hydrat|move|workout|exercise|run|gym|health)\b/.test(lower)) return "wellness";
+    if (/\b(habit|rep|streak|routine|discipline|consistent|daily|skip|move)\b/.test(lower)) return "habit";
+    if (new RegExp(`\\b(${AWARENESS_KEYWORDS.join("|")})\\b`).test(lower)) return "awareness";
+    if (/\b(perspective|zoom out|big picture|long term|future|past|time|season|patient)\b/.test(lower)) return "perspective";
+    if (/\b(environment|space|room|desk|phone|app|screen|trigger|design|setup|friction)\b/.test(lower)) return "environment";
 
     return "awareness";
   }, []);
 
-  const sendMessage = useCallback(
-    async (text: string, controllable: ControllableType) => {
-      if (!text.trim() || isLoading) return;
-      const a = allowance.data;
-      if (
-        !a ||
-        (a.byoActive
-          ? a.byoRemaining <= 0
-          : !a.enabled ||
-            a.repliesRemaining <= 0 ||
-            a.dailyRemaining <= 0 ||
-            a.budgetPercentRemaining <= 0)
-      ) {
-        toast({
-          title: "Check your AI allowance",
-          description:
-            "Visit Billing for your limits and provider settings. Daily practice stays available.",
-        });
-        return;
+  const sendMessage = useCallback(async (text: string, controllable: ControllableType) => {
+    if (!text.trim() || isLoading || allowanceRefresh.failed) return;
+    const a=allowance.data;
+    if (!a || (a.byoActive ? a.byoRemaining<=0 : !a.enabled || a.repliesRemaining<=0 || a.dailyRemaining<=0 || a.budgetPercentRemaining<=0)) {
+      toast({title:"Check your AI allowance",description:"Visit Billing for your limits and provider settings. Daily practice stays available."});return;
+    }
+
+    setActiveControllable(controllable);
+    setChosenControllable(controllable);
+    const userMessage: ChatMessage = { role: "user", content: text.trim() };
+    const newMessages = [...messages, userMessage];
+
+    setMessages(newMessages);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-chat", {
+        body: {
+          controllable,
+          messages: newMessages.map((message) => ({
+            role: message.role,
+            content: message.content,
+          })),
+        },
+      });
+
+      if (error) {
+        const context=(error as {context?:Response}).context;
+        if(context?.status===429) throw new Error("AI allowance reached or temporarily unavailable. See Billing for usage and reset details.");
+        throw new Error("The coach could not connect. Your practices remain available.");
       }
 
-      setActiveControllable(controllable);
-      const userMessage: ChatMessage = { role: "user", content: text.trim() };
-      const newMessages = [...messages, userMessage];
+      const reply = data?.reply || data?.message || "I'm here. Could you tell me a little more?";
+      setMessages((previous) => [...previous, { role: "assistant", content: reply }]);
 
-      setMessages(newMessages);
-      setInput("");
-      setIsLoading(true);
 
-      try {
-        const { data, error } = await supabase.functions.invoke("ai-chat", {
-          body: {
-            controllable,
-            messages: newMessages.map((message) => ({
-              role: message.role,
-              content: message.content,
-            })),
-          },
-        });
-
-        if (error) {
-          const context = (error as { context?: Response }).context;
-          if (context?.status === 429)
-            throw new Error(
-              "AI allowance reached or temporarily unavailable. See Billing for usage and reset details.",
-            );
-          throw new Error(
-            "The coach could not connect. Your practices remain available.",
-          );
-        }
-
-        const reply =
-          data?.reply ||
-          data?.message ||
-          "I'm here. Could you tell me a little more?";
-        setMessages((previous) => [
-          ...previous,
-          { role: "assistant", content: reply },
-        ]);
-      } catch (error) {
-        console.error("Chat error:", error);
-        setMessages((previous) => [
-          ...previous,
-          {
-            role: "assistant",
-            content:
-              error instanceof Error
-                ? error.message
-                : "The coach could not connect. Please check Billing.",
-          },
-        ]);
-      } finally {
-        await Promise.resolve(allowance.refetch()).catch(() => undefined);
-        setIsLoading(false);
-      }
-    },
-    [isLoading, messages, toast, allowance],
-  );
+    } catch (error) {
+      console.error("Chat error:", error);
+      setMessages((previous) => [
+        ...previous,
+        { role: "assistant", content: error instanceof Error ? error.message : "The coach could not connect. Please check Billing." },
+      ]);
+    } finally {
+      await allowanceRefresh.refresh();
+      setIsLoading(false);
+    }
+  }, [isLoading, messages, toast, allowance, allowanceRefresh]);
 
   const handleSend = useCallback(() => {
     if (!input.trim()) return;
@@ -225,24 +150,17 @@ export const ControllableHub = ({
     sendMessage(input, controllable);
   }, [chosenControllable, detectControllable, input, sendMessage]);
 
-  const handleSuggestion = useCallback(
-    (suggestion: SuggestedPrompt) => {
-      setActiveControllable(suggestion.controllable);
-      setChosenControllable(suggestion.controllable);
-      void sendMessage(suggestion.prompt, suggestion.controllable);
-    },
-    [sendMessage],
-  );
+  const handleSuggestion = useCallback((suggestion: SuggestedPrompt) => {
+    setActiveControllable(suggestion.controllable);
+    void sendMessage(suggestion.prompt, suggestion.controllable);
+  }, [sendMessage]);
 
-  const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        handleSend();
-      }
-    },
-    [handleSend],
-  );
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      handleSend();
+    }
+  }, [handleSend]);
 
   const renderMessage = (content: string) => {
     const actionRegex = /\[action:([^\]:]+):([^\]]+)\]/g;
@@ -299,12 +217,12 @@ export const ControllableHub = ({
       animate={{ opacity: 1, scale: 1 }}
       className="flex flex-col items-center py-4"
     >
-      <AiAllowancePanel
-        compact
-        userId={userId}
-        allowance={allowance.data}
-        unavailable={allowance.isError}
-      />
+      {allowanceRefresh.failed ? (
+        <div role="alert" className="mb-3 text-sm">
+          <p>AI usage could not refresh. Retry before sending another message.</p>
+          <Button variant="outline" disabled={allowanceRefresh.pending} onClick={() => void allowanceRefresh.refresh()}>Retry usage refresh</Button>
+        </div>
+      ) : <AiAllowancePanel compact userId={userId} allowance={allowance.data} unavailable={allowance.isError}/>}
       {completedCount > 0 && !hasConversation && (
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: -10 }}
@@ -319,12 +237,9 @@ export const ControllableHub = ({
       {!hasConversation && (
         <div className="w-full max-w-sm space-y-3 mb-4 px-1">
           <div className="text-center space-y-1">
-            <p className="text-sm font-semibold text-foreground">
-              Charge your Controllables
-            </p>
+            <p className="text-sm font-semibold text-foreground">Charge your Controllables</p>
             <p className="text-xs text-muted-foreground">
-              Awareness hosts your first conversation. Choose another guide, or
-              let your question find the right practice.
+              Awareness hosts your first conversation. Choose another guide, or let your first question route itself.
             </p>
           </div>
 
@@ -339,16 +254,10 @@ export const ControllableHub = ({
                   key={controllable}
                   initial={reducedMotion ? false : { opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    delay: reducedMotion ? 0 : index * 0.04,
-                    duration: reducedMotion ? 0 : 0.2,
-                  }}
+                  transition={{ delay: reducedMotion ? 0 : index * 0.04, duration:reducedMotion?0:0.2 }}
                   whileTap={reducedMotion ? undefined : { scale: 0.98 }}
                   aria-pressed={isSelected}
-                  onClick={() => {
-                    setActiveControllable(controllable);
-                    setChosenControllable(controllable);
-                  }}
+                  onClick={() => { setActiveControllable(controllable); setChosenControllable(controllable); }}
                   className={cn(
                     "w-full rounded-xl border px-3 py-3 text-left transition-all",
                     isSelected
@@ -357,12 +266,7 @@ export const ControllableHub = ({
                   )}
                 >
                   <div className="flex items-start gap-3">
-                    <div
-                      className={cn(
-                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-                        theme.bgClass,
-                      )}
-                    >
+                    <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", theme.bgClass)}>
                       <span className="text-lg" aria-hidden="true">
                         {theme.emoji}
                       </span>
@@ -370,14 +274,7 @@ export const ControllableHub = ({
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={cn(
-                            "text-sm font-semibold",
-                            theme.textClass,
-                          )}
-                        >
-                          {theme.label}
-                        </span>
+                        <span className={cn("text-sm font-semibold", theme.textClass)}>{theme.label}</span>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
                         {profile.shortDescription}
@@ -397,23 +294,15 @@ export const ControllableHub = ({
           animate={{ opacity: 1, scale: 1 }}
           className="mb-3 flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5"
         >
-          <motion.span
-            className="text-xl"
-            layoutId={`avatar-${activeControllable}`}
-          >
+          <motion.span className="text-xl" layoutId={`avatar-${activeControllable}`}>
             {activeTheme.emoji}
           </motion.span>
-          <span className={cn("text-sm font-semibold", activeTheme.textClass)}>
-            {activeProfile.name}
-          </span>
+          <span className={cn("text-sm font-semibold", activeTheme.textClass)}>{activeProfile.name}</span>
         </motion.div>
       )}
 
       {hasConversation && (
-        <div
-          ref={chatScrollRef}
-          className="w-full max-w-sm space-y-2 max-h-[280px] overflow-y-auto px-1 mb-3 scrollbar-thin"
-        >
+        <div ref={chatScrollRef} className="w-full max-w-sm space-y-2 max-h-[280px] overflow-y-auto px-1 mb-3 scrollbar-thin">
           <AnimatePresence initial={false}>
             {messages.map((message, index) => (
               <motion.div
@@ -427,9 +316,7 @@ export const ControllableHub = ({
                     : "bg-muted text-foreground",
                 )}
               >
-                {message.role === "assistant"
-                  ? renderMessage(message.content)
-                  : message.content}
+                {message.role === "assistant" ? renderMessage(message.content) : message.content}
               </motion.div>
             ))}
           </AnimatePresence>
@@ -451,9 +338,7 @@ export const ControllableHub = ({
 
       {!hasConversation && (
         <div className="w-full max-w-sm space-y-2 mb-4 px-1">
-          <p className="text-xs text-muted-foreground text-center mb-2">
-            Try a clean starting prompt:
-          </p>
+          <p className="text-xs text-muted-foreground text-center mb-2">Try a clean starting prompt:</p>
           <div className="flex flex-col gap-1.5">
             {SUGGESTED_PROMPTS.map((suggestion, index) => (
               <motion.button
@@ -482,40 +367,24 @@ export const ControllableHub = ({
           placeholder={selectedPrompt}
           className="flex-1 min-h-[44px] max-h-[120px] text-sm resize-none py-3"
           rows={1}
-          disabled={isLoading}
+          disabled={isLoading || allowanceRefresh.failed}
         />
         <Button
           aria-label="Send message"
           size="icon"
           className="h-[44px] w-[44px] shrink-0 self-end"
           onClick={handleSend}
-          disabled={!input.trim() || isLoading}
+          disabled={!input.trim() || isLoading || allowanceRefresh.failed}
         >
           <Send className="w-4 h-4" />
         </Button>
       </div>
 
-      {hasConversation && (
-        <Button
-          variant="outline"
-          className="mt-3 min-h-11"
-          disabled={isLoading}
-          onClick={() => {
-            setMessages([]);
-            setInput("");
-            setActiveControllable("awareness");
-            setChosenControllable(null);
-          }}
-        >
-          New conversation
-        </Button>
-      )}
+      {hasConversation&&<Button variant="outline" className="mt-3 min-h-11" disabled={isLoading || allowanceRefresh.failed} onClick={()=>{setMessages([]);setInput("");setActiveControllable("awareness");setChosenControllable(null);}}>New conversation</Button>}
 
       {!hasConversation && (
         <p className="text-[10px] text-muted-foreground/60 mt-1.5">
-          {userId
-            ? "Your team will keep learning from your moves."
-            : "Your team gets sharper as you use the app."}
+          {userId ? "Your team will keep learning from your moves." : "Your team gets sharper as you use the app."}
         </p>
       )}
     </motion.div>

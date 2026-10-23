@@ -229,7 +229,7 @@ ${FORBIDDEN_PHRASES.slice(0, 5).map(p => `- Never say: "${p}"`).join('\n')}
 - Never provide medical advice or diagnose conditions
 
 [CRITICAL]
-- Keep responses under 130 words (80 for food logs)
+- Keep responses under 130 words
 - Every response MUST end with "→ ACTION:" followed by ONE specific wellness intervention
 - The action must be optional, non-quantified and grounded in what the user shared.
 - Only start with a systems check if you genuinely don't know their state AND they haven't given you specific info`,
