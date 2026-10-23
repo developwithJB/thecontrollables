@@ -1,3 +1,4 @@
+import { useAllowanceRefresh } from "@/hooks/useAllowanceRefresh";
 import { useHostedAiAllowance } from "@/hooks/useHostedAiAllowance";
 import { AiAllowancePanel } from "@/components/billing/AiAllowancePanel";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -53,9 +54,11 @@ interface ControllableHubProps {
 
 export const ControllableHub = ({ userId, completedCount, onNavigate }: ControllableHubProps) => {
   const allowance = useHostedAiAllowance(userId);
+  const allowanceRefresh = useAllowanceRefresh(allowance.refetch);
   const reducedMotion=useReducedMotion();
   const chatScrollRef=useRef<HTMLDivElement>(null);
-  const [activeControllable, setActiveControllable] = useState<ControllableType | null>(null);
+  const [activeControllable, setActiveControllable] = useState<ControllableType | null>("awareness");
+  const [chosenControllable, setChosenControllable] = useState<ControllableType | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -80,6 +83,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
   const detectControllable = useCallback((text: string): ControllableType => {
     const lower = text.toLowerCase();
 
+    if (/\b(scattered|anxious|overwhelmed|spiritual|spirit|grief|worried|lonely|afraid)\b/.test(lower)) return "awareness";
     if (/\b(food|eat|lunch|dinner|breakfast|meal|log|steak|chicken|protein|calories|snack|drink|water)\b/.test(lower)) return "wellness";
     if (/\b(sleep|tired|energy|rest|hydrat|move|workout|exercise|run|gym|health)\b/.test(lower)) return "wellness";
     if (/\b(habit|rep|streak|routine|discipline|consistent|daily|skip|move)\b/.test(lower)) return "habit";
@@ -91,13 +95,14 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
   }, []);
 
   const sendMessage = useCallback(async (text: string, controllable: ControllableType) => {
-    if (!text.trim() || isLoading) return;
+    if (!text.trim() || isLoading || allowanceRefresh.failed) return;
     const a=allowance.data;
     if (!a || (a.byoActive ? a.byoRemaining<=0 : !a.enabled || a.repliesRemaining<=0 || a.dailyRemaining<=0 || a.budgetPercentRemaining<=0)) {
       toast({title:"Check your AI allowance",description:"Visit Billing for your limits and provider settings. Daily practice stays available."});return;
     }
 
     setActiveControllable(controllable);
+    setChosenControllable(controllable);
     const userMessage: ChatMessage = { role: "user", content: text.trim() };
     const newMessages = [...messages, userMessage];
 
@@ -133,17 +138,17 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
         { role: "assistant", content: error instanceof Error ? error.message : "The coach could not connect. Please check Billing." },
       ]);
     } finally {
-      void allowance.refetch();
+      await allowanceRefresh.refresh();
       setIsLoading(false);
     }
-  }, [isLoading, messages, toast, allowance]);
+  }, [isLoading, messages, toast, allowance, allowanceRefresh]);
 
   const handleSend = useCallback(() => {
     if (!input.trim()) return;
 
-    const controllable = activeControllable || detectControllable(input);
+    const controllable = chosenControllable || detectControllable(input);
     sendMessage(input, controllable);
-  }, [activeControllable, detectControllable, input, sendMessage]);
+  }, [chosenControllable, detectControllable, input, sendMessage]);
 
   const handleSuggestion = useCallback((suggestion: SuggestedPrompt) => {
     setActiveControllable(suggestion.controllable);
@@ -212,7 +217,12 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
       animate={{ opacity: 1, scale: 1 }}
       className="flex flex-col items-center py-4"
     >
-      <AiAllowancePanel compact userId={userId} allowance={allowance.data} unavailable={allowance.isError}/>
+      {allowanceRefresh.failed ? (
+        <div role="alert" className="mb-3 text-sm">
+          <p>AI usage could not refresh. Retry before sending another message.</p>
+          <Button variant="outline" disabled={allowanceRefresh.pending} onClick={() => void allowanceRefresh.refresh()}>Retry usage refresh</Button>
+        </div>
+      ) : <AiAllowancePanel compact userId={userId} allowance={allowance.data} unavailable={allowance.isError}/>}
       {completedCount > 0 && !hasConversation && (
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: -10 }}
@@ -229,7 +239,7 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
           <div className="text-center space-y-1">
             <p className="text-sm font-semibold text-foreground">Charge your Controllables</p>
             <p className="text-xs text-muted-foreground">
-              Tap one to lead, or let your question route itself.
+              Awareness hosts your first conversation. Choose another guide, or let your first question route itself.
             </p>
           </div>
 
@@ -246,7 +256,8 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: reducedMotion ? 0 : index * 0.04, duration:reducedMotion?0:0.2 }}
                   whileTap={reducedMotion ? undefined : { scale: 0.98 }}
-                  onClick={() => setActiveControllable(controllable)}
+                  aria-pressed={isSelected}
+                  onClick={() => { setActiveControllable(controllable); setChosenControllable(controllable); }}
                   className={cn(
                     "w-full rounded-xl border px-3 py-3 text-left transition-all",
                     isSelected
@@ -356,20 +367,20 @@ export const ControllableHub = ({ userId, completedCount, onNavigate }: Controll
           placeholder={selectedPrompt}
           className="flex-1 min-h-[44px] max-h-[120px] text-sm resize-none py-3"
           rows={1}
-          disabled={isLoading}
+          disabled={isLoading || allowanceRefresh.failed}
         />
         <Button
           aria-label="Send message"
           size="icon"
           className="h-[44px] w-[44px] shrink-0 self-end"
           onClick={handleSend}
-          disabled={!input.trim() || isLoading}
+          disabled={!input.trim() || isLoading || allowanceRefresh.failed}
         >
           <Send className="w-4 h-4" />
         </Button>
       </div>
 
-      {hasConversation&&<Button variant="outline" className="mt-3 min-h-11" disabled={isLoading} onClick={()=>{setMessages([]);setInput("");setActiveControllable(null);}}>New conversation</Button>}
+      {hasConversation&&<Button variant="outline" className="mt-3 min-h-11" disabled={isLoading || allowanceRefresh.failed} onClick={()=>{setMessages([]);setInput("");setActiveControllable("awareness");setChosenControllable(null);}}>New conversation</Button>}
 
       {!hasConversation && (
         <p className="text-[10px] text-muted-foreground/60 mt-1.5">

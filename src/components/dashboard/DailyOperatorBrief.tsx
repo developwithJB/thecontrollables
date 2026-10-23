@@ -1,3 +1,5 @@
+import { useFormationPracticeSummary } from "@/hooks/useFormationPracticeSummary";
+import { getLocalDate } from "@/domain/formation/circuitRules";
 import { useMemo, useState } from "react";
 import type React from "react";
 import { useNavigate } from "react-router-dom";
@@ -71,6 +73,7 @@ const oneSentence = (value: string | null | undefined, maxWords = 12): string =>
 
 export function DailyOperatorBrief({ userId }: DailyOperatorBriefProps) {
   const navigate = useNavigate();
+  const formation = useFormationPracticeSummary(userId);
   const [adjustmentPrompt, setAdjustmentPrompt] = useState("");
   const [aiDepth, setAiDepth] = useState<AIDepthLevel>("quick");
   const [selectedGuide, setSelectedGuide] = useState<AIGuideLensId>("full_dashboard");
@@ -290,7 +293,7 @@ export function DailyOperatorBrief({ userId }: DailyOperatorBriefProps) {
     setDeeperPass(null);
   };
 
-  if (brief.isLoading) {
+  if (brief.isLoading || ((!plan || brief.isError) && formation.isLoading)) {
     return (
       <div className="dashboard-os-card rounded-2xl px-5 py-5">
         <div className="flex items-center gap-3">
@@ -335,7 +338,7 @@ export function DailyOperatorBrief({ userId }: DailyOperatorBriefProps) {
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Mission of the Day</p>
-            <h2 className="font-display text-lg font-semibold text-foreground">Mission delayed</h2>
+            <h2 className="font-display text-lg font-semibold text-foreground">{(formation.byDate?.[getLocalDate()] ?? 0) > 0 ? "Your practice is recorded. Optional planning is unavailable." : "Mission delayed"}</h2>
           </div>
           <Button variant="outline" size="icon" onClick={() => brief.refetch()} title="Try again">
             <RefreshCw className="h-4 w-4" />

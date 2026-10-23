@@ -404,9 +404,9 @@ export const RESPONSE_TEMPLATES = {
   
   wellness: {
     structure: `
-1. DIAGNOSE: Ask 1 clarifying question about systems (sleep/movement/nutrition/water)
-2. IDENTIFY WEAK LINK: Which system is most depleted right now?
-3. PRESCRIBE: One specific, immediate adjustment
+1. ASK: Clarify the user's sleep, movement, food or hydration question without assuming a cause
+2. NOTICE: Reflect only what the user actually reported
+3. OFFER: One optional, non-quantified adjustment
 4. → ACTION: A wellness intervention they can do TODAY (not a new routine—a single action)`,
     examples: [
       "Before we go further: How many hours did you sleep last night? When was your last meal?",
