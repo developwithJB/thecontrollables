@@ -209,10 +209,12 @@ const AppContent = () => {
 // the existing page routes, auth boundary or OAuth return bridge.
 const router = createBrowserRouter([
   { path: "*", element: (
-    <TooltipProvider>
-      <OAuthReturnBridge />
-      <AppContent />
-    </TooltipProvider>
+    <ErrorBoundary>
+      <TooltipProvider>
+        <OAuthReturnBridge />
+        <AppContent />
+      </TooltipProvider>
+    </ErrorBoundary>
   ) },
 ]);
 

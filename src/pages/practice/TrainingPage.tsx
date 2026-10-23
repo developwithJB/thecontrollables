@@ -1,4 +1,3 @@
-import { PageDataLoading } from "@/components/layout/PageDataLoading";
 import { BatteryCharging, Dumbbell, Target, Zap } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useAuthenticatedUser } from "@/hooks/useAppAuth";
@@ -8,6 +7,8 @@ import { DailyRings } from "@/components/dashboard/DailyRings";
 import { ControllableCardsShowcase } from "@/components/dashboard/ControllableCardsShowcase";
 import { FutureChip, FutureHero, FutureMetric } from "@/components/ui/future";
 import { getControllableGuide, isControllableGuideId } from "@/lib/controllables";
+
+import { PageDataLoading } from "@/components/layout/PageDataLoading";
 
 export default function TrainingPage() {
   usePageViewTracking("Train");

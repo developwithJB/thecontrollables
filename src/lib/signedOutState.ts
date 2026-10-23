@@ -34,6 +34,7 @@ export function clearSignedOutState(userId: string, stores?: Storage[]) {
         if (
           owned ||
           unscopedPrivateKeys.has(key) ||
+          key.startsWith("control_release_move_guest_") ||
           key.startsWith("dev_mock_")
         )
           storage.removeItem(key);

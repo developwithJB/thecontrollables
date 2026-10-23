@@ -1,4 +1,9 @@
 import { test, expect } from "@playwright/test";
+test("route rendering keeps the existing friendly error boundary",async({page})=>{
+ await page.route("**/src/pages/practice/TrainingPage.tsx",route=>route.fulfill({contentType:"application/javascript",body:'export default function Training(){throw new Error("synthetic-local-render-failure");}'}));
+ await page.goto("/train");await expect(page.getByRole("heading",{name:"Something went wrong",exact:true})).toBeVisible();
+ await expect(page.getByText("Unexpected Application Error!",{exact:true})).toHaveCount(0);
+});
 test("signed-in pricing uses account navigation and a plan CTA",async({page})=>{
  await page.route("**/src/hooks/useOptionalAccount.ts",route=>route.fulfill({contentType:"application/javascript",body:'export function useOptionalAccount(){return {user:{id:"synthetic"},isLoading:false};}'}));
  await page.goto("/pricing");

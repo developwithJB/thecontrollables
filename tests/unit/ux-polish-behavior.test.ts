@@ -93,6 +93,7 @@ it("clears only the departing account and unscoped private state, preserving ano
       "onboarding_quick_start_draft",
       "dashboard-intelligence-cache",
       "growth_event_buffer",
+      "control_release_move_guest_2026-10-23",
     ])
       storage.setItem(key, "synthetic");
   clearSignedOutState("alice");
@@ -101,6 +102,7 @@ it("clears only the departing account and unscoped private state, preserving ano
     expect(storage.getItem("formation-day-ack:alice:2026-10-23")).toBeNull();
     expect(storage.getItem("onboarding_quick_start_draft")).toBeNull();
     expect(storage.getItem("growth_event_buffer")).toBeNull();
+    expect(storage.getItem("control_release_move_guest_2026-10-23")).toBeNull();
     expect(storage.getItem("formation_selected_track_bob")).toBe("synthetic");
     expect(storage.getItem("theme")).toBe("synthetic");
   }
