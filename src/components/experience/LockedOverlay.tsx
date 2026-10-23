@@ -54,7 +54,7 @@ export function LockedOverlay({
   
   // Default copy based on variant
   const getDefaultCopy = () => {
-    const priceText = `Plus $${pricing.plus.annual}/yr or Pro $${pricing.pro.annual}/yr`;
+    const priceText = `Pro $${pricing.pro.annual}/yr`;
       
     switch (variant) {
       case "experience-history":

@@ -1,3 +1,5 @@
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { clearSignedOutState } from "@/lib/signedOutState";
 import { FormationBookBoundary } from "@/components/formation/FormationBookBoundary";
 import { ProfileMenu } from "./ProfileMenu";
 import { useState, useCallback, Suspense, useEffect } from "react";
@@ -33,7 +35,7 @@ export const AppLayout = () => {
   const [showProfileSettings, setShowProfileSettings] = useState(false);
 
   useEffect(() => {
-    if (new URLSearchParams(location.search).get("settings") === "email") {
+    if (["email", "profile"].includes(new URLSearchParams(location.search).get("settings") ?? "")) {
       setShowProfileSettings(true);
     }
   }, [location.search]);
@@ -76,7 +78,13 @@ export const AppLayout = () => {
   }, [location.pathname, pullRefreshRef]);
 
   const handleSignOut = async () => {
+    const clearBrowserState = () => {
+      clearSignedOutState(user?.id ?? "");
+      void queryClient.cancelQueries();
+      queryClient.clear();
+    };
     if (isDevMockAuthEnabled()) {
+      clearBrowserState();
       toast({
         title: "Dev mock session cleared",
         description: "Mock auth stays active while the env flag is on.",
@@ -85,7 +93,9 @@ export const AppLayout = () => {
       return;
     }
 
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) { toast({title:"Sign out did not finish",description:"Please try again.",variant:"destructive"}); return; }
+    clearBrowserState();
     toast({ title: "Signed out", description: "See you tomorrow." });
     navigate("/");
   };
@@ -102,36 +112,39 @@ export const AppLayout = () => {
           <div className="max-w-md md:max-w-none mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
             <Logo />
             <div className="flex items-center gap-2">
-              <Button
+              <Tooltip><TooltipTrigger asChild><Button
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate(APP_ROUTES.goal)}
                 className="rounded-xl text-muted-foreground hover:text-foreground"
+                aria-label="Active Goal"
                 title="Active Goal"
               >
                 <Flag className="w-4 h-4" />
-              </Button>
-              <Button
+              </Button></TooltipTrigger><TooltipContent>Active Goal</TooltipContent></Tooltip>
+              <Tooltip><TooltipTrigger asChild><Button
                 variant="ghost"
                 size="icon"
                 onClick={triggerRefresh}
                 disabled={isPullRefreshing}
                 className="rounded-xl text-muted-foreground hover:text-foreground md:hidden"
+                aria-label="Refresh"
                 title="Refresh"
               >
                 <RefreshCw
                   className={`w-4 h-4 ${isPullRefreshing ? "animate-spin" : ""}`}
                 />
-              </Button>
-              <Button
+              </Button></TooltipTrigger><TooltipContent>Refresh</TooltipContent></Tooltip>
+              <Tooltip><TooltipTrigger asChild><Button
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate(APP_ROUTES.readAlong)}
                 className="rounded-xl text-muted-foreground hover:text-foreground"
+                aria-label="Read Along Training"
                 title="Read Along Training"
               >
                 <Book className="w-4 h-4" />
-              </Button>
+              </Button></TooltipTrigger><TooltipContent>Read Along Training</TooltipContent></Tooltip>
               <ProfileMenu
                 onSettings={() => setShowProfileSettings(true)}
                 onSignOut={() => void handleSignOut()}
@@ -194,6 +207,7 @@ export const AppLayout = () => {
         <UpdatePrompt />
         <WhatsNewModal />
         <ProfileSettingsModal
+          key={user.id}
           open={showProfileSettings}
           onOpenChange={setShowProfileSettings}
           userId={user.id}

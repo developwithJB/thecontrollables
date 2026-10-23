@@ -1,3 +1,4 @@
+import { PageDataLoading } from "@/components/layout/PageDataLoading";
 import { BookLink } from "@/components/BookLink";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -154,6 +155,7 @@ export default function GrowthPage({ surface = "growth" }: GrowthProps) {
 
   return (
     <div className="space-y-4">
+      <PageDataLoading userId={user.id} />
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">

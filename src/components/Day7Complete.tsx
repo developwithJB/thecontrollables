@@ -456,7 +456,7 @@ export const Day7Complete = ({
                 />
                 
                 <p className="text-xs text-muted-foreground mt-3">
-                  Choose Plus or Pro annual plans
+                  Choose the Pro annual plan
                 </p>
               </div>
             </motion.div>

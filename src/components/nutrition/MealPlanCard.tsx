@@ -152,7 +152,7 @@ export function MealPlanCard({ userId, isPaid, onUpgrade }: MealPlanCardProps) {
         <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center gap-2">
           <Lock className="w-5 h-5 text-muted-foreground" />
           <p className="text-xs text-muted-foreground text-center px-4">
-            Unlock AI meal planning with Plus
+            Unlock AI meal planning with Pro
           </p>
           <Button size="sm" variant="outline" className="text-xs h-7" onClick={onUpgrade}>
             Upgrade

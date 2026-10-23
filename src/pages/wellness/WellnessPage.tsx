@@ -1,3 +1,4 @@
+import { PageDataLoading } from "@/components/layout/PageDataLoading";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -97,6 +98,7 @@ export default function WellnessPage() {
 
   return (
     <div className="space-y-4">
+      <PageDataLoading userId={user.id} />
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">

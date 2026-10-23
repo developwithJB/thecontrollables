@@ -135,7 +135,7 @@ function TodayPreview() {
       <div className="relative overflow-hidden rounded-3xl border border-primary/25 bg-card/95 p-4 shadow-[0_28px_100px_rgba(0,0,0,0.32)] backdrop-blur sm:p-6">
         <div className="flex items-start justify-between gap-4 border-b border-border/60 pb-5">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">Today’s formation</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">Example · not your saved progress</p>
             <h2 className="mt-2 font-display text-2xl font-semibold text-foreground">Put The Controllables first</h2>
             <p className="mt-1 text-sm text-muted-foreground">Five practical circuits. One honest next step.</p>
           </div>
@@ -158,7 +158,7 @@ function TodayPreview() {
                   <p className="truncate text-xs text-muted-foreground">{starterPhrases[guide.id]}</p>
                 </div>
                 <span className={`flex h-6 w-6 items-center justify-center rounded-full border ${index === 0 ? "border-primary/35 bg-primary/10 text-primary" : "border-border/60 text-muted-foreground"}`}>
-                  {index === 0 ? <Check className="h-3.5 w-3.5" /> : <span className="text-[10px]">{index + 1}</span>}
+                  <span className="text-[10px]">{index + 1}</span>
                 </span>
               </div>
             );

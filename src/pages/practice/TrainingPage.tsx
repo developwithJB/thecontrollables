@@ -1,3 +1,4 @@
+import { PageDataLoading } from "@/components/layout/PageDataLoading";
 import { BatteryCharging, Dumbbell, Target, Zap } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useAuthenticatedUser } from "@/hooks/useAppAuth";
@@ -17,6 +18,7 @@ export default function TrainingPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-4 pb-24">
+      <PageDataLoading userId={user.id} />
       <FutureHero
         eyebrow="Charging Bay"
         title="Train"

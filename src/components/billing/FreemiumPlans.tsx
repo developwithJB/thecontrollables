@@ -7,10 +7,12 @@ export function FreemiumPlans({
   onCheckout,
   busy = false,
   initialInterval = "year",
+  signedIn = false,
 }: {
   onCheckout?: (interval: BillingInterval) => void;
   busy?: boolean;
   initialInterval?: BillingInterval;
+  signedIn?: boolean;
 }) {
   const [interval, setInterval] = useState<BillingInterval>(initialInterval);
   return (
@@ -37,7 +39,7 @@ export function FreemiumPlans({
             allowance. The sample does not reset.
           </p>
           <Button asChild variant="outline" className="min-h-11 w-full">
-            <Link to="/quick-start?path=read_along">Start with Read Along</Link>
+            <Link to={signedIn ? "/billing" : "/quick-start?path=read_along"}>{signedIn ? "View my plan" : "Start with Read Along"}</Link>
           </Button>
         </article>
         <article

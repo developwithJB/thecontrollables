@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 
 interface PlannerCalendarConnectProps {
   connections: PlannerConnection[];
+  hideConnect?: boolean;
   onConnect: () => void;
   onSync: (connectionId: string) => void;
   onPushToday?: () => void;
@@ -16,6 +17,7 @@ interface PlannerCalendarConnectProps {
 
 export const PlannerCalendarConnect = ({
   connections,
+  hideConnect = false,
   onConnect,
   onSync,
   onPushToday,
@@ -24,6 +26,8 @@ export const PlannerCalendarConnect = ({
   isPushing,
 }: PlannerCalendarConnectProps) => {
   const googleConnection = connections.find((c) => c.provider === "google_calendar");
+
+  if (!googleConnection && hideConnect) return null;
 
   return (
     <Card>
