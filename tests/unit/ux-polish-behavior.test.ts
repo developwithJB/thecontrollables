@@ -59,28 +59,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
   account.user = null;
 });
-it("uses the browser zone only for a provably untouched default and preserves chosen or ambiguous zones", () => {
-  const initial = {
-    timezone: "America/Chicago",
-    created_at: "2026-10-23T00:00:00Z",
-    updated_at: "2026-10-23T00:00:00Z",
-  };
-  expect(resolveProfileTimezone(initial, "Europe/Paris")).toBe("Europe/Paris");
-  expect(
-    resolveProfileTimezone(
-      { ...initial, updated_at: "2026-10-24T00:00:00Z" },
-      "Europe/Paris",
-    ),
-  ).toBe("America/Chicago");
-  expect(
-    resolveProfileTimezone({ timezone: "America/Chicago" }, "Europe/Paris"),
-  ).toBe("America/Chicago");
-  expect(
-    resolveProfileTimezone(
-      { ...initial, timezone: "Asia/Tokyo" },
-      "Europe/Paris",
-    ),
-  ).toBe("Asia/Tokyo");
+it("uses explicit settings history, ignoring profile timestamps and preserving ambiguous Central choices", () => {
+  const profile = { timezone: "America/Chicago" };
+  expect(resolveProfileTimezone(profile, "Europe/Paris", { status: "not_saved", suggestedTimezone: "Europe/Paris" })).toBe("Europe/Paris");
+  expect(resolveProfileTimezone(profile, "Europe/Paris", { status: "saved" })).toBe("America/Chicago");
+  expect(resolveProfileTimezone(profile, "Europe/Paris")).toBe("America/Chicago");
+  expect(resolveProfileTimezone({ timezone: "Asia/Tokyo" }, "Europe/Paris", { status: "not_saved", suggestedTimezone: "Europe/Paris" })).toBe("Asia/Tokyo");
   expect(resolveProfileTimezone(null, "Europe/Paris")).toBe("Europe/Paris");
 });
 it("clears only the departing account and unscoped private state, preserving another owner and theme", () => {
@@ -90,6 +74,7 @@ it("clears only the departing account and unscoped private state, preserving ano
       "formation-day-ack:alice:2026-10-23",
       "formation_selected_track_bob",
       "theme",
+      "controllables_focus_mode",
       "onboarding_quick_start_draft",
       "dashboard-intelligence-cache",
       "growth_event_buffer",
@@ -105,14 +90,21 @@ it("clears only the departing account and unscoped private state, preserving ano
     expect(storage.getItem("control_release_move_guest_2026-10-23")).toBeNull();
     expect(storage.getItem("formation_selected_track_bob")).toBe("synthetic");
     expect(storage.getItem("theme")).toBe("synthetic");
+    expect(storage.getItem("controllables_focus_mode")).toBe("synthetic");
   }
 });
-it.each([true, false])(
-  "offers only Pro for new purchases (compact=%s)",
-  (compact) => {
+it.each(["default", "compact"] as const)(
+  "offers only Pro for new purchases (variant=%s)",
+  (variant) => {
     const select = vi.fn();
-    render(createElement(PlanSelector, { onSelect: select, compact }));
-    expect(screen.queryByText(/Plus/)).toBeNull();
+    render(createElement(PlanSelector, { onSelect: select, variant }));
+    expect(screen.queryByText(/Plus/i)).toBeNull();
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: /Pro/ })).toBeTruthy();
+    if (variant === "compact") {
+      expect(screen.getByRole("button").parentElement?.className).toContain("grid-cols-1");
+      expect(screen.getByRole("button").textContent).toMatch(/Pro.*119.99\/yr/);
+    }
     fireEvent.click(screen.getByRole("button"));
     expect(select).toHaveBeenCalledWith("pro");
   },
@@ -172,7 +164,7 @@ it("shows a skeleton for an existing pending query without causing another fetch
     createElement(
       QueryClientProvider,
       { client },
-      createElement(PageDataLoading, { userId: "qa" }),
+      createElement(PageDataLoading, { userId: "qa", queryNames: ["private"] }),
     ),
   );
   expect(screen.getByRole("status", { name: "Loading page" })).toBeTruthy();
@@ -228,14 +220,25 @@ it.each([true, false])(
         createElement(MemoryRouter, null, createElement(PricingPage)),
       ),
     );
-    expect(!!screen.queryByRole("link", { name: "Sign in", exact: true })).toBe(
+    expect(!!screen.queryByRole("link", { name: "Sign in" })).toBe(
       !signedIn,
     );
     expect(
-      !!screen.queryByRole("link", { name: "View my plan", exact: true }),
+      !!screen.queryByRole("link", { name: "View my plan" }),
     ).toBe(signedIn);
     expect(!!screen.queryByRole("button", { name: "Profile menu" })).toBe(
       signedIn,
     );
   },
 );
+
+it("ignores unrelated pending queries and another account when showing page skeletons", async () => {
+  const client = new QueryClient();
+  let finish!: (value: string) => void;
+  const pending = client.fetchQuery({ queryKey: ["coach", "qa"], queryFn: () => new Promise<string>(resolve => { finish = resolve; }) });
+  let finishOther!: (value: string) => void;
+  const other = client.fetchQuery({ queryKey: ["planner-items", "other"], queryFn: () => new Promise<string>(resolve => { finishOther = resolve; }) });
+  render(createElement(QueryClientProvider, { client }, createElement(PageDataLoading, { userId: "qa", queryNames: ["planner-items"] })));
+  expect(screen.queryByRole("status", { name: "Loading page" })).toBeNull();
+  await act(async () => { finish("done"); finishOther("done"); await Promise.all([pending, other]); });
+});

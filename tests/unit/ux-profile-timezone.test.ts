@@ -60,9 +60,12 @@ vi.mock("@/components/CalendarReminderButton", () => ({
   CalendarReminderButton: () => null,
 }));
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
+import { markNewProfileSettings, markProfileSettingsSaved, readProfileSettingsMarker } from "@/lib/profileTimezone";
 import { ProfileSettingsModal } from "@/components/ProfileSettingsModal";
 beforeEach(() => {
   vi.clearAllMocks();
+  const data = new Map<string, string>();
+  vi.stubGlobal("localStorage", { getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => data.set(key, value) });
   mocks.profile.updated_at = mocks.profile.created_at;
   const original = new Intl.DateTimeFormat().resolvedOptions();
   vi.spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions").mockReturnValue({
@@ -73,6 +76,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 function mount() {
   render(
@@ -90,7 +94,11 @@ function mount() {
     ),
   );
 }
-it("offers and saves browser time for a profile with an untouched database default", async () => {
+it("offers and saves browser time only with the explicit never-saved signup marker, regardless of timestamps", async () => {
+  mocks.profile.updated_at = "2026-10-24T00:00:00Z";
+  markNewProfileSettings("qa", "America/Los_Angeles");
+  // Repeated initialization must not replace the first browser proposal.
+  markNewProfileSettings("qa", "Europe/Paris");
   mount();
   expect(await screen.findByText("Pacific Time (PT)")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
@@ -100,9 +108,10 @@ it("offers and saves browser time for a profile with an untouched database defau
     ),
   );
   expect(mocks.update.mock.calls[0][0]).not.toHaveProperty("start_timezone");
+  expect(readProfileSettingsMarker("qa")).toEqual({ status: "saved" });
 });
-it("preserves Central time when a profile has already been edited", async () => {
-  mocks.profile.updated_at = "2026-10-24T00:00:00Z";
+it("preserves deliberately saved Central time even when timestamps match", async () => {
+  markProfileSettingsSaved("qa");
   mount();
   expect(await screen.findByText("Central Time (CT)")).toBeTruthy();
   expect(mocks.update).not.toHaveBeenCalled();
@@ -110,5 +119,11 @@ it("preserves Central time when a profile has already been edited", async () => 
     screen.getByRole("button", { name: /Use this browser’s timezone/ }),
   );
   expect(await screen.findByText("Pacific Time (PT)")).toBeTruthy();
+  expect(mocks.update).not.toHaveBeenCalled();
+});
+
+it("preserves ambiguous existing Central time when no marker exists", async () => {
+  mount();
+  expect(await screen.findByText("Central Time (CT)")).toBeTruthy();
   expect(mocks.update).not.toHaveBeenCalled();
 });

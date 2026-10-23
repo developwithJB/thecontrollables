@@ -332,7 +332,7 @@ const PlannerPage = () => {
 
   return (
     <div className="space-y-0 -mx-4 sm:-mx-6 -my-6">
-      <PageDataLoading userId={user.id} />
+      <PageDataLoading userId={user.id} queryNames={["planner-items", "planner-routines", "planner-connections", "planner-activity"]} />
       {/* Header */}
       <div className="px-4 sm:px-6 pt-4 pb-2">
         <div className="flex items-center justify-between mb-2">

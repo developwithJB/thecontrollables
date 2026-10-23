@@ -17,7 +17,7 @@ export function PlanSelector({ onSelect, isLoading = false, selectedPlan, varian
 
   if (variant === "compact") {
     return (
-      <div className={cn("grid grid-cols-2 gap-2", className)}>
+      <div className={cn("grid grid-cols-1 gap-2", className)}>
         <Button onClick={() => onSelect("pro")} disabled={isLoading} variant={selectedPlan === "pro" ? "default" : "outline"} size="sm" className="flex-1">
           {isLoading && selectedPlan === "pro" ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : null}
           Pro ${pricing.pro.annual}/yr

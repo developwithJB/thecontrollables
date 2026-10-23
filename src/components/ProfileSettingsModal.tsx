@@ -1,4 +1,4 @@
-import { resolveProfileTimezone } from "@/lib/profileTimezone";
+import { resolveProfileTimezone, readProfileSettingsMarker, markProfileSettingsSaved } from "@/lib/profileTimezone";
 import { getDeviceTimezone } from "@/lib/formationEnrollmentConfig";
 import { HostedCoachCard } from "@/components/settings/HostedCoachCard";
 import { CoachSettingsCard } from "@/components/settings/CoachSettingsCard";
@@ -103,7 +103,7 @@ export function ProfileSettingsModal({
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("display_name, timezone, email_nudge_enabled, nudge_frequency, formation_email_opt_in_at, created_at, updated_at")
+          .select("display_name, timezone, email_nudge_enabled, nudge_frequency, formation_email_opt_in_at")
           .eq("id", userId)
           .single();
 
@@ -122,7 +122,7 @@ export function ProfileSettingsModal({
             setNudgeFrequency((data.nudge_frequency as NudgeFrequency) || "daily");
           }
           
-          setTimezone(resolveProfileTimezone(data, browserTimezone));
+          setTimezone(resolveProfileTimezone(data, browserTimezone, readProfileSettingsMarker(userId)));
         } else {
           // No profile yet, use browser timezone
           setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -173,6 +173,7 @@ export function ProfileSettingsModal({
         .eq("id", userId);
 
       if (profileError) throw profileError;
+      markProfileSettingsSaved(userId);
       setFormationEmailOptInAt(nextFormationEmailOptInAt);
 
       toast({
@@ -376,7 +377,7 @@ export function ProfileSettingsModal({
               </Select>
               {timezone !== browserTimezone ? <Button type="button" variant="ghost" className="h-auto whitespace-normal text-left text-xs underline" onClick={()=>setTimezone(browserTimezone)}>Use this browser’s timezone ({browserTimezone})</Button> : null}
               <p className="text-xs text-muted-foreground">
-                Existing strict attempts keep their start timezone. Used for daily reset timing{nudgeFrequency !== "off" || pushEnabled ? " and reminders" : ""}
+                Reminder delivery keeps the saved timezone until you press Save Changes. Existing strict attempts keep their start timezone. Used for daily reset timing{nudgeFrequency !== "off" || pushEnabled ? " and reminders" : ""}
               </p>
             </div>
 

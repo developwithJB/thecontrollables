@@ -19,7 +19,7 @@ export default function TrainingPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-4 pb-24">
-      <PageDataLoading userId={user.id} />
+      <PageDataLoading userId={user.id} queryNames={["controllable-levels", "ai-daily-operator-brief", "formation-practice-summary"]} />
       <FutureHero
         eyebrow="Charging Bay"
         title="Train"

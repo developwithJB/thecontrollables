@@ -1,4 +1,5 @@
-import { useCallback } from "react";
+import { usePracticeExitConfirmation } from "@/hooks/usePracticeExitConfirmation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useBeforeUnload, useBlocker } from "react-router-dom";
 import {
   AlertDialog,
@@ -11,9 +12,31 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 export function UnsavedPracticeGuard({ dirty }: { dirty: boolean }) {
+  const { register } = usePracticeExitConfirmation();
+  const [accountActionPending, setAccountActionPending] = useState(false);
+  const pendingAnswer = useRef<((confirmed: boolean) => void) | null>(null);
+  const exitConfirmed = useRef(false);
+  useEffect(() => {
+    exitConfirmed.current = false;
+    return register({ confirm: async () => {
+      if (!dirty) return true;
+      return new Promise<boolean>(resolve => {
+        pendingAnswer.current?.(false);
+        pendingAnswer.current = resolve;
+        setAccountActionPending(true);
+      });
+    }, reset: () => { exitConfirmed.current = false; } });
+  }, [dirty, register]);
+  useEffect(() => () => { pendingAnswer.current?.(false); }, []);
+  const answerAccountAction = (confirmed: boolean) => {
+    exitConfirmed.current = confirmed;
+    pendingAnswer.current?.(confirmed);
+    pendingAnswer.current = null;
+    setAccountActionPending(false);
+  };
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      dirty &&
+      dirty && !exitConfirmed.current &&
       (currentLocation.pathname !== nextLocation.pathname ||
         currentLocation.search !== nextLocation.search),
   );
@@ -29,11 +52,12 @@ export function UnsavedPracticeGuard({ dirty }: { dirty: boolean }) {
     ),
   );
   return (
-    <AlertDialog open={blocker.state === "blocked"}>
+    <AlertDialog open={accountActionPending || blocker.state === "blocked"}>
       <AlertDialogContent
         onEscapeKeyDown={(event) => {
           event.preventDefault();
-          if (blocker.state === "blocked") blocker.reset();
+          if (accountActionPending) answerAccountAction(false);
+          else if (blocker.state === "blocked") blocker.reset();
         }}
       >
         <AlertDialogHeader>
@@ -46,14 +70,16 @@ export function UnsavedPracticeGuard({ dirty }: { dirty: boolean }) {
         <AlertDialogFooter>
           <AlertDialogCancel
             onClick={() => {
-              if (blocker.state === "blocked") blocker.reset();
+              if (accountActionPending) answerAccountAction(false);
+              else if (blocker.state === "blocked") blocker.reset();
             }}
           >
             Keep editing
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={() => {
-              if (blocker.state === "blocked") blocker.proceed();
+              if (accountActionPending) answerAccountAction(true);
+              else if (blocker.state === "blocked") blocker.proceed();
             }}
           >
             Discard changes

@@ -1,3 +1,4 @@
+import { markNewProfileSettings } from "@/lib/profileTimezone";
 import type { User as AuthUser } from "@supabase/supabase-js";
 import { NEW_PASSWORD_MIN_LENGTH } from "@/lib/launchFunnel";
 import { useRef } from "react";
@@ -240,6 +241,10 @@ export default function AuthPage() {
           } else throw error;
         } else {
           trackGrowthEvent("signup_submitted");
+          const newUser = signUpData?.user ?? signUpData?.session?.user;
+          if (newUser && (signUpData?.session || newUser.identities?.length)) {
+            markNewProfileSettings(newUser.id, getDeviceTimezone());
+          }
           if (signUpData?.session) {
             trackAccountCreated("signup_form");
             setSessionUser(signUpData.session.user);

@@ -67,7 +67,7 @@ export default function WellnessPage() {
   }, [searchParams, setSearchParams, toast, queryClient]);
 
   const { isPaid, isLoading: entitlementsLoading, initiateCheckout } = useEntitlements(user.id);
-  const { streak: wellnessStreak, logWellness, recentLogs: wellnessLogs } = useWellness(user.id);
+  const { streak: wellnessStreak, logWellness, recentLogs: wellnessLogs, isLoading: wellnessLoading } = useWellness(user.id);
   const { isConnected: wearableConnected, latest: healthLatest, trend: healthTrend } = useHealthData(user.id);
   const { activeSession, isCompleted, isExpired } = useReset(user.id);
 
@@ -98,7 +98,7 @@ export default function WellnessPage() {
 
   return (
     <div className="space-y-4">
-      <PageDataLoading userId={user.id} />
+      <PageDataLoading loading={wellnessLoading} userId={user.id} queryNames={["wearable-connection-any", "health-data-trend", "meal-logs", "meal-plan", "meal-preferences"]} />
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">

@@ -1,3 +1,4 @@
+import { usePracticeExitConfirmation } from "@/hooks/usePracticeExitConfirmation";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { clearSignedOutState } from "@/lib/signedOutState";
 import { FormationBookBoundary } from "@/components/formation/FormationBookBoundary";
@@ -32,6 +33,7 @@ export const AppLayout = () => {
   const location = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { confirmExit, resetExitConfirmation } = usePracticeExitConfirmation();
   const [showProfileSettings, setShowProfileSettings] = useState(false);
 
   useEffect(() => {
@@ -78,6 +80,7 @@ export const AppLayout = () => {
   }, [location.pathname, pullRefreshRef]);
 
   const handleSignOut = async () => {
+    if (!(await confirmExit())) return;
     const clearBrowserState = () => {
       clearSignedOutState(user?.id ?? "");
       void queryClient.cancelQueries();
@@ -93,8 +96,14 @@ export const AppLayout = () => {
       return;
     }
 
-    const { error } = await supabase.auth.signOut();
-    if (error) { toast({title:"Sign out did not finish",description:"Please try again.",variant:"destructive"}); return; }
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch {
+      resetExitConfirmation();
+      toast({ title: "Sign out did not finish", description: "Please try again.", variant: "destructive" });
+      return;
+    }
     clearBrowserState();
     toast({ title: "Signed out", description: "See you tomorrow." });
     navigate("/");
@@ -209,7 +218,14 @@ export const AppLayout = () => {
         <ProfileSettingsModal
           key={user.id}
           open={showProfileSettings}
-          onOpenChange={setShowProfileSettings}
+          onOpenChange={(open) => {
+            setShowProfileSettings(open);
+            if (!open) {
+              const params = new URLSearchParams(location.search);
+              params.delete("settings");
+              navigate({ pathname: location.pathname, search: params.toString(), hash: location.hash }, { replace: true });
+            }
+          }}
           userId={user.id}
           userEmail={user.email ?? ""}
           isPaid={isPaid}

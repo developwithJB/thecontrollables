@@ -171,7 +171,7 @@ export default function GrowthPage({ surface = "growth" }: GrowthProps) {
         </div>
       </div>
 
-      <PageDataLoading userId={user.id} />
+      <PageDataLoading userId={user.id} queryNames={["all-reset-sessions", "reset-session", "dashboard-summary", "formation-practice-summary"]} />
 
       <ControllablePoweredBy controllables={["perspective", "habit", "environment"]} />
 

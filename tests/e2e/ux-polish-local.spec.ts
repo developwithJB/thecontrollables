@@ -77,6 +77,7 @@ test("settings route, header labels and account cleanup remain accessible", asyn
   await expect(page.getByLabel("Display Name",{exact:true})).toBeVisible();
   await page.getByRole("dialog").screenshot({path:"output/ux-2026-10-23/pr-b-settings.png",animations:"disabled"});
   await page.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(page).not.toHaveURL(/settings=profile/);
   await expect(
     page.getByRole("button", { name: "Active Goal", exact: true }),
   ).toBeVisible();
@@ -159,4 +160,25 @@ test("lazy route transition keeps a visible page skeleton", async ({
   await expect(
     page.getByText("Wellness Wellness", { exact: true }),
   ).toHaveCount(0);
+});
+
+test("sign-out confirms unsaved edits before clearing account state", async ({ page }) => {
+  await page.goto("/formation/today");
+  await page.getByRole("button", { name: "Open Awareness", exact: true }).click();
+  await page.getByLabel("One honest truth", { exact: true }).fill("Synthetic unsaved sign-out check.");
+  const key = "formation-test:00000000-0000-4000-8000-000000000001";
+  await page.evaluate(key => { localStorage.setItem(key, "private sentinel"); localStorage.setItem("controllables_focus_mode", "focused"); }, key);
+  await page.getByRole("button", { name: "Profile menu" }).click();
+  await page.getByRole("menuitem", { name: "Sign Out" }).click();
+  await expect(page.getByRole("alertdialog")).toBeVisible();
+  expect(await page.evaluate(key => localStorage.getItem(key), key)).toBe("private sentinel");
+  await page.getByRole("button", { name: "Keep editing" }).click();
+  await expect(page.getByLabel("One honest truth", { exact: true })).toHaveValue("Synthetic unsaved sign-out check.");
+  expect(await page.evaluate(key => localStorage.getItem(key), key)).toBe("private sentinel");
+  await page.getByRole("button", { name: "Profile menu" }).click();
+  await page.getByRole("menuitem", { name: "Sign Out" }).click();
+  await page.getByRole("button", { name: "Discard changes" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  expect(await page.evaluate(key => localStorage.getItem(key), key)).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem("controllables_focus_mode"))).toBe("focused");
 });

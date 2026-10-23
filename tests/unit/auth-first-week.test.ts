@@ -112,3 +112,16 @@ it("keeps invalid credentials generic with a visible prefilled password-recovery
  fireEvent.click(screen.getAllByRole("button",{name:"Forgot password?"})[0]);
  expect(await screen.findByRole("heading",{name:"Reset your password"})).toBeTruthy();expect(screen.getByLabelText("Email")).toHaveProperty("value","local@example.test");
 });
+it.each([true, false])("records never-saved settings only for an identified new signup (new=%s)", async isNew => {
+  const values = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => values.set(key, value),
+  });
+  mocks.signUp.mockResolvedValue({ data: { session: null, user: { id: "new-user", identities: isNew ? [{ provider: "email" }] : [] } }, error: null });
+  await submit();
+  await screen.findByTestId("signup-confirmation");
+  const marker = values.get("profile-settings-state:new-user");
+  if (isNew) expect(JSON.parse(marker!)).toEqual({ status: "not_saved", suggestedTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+  else expect(marker).toBeUndefined();
+});

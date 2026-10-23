@@ -8,10 +8,10 @@ const unscopedPrivateKeys = new Set([
   "read_along_progress_guest",
   "formation_selected_track_guest",
   "dashboard-intelligence-cache",
-  "controllables_focus_mode",
   "growth_event_buffer",
 ]);
-/** Browser caches are disposable UI state, never account or completion authority. */
+/** Clear per-user/per-date day acknowledgements on shared devices; retain focus mode and theme.
+ * Browser caches are disposable UI state, never account or completion authority. */
 export function clearSignedOutState(userId: string, stores?: Storage[]) {
   let targets = stores;
   try {

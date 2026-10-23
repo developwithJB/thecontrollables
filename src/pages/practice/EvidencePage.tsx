@@ -16,7 +16,7 @@ export default function EvidencePage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-5 pb-24">
-      <PageDataLoading userId={user.id} />
+      <PageDataLoading userId={user.id} queryNames={["covenant-state", "formation-practice-summary"]} />
       <header className="dashboard-os-surface rounded-[2rem] p-5 sm:p-6">
         <div className="pointer-events-none absolute inset-x-0 top-0 grid grid-cols-10 gap-px opacity-60">
           {Array.from({ length: 10 }).map((_, index) => (

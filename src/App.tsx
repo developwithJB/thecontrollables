@@ -1,3 +1,4 @@
+import { PracticeExitProvider } from "@/components/formation/PracticeExitProvider";
 import { OAuthReturnBridge } from "@/components/OAuthReturnBridge";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -211,8 +212,10 @@ const router = createBrowserRouter([
   { path: "*", element: (
     <ErrorBoundary>
       <TooltipProvider>
-        <OAuthReturnBridge />
-        <AppContent />
+        <PracticeExitProvider>
+          <OAuthReturnBridge />
+          <AppContent />
+        </PracticeExitProvider>
       </TooltipProvider>
     </ErrorBoundary>
   ) },
